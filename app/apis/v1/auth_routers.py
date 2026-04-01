@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, status
@@ -5,7 +6,9 @@ from fastapi.responses import JSONResponse as Response
 
 from app.core import config
 from app.core.config import Env
+from app.dependencies.security import get_request_token_payload
 from app.dtos.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
+from app.domains.health.schemas import ConsentRequest, ConsentResponse
 from app.services.auth import AuthService
 from app.services.jwt import JwtService
 
@@ -53,3 +56,18 @@ async def token_refresh(
     return Response(
         content=TokenRefreshResponse(access_token=str(access_token)).model_dump(), status_code=status.HTTP_200_OK
     )
+
+
+@auth_router.post("/consent", response_model=ConsentResponse, status_code=status.HTTP_201_CREATED)
+async def save_consent(
+    request: ConsentRequest,
+    _: Annotated[dict, Depends(get_request_token_payload)],
+) -> Response:
+    if not all(request.model_dump().values()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="모든 항목에 동의해야 합니다")
+
+    response = ConsentResponse(
+        detail="동의가 저장되었습니다.",
+        consented_at=datetime.fromisoformat("2026-04-01T10:00:00+09:00"),
+    )
+    return Response(content=response.model_dump(mode="json"), status_code=status.HTTP_201_CREATED)
