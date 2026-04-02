@@ -2,7 +2,24 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domains.health.enums import DataSource, EngagementState, MeasurementType, RiskLevel, UserGroup
+from app.domains.health.enums import (
+    AiConsentStatus,
+    AlcoholAmountLevel,
+    DataSource,
+    EngagementState,
+    ExerciseType,
+    MealBalanceLevel,
+    MealStatus,
+    MeasurementType,
+    MoodLevel,
+    NightsnackLevel,
+    RiskLevel,
+    SleepDurationBucket,
+    SleepQuality,
+    SweetdrinkLevel,
+    UserGroup,
+    VegetableIntakeLevel,
+)
 
 
 class ConsentRequest(BaseModel):
@@ -10,6 +27,7 @@ class ConsentRequest(BaseModel):
     privacy_policy: bool
     health_data_consent: bool
     disclaimer_consent: bool
+    marketing_consent: bool = False
 
 
 class ConsentResponse(BaseModel):
@@ -18,19 +36,23 @@ class ConsentResponse(BaseModel):
 
 
 class OnboardingSurveyRequest(BaseModel):
-    user_group: UserGroup
+    relation: str
     gender: str
     age_range: str
     height_cm: float
     weight_kg: float
-    conditions: list[str] = Field(default_factory=list)
     family_history: str
-    exercise_frequency: str
-    has_daily_vegetables: bool
-    smoking_status: str
+    conditions: list[str] = Field(default_factory=list)
+    treatments: list[str] | None = None
+    hba1c_range: str | None = None
+    fasting_glucose_range: str | None = None
+    exercise_frequency: str | None = None
     diet_habits: list[str] = Field(default_factory=list)
+    sleep_duration_bucket: SleepDurationBucket | None = None
+    alcohol_frequency: str | None = None
+    smoking_status: str | None = None
     goals: list[str] = Field(default_factory=list)
-    notification_preference: str
+    ai_consent: AiConsentStatus
 
 
 class OnboardingSurveyResponse(BaseModel):
@@ -38,8 +60,7 @@ class OnboardingSurveyResponse(BaseModel):
     user_group: UserGroup
     bmi: float
     initial_findrisc_score: int
-    risk_level: RiskLevel
-    engagement_state: EngagementState
+    initial_risk_level: RiskLevel
     access_token: str
     message: str
 
@@ -52,43 +73,29 @@ class OnboardingStatusResponse(BaseModel):
 
 class DailyLogItem(BaseModel):
     log_date: date
-    sleep: str | None = None
-    sleep_hours: float | None = None
-    breakfast: str | None = None
-    lunch: str | None = None
-    dinner: str | None = None
-    veggie: bool | None = None
-    foodcomp: str | None = None
-    sweetdrink: str | None = None
-    exercise: str | None = None
-    exercise_type: str | None = None
+    sleep_quality: SleepQuality | None = None
+    sleep_duration_bucket: SleepDurationBucket | None = None
+    breakfast_status: MealStatus | None = None
+    lunch_status: MealStatus | None = None
+    dinner_status: MealStatus | None = None
+    vegetable_intake_level: VegetableIntakeLevel | None = None
+    meal_balance_level: MealBalanceLevel | None = None
+    sweetdrink_level: SweetdrinkLevel | None = None
+    exercise_done: bool | None = None
+    exercise_type: ExerciseType | None = None
     exercise_minutes: int | None = None
-    walk: bool | None = None
+    walk_done: bool | None = None
     water_cups: int | None = None
-    nightsnack: str | None = None
+    nightsnack_level: NightsnackLevel | None = None
     took_medication: bool | None = None
-    mood: str | None = None
+    mood_level: MoodLevel | None = None
     alcohol_today: bool | None = None
-    alcohol_amount: str | None = None
-    sleep_source: str | None = None
-    breakfast_source: str | None = None
-    lunch_source: str | None = None
-    dinner_source: str | None = None
-    veggie_source: str | None = None
-    foodcomp_source: str | None = None
-    sweetdrink_source: str | None = None
-    exercise_source: str | None = None
-    walk_source: str | None = None
-    water_cups_source: str | None = None
-    nightsnack_source: str | None = None
-    mood_source: str | None = None
-    alcohol_source: str | None = None
-    took_medication_source: str | None = None
-    completion_rate: float
+    alcohol_amount_level: AlcoholAmountLevel | None = None
+    completion_rate: float | None = None
 
 
 class ChallengeSummaryItem(BaseModel):
-    challenge_id: int
+    user_challenge_id: int
     name: str
     emoji: str
     current_streak: int
@@ -110,6 +117,8 @@ class RiskLatestResponse(BaseModel):
     exercise_score: int
     lifestyle_score: int
     score_breakdown: dict[str, int] | None = None
+    top_positive_factors: list[str] = Field(default_factory=list)
+    top_risk_factors: list[str] = Field(default_factory=list)
     assessed_at: datetime
     assessment_period: str | None = None
 
@@ -126,24 +135,24 @@ class DailyHealthLogPatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     source: DataSource
-    sleep: str | None = None
-    sleep_hours: float | None = Field(default=None, ge=0, le=24)
-    breakfast: str | None = None
-    lunch: str | None = None
-    dinner: str | None = None
-    veggie: bool | None = None
-    foodcomp: str | None = None
-    sweetdrink: str | None = None
-    exercise: str | None = None
-    exercise_type: str | None = None
+    sleep_quality: SleepQuality | None = None
+    sleep_duration_bucket: SleepDurationBucket | None = None
+    breakfast_status: MealStatus | None = None
+    lunch_status: MealStatus | None = None
+    dinner_status: MealStatus | None = None
+    vegetable_intake_level: VegetableIntakeLevel | None = None
+    meal_balance_level: MealBalanceLevel | None = None
+    sweetdrink_level: SweetdrinkLevel | None = None
+    exercise_done: bool | None = None
+    exercise_type: ExerciseType | None = None
     exercise_minutes: int | None = Field(default=None, ge=0, le=480)
-    walk: bool | None = None
+    walk_done: bool | None = None
     water_cups: int | None = Field(default=None, ge=0, le=20)
-    nightsnack: str | None = None
+    nightsnack_level: NightsnackLevel | None = None
     took_medication: bool | None = None
-    mood: str | None = None
+    mood_level: MoodLevel | None = None
     alcohol_today: bool | None = None
-    alcohol_amount: str | None = None
+    alcohol_amount_level: AlcoholAmountLevel | None = None
 
 
 class DailyLogPatchResponse(BaseModel):
@@ -169,24 +178,24 @@ class DailyBatchEntry(BaseModel):
 
     date: date
     source: DataSource
-    sleep: str | None = None
-    sleep_hours: float | None = None
-    breakfast: str | None = None
-    lunch: str | None = None
-    dinner: str | None = None
-    veggie: bool | None = None
-    foodcomp: str | None = None
-    sweetdrink: str | None = None
-    exercise: str | None = None
-    exercise_type: str | None = None
+    sleep_quality: SleepQuality | None = None
+    sleep_duration_bucket: SleepDurationBucket | None = None
+    breakfast_status: MealStatus | None = None
+    lunch_status: MealStatus | None = None
+    dinner_status: MealStatus | None = None
+    vegetable_intake_level: VegetableIntakeLevel | None = None
+    meal_balance_level: MealBalanceLevel | None = None
+    sweetdrink_level: SweetdrinkLevel | None = None
+    exercise_done: bool | None = None
+    exercise_type: ExerciseType | None = None
     exercise_minutes: int | None = None
-    walk: bool | None = None
+    walk_done: bool | None = None
     water_cups: int | None = None
-    nightsnack: str | None = None
+    nightsnack_level: NightsnackLevel | None = None
     took_medication: bool | None = None
-    mood: str | None = None
+    mood_level: MoodLevel | None = None
     alcohol_today: bool | None = None
-    alcohol_amount: str | None = None
+    alcohol_amount_level: AlcoholAmountLevel | None = None
 
 
 class DailyBatchRequest(BaseModel):
@@ -227,12 +236,10 @@ class MeasurementListResponse(BaseModel):
 
 
 class AnalysisScorecard(BaseModel):
-    overall_score: int
     sleep_score: int
     diet_score: int
     exercise_score: int
     lifestyle_score: int
-    change_from_previous: int
 
 
 class AnalysisActivityRing(BaseModel):
@@ -267,22 +274,25 @@ class NutritionRadar(BaseModel):
 class AnalysisSummaryResponse(BaseModel):
     period: int
     scorecard: AnalysisScorecard
-    activity_ring: AnalysisActivityRing
-    heatmap: AnalysisHeatmap
-    risk_trend: list[RiskTrendItem]
-    nutrition_radar: NutritionRadar
-    glucose_summary: dict[str, str | int] | None
+    risk: dict[str, int | str]
+    top_positive_factors: list[str]
+    top_risk_factors: list[str]
+    activity_ring: AnalysisActivityRing | None = None
+    heatmap: AnalysisHeatmap | None = None
+    risk_trend: list[RiskTrendItem] | None = None
+    nutrition_radar: NutritionRadar | None = None
+    glucose_summary: dict[str, str | int] | None = None
     cached_at: datetime
 
 
 class DietTimelineItem(BaseModel):
     date: date
-    breakfast: str | None
-    lunch: str | None
-    dinner: str | None
-    veggie: bool | None
-    sweetdrink: str | None
-    foodcomp: str | None
+    breakfast_status: MealStatus | None
+    lunch_status: MealStatus | None
+    dinner_status: MealStatus | None
+    vegetable_intake_level: VegetableIntakeLevel | None
+    sweetdrink_level: SweetdrinkLevel | None
+    meal_balance_level: MealBalanceLevel | None
 
 
 class AnalysisDietResponse(BaseModel):
@@ -306,54 +316,29 @@ class AnalysisCoachResponse(BaseModel):
     weekly_report: dict[str, list[str] | int | str]
 
 
-class SettingsProfile(BaseModel):
-    email: str
+class SettingsResponse(BaseModel):
     nickname: str
-    user_group: UserGroup
-    created_at: date
-
-
-class SettingsNotifications(BaseModel):
     morning_reminder: bool
     evening_reminder: bool
     challenge_reminder: bool
     weekly_report: bool
     reminder_time_morning: time
     reminder_time_evening: time
-
-
-class SettingsAiFrequency(BaseModel):
     max_bundles_per_day: int
     preferred_times: list[str]
-
-
-class SettingsDataSummary(BaseModel):
-    total_logs: int
-    first_log_date: date | None
     last_export_at: datetime | None
 
 
-class SettingsResponse(BaseModel):
-    profile: SettingsProfile
-    notifications: SettingsNotifications
-    ai_frequency: SettingsAiFrequency
-    data: SettingsDataSummary
-
-
-class SettingsNotificationsPatch(BaseModel):
+class SettingsPatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    nickname: str | None = None
     morning_reminder: bool | None = None
     evening_reminder: bool | None = None
     challenge_reminder: bool | None = None
     weekly_report: bool | None = None
     reminder_time_morning: time | None = None
     reminder_time_evening: time | None = None
-
-
-class SettingsAiFrequencyPatch(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
     max_bundles_per_day: int | None = None
     preferred_times: list[str] | None = None
 
@@ -365,11 +350,10 @@ class DataExportRequest(BaseModel):
 
 
 class CronJobResponse(BaseModel):
-    processed_users: int
-    engagements_updated: int | None = None
-    findrisc_recalculated: int
-    challenges_judged: int | None = None
-    badges_awarded: int | None = None
-    reports_cached: int | None = None
-    engagements_upgraded: int | None = None
-    errors: int
+    detail: str
+    processed_users: int | None = None
+    generated_risk_rows: int | None = None
+    updated_engagement_rows: int | None = None
+    generated_weekly_reports: int | None = None
+    recalculated_risks: int | None = None
+    updated_challenges: int | None = None

@@ -7,14 +7,23 @@ class ChallengeCategory(StrEnum):
     SLEEP = "sleep"
     LIFESTYLE = "lifestyle"
     MEDICATION = "medication"
-    WEIGHT = "weight"
+
+
+class ChallengePhase(StrEnum):
+    ONBOARDING = "onboarding"
+    DAILY = "daily"
+    REPORT = "report"
+
+
+class ChallengeSelectionSource(StrEnum):
+    SYSTEM_RECOMMENDED = "system_recommended"
+    USER_SELECTED = "user_selected"
 
 
 class ChallengeStatus(StrEnum):
     ACTIVE = "active"
     COMPLETED = "completed"
     FAILED = "failed"
-    PAUSED = "paused"
 
 
 class CheckinStatus(StrEnum):
@@ -26,18 +35,3 @@ class CheckinStatus(StrEnum):
 class CheckinJudgeType(StrEnum):
     AUTO = "auto"
     MANUAL = "manual"
-
-
-class BadgeType(StrEnum):
-    FIRST_LOG = "first_log"
-    WEEK_STREAK = "week_streak"
-    MONTH_STREAK = "month_streak"
-    FIRST_CHALLENGE = "first_challenge"
-    FIVE_CHALLENGES = "five_challenges"
-    EXERCISE_MASTER = "exercise_master"
-    DIET_CHAMPION = "diet_champion"
-    SLEEP_HERO = "sleep_hero"
-    RISK_IMPROVER = "risk_improver"
-    PERFECT_WEEK = "perfect_week"
-    COMEBACK = "comeback"
-    ONBOARDING_COMPLETE = "onboarding_complete"

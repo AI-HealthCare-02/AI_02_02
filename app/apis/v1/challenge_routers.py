@@ -1,14 +1,18 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import ORJSONResponse as Response
 
 from app.dependencies.security import get_request_token_payload
-from app.domains.challenges.enums import ChallengeCategory, ChallengeStatus, CheckinJudgeType
+from app.domains.challenges.enums import (
+    ChallengeCategory,
+    ChallengeSelectionSource,
+    ChallengeStatus,
+    CheckinJudgeType,
+)
 from app.domains.challenges.schemas import (
     ActiveChallengeItem,
-    BadgeItem,
     ChallengeCalendarItem,
     ChallengeCalendarResponse,
     ChallengeCheckinRequest,
@@ -39,44 +43,27 @@ async def get_challenge_overview(_: Annotated[dict, Depends(get_request_token_pa
                 best_streak=7,
                 progress_pct=0.67,
                 started_at=date.fromisoformat("2026-03-25"),
-                target_days=30,
-                days_completed=20,
-                today_checked=False,
-            )
-        ],
-        completed=[
-            CompletedChallengeItem(
-                user_challenge_id=2,
-                name="매일 채소 먹기",
-                emoji="🥬",
-                completed_at=date.fromisoformat("2026-03-20"),
-                final_streak=14,
                 target_days=14,
+                days_completed=8,
+                today_checked=False,
+                selection_source=ChallengeSelectionSource.SYSTEM_RECOMMENDED,
             )
         ],
+        completed=[],
         recommended=[
             RecommendedChallengeItem(
                 template_id=5,
-                name="11시 전 취침",
-                emoji="😴",
+                code="sleep_after_11",
+                name="11시 이후 야식 금지",
+                emoji="🌙",
                 category=ChallengeCategory.SLEEP,
-                duration_days=14,
-                description="수면은 혈당 관리에 중요합니다.",
-                evidence="Cappuccio 2010",
+                default_duration_days=14,
+                description="늦은 야식 습관을 줄이기 위한 기본 챌린지입니다.",
+                evidence_summary="sleep hygiene guideline",
                 for_groups=[UserGroup.A, UserGroup.B, UserGroup.C],
             )
         ],
-        stats=ChallengeStats(total_streak=5, total_points=350, completed_count=3, level=2),
-        badges=[
-            BadgeItem(
-                id="first_log",
-                label="첫 건강 기록",
-                emoji="📝",
-                earned=True,
-                earned_at=datetime.fromisoformat("2026-03-15T00:00:00+09:00"),
-            ),
-            BadgeItem(id="month_streak", label="30일 연속", emoji="💎", earned=False, earned_at=None),
-        ],
+        stats=ChallengeStats(active_count=1, completed_count=0),
     )
     return Response(response.model_dump(mode="json"), status_code=status.HTTP_200_OK)
 
@@ -89,8 +76,8 @@ async def join_challenge(
     response = JoinChallengeResponse(
         user_challenge_id=3,
         template_id=template_id,
-        name="11시 전 취침",
         status=ChallengeStatus.ACTIVE,
+        selection_source=ChallengeSelectionSource.USER_SELECTED,
         started_at=date.fromisoformat("2026-04-01"),
         target_days=14,
     )

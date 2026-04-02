@@ -19,12 +19,10 @@ def _verify_cron_secret(authorization: str | None) -> None:
 async def run_daily_cron(authorization: Annotated[str | None, Header()] = None) -> Response:
     _verify_cron_secret(authorization)
     response = CronJobResponse(
-        processed_users=150,
-        engagements_updated=150,
-        findrisc_recalculated=145,
-        challenges_judged=85,
-        badges_awarded=3,
-        errors=0,
+        detail="daily cron completed",
+        processed_users=128,
+        generated_risk_rows=27,
+        updated_engagement_rows=104,
     )
     return Response(response.model_dump(mode="json"), status_code=status.HTTP_200_OK)
 
@@ -33,10 +31,9 @@ async def run_daily_cron(authorization: Annotated[str | None, Header()] = None) 
 async def run_weekly_cron(authorization: Annotated[str | None, Header()] = None) -> Response:
     _verify_cron_secret(authorization)
     response = CronJobResponse(
-        processed_users=150,
-        findrisc_recalculated=150,
-        reports_cached=148,
-        engagements_upgraded=5,
-        errors=0,
+        detail="weekly cron completed",
+        generated_weekly_reports=96,
+        recalculated_risks=96,
+        updated_challenges=41,
     )
     return Response(response.model_dump(mode="json"), status_code=status.HTTP_200_OK)

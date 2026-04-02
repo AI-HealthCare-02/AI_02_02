@@ -1,223 +1,86 @@
-# DANAA_project Handoff
+# Handoff
 
-작성일: 2026-04-01  
-목적: 새 프롬프트/새 세션에서도 지금까지의 결정사항과 진행 상태를 바로 이어가기 위한 인수인계 문서
+- 작성일: 2026-04-02
+- 목적: 다음 작업자가 현재 상태를 바로 이어받을 수 있게 정리
 
-## 프로젝트 방향
+## 1. 현재 상태
 
-- 프로젝트명: `DANAA_project`
-- 배포 우선순위: 웹 우선
-- 확장 방향: Android, iOS, MCP, 외부 챗봇 연동까지 고려
-- 아키텍처 방향: 도메인 중심 구조
-- DB 방향: MySQL이 아니라 PostgreSQL 채택
+프로젝트는 지금 "최종 DB/API 문서를 기준으로 협업 가능한 백엔드 구조를 재정리했고, health/onboarding/challenge 1차 명세 정렬까지 반영한 상태"입니다.
 
-## 현재 확정된 기본 스택
+완료한 것:
+
+- 최종 DB 문서 확정
+- 최종 API 문서 확정
+- 최종 DB 엑셀 확정
+- 앱 팩토리 도입
+- API 라우터 진입점 정리
+- 모델 등록 registry 분리
+- 공통 `TimestampedModel` 분리
+- onboarding / reports / settings 도메인 작업 위치 생성
+- health / onboarding / challenge 1차 명세 정렬
+- README / collaboration / migration / handoff 최신화
+
+아직 안 한 것:
+
+- repository 실제 DB 저장/조회 구현
+- `health` patch/batch 검증 로직 구현
+- `challenge` 서비스 실제 구현
+- Aerich migration 재생성
+- 테스트를 새 API 기준으로 교체
+
+## 2. 기준 문서
+
+- DB: [DANAA_DB명세최종확정안_2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/DANAA_DB%EB%AA%85%EC%84%B8%EC%B5%9C%EC%A2%85%ED%99%95%EC%A0%95%EC%95%88_2026-04-02.md)
+- API: [DANAA_API최종확정안_2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/DANAA_API%EC%B5%9C%EC%A2%85%ED%99%95%EC%A0%95%EC%95%88_2026-04-02.md)
+- 엑셀: [DANAA_DB명세확정안_엑셀_2026-04-02.xlsx](/C:/PycharmProjects/DANAA_project/docs/DANAA_DB%EB%AA%85%EC%84%B8%ED%99%95%EC%A0%95%EC%95%88_%EC%97%91%EC%85%80_2026-04-02.xlsx)
+- 구조 근거: [backend-baseline-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-baseline-2026-04-02.md)
+- 구조 변경 요약: [backend-restructure-summary-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-restructure-summary-2026-04-02.md)
+- 구현 정렬 1차: [backend-implementation-pass-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-implementation-pass-2026-04-02.md)
+
+## 3. 현재 스택
 
 - FastAPI
+- Pydantic v2
 - Tortoise ORM
+- Aerich
 - PostgreSQL
 - Redis
-- Docker Compose
-- Aerich
 - uv
-- Python 3.13
+- pytest
 
-관련 문서:
+## 4. 주요 코드 위치
 
-- [README.md](/abs/path/C:/PycharmProjects/final_project_template/README.md)
-- [docs/stack-decision.md](/abs/path/C:/PycharmProjects/final_project_template/docs/stack-decision.md)
-- [docs/platform-architecture.md](/abs/path/C:/PycharmProjects/final_project_template/docs/platform-architecture.md)
+- 앱 생성: [app/bootstrap.py](/C:/PycharmProjects/DANAA_project/app/bootstrap.py)
+- 앱 진입: [app/main.py](/C:/PycharmProjects/DANAA_project/app/main.py)
+- API 조립: [app/api/router.py](/C:/PycharmProjects/DANAA_project/app/api/router.py)
+- 모델 registry: [app/db/model_registry.py](/C:/PycharmProjects/DANAA_project/app/db/model_registry.py)
+- DB 설정: [app/db/databases.py](/C:/PycharmProjects/DANAA_project/app/db/databases.py)
 
-## 현재 프로젝트 구조
+도메인별 핵심 위치:
 
-핵심 구조는 기존 템플릿 중심 구조에서 도메인 중심 구조로 변경됨.
+- health: [app/domains/health](/C:/PycharmProjects/DANAA_project/app/domains/health)
+- challenges: [app/domains/challenges](/C:/PycharmProjects/DANAA_project/app/domains/challenges)
+- onboarding: [app/domains/onboarding](/C:/PycharmProjects/DANAA_project/app/domains/onboarding)
+- reports: [app/domains/reports](/C:/PycharmProjects/DANAA_project/app/domains/reports)
+- settings: [app/domains/settings](/C:/PycharmProjects/DANAA_project/app/domains/settings)
 
-- `app/domains/health`
-- `app/domains/challenges`
-- `app/integrations/mobile`
-- `app/integrations/chatbots`
-- `app/integrations/mcp`
-- `app/apis/v1/*`
+## 5. 다음 작업 순서
 
-구조 설명 문서:
+1. `app/domains/onboarding/repository.py`에 실제 저장 로직 연결
+2. `app/domains/health/service.py`, `app/domains/health/repository.py` 구현
+3. `app/apis/v1/health_routers.py`의 mock 응답을 실제 서비스 호출로 교체
+4. `app/domains/challenges/service.py`, `app/domains/challenges/repository.py` 구현
+5. Aerich migration 생성
+6. 테스트를 새 API 기준으로 수정
 
-- [docs/project-structure.md](/abs/path/C:/PycharmProjects/final_project_template/docs/project-structure.md)
+## 6. 검증 상태
 
-## 현재 반영된 도메인
+확인한 것:
 
-### Health
+- `compileall app` 통과
 
-- `HealthProfile`
-- `DailyHealthLog`
-- `PeriodicMeasurement`
-- `RiskAssessment`
-- `UserEngagement`
+막힌 것:
 
-### Challenges
+- `pytest`는 로컬 PostgreSQL이 `localhost:5432`에서 떠 있지 않아 실패
 
-- `ChallengeTemplate`
-- `UserChallenge`
-- `ChallengeCheckin`
-- `UserBadge`
-
-관련 코드:
-
-- [app/domains/health/models.py](/abs/path/C:/PycharmProjects/final_project_template/app/domains/health/models.py)
-- [app/domains/health/enums.py](/abs/path/C:/PycharmProjects/final_project_template/app/domains/health/enums.py)
-- [app/domains/challenges/models.py](/abs/path/C:/PycharmProjects/final_project_template/app/domains/challenges/models.py)
-- [app/domains/challenges/enums.py](/abs/path/C:/PycharmProjects/final_project_template/app/domains/challenges/enums.py)
-
-## DB/API 계약 관련 상태
-
-기존 설계서 기반으로 아래 문서를 정리해둠.
-
-- [docs/phase1-contract.md](/abs/path/C:/PycharmProjects/final_project_template/docs/phase1-contract.md)
-- [docs/collaboration-standards.md](/abs/path/C:/PycharmProjects/final_project_template/docs/collaboration-standards.md)
-
-추가로 팀원이 작성한 `api-contract.md`를 리뷰한 결과:
-
-- 전체 방향은 좋음
-- 그대로 확정하지 말고 수정 후 채택 권장
-
-리뷰 문서:
-
-- [docs/api-contract-review.md](/abs/path/C:/PycharmProjects/final_project_template/docs/api-contract-review.md)
-
-핵심 수정 권고 5개:
-
-1. JWT에 `user_group`를 넣는 방식 재검토
-2. cron이 미입력 건강데이터를 기본값으로 채우는 설계 제거
-3. 혈압 측정은 2회 호출이 아니라 1회 이벤트로 묶기
-4. `PATCH /health/daily/{date}`는 자유 dict보다 명시적 schema 사용
-5. `challenges/overview` 등 예시 JSON 파싱 가능 형태로 정리
-
-## 챌린지 상태
-
-추천 챌린지 10종을 기준으로 시드 파일 준비됨.
-
-파일:
-
-- [app/db/seeds/challenge_templates.py](/abs/path/C:/PycharmProjects/final_project_template/app/db/seeds/challenge_templates.py)
-
-## 프로젝트명 변경 상태
-
-내부 식별자는 상당수 `DANAA_project` 기준으로 변경함.
-
-반영된 항목:
-
-- [pyproject.toml](/abs/path/C:/PycharmProjects/final_project_template/pyproject.toml)
-- [README.md](/abs/path/C:/PycharmProjects/final_project_template/README.md)
-- [.env](/abs/path/C:/PycharmProjects/final_project_template/.env)
-- [/.env.example](/abs/path/C:/PycharmProjects/final_project_template/.env.example)
-- [uv.lock](/abs/path/C:/PycharmProjects/final_project_template/uv.lock)
-- `DOCKER_REPOSITORY=danaa-project`
-
-주의:
-
-- 현재 로컬 폴더명은 아직 `final_project_template`
-- 폴더명 자체 변경은 사용자가 직접 해야 함
-
-권장 순서:
-
-1. PyCharm 종료
-2. `C:\PycharmProjects\final_project_template`를 `C:\PycharmProjects\DANAA_project`로 변경
-3. PyCharm에서 새 폴더 다시 열기
-4. 필요하면 `.idea` 재생성
-5. 새 세션에서 남은 경로 참조 재점검
-
-## 환경변수 관련 상태
-
-문제 원인:
-
-- `.env`는 PostgreSQL로 이미 바뀌어 있었음
-- 그런데 현재 PyCharm/터미널 세션에 예전 MySQL 환경변수가 남아 있어서 실행이 계속 `mysql:3306`을 참조했음
-
-확인된 예전 세션 값:
-
-- `DB_HOST=mysql`
-- `DB_PORT=3306`
-- `DB_USER=ozcoding`
-- `DB_PASSWORD=pw1234`
-- `DB_NAME=ai_health`
-- `DB_EXPOSE_PORT=3306`
-- `DOCKER_REPOSITORY=ai-health`
-
-정리 결과:
-
-- Windows User 레벨 환경변수에는 해당 값이 없었음
-- 즉 PC 전체 설정 문제가 아니라 현재 실행 세션 문제였음
-
-실무 메모:
-
-- 새 터미널 또는 PyCharm 재시작 후 재확인 필요
-- 새 세션에서 `DB_*`가 다시 mysql이면 Run Configuration 또는 IDE 환경변수 주입 설정 확인 필요
-
-## Docker / DB / 테스트 검증 상태
-
-실제 검증 완료:
-
-- Docker daemon 정상 확인
-- PostgreSQL 컨테이너 실행 성공
-- Redis 실행 성공
-- PostgreSQL 기준 Aerich 초기 마이그레이션 생성 성공
-- DB 스키마 반영 성공
-- 챌린지 시드 실행 성공
-- 테스트 성공
-
-생성된 마이그레이션:
-
-- [app/db/migrations/models/0_20260401182144_init.py](/abs/path/C:/PycharmProjects/final_project_template/app/db/migrations/models/0_20260401182144_init.py)
-
-테스트 결과:
-
-- `9 passed`
-
-## PostgreSQL 전환 시 수정된 주요 파일
-
-- [app/db/databases.py](/abs/path/C:/PycharmProjects/final_project_template/app/db/databases.py)
-- [app/core/config.py](/abs/path/C:/PycharmProjects/final_project_template/app/core/config.py)
-- [docker-compose.yml](/abs/path/C:/PycharmProjects/final_project_template/docker-compose.yml)
-- [docker-compose.prod.yml](/abs/path/C:/PycharmProjects/final_project_template/docker-compose.prod.yml)
-- [app/tests/conftest.py](/abs/path/C:/PycharmProjects/final_project_template/app/tests/conftest.py)
-- [.github/workflows/checks.yml](/abs/path/C:/PycharmProjects/final_project_template/.github/workflows/checks.yml)
-
-추가 수정 메모:
-
-- `asyncpg`와 맞지 않는 `connect_timeout` 옵션은 제거함
-
-## 현재 남은 추천 작업
-
-우선순위 기준:
-
-1. 프로젝트 폴더명을 `DANAA_project`로 변경
-2. 팀원 API 문서를 기준으로 `최종 API 계약서 v1.1` 작성
-3. 그 계약서 기준으로 FastAPI router/schema 뼈대 반영
-4. 팀원용 협업 시작 가이드 공유
-5. git 커밋 및 원격 푸시
-
-## 팀원 공유 시 안내할 명령
-
-```bash
-uv sync --group app --group dev --frozen
-uv run aerich upgrade
-uv run python -m app.db.seeds.challenge_templates
-```
-
-개발 실행:
-
-```bash
-docker compose up -d postgres redis
-uv run uvicorn app.main:app --reload
-```
-
-## 새 세션에서 먼저 확인할 것
-
-1. 현재 루트 폴더명이 바뀌었는지 확인
-2. 새 터미널에서 `DB_HOST`, `DB_PORT`, `DB_USER`가 postgres 기준인지 확인
-3. Docker가 붙는지 확인
-4. `uv run pytest app/tests -q` 재실행
-5. `api-contract.md` 수정본 작업 시작
-
-## 새 세션용 한 줄 요약
-
-이 프로젝트는 `DANAA_project`로 전환 중이며, PostgreSQL 기반 구조/마이그레이션/시드/테스트는 이미 통과했다. 다음 핵심 작업은 폴더명 변경 후 팀 API 설계안을 수정 반영하여 최종 계약서와 라우터 뼈대를 만드는 것이다.
+즉, 현재 실패 원인은 문법 문제가 아니라 테스트용 DB 미기동입니다.

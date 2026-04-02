@@ -1,11 +1,12 @@
 [project]
 name = "DANAA_project"
 version = "0.1.0"
-description = "AI 헬스케어 파이널 프로젝트 예시용"
+description = "DANAA backend collaboration baseline"
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "cryptography>=46.0.3",
+    "email-validator>=2.3.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
     "python-dateutil>=2.9.0.post0",
@@ -19,7 +20,7 @@ ai = [
     "torch",
     "torchvision",
     "torchaudio",
-    "sentence-transformers>=5.2.0"
+    "sentence-transformers>=5.2.0",
 ]
 app = [
     "aerich>=0.9.2",
@@ -57,31 +58,27 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 
 [tool.ruff]
-# 기본 라인 길이 설정
 line-length = 120
 target-version = "py313"
 
 [tool.ruff.lint]
-# 사용할 린트 규칙들 선택
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "C90", # mccabe
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
-    "N",   # pep8-naming
+    "E",
+    "W",
+    "F",
+    "I",
+    "C90",
+    "B",
+    "UP",
+    "N",
 ]
 ignore = ["UP046", "E501"]
 
-# 특정 파일에서 무시할 규칙들
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "db/migrations/*" = ["ALL"]
 
 [tool.ruff.format]
-# 포매터 설정
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false

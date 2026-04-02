@@ -7,57 +7,85 @@ class UserGroup(StrEnum):
     C = "C"
 
 
-class FamilyHistoryLevel(StrEnum):
-    NONE = "none"
-    SECOND_DEGREE = "second_degree"
-    FIRST_DEGREE = "first_degree"
+class RelationType(StrEnum):
+    DIABETES = "diabetes"
+    PREDIABETES = "prediabetes"
+    FAMILY_HISTORY = "family_history"
+
+
+class AiConsentStatus(StrEnum):
+    AGREED = "agreed"
+    DECLINED = "declined"
 
 
 class SleepQuality(StrEnum):
-    GREAT = "great"
+    VERY_GOOD = "very_good"
     GOOD = "good"
-    AVERAGE = "average"
-    POOR = "poor"
-    VERY_POOR = "very_poor"
+    NORMAL = "normal"
+    BAD = "bad"
+    VERY_BAD = "very_bad"
+
+
+class SleepDurationBucket(StrEnum):
+    UNDER_5 = "under_5"
+    BETWEEN_5_6 = "between_5_6"
+    BETWEEN_6_7 = "between_6_7"
+    BETWEEN_7_8 = "between_7_8"
+    OVER_8 = "over_8"
 
 
 class MealStatus(StrEnum):
-    NONE = "none"
-    LIGHT = "light"
-    BALANCED = "balanced"
-    HEAVY = "heavy"
-
-
-class FoodComposition(StrEnum):
-    BALANCED = "balanced"
-    CARB_HEAVY = "carb_heavy"
-    PROTEIN_HEAVY = "protein_heavy"
-    VEGETABLE_HEAVY = "vegetable_heavy"
-    FAST_FOOD = "fast_food"
+    HEARTY = "hearty"
+    SIMPLE = "simple"
     SKIPPED = "skipped"
 
 
-class YesNoUnknown(StrEnum):
-    YES = "yes"
-    NO = "no"
-    UNKNOWN = "unknown"
+class VegetableIntakeLevel(StrEnum):
+    ENOUGH = "enough"
+    LITTLE = "little"
+    NONE = "none"
+
+
+class MealBalanceLevel(StrEnum):
+    BALANCED = "balanced"
+    CARB_HEAVY = "carb_heavy"
+    PROTEIN_VEG_HEAVY = "protein_veg_heavy"
+
+
+class SweetdrinkLevel(StrEnum):
+    NONE = "none"
+    ONE = "one"
+    TWO_PLUS = "two_plus"
 
 
 class ExerciseType(StrEnum):
     WALKING = "walking"
-    CARDIO = "cardio"
-    STRENGTH = "strength"
-    SPORTS = "sports"
-    STRETCHING = "stretching"
+    RUNNING = "running"
+    CYCLING = "cycling"
+    SWIMMING = "swimming"
+    GYM = "gym"
+    HOME_WORKOUT = "home_workout"
     OTHER = "other"
+
+
+class NightsnackLevel(StrEnum):
+    NONE = "none"
+    LIGHT = "light"
+    HEAVY = "heavy"
 
 
 class MoodLevel(StrEnum):
     VERY_GOOD = "very_good"
     GOOD = "good"
-    NEUTRAL = "neutral"
-    LOW = "low"
-    VERY_LOW = "very_low"
+    NORMAL = "normal"
+    STRESSED = "stressed"
+    VERY_STRESSED = "very_stressed"
+
+
+class AlcoholAmountLevel(StrEnum):
+    LIGHT = "light"
+    MODERATE = "moderate"
+    HEAVY = "heavy"
 
 
 class DataSource(StrEnum):
@@ -72,15 +100,20 @@ class MeasurementType(StrEnum):
     BLOOD_PRESSURE = "blood_pressure"
     HBA1C = "hba1c"
     FASTING_GLUCOSE = "fasting_glucose"
-    CHOLESTEROL = "cholesterol"
-    SMOKING_CHANGE = "smoking_change"
-    MEDICATION_CHANGE = "medication_change"
+    CHOLESTEROL_TOTAL = "cholesterol_total"
+    CHOLESTEROL_LDL = "cholesterol_ldl"
+    CHOLESTEROL_HDL = "cholesterol_hdl"
+
+
+class MeasurementSource(StrEnum):
+    MANUAL = "manual"
+    IMPORT = "import"
+    MEDICAL_CHECKUP = "medical_checkup"
 
 
 class RiskPeriodType(StrEnum):
     WEEKLY = "weekly"
     MONTHLY = "monthly"
-    QUARTERLY = "quarterly"
 
 
 class RiskLevel(StrEnum):

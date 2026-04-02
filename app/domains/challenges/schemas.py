@@ -1,8 +1,14 @@
-from datetime import date, datetime
+from datetime import date
 
 from pydantic import BaseModel
 
-from app.domains.challenges.enums import ChallengeCategory, ChallengeStatus, CheckinJudgeType, CheckinStatus
+from app.domains.challenges.enums import (
+    ChallengeCategory,
+    ChallengeSelectionSource,
+    ChallengeStatus,
+    CheckinJudgeType,
+    CheckinStatus,
+)
 from app.domains.health.enums import UserGroup
 
 
@@ -20,10 +26,12 @@ class ActiveChallengeItem(BaseModel):
     target_days: int
     days_completed: int
     today_checked: bool
+    selection_source: ChallengeSelectionSource
 
 
 class CompletedChallengeItem(BaseModel):
     user_challenge_id: int
+    template_id: int
     name: str
     emoji: str
     completed_at: date
@@ -33,28 +41,19 @@ class CompletedChallengeItem(BaseModel):
 
 class RecommendedChallengeItem(BaseModel):
     template_id: int
+    code: str
     name: str
     emoji: str
     category: ChallengeCategory
-    duration_days: int
+    default_duration_days: int
     description: str
-    evidence: str
+    evidence_summary: str | None = None
     for_groups: list[UserGroup]
 
 
 class ChallengeStats(BaseModel):
-    total_streak: int
-    total_points: int
+    active_count: int
     completed_count: int
-    level: int
-
-
-class BadgeItem(BaseModel):
-    id: str
-    label: str
-    emoji: str
-    earned: bool
-    earned_at: datetime | None
 
 
 class ChallengeOverviewResponse(BaseModel):
@@ -62,14 +61,13 @@ class ChallengeOverviewResponse(BaseModel):
     completed: list[CompletedChallengeItem]
     recommended: list[RecommendedChallengeItem]
     stats: ChallengeStats
-    badges: list[BadgeItem]
 
 
 class JoinChallengeResponse(BaseModel):
     user_challenge_id: int
     template_id: int
-    name: str
     status: ChallengeStatus
+    selection_source: ChallengeSelectionSource
     started_at: date
     target_days: int
 

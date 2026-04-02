@@ -5,7 +5,20 @@ from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import ORJSONResponse as Response
 
 from app.dependencies.security import get_request_token_payload
-from app.domains.health.enums import MeasurementType, UserGroup
+from app.domains.health.enums import (
+    DataSource,
+    ExerciseType,
+    MealBalanceLevel,
+    MealStatus,
+    MeasurementType,
+    MoodLevel,
+    NightsnackLevel,
+    SleepDurationBucket,
+    SleepQuality,
+    SweetdrinkLevel,
+    UserGroup,
+    VegetableIntakeLevel,
+)
 from app.domains.health.schemas import (
     DailyBatchRequest,
     DailyBatchResponse,
@@ -26,38 +39,24 @@ health_router = APIRouter(prefix="/health", tags=["health"])
 def _sample_daily_log(log_date: date, user_group: UserGroup) -> DailyLogItem:
     return DailyLogItem(
         log_date=log_date,
-        sleep="good",
-        sleep_hours=7.5,
-        breakfast="hearty",
-        lunch=None,
-        dinner=None,
-        veggie=True,
-        foodcomp="balanced",
-        sweetdrink="none",
-        exercise="yes",
-        exercise_type="walking",
+        sleep_quality=SleepQuality.GOOD,
+        sleep_duration_bucket=SleepDurationBucket.BETWEEN_7_8,
+        breakfast_status=MealStatus.HEARTY,
+        lunch_status=None,
+        dinner_status=None,
+        vegetable_intake_level=VegetableIntakeLevel.ENOUGH,
+        meal_balance_level=MealBalanceLevel.BALANCED,
+        sweetdrink_level=SweetdrinkLevel.NONE,
+        exercise_done=True,
+        exercise_type=ExerciseType.WALKING,
         exercise_minutes=30,
-        walk=True,
+        walk_done=True,
         water_cups=5,
-        nightsnack=None,
+        nightsnack_level=NightsnackLevel.NONE,
         took_medication=True if user_group == UserGroup.A else None,
-        mood=None,
-        alcohol_today=None,
-        alcohol_amount=None,
-        sleep_source="chat",
-        breakfast_source="chat",
-        lunch_source=None,
-        dinner_source=None,
-        veggie_source="direct",
-        foodcomp_source=None,
-        sweetdrink_source=None,
-        exercise_source="chat",
-        walk_source="direct",
-        water_cups_source="direct",
-        nightsnack_source=None,
-        mood_source=None,
-        alcohol_source=None,
-        took_medication_source="chat" if user_group == UserGroup.A else None,
+        mood_level=MoodLevel.NORMAL,
+        alcohol_today=False,
+        alcohol_amount_level=None,
         completion_rate=0.55,
     )
 
@@ -102,8 +101,13 @@ async def get_missing_daily_logs(
         missing_dates=[
             MissingDailyLogItem(
                 date=date.fromordinal(today.toordinal() - offset),
-                missing_fields=["lunch", "dinner", "exercise", "veggie", "water_cups"],
-                answered_fields=["sleep", "breakfast"],
+                missing_fields=[
+                    "lunch_status",
+                    "dinner_status",
+                    "exercise_done",
+                    "vegetable_intake_level",
+                ],
+                answered_fields=["sleep_quality", "breakfast_status"],
                 completion_rate=0.29,
             )
             for offset in range(1, min(days, 2) + 1)
@@ -159,6 +163,7 @@ async def get_measurements(
     to_date: date | None = Query(default=None),
     _: Annotated[dict, Depends(get_request_token_payload)] = None,
 ) -> Response:
+    _ = (from_date, to_date)
     measurement_type = type or MeasurementType.WEIGHT
     measured_at = datetime.fromisoformat("2026-04-01T08:00:00+09:00")
     if measurement_type == MeasurementType.BLOOD_PRESSURE:
@@ -178,7 +183,7 @@ async def get_measurements(
                 measurement_id=42,
                 measurement_type=measurement_type,
                 value=79.5,
-                unit="kg",
+                unit="kg" if measurement_type == MeasurementType.WEIGHT else "cm",
                 measured_at=measured_at,
             )
         ]

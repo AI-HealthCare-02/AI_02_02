@@ -3,13 +3,9 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
 from app.core import config
+from app.db.model_registry import MODEL_MODULES
 
-TORTOISE_APP_MODELS = [
-    "aerich.models",
-    "app.models.users",
-    "app.domains.health.models",
-    "app.domains.challenges.models",
-]
+TORTOISE_APP_MODELS = MODEL_MODULES
 
 TORTOISE_ORM = {
     "connections": {
