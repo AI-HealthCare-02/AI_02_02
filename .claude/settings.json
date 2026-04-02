@@ -10,6 +10,26 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/edit-guard.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/commit-guard.sh",
+            "timeout": 5000
+          }
+        ]
       }
     ]
   }
