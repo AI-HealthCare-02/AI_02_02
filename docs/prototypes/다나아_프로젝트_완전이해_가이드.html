@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 프로젝트 완전 이해 가이드</title>
+<style>
+  :root {
+    --primary: #4f46e5;
+    --primary-light: #818cf8;
+    --secondary: #06b6d4;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark: #0f172a;
+    --gray: #475569;
+    --light: #f1f5f9;
+    --white: #ffffff;
+    --card-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    --radius: 16px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.7;
+  }
+
+  /* ─── 내비게이션 ─── */
+  .topnav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(15,23,42,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid #1e293b;
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 8px;
+    height: 56px;
+    overflow-x: auto;
+  }
+  .topnav a {
+    color: #94a3b8; font-size: 13px; font-weight: 500;
+    text-decoration: none; padding: 6px 14px; border-radius: 8px;
+    white-space: nowrap; transition: all .2s;
+  }
+  .topnav a:hover, .topnav a.active { background: #1e293b; color: #e2e8f0; }
+  .nav-logo { font-size: 18px; font-weight: 700; color: #818cf8; margin-right: 16px; white-space: nowrap; }
+
+  /* ─── 히어로 ─── */
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0c4a6e 100%);
+    padding: 80px 24px 60px;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(79,70,229,.25); color: #818cf8;
+    border: 1px solid rgba(129,140,248,.3);
+    padding: 6px 18px; border-radius: 999px; font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .hero h1 { font-size: clamp(28px,5vw,52px); font-weight: 800; line-height: 1.2; margin-bottom: 16px; }
+  .hero h1 span { background: linear-gradient(90deg, #818cf8, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: #94a3b8; font-size: 18px; max-width: 640px; margin: 0 auto 32px; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .chip {
+    padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    border: 1px solid;
+  }
+  .chip-blue { background: rgba(6,182,212,.15); border-color: rgba(6,182,212,.4); color: #67e8f9; }
+  .chip-purple { background: rgba(129,140,248,.15); border-color: rgba(129,140,248,.4); color: #a5b4fc; }
+  .chip-green { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: #6ee7b7; }
+  .chip-orange { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.4); color: #fcd34d; }
+
+  /* ─── 섹션 공통 ─── */
+  section { padding: 64px 24px; max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 48px; }
+  .section-label { font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #818cf8; text-transform: uppercase; margin-bottom: 8px; }
+  .section-title { font-size: clamp(22px,3vw,36px); font-weight: 700; }
+  .section-desc { color: #94a3b8; margin-top: 8px; font-size: 16px; }
+  hr.divider { border: none; border-top: 1px solid #1e293b; }
+
+  /* ─── 카드 ─── */
+  .card {
+    background: #1e293b; border: 1px solid #334155;
+    border-radius: var(--radius); padding: 28px;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .card-title { font-size: 18px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .card-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .card-desc { color: #94a3b8; font-size: 14px; line-height: 1.8; }
+
+  /* ─── 그리드 ─── */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; }
+
+  /* ─── 마인드맵 ─── */
+  .mindmap-container {
+    background: #1e293b; border: 1px solid #334155; border-radius: var(--radius);
+    padding: 20px; overflow-x: auto;
+  }
+  .mindmap-svg { min-width: 900px; width: 100%; height: 620px; }
+
+  /* ─── 폴더 트리 ─── */
+  .tree { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; font-family: 'Fira Code', 'Consolas', monospace; font-size: 13px; }
+  .tree-line { padding: 3px 0; color: #94a3b8; }
+  .tree-folder { color: #818cf8; font-weight: 600; }
+  .tree-file { color: #e2e8f0; }
+  .tree-comment { color: #475569; }
+  .tree-important { color: #fbbf24; font-weight: 600; }
+  .tree-new { color: #34d399; font-weight: 600; }
+
+  /* ─── 플로우 다이어그램 ─── */
+  .flow { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .flow-node {
+    padding: 14px 28px; border-radius: 12px; font-weight: 600; font-size: 15px;
+    text-align: center; min-width: 200px; position: relative;
+  }
+  .flow-arrow { font-size: 22px; color: #475569; }
+  .flow-label { font-size: 12px; color: #475569; margin-top: 2px; }
+
+  /* ─── 코드 블록 ─── */
+  .code-block {
+    background: #0f172a; border: 1px solid #1e293b; border-radius: 10px;
+    padding: 20px; font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 13px; line-height: 1.8; overflow-x: auto;
+  }
+  .code-comment { color: #475569; }
+  .code-key { color: #818cf8; }
+  .code-val { color: #34d399; }
+  .code-str { color: #fbbf24; }
+  .code-num { color: #f87171; }
+
+  /* ─── 배지/태그 ─── */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .badge-purple { background: rgba(129,140,248,.2); color: #818cf8; }
+  .badge-cyan { background: rgba(6,182,212,.2); color: #22d3ee; }
+  .badge-green { background: rgba(16,185,129,.2); color: #34d399; }
+  .badge-yellow { background: rgba(251,191,36,.2); color: #fbbf24; }
+  .badge-red { background: rgba(239,68,68,.2); color: #f87171; }
+
+  /* ─── 타임라인 ─── */
+  .timeline { position: relative; padding-left: 40px; }
+  .timeline::before { content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; background: #1e293b; }
+  .tl-item { position: relative; margin-bottom: 32px; }
+  .tl-dot { position: absolute; left: -34px; top: 4px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid; }
+  .tl-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .tl-body { color: #94a3b8; font-size: 14px; }
+
+  /* ─── 테이블 ─── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tbl th { background: #0f172a; color: #818cf8; font-weight: 600; padding: 12px 16px; text-align: left; border-bottom: 1px solid #334155; }
+  .tbl td { padding: 12px 16px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  .tbl tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* ─── 체크리스트 ─── */
+  .checklist { list-style: none; }
+  .checklist li { padding: 10px 0; border-bottom: 1px solid #1e293b; font-size: 14px; color: #cbd5e1; display: flex; align-items: flex-start; gap: 10px; }
+  .checklist li:last-child { border-bottom: none; }
+  .chk-icon { flex-shrink: 0; margin-top: 2px; }
+
+  /* ─── 경고 박스 ─── */
+  .alert { border-radius: 10px; padding: 16px 20px; font-size: 14px; margin: 20px 0; display: flex; gap: 12px; align-items: flex-start; }
+  .alert-icon { font-size: 20px; flex-shrink: 0; }
+  .alert-purple { background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.3); }
+  .alert-green { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.3); }
+  .alert-yellow { background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.3); }
+  .alert-red { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); }
+
+  /* ─── 섹션 구분선 ─── */
+  .section-full { background: #111827; padding: 64px 24px; }
+  .section-full > .inner { max-width: 1200px; margin: 0 auto; }
+
+  /* ─── 아이콘 박스 ─── */
+  .icon-box { display: flex; gap: 20px; align-items: flex-start; padding: 20px; border-radius: 12px; background: #0f172a; border: 1px solid #1e293b; }
+  .icon-big { font-size: 36px; flex-shrink: 0; margin-top: 4px; }
+  .icon-box-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .icon-box-desc { color: #94a3b8; font-size: 14px; line-height: 1.7; }
+
+  /* ─── 스크롤 버튼 ─── */
+  .scroll-top { position: fixed; bottom: 24px; right: 24px; background: #4f46e5; border: none; color: white; border-radius: 50%; width: 44px; height: 44px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 16px rgba(79,70,229,.5); z-index: 50; }
+
+  /* ─── 태그 컬러 ─── */
+  .t-purple { color: #818cf8; } .t-cyan { color: #22d3ee; } .t-green { color: #34d399; }
+  .t-yellow { color: #fbbf24; } .t-red { color: #f87171; } .t-white { color: #f1f5f9; }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 26px; }
+    .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ 내비게이션 ═══ -->
+<nav class="topnav">
+  <span class="nav-logo">다나아</span>
+  <a href="#mindmap" class="active">마인드맵</a>
+  <a href="#overview">프로젝트 개요</a>
+  <a href="#structure">폴더 구조</a>
+  <a href="#claude-system">.claude 시스템</a>
+  <a href="#rules">Rules</a>
+  <a href="#hooks">Hooks</a>
+  <a href="#techstack">기술 스택</a>
+  <a href="#flow">데이터 흐름</a>
+  <a href="#eval">평가 기준</a>
+  <a href="#dev-workflow">개발 시작</a>
+  <a href="#claude-usage">Claude 사용법</a>
+  <a href="#learning-system">학습 노트</a>
+  <a href="#roadmap">로드맵</a>
+</nav>
+
+<!-- ═══ 히어로 ═══ -->
+<div class="hero">
+  <div class="hero-badge">코딩 초보자도 이해할 수 있는 완전 가이드</div>
+  <h1>다나아 프로젝트<br><span>완전 이해 가이드</span></h1>
+  <p>DA-NA-A — 만성질환(당뇨·고혈압) 생활습관 AI 건강관리 서비스<br>프로젝트 구조부터 Claude 자동화 시스템까지 한 번에 이해하기</p>
+  <div class="hero-chips">
+    <span class="chip chip-blue">FastAPI 백엔드</span>
+    <span class="chip chip-purple">Next.js 14 프론트엔드</span>
+    <span class="chip chip-green">당뇨 위험도 예측 AI</span>
+    <span class="chip chip-orange">Claude 자동화 시스템</span>
+  </div>
+</div>
+
+<!-- ═══ 마인드맵 ═══ -->
+<section id="mindmap">
+  <div class="section-header">
+    <div class="section-label">Mind Map</div>
+    <h2 class="section-title">프로젝트 전체 구조 한눈에 보기</h2>
+    <p class="section-desc">다나아 프로젝트의 모든 요소가 어떻게 연결되어 있는지 시각적으로 표현했습니다</p>
+  </div>
+  <div class="mindmap-container">
+    <svg class="mindmap-svg" viewBox="0 0 1100 620" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#334155"/>
+        </marker>
+      </defs>
+
+      <!-- 중앙 노드 -->
+      <g>
+        <ellipse cx="550" cy="310" rx="90" ry="46" fill="#4f46e5" opacity="0.9"/>
+        <text x="550" y="305" text-anchor="middle" fill="white" font-size="16" font-weight="800">다나아</text>
+        <text x="550" y="323" text-anchor="middle" fill="#c7d2fe" font-size="11">AI 건강관리 서비스</text>
+      </g>
+
+      <!-- ── 왼쪽: 프론트엔드 ── -->
+      <line x1="462" y1="295" x2="330" y2="210" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="190" y="180" width="140" height="50" rx="10" fill="#0e7490"/>
+      <text x="260" y="202" text-anchor="middle" fill="white" font-size="13" font-weight="700">프론트엔드</text>
+      <text x="260" y="218" text-anchor="middle" fill="#cffafe" font-size="11">Next.js 14</text>
+
+      <!-- 프론트 자식들 -->
+      <line x1="195" y1="210" x2="120" y2="165" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="40" y="148" width="82" height="34" rx="8" fill="#164e63"/>
+      <text x="81" y="169" text-anchor="middle" fill="#cffafe" font-size="11">랜딩 페이지</text>
+
+      <line x1="195" y1="215" x2="120" y2="218" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="40" y="203" width="82" height="34" rx="8" fill="#164e63"/>
+      <text x="81" y="224" text-anchor="middle" fill="#cffafe" font-size="11">온보딩 설문</text>
+
+      <line x1="195" y1="225" x2="120" y2="273" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="40" y="257" width="82" height="34" rx="8" fill="#164e63"/>
+      <text x="81" y="278" text-anchor="middle" fill="#cffafe" font-size="11">대시보드</text>
+
+      <!-- ── 왼쪽: 백엔드 ── -->
+      <line x1="462" y1="320" x2="330" y2="350" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="190" y="322" width="140" height="50" rx="10" fill="#1e40af"/>
+      <text x="260" y="344" text-anchor="middle" fill="white" font-size="13" font-weight="700">백엔드</text>
+      <text x="260" y="360" text-anchor="middle" fill="#bfdbfe" font-size="11">FastAPI</text>
+
+      <!-- 백엔드 자식들 -->
+      <line x1="195" y1="342" x2="120" y2="325" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="40" y="309" width="82" height="34" rx="8" fill="#1e3a8a"/>
+      <text x="81" y="330" text-anchor="middle" fill="#bfdbfe" font-size="11">인증 API</text>
+
+      <line x1="195" y1="350" x2="120" y2="358" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="40" y="343" width="82" height="34" rx="8" fill="#1e3a8a"/>
+      <text x="81" y="364" text-anchor="middle" fill="#bfdbfe" font-size="11">건강 API</text>
+
+      <line x1="195" y1="362" x2="120" y2="394" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="40" y="378" width="82" height="34" rx="8" fill="#1e3a8a"/>
+      <text x="81" y="399" text-anchor="middle" fill="#bfdbfe" font-size="11">예측 API</text>
+
+      <!-- ── 상단: 필수 3기능 ── -->
+      <line x1="520" y1="265" x2="420" y2="130" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="330" y="95" width="170" height="50" rx="10" fill="#7c3aed"/>
+      <text x="415" y="117" text-anchor="middle" fill="white" font-size="13" font-weight="700">필수 3기능</text>
+      <text x="415" y="133" text-anchor="middle" fill="#ddd6fe" font-size="11">평가 핵심</text>
+
+      <!-- 3기능 자식들 -->
+      <line x1="340" y1="112" x2="270" y2="80" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="185" y="60" width="90" height="38" rx="8" fill="#581c87"/>
+      <text x="230" y="78" text-anchor="middle" fill="#e9d5ff" font-size="11" font-weight="600">당뇨 예측</text>
+      <text x="230" y="90" text-anchor="middle" fill="#a78bfa" font-size="10">FINDRISC</text>
+
+      <line x1="415" y1="96" x2="415" y2="63" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="370" y="45" width="90" height="38" rx="8" fill="#581c87"/>
+      <text x="415" y="63" text-anchor="middle" fill="#e9d5ff" font-size="11" font-weight="600">건강 대시보드</text>
+      <text x="415" y="75" text-anchor="middle" fill="#a78bfa" font-size="10">7묶음 추적</text>
+
+      <line x1="490" y1="112" x2="545" y2="80" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="505" y="60" width="90" height="38" rx="8" fill="#581c87"/>
+      <text x="550" y="78" text-anchor="middle" fill="#e9d5ff" font-size="11" font-weight="600">생활습관 챌린지</text>
+      <text x="550" y="90" text-anchor="middle" fill="#a78bfa" font-size="10">P1/P2/P3</text>
+
+      <!-- ── 오른쪽: AI Worker ── -->
+      <line x1="638" y1="295" x2="750" y2="230" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="748" y="200" width="140" height="50" rx="10" fill="#065f46"/>
+      <text x="818" y="222" text-anchor="middle" fill="white" font-size="13" font-weight="700">AI Worker</text>
+      <text x="818" y="238" text-anchor="middle" fill="#a7f3d0" font-size="11">PyTorch + Scikit</text>
+
+      <!-- AI 자식들 -->
+      <line x1="885" y1="218" x2="950" y2="178" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="950" y="160" width="100" height="36" rx="8" fill="#064e3b"/>
+      <text x="1000" y="182" text-anchor="middle" fill="#a7f3d0" font-size="11">위험도 예측</text>
+
+      <line x1="885" y1="228" x2="950" y2="228" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="950" y="212" width="100" height="36" rx="8" fill="#064e3b"/>
+      <text x="1000" y="234" text-anchor="middle" fill="#a7f3d0" font-size="11">비동기 추론</text>
+
+      <!-- ── 오른쪽: .claude 시스템 ── -->
+      <line x1="638" y1="330" x2="750" y2="390" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="748" y="365" width="140" height="50" rx="10" fill="#92400e"/>
+      <text x="818" y="387" text-anchor="middle" fill="white" font-size="13" font-weight="700">.claude 시스템</text>
+      <text x="818" y="403" text-anchor="middle" fill="#fde68a" font-size="11">AI 코딩 보조</text>
+
+      <!-- claude 자식들 -->
+      <line x1="885" y1="382" x2="950" y2="345" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="950" y="328" width="100" height="36" rx="8" fill="#78350f"/>
+      <text x="1000" y="350" text-anchor="middle" fill="#fde68a" font-size="11">Rules (자동규칙)</text>
+
+      <line x1="885" y1="392" x2="950" y2="393" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="950" y="376" width="100" height="36" rx="8" fill="#78350f"/>
+      <text x="1000" y="398" text-anchor="middle" fill="#fde68a" font-size="11">Hooks (방어막)</text>
+
+      <line x1="885" y1="402" x2="950" y2="441" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="950" y="424" width="100" height="36" rx="8" fill="#78350f"/>
+      <text x="1000" y="446" text-anchor="middle" fill="#fde68a" font-size="11">Skills (/evaluate)</text>
+
+      <!-- ── 하단: 인프라 ── -->
+      <line x1="550" y1="355" x2="550" y2="440" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+      <rect x="440" y="438" width="220" height="50" rx="10" fill="#374151"/>
+      <text x="550" y="460" text-anchor="middle" fill="white" font-size="13" font-weight="700">인프라</text>
+      <text x="550" y="476" text-anchor="middle" fill="#d1d5db" font-size="11">Docker + Nginx + MySQL + Redis</text>
+
+      <!-- 인프라 자식들 -->
+      <line x1="460" y1="468" x2="380" y2="510" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="310" y="495" width="80" height="34" rx="8" fill="#1f2937"/>
+      <text x="350" y="516" text-anchor="middle" fill="#d1d5db" font-size="11">MySQL DB</text>
+
+      <line x1="510" y1="486" x2="490" y2="525" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="450" y="510" width="80" height="34" rx="8" fill="#1f2937"/>
+      <text x="490" y="531" text-anchor="middle" fill="#d1d5db" font-size="11">Redis 캐시</text>
+
+      <line x1="590" y1="486" x2="610" y2="525" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="570" y="510" width="80" height="34" rx="8" fill="#1f2937"/>
+      <text x="610" y="531" text-anchor="middle" fill="#d1d5db" font-size="11">Nginx 프록시</text>
+
+      <line x1="640" y1="468" x2="720" y2="510" stroke="#1e293b" stroke-width="1.5"/>
+      <rect x="680" y="495" width="80" height="34" rx="8" fill="#1f2937"/>
+      <text x="720" y="516" text-anchor="middle" fill="#d1d5db" font-size="11">AWS EC2</text>
+    </svg>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══ 프로젝트 개요 ═══ -->
+<section id="overview">
+  <div class="section-header">
+    <div class="section-label">Project Overview</div>
+    <h2 class="section-title">이 프로젝트가 뭔가요?</h2>
+    <p class="section-desc">코딩을 처음 하는 분도 이해할 수 있도록 쉽게 설명합니다</p>
+  </div>
+
+  <div class="alert alert-purple" style="max-width:800px;margin:0 auto 40px;">
+    <div class="alert-icon">💡</div>
+    <div>
+      <strong style="color:#818cf8">다나아(DA-NA-A)란?</strong><br>
+      만성질환(당뇨, 고혈압) 환자와 예방이 필요한 분들을 위한 <strong>AI 생활습관 건강관리 웹 서비스</strong>입니다.
+      매일 짧은 질문(하루 ~26초)으로 건강 데이터를 수집하고, AI가 당뇨 위험도를 예측해서 맞춤 챌린지를 제시합니다.
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background:rgba(79,70,229,.2)">🎯</div>
+        <span class="t-purple">필수 3기능</span>
+      </div>
+      <div class="card-desc">
+        <div style="margin-bottom:10px">📊 <strong style="color:#e2e8f0">당뇨 위험도 예측 모델</strong><br>
+        <span style="font-size:13px">설문 데이터 → AI가 FINDRISC 기반으로 위험도 계산</span></div>
+        <div style="margin-bottom:10px">📈 <strong style="color:#e2e8f0">건강 추적 대시보드</strong><br>
+        <span style="font-size:13px">운동·수면·식단 등 7묶음 10문항으로 생활습관 추적</span></div>
+        <div>🏆 <strong style="color:#e2e8f0">생활습관 챌린지</strong><br>
+        <span style="font-size:13px">P1/P2/P3 우선순위에 따라 맞춤 챌린지 제공</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background:rgba(6,182,212,.2)">🤖</div>
+        <span class="t-cyan">AI 채팅 수집 방식</span>
+      </div>
+      <div class="card-desc">
+        AI가 대화하듯 건강 질문을 삽입합니다.<br><br>
+        <strong style="color:#22d3ee">90분 쿨다운 규칙:</strong><br>
+        건강 질문 간격은 최소 90분. 사용자 피로도 최소화.<br><br>
+        <strong style="color:#22d3ee">3 터치포인트:</strong><br>
+        🌅 아침 7-9시 | ☀️ 점심 11:30-13:30 | 🌆 저녁 17-20시<br><br>
+        <strong style="color:#22d3ee">하루 총 응답 시간:</strong><br>
+        10문항 × ~2.6초 = <strong style="color:#e2e8f0">약 26초</strong>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background:rgba(16,185,129,.2)">📊</div>
+        <span class="t-green">의학적 근거</span>
+      </div>
+      <div class="card-desc">
+        모든 질문은 국제 논문으로 검증된 근거가 있습니다:
+        <div style="margin-top:12px">
+          <div style="padding:5px 0; border-bottom:1px solid #1e293b; font-size:13px">🏃 운동: 주 150분 → 당뇨 위험 <strong style="color:#34d399">58% 감소</strong> (DPP 2002)</div>
+          <div style="padding:5px 0; border-bottom:1px solid #1e293b; font-size:13px">😴 수면: 6시간 이하 → 위험 <strong style="color:#f87171">28% 증가</strong> (Cappuccio 2010)</div>
+          <div style="padding:5px 0; border-bottom:1px solid #1e293b; font-size:13px">🍚 백미: 과다섭취 → 위험 <strong style="color:#f87171">55% 증가</strong> (Hu 2012)</div>
+          <div style="padding:5px 0; font-size:13px">😔 우울감 → 당뇨 위험 <strong style="color:#f87171">60% 증가</strong> (Mezuk 2008)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══ 폴더 구조 ═══ -->
+<div class="section-full" id="structure">
+  <div class="inner">
+    <div class="section-header">
+      <div class="section-label">Directory Structure</div>
+      <h2 class="section-title">프로젝트 폴더 구조 완전 해설</h2>
+      <p class="section-desc">각 폴더와 파일이 무슨 역할을 하는지 설명합니다</p>
+    </div>
+
+    <div class="grid-2">
+      <!-- 전체 구조 -->
+      <div>
+        <h3 style="color:#818cf8;margin-bottom:16px;font-size:16px">📁 전체 디렉토리 트리</h3>
+        <div class="tree">
+          <div class="tree-line"><span class="tree-folder">마지막 웹프로젝트/</span> <span class="tree-comment">← 프로젝트 루트</span></div>
+          <div class="tree-line">├── <span class="tree-folder">app/</span> <span class="tree-comment">← FastAPI 백엔드</span></div>
+          <div class="tree-line">│   ├── main.py <span class="tree-comment">서버 시작점</span></div>
+          <div class="tree-line">│   ├── apis/ <span class="tree-comment">API 라우터</span></div>
+          <div class="tree-line">│   ├── models/ <span class="tree-comment">DB 테이블 정의</span></div>
+          <div class="tree-line">│   ├── services/ <span class="tree-comment">비즈니스 로직</span></div>
+          <div class="tree-line">│   ├── repositories/ <span class="tree-comment">DB 쿼리</span></div>
+          <div class="tree-line">│   ├── dtos/ <span class="tree-comment">요청/응답 데이터 형식</span></div>
+          <div class="tree-line">│   └── tests/ <span class="tree-comment">자동화 테스트</span></div>
+          <div class="tree-line">├── <span class="tree-folder">apps/web/</span> <span class="tree-comment">← Next.js 프론트엔드</span></div>
+          <div class="tree-line">│   ├── app/ <span class="tree-comment">페이지 파일들</span></div>
+          <div class="tree-line">│   ├── components/ <span class="tree-comment">재사용 컴포넌트</span></div>
+          <div class="tree-line">│   └── data/diabetes.js <span class="tree-comment">온보딩 설문 데이터 ✅</span></div>
+          <div class="tree-line">├── <span class="tree-folder">ai_worker/</span> <span class="tree-comment">← AI 모델 추론 워커</span></div>
+          <div class="tree-line">├── <span class="tree-folder">docs/</span></div>
+          <div class="tree-line">│   ├── planning/ <span class="tree-comment">기획 문서 (수정 금지)</span></div>
+          <div class="tree-line">│   └── prototypes/ <span class="tree-comment">HTML 시안 (수정 금지)</span></div>
+          <div class="tree-line">├── <span class="tree-folder">nginx/</span> <span class="tree-comment">웹 서버 설정</span></div>
+          <div class="tree-line">├── <span class="tree-folder">scripts/</span> <span class="tree-comment">배포 스크립트</span></div>
+          <div class="tree-line">├── <span class="tree-folder">envs/</span> <span class="tree-comment">환경변수 예시</span></div>
+          <div class="tree-line">├── <span class="tree-folder tree-important">archive/</span> <span class="tree-comment">⛔ 절대 수정 금지</span></div>
+          <div class="tree-line">├── <span class="tree-folder tree-new">.claude/</span> <span class="tree-comment">← Claude AI 설정 (신규)</span></div>
+          <div class="tree-line">├── docker-compose.yml <span class="tree-comment">컨테이너 설정</span></div>
+          <div class="tree-line">├── pyproject.toml <span class="tree-comment">Python 패키지 목록</span></div>
+          <div class="tree-line">└── <span class="tree-important">CLAUDE.md</span> <span class="tree-comment">Claude 프로젝트 안내서</span></div>
+        </div>
+      </div>
+
+      <!-- .claude 구조 -->
+      <div>
+        <h3 style="color:#fbbf24;margin-bottom:16px;font-size:16px">🤖 .claude/ 디렉토리 (신규 추가)</h3>
+        <div class="tree">
+          <div class="tree-line"><span class="tree-folder tree-new">.claude/</span> <span class="tree-comment">← Claude AI 자동화 시스템</span></div>
+          <div class="tree-line">├── <span class="tree-folder">rules/</span> <span class="tree-comment">자동 로드 규칙들</span></div>
+          <div class="tree-line">│   ├── <span class="tree-new">design-context.md</span></div>
+          <div class="tree-line">│   │   <span class="tree-comment">  → 설계/개발 작업 시 자동 로드</span></div>
+          <div class="tree-line">│   ├── <span class="tree-new">medical-domain.md</span></div>
+          <div class="tree-line">│   │   <span class="tree-comment">  → 항상 로드 (의료 표현 가드)</span></div>
+          <div class="tree-line">│   └── <span class="tree-new">eval-criteria.md</span></div>
+          <div class="tree-line">│       <span class="tree-comment">  → 백/프론트 작업 시 자동 로드</span></div>
+          <div class="tree-line">├── <span class="tree-folder">hooks/</span> <span class="tree-comment">자동 실행 스크립트</span></div>
+          <div class="tree-line">│   └── <span class="tree-new">write-guard.sh</span></div>
+          <div class="tree-line">│       <span class="tree-comment">  → Write 도구 사용 전 자동 실행</span></div>
+          <div class="tree-line">│       <span class="tree-comment">  → 50줄+ 파일 덮어쓰기 방지</span></div>
+          <div class="tree-line">├── <span class="tree-folder">skills/evaluate/</span></div>
+          <div class="tree-line">│   └── <span class="tree-new">SKILL.md</span></div>
+          <div class="tree-line">│       <span class="tree-comment">  → /evaluate 명령어로 품질 검증</span></div>
+          <div class="tree-line">└── <span class="tree-new">settings.json</span></div>
+          <div class="tree-line">    <span class="tree-comment">  → Hook 등록 설정</span></div>
+        </div>
+
+        <div class="alert alert-yellow" style="margin-top:16px">
+          <div class="alert-icon">⚠️</div>
+          <div style="font-size:13px">
+            <strong style="color:#fbbf24">작업 위치 규칙</strong><br>
+            프론트엔드 → <code style="color:#fde68a">apps/web/</code><br>
+            백엔드 → <code style="color:#fde68a">app/</code><br>
+            기획 문서, 프로토타입, archive → 📖 읽기만 (수정 금지)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ .claude 시스템 ═══ -->
+<section id="claude-system">
+  <div class="section-header">
+    <div class="section-label">Claude Code System</div>
+    <h2 class="section-title">.claude 시스템 완전 해설</h2>
+    <p class="section-desc">Claude가 코딩할 때 어떻게 자동으로 도와주는지 설명합니다</p>
+  </div>
+
+  <div class="alert alert-green" style="margin-bottom:40px">
+    <div class="alert-icon">🏗️</div>
+    <div>
+      <strong style="color:#34d399">비유: 건설 현장의 스마트 안전 시스템</strong><br>
+      기존 방식은 "안전 규칙 100가지 종이"를 줘서 작업자가 외워야 했습니다.<br>
+      이 시스템은 <strong>자동 감지 센서 + 안내판</strong>을 설치해서, 잘못된 작업을 하려 하면 자동으로 알려줍니다.
+    </div>
+  </div>
+
+  <!-- CLAUDE.md 설명 -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title">
+      <div class="card-icon" style="background:rgba(129,140,248,.2);font-size:24px">📋</div>
+      <div>
+        <span class="t-purple">CLAUDE.md</span> — 프로젝트 안내서
+        <div style="font-size:13px;font-weight:400;color:#94a3b8;margin-top:4px">Claude가 이 프로젝트에서 작업을 시작할 때 가장 먼저 읽는 파일</div>
+      </div>
+    </div>
+    <div class="grid-4" style="margin-top:20px">
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #1e293b">
+        <div style="font-size:12px;color:#818cf8;font-weight:700;margin-bottom:6px">섹션 1-3</div>
+        <div style="font-size:13px;color:#cbd5e1">프로젝트 개요, 작업 위치 규칙, 폴더 구조 설명</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #1e293b">
+        <div style="font-size:12px;color:#22d3ee;font-weight:700;margin-bottom:6px">섹션 4-6</div>
+        <div style="font-size:13px;color:#cbd5e1">Docker 실행 방법, 개발 서버 실행, Python 가상환경</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #334155;border-color:rgba(251,191,36,.4)">
+        <div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:6px">섹션 7 ⭐</div>
+        <div style="font-size:13px;color:#cbd5e1"><strong style="color:#fde68a">실행 규칙:</strong> "실행해줘" 라고 하기 전까지는 설명만! 코드 수정 금지</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #334155;border-color:rgba(52,211,153,.4)">
+        <div style="font-size:12px;color:#34d399;font-weight:700;margin-bottom:6px">섹션 7-1 ⭐ NEW</div>
+        <div style="font-size:13px;color:#cbd5e1"><strong style="color:#6ee7b7">체크리스트:</strong> 코딩 전 4가지 확인 (기존 파일 검색 → 네이밍 → import 관계 → 재사용)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #1e293b">
+        <div style="font-size:12px;color:#f87171;font-weight:700;margin-bottom:6px">섹션 8</div>
+        <div style="font-size:13px;color:#cbd5e1">의료 가드레일: "진단하세요" 금지, 민감정보 최소화</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #1e293b">
+        <div style="font-size:12px;color:#818cf8;font-weight:700;margin-bottom:6px">섹션 9-10</div>
+        <div style="font-size:13px;color:#cbd5e1">핵심 참조 파일 목록 + 설계 완료 상태 요약</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #1e293b">
+        <div style="font-size:12px;color:#22d3ee;font-weight:700;margin-bottom:6px">섹션 11</div>
+        <div style="font-size:13px;color:#cbd5e1">세션 종료 전 동기화 규칙 (새 데모/설계 변경 시 업데이트)</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #334155;border-color:rgba(251,191,36,.4)">
+        <div style="font-size:12px;color:#fbbf24;font-weight:700;margin-bottom:6px">섹션 12 ⭐ NEW</div>
+        <div style="font-size:13px;color:#cbd5e1">평가 기준: P95 3초 이내, 모델 지표 2개+, 비동기 처리, 배포 안정성</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 동작 원리 플로우 -->
+  <div class="card" style="margin-bottom:24px">
+    <div class="card-title">
+      <div class="card-icon" style="background:rgba(6,182,212,.2)">⚙️</div>
+      <span class="t-cyan">Claude가 프로젝트에 들어오면 벌어지는 일</span>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px">
+      <div style="background:#1e3a8a;border-radius:10px;padding:12px 18px;text-align:center;min-width:140px">
+        <div style="font-size:20px">1️⃣</div>
+        <div style="font-size:13px;font-weight:600;color:#bfdbfe;margin-top:4px">CLAUDE.md 읽기</div>
+        <div style="font-size:11px;color:#93c5fd;margin-top:2px">프로젝트 규칙 인식</div>
+      </div>
+      <div style="color:#475569;font-size:20px">→</div>
+      <div style="background:#164e63;border-radius:10px;padding:12px 18px;text-align:center;min-width:140px">
+        <div style="font-size:20px">2️⃣</div>
+        <div style="font-size:13px;font-weight:600;color:#cffafe;margin-top:4px">파일 작업 시작</div>
+        <div style="font-size:11px;color:#67e8f9;margin-top:2px">Rules 자동 로드</div>
+      </div>
+      <div style="color:#475569;font-size:20px">→</div>
+      <div style="background:#1e3050;border-radius:10px;padding:12px 18px;text-align:center;min-width:140px">
+        <div style="font-size:20px">3️⃣</div>
+        <div style="font-size:13px;font-weight:600;color:#e9d5ff;margin-top:4px">Write 도구 사용</div>
+        <div style="font-size:11px;color:#c4b5fd;margin-top:2px">Hook 자동 실행</div>
+      </div>
+      <div style="color:#475569;font-size:20px">→</div>
+      <div style="background:#065f46;border-radius:10px;padding:12px 18px;text-align:center;min-width:140px">
+        <div style="font-size:20px">4️⃣</div>
+        <div style="font-size:13px;font-weight:600;color:#a7f3d0;margin-top:4px">코드 완성 후</div>
+        <div style="font-size:11px;color:#6ee7b7;margin-top:2px">/evaluate 검증</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══ Rules 상세 ═══ -->
+<div class="section-full" id="rules">
+  <div class="inner">
+    <div class="section-header">
+      <div class="section-label">Rules System</div>
+      <h2 class="section-title">.claude/rules/ — 자동 로드 규칙</h2>
+      <p class="section-desc">파일을 열거나 수정할 때 자동으로 로드되는 설계 규칙들</p>
+    </div>
+
+    <div class="alert alert-purple" style="margin-bottom:32px">
+      <div class="alert-icon">🔍</div>
+      <div>
+        <strong style="color:#818cf8">Rules가 뭔가요?</strong><br>
+        예를 들어 <code style="color:#c4b5fd">app/api/health.py</code> 파일을 열면, Claude가 자동으로
+        <code style="color:#c4b5fd">eval-criteria.md</code>를 읽어서 "P95 3초 이내, 성능 지표 2개" 기준을 인식하고 작업합니다.
+        개발자가 매번 "이 규칙 지켜줘"라고 말하지 않아도 됩니다.
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:24px">
+
+      <!-- design-context.md -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(6,182,212,.2)">📐</div>
+          <div>
+            <span class="t-cyan">design-context.md</span>
+            <div style="font-size:12px;font-weight:400;margin-top:2px">
+              <span class="badge badge-cyan">docs/prototypes/**</span>
+              <span class="badge badge-cyan" style="margin-left:6px">apps/web/**</span>
+              <span class="badge badge-cyan" style="margin-left:6px">app/**</span>
+              작업 시 자동 로드
+            </div>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#22d3ee;margin-bottom:10px">포함 내용</div>
+            <ul style="list-style:none;font-size:13px;color:#94a3b8">
+              <li style="padding:5px 0;border-bottom:1px solid #1e293b">📚 핵심 설계 문서 3개 참조 경로</li>
+              <li style="padding:5px 0;border-bottom:1px solid #1e293b">⏰ 90분 쿨다운 규칙 및 4대 삽입 조건</li>
+              <li style="padding:5px 0;border-bottom:1px solid #1e293b">🕐 터치포인트: 아침/점심/저녁 시간</li>
+              <li style="padding:5px 0;border-bottom:1px solid #1e293b">📊 FINDRISC 100% 커버 (8개 변수)</li>
+              <li style="padding:5px 0;border-bottom:1px solid #1e293b">👥 5단계 참여 상태 머신</li>
+              <li style="padding:5px 0">🔢 데모 파일 버전 관리 규칙</li>
+            </ul>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#22d3ee;margin-bottom:10px">핵심 규칙 (절대 변경 금지)</div>
+            <div class="code-block" style="font-size:12px">
+<span class="code-comment"># 90분 쿨다운</span>
+건강질문 간격 = 최소 90분
+사용자 설정 = 1h / 1.5h / 2h
+
+<span class="code-comment"># 4대 삽입 조건 (모두 충족)</span>
+✓ 90분 경과
+✓ 유효 윈도우 (터치포인트 내)
+✓ 사용자 미응답
+✓ 비야간 (22-07시 제외)
+
+<span class="code-comment"># FINDRISC 변수 (8개 전부)</span>
+나이/BMI/허리둘레/운동/채소
+과일/고혈압약/혈당이상/가족력</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- medical-domain.md -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(239,68,68,.2)">🏥</div>
+          <div>
+            <span class="t-red">medical-domain.md</span>
+            <div style="font-size:12px;font-weight:400;margin-top:2px">
+              <span class="badge badge-red">항상 로드</span>
+              (경로 제한 없음 — 모든 작업에 적용)
+            </div>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:10px">의료 표현 가이드</div>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1;background:#2d0a0a;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px">
+                <div style="font-size:12px;font-weight:700;color:#f87171;margin-bottom:8px">⛔ 절대 금지</div>
+                <div style="font-size:12px;color:#fca5a5">• "~해야 합니다"<br>• "진단: …"<br>• "처방: …"<br>• "치료해야 합니다"</div>
+              </div>
+              <div style="flex:1;background:#0a2d1a;border:1px solid rgba(16,185,129,.3);border-radius:8px;padding:12px">
+                <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:8px">✅ 허용 표현</div>
+                <div style="font-size:12px;color:#6ee7b7">• "~을 권장합니다"<br>• "전문가 상담 추천"<br>• "참고 정보입니다"<br>• "생활습관 개선"</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:10px">Phase별 예측 정확도 목표</div>
+            <table class="tbl" style="font-size:12px">
+              <tr><th>Phase</th><th>AUC 목표</th><th>특이사항</th></tr>
+              <tr><td>Phase 1 MVP</td><td style="color:#34d399">~0.80</td><td>FINDRISC 수준</td></tr>
+              <tr><td>Phase 2</td><td style="color:#34d399">0.82-0.85</td><td>KDRS 추가</td></tr>
+              <tr><td>Phase 3</td><td style="color:#34d399">0.88-0.90</td><td>혈액검사 포함</td></tr>
+            </table>
+            <div style="font-size:12px;color:#94a3b8;margin-top:10px">
+              💡 AUC = 0~1 척도. 0.8 이상이면 "임상적으로 유용한 수준"입니다.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- eval-criteria.md -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(245,158,11,.2)">🎯</div>
+          <div>
+            <span class="t-yellow">eval-criteria.md</span> <span class="badge badge-yellow" style="margin-left:8px">NEW</span>
+            <div style="font-size:12px;font-weight:400;margin-top:2px">
+              <span class="badge badge-yellow">app/**</span>
+              <span class="badge badge-yellow" style="margin-left:6px">apps/web/**</span>
+              작업 시 자동 로드
+            </div>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top:16px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:10px">기술 검증 기준</div>
+            <ul class="checklist">
+              <li><span class="chk-icon">⏱️</span><div><strong style="color:#fde68a">P95 latency 3초 이내</strong><br><span>느린 상위 5%도 3초 안에 응답해야 함</span></div></li>
+              <li><span class="chk-icon">📊</span><div><strong style="color:#fde68a">모델 성능 지표 2개 이상</strong><br><span>AUC 하나만으론 부족. F1, Recall 등 추가 필요</span></div></li>
+              <li><span class="chk-icon">⚡</span><div><strong style="color:#fde68a">비동기 처리 전후 수치</strong><br><span>AI 추론 비동기 적용 전후 성능 비교 기록</span></div></li>
+              <li><span class="chk-icon">🔐</span><div><strong style="color:#fde68a">인증/인가 구조 문서화</strong><br><span>JWT 토큰 방식 설명 및 권한 분리</span></div></li>
+            </ul>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:10px">증빙 요구사항</div>
+            <ul class="checklist">
+              <li><span class="chk-icon">📝</span><div><strong style="color:#fde68a">기술 선정 근거</strong><br><span>"왜 FastAPI? → 비동기, 빠름, Next.js와 궁합" 형식으로</span></div></li>
+              <li><span class="chk-icon">🗺️</span><div><strong style="color:#fde68a">아키텍처 다이어그램</strong><br><span>서비스 간 연결 관계를 그림으로</span></div></li>
+              <li><span class="chk-icon">🔒</span><div><strong style="color:#fde68a">민감정보 로그 금지</strong><br><span>혈압·혈당·건강기록이 로그에 남으면 안 됨</span></div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Hooks 상세 ═══ -->
+<section id="hooks">
+  <div class="section-header">
+    <div class="section-label">Hooks System</div>
+    <h2 class="section-title">.claude/hooks/ — 자동 방어 메커니즘</h2>
+    <p class="section-desc">Claude가 실수로 코드를 망가뜨리는 것을 자동으로 방지합니다</p>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <h3 style="color:#fbbf24;margin-bottom:16px;font-size:16px">🛡️ write-guard.sh 작동 원리</h3>
+
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start">
+        <div style="background:#1e293b;border-left:3px solid #818cf8;border-radius:8px;padding:14px 18px;width:100%">
+          <div style="font-size:13px;font-weight:700;color:#818cf8">① 트리거</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px">Claude가 Write 도구를 사용하려 할 때마다 자동 실행</div>
+        </div>
+        <div style="color:#475569;font-size:18px;text-align:left;padding-left:10px">↓</div>
+        <div style="background:#1e293b;border-left:3px solid #22d3ee;border-radius:8px;padding:14px 18px;width:100%">
+          <div style="font-size:13px;font-weight:700;color:#22d3ee">② 파일 확인</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px">대상 파일이 존재하는지, 몇 줄인지 확인</div>
+        </div>
+        <div style="color:#475569;font-size:18px;text-align:left;padding-left:10px">↓</div>
+        <div style="background:#1e293b;border-left:3px solid #34d399;border-radius:8px;padding:14px 18px;width:100%">
+          <div style="font-size:13px;font-weight:700;color:#34d399">③-A: 50줄 미만</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px">✅ 그냥 진행 (새 파일이거나 작은 파일)</div>
+        </div>
+        <div style="background:#1e293b;border-left:3px solid #f87171;border-radius:8px;padding:14px 18px;width:100%">
+          <div style="font-size:13px;font-weight:700;color:#f87171">③-B: 50줄 이상</div>
+          <div style="font-size:13px;color:#94a3b8;margin-top:4px">⚠️ "정말 전체 교체가 필요한가요?" 확인 요청<br>사용자가 승인해야만 진행</div>
+        </div>
+      </div>
+
+      <div class="alert alert-green" style="margin-top:20px">
+        <div class="alert-icon">✅</div>
+        <div style="font-size:13px">
+          <strong style="color:#34d399">왜 50줄 기준인가?</strong><br>
+          50줄 이상 파일 = 중요한 기존 코드가 많이 있는 파일. 이걸 Write로 전체 교체하면 기존 코드를 날릴 위험이 있습니다. Edit(부분 수정)을 쓰는 게 훨씬 안전합니다.
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="color:#fbbf24;margin-bottom:16px;font-size:16px">🔧 write-guard.sh 코드 분석</h3>
+      <div class="code-block" style="font-size:12px">
+<span class="code-comment">#!/bin/bash</span>
+<span class="code-comment"># Write 도구 사용 전 자동 실행</span>
+<span class="code-comment"># jq 없이 순수 bash로 작성 (Windows 호환)</span>
+
+<span class="code-comment"># stdin에서 JSON 읽기</span>
+<span class="code-key">INPUT</span>=<span class="code-str">""</span>
+<span class="code-key">while</span> IFS= read -r line || [ -n "$line" ]; <span class="code-key">do</span>
+  INPUT="<span class="code-val">${INPUT}${line}</span>"
+<span class="code-key">done</span>
+
+<span class="code-comment"># 파일 경로 추출 (jq 없이 grep으로)</span>
+<span class="code-key">FILE_PATH</span>=$(echo "$INPUT" | grep -oP
+  '"file_path"\s*:\s*"[^"]*"' | ...)
+
+<span class="code-comment"># 파일 존재 + 줄 수 확인</span>
+<span class="code-key">if</span> [ -f "<span class="code-val">$FILE_PATH</span>" ]; <span class="code-key">then</span>
+  <span class="code-key">LINE_COUNT</span>=$(wc -l < "<span class="code-val">$FILE_PATH</span>")
+
+  <span class="code-key">if</span> [ "$LINE_COUNT" -gt <span class="code-num">50</span> ]; <span class="code-key">then</span>
+    <span class="code-comment"># ask = 사용자에게 확인 요청</span>
+    echo '{"hookSpecificOutput":{
+      "permissionDecision":"<span class="code-val">ask</span>",
+      "permissionDecisionReason":"<span class="code-val">...</span>"}}'
+  <span class="code-key">fi</span>
+<span class="code-key">fi</span></div>
+
+      <div class="alert alert-purple" style="margin-top:16px">
+        <div class="alert-icon">🪟</div>
+        <div style="font-size:13px">
+          <strong style="color:#818cf8">Windows 호환성 최적화</strong><br>
+          기존 설계의 Hook은 <code>jq</code>(JSON 파서)를 사용했는데, Windows Git Bash에는 jq가 없어서 실패했습니다.
+          이 버전은 순수 bash grep으로 대체했습니다.
+        </div>
+      </div>
+
+      <h3 style="color:#fbbf24;margin-top:24px;margin-bottom:12px;font-size:16px">⚙️ settings.json — Hook 등록</h3>
+      <div class="code-block" style="font-size:12px">
+{
+  <span class="code-key">"hooks"</span>: {
+    <span class="code-str">"PreToolUse"</span>: [  <span class="code-comment">← 도구 사용 직전</span>
+      {
+        <span class="code-key">"matcher"</span>: <span class="code-str">"Write"</span>,  <span class="code-comment">← Write만 감시</span>
+        <span class="code-key">"hooks"</span>: [{
+          <span class="code-key">"type"</span>: <span class="code-str">"command"</span>,
+          <span class="code-key">"command"</span>: <span class="code-str">"bash .claude/hooks/write-guard.sh"</span>,
+          <span class="code-key">"timeout"</span>: <span class="code-num">5000</span>  <span class="code-comment">← 5초 제한</span>
+        }]
+      }
+    ]
+  }
+}</div>
+    </div>
+  </div>
+
+  <!-- /evaluate 스킬 -->
+  <div class="card" style="margin-top:32px">
+    <div class="card-title">
+      <div class="card-icon" style="background:rgba(16,185,129,.2)">🔬</div>
+      <span class="t-green">/evaluate 스킬 — 코드 품질 자동 검증</span>
+    </div>
+    <div style="font-size:13px;color:#94a3b8;margin-bottom:20px">
+      구현이 완료되면 <code style="background:#0f172a;padding:2px 8px;border-radius:4px;color:#34d399">/evaluate</code> 명령어를 입력하세요.
+      격리된 에이전트가 최근 변경 파일을 자동으로 검증합니다.
+    </div>
+    <div class="grid-4">
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid rgba(16,185,129,.3)">
+        <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:8px">① 기존 패턴 준수</div>
+        <div style="font-size:12px;color:#94a3b8">네이밍 일관성, 에러 핸들링 패턴, import 구조, 중복 코드 여부</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid rgba(16,185,129,.3)">
+        <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:8px">② 의존성 안전</div>
+        <div style="font-size:12px;color:#94a3b8">수정 파일을 import하는 곳 영향, 삭제된 export 사용 여부</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid rgba(16,185,129,.3)">
+        <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:8px">③ 도메인 규칙</div>
+        <div style="font-size:12px;color:#94a3b8">의료 표현, 면책 문구, 건강 데이터 최소 수집 원칙</div>
+      </div>
+      <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid rgba(16,185,129,.3)">
+        <div style="font-size:12px;font-weight:700;color:#34d399;margin-bottom:8px">④ 보안</div>
+        <div style="font-size:12px;color:#94a3b8">하드코딩 비밀번호, SQL 인젝션, XSS 가능성, API 키 노출</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:16px;font-size:13px">
+      <span>📊 결과 형식:</span>
+      <span style="background:rgba(16,185,129,.15);color:#34d399;padding:3px 12px;border-radius:6px;border:1px solid rgba(16,185,129,.3)">✅ PASS</span>
+      <span style="background:rgba(251,191,36,.15);color:#fbbf24;padding:3px 12px;border-radius:6px;border:1px solid rgba(251,191,36,.3)">⚠️ WARN (파일:줄번호)</span>
+      <span style="background:rgba(239,68,68,.15);color:#f87171;padding:3px 12px;border-radius:6px;border:1px solid rgba(239,68,68,.3)">❌ FAIL (수정 방향)</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══ 기술 스택 ═══ -->
+<div class="section-full" id="techstack">
+  <div class="inner">
+    <div class="section-header">
+      <div class="section-label">Tech Stack</div>
+      <h2 class="section-title">기술 스택 완전 해설</h2>
+      <p class="section-desc">각 기술이 무엇이고 왜 사용하는지 초보자 눈높이로 설명합니다</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(6,182,212,.2)">🌐</div>
+          <span class="t-cyan">프론트엔드: Next.js 14</span>
+        </div>
+        <div class="card-desc">
+          <strong style="color:#e2e8f0">Next.js란?</strong><br>
+          React를 기반으로 만든 웹 프레임워크. 쉽게 말하면 "웹사이트의 화면을 만드는 도구"입니다.<br><br>
+          <strong style="color:#22d3ee">주요 파일 구조:</strong>
+          <div class="code-block" style="margin-top:10px;font-size:12px">
+apps/web/app/
+├── page.js        <span class="code-comment">← 홈/랜딩 페이지</span>
+├── layout.js      <span class="code-comment">← 공통 레이아웃</span>
+└── onboarding/    <span class="code-comment">← 설문 페이지</span>
+    └── diabetes/  <span class="code-comment">← 당뇨 온보딩</span></div>
+          <div style="margin-top:12px;font-size:13px">
+            <span class="badge badge-cyan">React 18.3.0</span>
+            <span class="badge badge-cyan" style="margin-left:6px">Next.js 14.2.0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(79,70,229,.2)">⚡</div>
+          <span class="t-purple">백엔드: FastAPI</span>
+        </div>
+        <div class="card-desc">
+          <strong style="color:#e2e8f0">FastAPI란?</strong><br>
+          Python으로 만든 API 서버 프레임워크. "프론트엔드의 요청에 응답하는 서버"입니다.<br><br>
+          <strong style="color:#818cf8">레이어드 아키텍처:</strong>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="padding:5px;background:#0f172a;border-radius:6px;margin-bottom:4px;color:#e2e8f0">🌐 <strong>apis/</strong> — API 진입점 (라우터)</div>
+            <div style="padding:5px;background:#0f172a;border-radius:6px;margin-bottom:4px;color:#e2e8f0">⚙️ <strong>services/</strong> — 비즈니스 로직</div>
+            <div style="padding:5px;background:#0f172a;border-radius:6px;margin-bottom:4px;color:#e2e8f0">🗄️ <strong>repositories/</strong> — DB 쿼리</div>
+            <div style="padding:5px;background:#0f172a;border-radius:6px;color:#e2e8f0">📊 <strong>models/</strong> — DB 테이블 정의</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(16,185,129,.2)">🧠</div>
+          <span class="t-green">AI Worker: PyTorch</span>
+        </div>
+        <div class="card-desc">
+          <strong style="color:#e2e8f0">AI Worker란?</strong><br>
+          무거운 AI 계산을 FastAPI와 분리해서 처리하는 별도 서버입니다.<br><br>
+          <strong style="color:#34d399">사용 라이브러리:</strong>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="padding:5px;background:#0f172a;border-radius:6px;margin-bottom:4px;color:#e2e8f0">🔥 <strong>PyTorch</strong> — 딥러닝 모델</div>
+            <div style="padding:5px;background:#0f172a;border-radius:6px;margin-bottom:4px;color:#e2e8f0">📐 <strong>Scikit-learn</strong> — 기계학습 알고리즘</div>
+            <div style="padding:5px;background:#0f172a;border-radius:6px;margin-bottom:4px;color:#e2e8f0">💬 <strong>Sentence-Transformers</strong> — 텍스트 임베딩</div>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:#94a3b8">Redis를 통해 FastAPI와 비동기 통신</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(245,158,11,.2)">🐳</div>
+          <span class="t-yellow">인프라: Docker</span>
+        </div>
+        <div class="card-desc">
+          <strong style="color:#e2e8f0">Docker란?</strong><br>
+          서비스들을 독립적인 컨테이너에 담아 실행하는 도구. 어디서나 같은 환경에서 실행 가능합니다.<br><br>
+          <strong style="color:#fbbf24">5개 서비스:</strong>
+          <table class="tbl" style="margin-top:10px;font-size:12px">
+            <tr><th>서비스</th><th>역할</th><th>포트</th></tr>
+            <tr><td>MySQL</td><td>데이터베이스</td><td>3306</td></tr>
+            <tr><td>Redis</td><td>캐시/메시지큐</td><td>6379</td></tr>
+            <tr><td>FastAPI</td><td>API 서버</td><td>8000</td></tr>
+            <tr><td>AI-Worker</td><td>AI 추론</td><td>-</td></tr>
+            <tr><td>Nginx</td><td>리버스 프록시</td><td>80</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(239,68,68,.2)">🔐</div>
+          <span class="t-red">인증: JWT + bcrypt</span>
+        </div>
+        <div class="card-desc">
+          <strong style="color:#e2e8f0">JWT란?</strong><br>
+          로그인 후 발급받는 "디지털 신분증"입니다. 서버에 요청할 때마다 이 토큰을 보내서 "나는 누구입니다"를 증명합니다.<br><br>
+          <strong style="color:#f87171">토큰 구성:</strong>
+          <div style="margin-top:10px;font-size:12px">
+            <div style="padding:8px;background:#0f172a;border-radius:6px;margin-bottom:4px;border-left:3px solid #ef4444">
+              <strong style="color:#fca5a5">Access Token</strong><br>
+              <span style="color:#94a3b8">유효시간: 60분. API 요청 시 사용</span>
+            </div>
+            <div style="padding:8px;background:#0f172a;border-radius:6px;border-left:3px solid #f87171">
+              <strong style="color:#fca5a5">Refresh Token</strong><br>
+              <span style="color:#94a3b8">유효시간: 14일. Access Token 갱신에 사용</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(129,140,248,.2)">🗄️</div>
+          <span class="t-purple">ORM: Tortoise ORM</span>
+        </div>
+        <div class="card-desc">
+          <strong style="color:#e2e8f0">ORM이란?</strong><br>
+          Python 코드로 데이터베이스를 조작하는 도구입니다. SQL을 직접 쓰는 대신 Python 클래스로 DB를 다룹니다.<br><br>
+          <strong style="color:#818cf8">User 테이블 구조:</strong>
+          <div class="code-block" style="margin-top:10px;font-size:11px">
+id, email, hashed_password
+name, gender, birthday
+phone_number
+is_active, is_admin
+last_login
+created_at, updated_at</div>
+          <div style="margin-top:10px;font-size:12px;color:#94a3b8">asyncmy로 MySQL과 비동기 통신</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 데이터 흐름 ═══ -->
+<section id="flow">
+  <div class="section-header">
+    <div class="section-label">Data Flow</div>
+    <h2 class="section-title">데이터 흐름 — 요청이 어디를 거치는가</h2>
+    <p class="section-desc">사용자가 버튼을 클릭했을 때 데이터가 어디를 어떻게 흘러가는지 시각화</p>
+  </div>
+
+  <div class="grid-2">
+    <!-- 회원가입 흐름 -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background:rgba(6,182,212,.2)">👤</div>
+        <span class="t-cyan">회원가입/로그인 흐름</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+        <div style="background:#1e3a5f;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#67e8f9">① 브라우저</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">사용자가 이메일/비밀번호 입력 후 회원가입 클릭</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#1e3a5f;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#67e8f9">② Next.js → POST /api/v1/auth/signup</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">Nginx(포트 80) → FastAPI(포트 8000)로 프록시</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#1e3a5f;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#67e8f9">③ FastAPI 처리</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">DTO 검증 → AuthService → UserRepository → MySQL 저장</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#1e3a5f;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#67e8f9">④ JWT 토큰 발급</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">Access Token(60분) + Refresh Token(14일) 생성 → Redis 캐싱</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#1e3a5f;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#67e8f9">⑤ 응답</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">토큰이 브라우저 쿠키에 저장됨. 이후 인증 요청에 사용</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 예측 흐름 -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background:rgba(16,185,129,.2)">🧠</div>
+        <span class="t-green">AI 당뇨 위험도 예측 흐름</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+        <div style="background:#0a2d1a;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#6ee7b7">① 온보딩 설문 완료</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">나이/BMI/운동량/식단 등 FINDRISC 8개 변수 수집</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#0a2d1a;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#6ee7b7">② FastAPI에 예측 요청</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">수집된 건강 데이터를 MySQL에 저장</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#0a2d1a;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#6ee7b7">③ Redis 작업 큐</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">FastAPI → Redis에 "AI 추론 작업" 메시지 발행</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#0a2d1a;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#6ee7b7">④ AI Worker 비동기 처리</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">PyTorch/Scikit-learn으로 위험도 점수 계산 (비동기로 무거운 계산 분리)</div>
+        </div>
+        <div style="text-align:center;color:#334155">↓</div>
+        <div style="background:#0a2d1a;border-radius:8px;padding:10px 14px;font-size:13px">
+          <strong style="color:#6ee7b7">⑤ 결과 표시</strong>
+          <div style="color:#94a3b8;font-size:12px;margin-top:2px">위험도 점수 → MySQL 저장 → 대시보드에서 조회 가능</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 서비스 연결도 -->
+  <div class="card" style="margin-top:24px">
+    <div class="card-title">
+      <div class="card-icon" style="background:rgba(245,158,11,.2)">🗺️</div>
+      <span class="t-yellow">서비스 간 연결 관계</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:center;margin-top:20px;padding:20px;background:#0f172a;border-radius:12px">
+      <div style="text-align:center">
+        <div style="background:#1e3a8a;padding:12px 20px;border-radius:10px;font-weight:700;color:#bfdbfe;font-size:14px">브라우저<br><span style="font-size:11px;font-weight:400;color:#93c5fd">사용자</span></div>
+      </div>
+      <div style="color:#475569;font-size:20px">↔️</div>
+      <div style="text-align:center">
+        <div style="background:#374151;padding:12px 20px;border-radius:10px;font-weight:700;color:#d1d5db;font-size:14px">Nginx<br><span style="font-size:11px;font-weight:400;color:#9ca3af">:80 리버스 프록시</span></div>
+      </div>
+      <div style="color:#475569;font-size:20px">↔️</div>
+      <div style="text-align:center">
+        <div style="background:#1e3a8a;padding:12px 20px;border-radius:10px;font-weight:700;color:#bfdbfe;font-size:14px">FastAPI<br><span style="font-size:11px;font-weight:400;color:#93c5fd">:8000 API</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="color:#475569">↔️</div>
+        <div style="color:#475569">↔️</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="background:#1f2937;padding:10px 16px;border-radius:10px;font-weight:700;color:#d1d5db;font-size:13px">MySQL<br><span style="font-size:11px;font-weight:400;color:#9ca3af">:3306 데이터</span></div>
+        <div style="background:#1f2937;padding:10px 16px;border-radius:10px;font-weight:700;color:#d1d5db;font-size:13px">Redis<br><span style="font-size:11px;font-weight:400;color:#9ca3af">:6379 캐시/큐</span></div>
+      </div>
+      <div style="color:#475569;font-size:20px">↔️</div>
+      <div style="text-align:center">
+        <div style="background:#065f46;padding:12px 20px;border-radius:10px;font-weight:700;color:#a7f3d0;font-size:14px">AI Worker<br><span style="font-size:11px;font-weight:400;color:#6ee7b7">PyTorch 추론</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ═══ 평가 기준 ═══ -->
+<div class="section-full" id="eval">
+  <div class="inner">
+    <div class="section-header">
+      <div class="section-label">Evaluation Criteria</div>
+      <h2 class="section-title">평가 기준 핵심 요약</h2>
+      <p class="section-desc">이 프로젝트를 심사할 때 어떤 기준으로 평가하는지 정리했습니다</p>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:32px">
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(251,191,36,.2)">📊</div>
+          <span class="t-yellow">평가에서 가장 중요한 것 (4가지)</span>
+        </div>
+        <ul class="checklist">
+          <li>
+            <span class="chk-icon">📈</span>
+            <div><strong style="color:#fde68a">정량 근거</strong><br>
+            "왜 이렇게 했나?" → 논문, 수치, 데이터로 답할 수 있어야 함<br>
+            <span style="font-size:12px;color:#6b7280">예: "DPP 2002 논문에 따르면 주 150분 운동 시 58% 위험 감소"</span></div>
+          </li>
+          <li>
+            <span class="chk-icon">📝</span>
+            <div><strong style="color:#fde68a">문서화</strong><br>
+            기획서, 아키텍처 다이어그램, API 명세서, 테스트 결과</div>
+          </li>
+          <li>
+            <span class="chk-icon">🧪</span>
+            <div><strong style="color:#fde68a">테스트 및 검증 결과</strong><br>
+            단위 테스트, 통합 테스트, 모델 성능 지표 (AUC + 추가 지표)</div>
+          </li>
+          <li>
+            <span class="chk-icon">🚀</span>
+            <div><strong style="color:#fde68a">배포 환경에서 안정 동작</strong><br>
+            로컬뿐 아니라 AWS EC2에서 핵심 3기능이 정상 작동</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <div class="card-icon" style="background:rgba(239,68,68,.2)">⚡</div>
+          <span class="t-red">기술 검증 기준 (개발 시 항상 체크)</span>
+        </div>
+        <ul class="checklist">
+          <li>
+            <span class="chk-icon">⏱️</span>
+            <div><strong style="color:#fca5a5">P95 latency 3초 이내</strong><br>
+            100명이 요청했을 때 95명이 3초 안에 응답받아야 함<br>
+            <span style="font-size:12px;color:#6b7280">예측 API, 대시보드 API, 챌린지 API 각각 측정</span></div>
+          </li>
+          <li>
+            <span class="chk-icon">📊</span>
+            <div><strong style="color:#fca5a5">모델 성능 지표 2개 이상</strong><br>
+            AUC만으론 부족. F1, Precision, Recall 등 추가<br>
+            <span style="font-size:12px;color:#6b7280">Phase 1 목표: AUC ≥ 0.80</span></div>
+          </li>
+          <li>
+            <span class="chk-icon">⚡</span>
+            <div><strong style="color:#fca5a5">비동기 처리 성능 기록</strong><br>
+            AI 추론을 비동기로 분리한 전후 응답 시간 비교</div>
+          </li>
+          <li>
+            <span class="chk-icon">🔐</span>
+            <div><strong style="color:#fca5a5">인증/인가 구조 설명 가능</strong><br>
+            JWT 발급 → 검증 → 권한 분리 흐름 다이어그램으로 설명</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 현재 상태 타임라인 -->
+    <h3 style="color:#818cf8;margin-bottom:24px;font-size:18px">📅 개발 현황 (2026-03-30 기준)</h3>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#34d399;border-color:#34d399"></div>
+        <div class="tl-title" style="color:#34d399">✅ 설계 완료</div>
+        <div class="tl-body">10문항 7묶음 질문 설계, 90분 쿨다운 규칙, 5단계 참여 상태 머신, 미접속 전략, 설계가이드 V2(9탭), 데모 V8-2</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#34d399;border-color:#34d399"></div>
+        <div class="tl-title" style="color:#34d399">✅ 백엔드 기반 구축</div>
+        <div class="tl-body">FastAPI 구조, 회원가입/로그인 API, JWT 인증, Tortoise ORM, Docker 설정, CI/CD 스크립트</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#34d399;border-color:#34d399"></div>
+        <div class="tl-title" style="color:#34d399">✅ 프론트엔드 기반 구축</div>
+        <div class="tl-body">Next.js 14 설정, 랜딩 페이지, 온보딩 설문 데이터(diabetes.js)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#fbbf24;border-color:#fbbf24"></div>
+        <div class="tl-title" style="color:#fbbf24">🔄 진행 중</div>
+        <div class="tl-body">온보딩 페이지 UI, 건강 데이터 수집 API, AI 채팅 삽입 로직, 당뇨 예측 모델 개발</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#475569;border-color:#475569"></div>
+        <div class="tl-title" style="color:#94a3b8">⬜ 예정</div>
+        <div class="tl-body">대시보드 시각화, 챌린지 시스템, AI Worker 연동, 배포, 발표 준비</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 개발 시작 워크플로우 ═══ -->
+<div class="section-full" id="dev-workflow">
+  <div style="max-width:1200px;margin:0 auto;padding:64px 24px">
+    <div class="section-header">
+      <div class="section-label">Dev Workflow</div>
+      <h2 class="section-title">개발 시작 워크플로우</h2>
+      <p class="section-desc">PC 켜고 → 코드 쓰기까지, 매번 이 순서대로 따라하면 됩니다</p>
+    </div>
+
+    <div class="alert alert-red" style="margin-bottom:32px">
+      <strong>⚠️ Windows 필수 우회 작업</strong><br>
+      이 프로젝트 경로에 <strong>한글(레퍼런스, 마지막 웹프로젝트)</strong>이 포함되어 있어 Docker가 오류를 냅니다.<br>
+      아래 Step 0을 반드시 먼저 실행해야 나머지 단계가 작동합니다.
+    </div>
+
+    <!-- 7단계 타임라인 -->
+    <div class="tl-wrap" style="margin-bottom:48px">
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#ef4444;border-color:#ef4444"></div>
+        <div class="tl-title" style="color:#f87171">Step 0 — 한글 경로 우회 (매일 1회)</div>
+        <div class="tl-body">
+          PowerShell을 관리자 권한으로 열고 실행:
+          <div class="code-block">subst X: "C:\Users\mal03\Desktop\레퍼런스\마지막 웹프로젝트"
+Set-Location X:\</div>
+          이후 모든 Docker 명령어는 <code style="color:#a5b4fc">X:\</code> 에서 실행합니다.
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#06b6d4;border-color:#06b6d4"></div>
+        <div class="tl-title" style="color:#67e8f9">Step 1 — Docker 서비스 시작</div>
+        <div class="tl-body">
+          X:\ 경로에서 핵심 4개 서비스를 실행:
+          <div class="code-block">docker compose -p ai-health-local up -d mysql redis fastapi nginx</div>
+          <span class="badge badge-green">확인</span> 브라우저에서 <code style="color:#a5b4fc">http://localhost/api/docs</code> 열리면 성공
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#06b6d4;border-color:#06b6d4"></div>
+        <div class="tl-title" style="color:#67e8f9">Step 2 — 프론트엔드 개발 서버 시작</div>
+        <div class="tl-body">
+          새 터미널 창을 열고 (Git Bash 또는 VSCode 터미널):
+          <div class="code-block">cd apps/web
+npm run dev</div>
+          <span class="badge badge-green">확인</span> <code style="color:#a5b4fc">http://localhost:3000</code> 에서 Next.js 화면이 보이면 성공
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#818cf8;border-color:#818cf8"></div>
+        <div class="tl-title" style="color:#a5b4fc">Step 3 — Claude Code 시작</div>
+        <div class="tl-body">
+          또 다른 터미널에서 프로젝트 루트로 이동 후:
+          <div class="code-block">claude</div>
+          Claude Code가 실행되면 CLAUDE.md를 자동으로 읽고 프로젝트 규칙을 파악합니다.
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#818cf8;border-color:#818cf8"></div>
+        <div class="tl-title" style="color:#a5b4fc">Step 4 — 작업 컨텍스트 파악</div>
+        <div class="tl-body">
+          Claude에게 지금 어디쯤 있는지 확인 요청:
+          <div class="code-block">"task_plan.md 와 progress.md 파일을 읽고 현재 상황을 요약해줘"</div>
+          Claude가 이전 세션에서 어디까지 했는지, 다음에 뭘 해야 하는지 알려줍니다.
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#10b981;border-color:#10b981"></div>
+        <div class="tl-title" style="color:#6ee7b7">Step 5 — 작업 시작</div>
+        <div class="tl-body">
+          상황에 따라 두 가지 방법 중 선택:
+          <div class="code-block">/next-task        # 다음 할 일을 Claude가 제안해줄 때
+/plan             # 새 기능을 만들 계획을 먼저 세울 때</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 매일 vs 새 세션 비교 -->
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="color:#67e8f9;margin-bottom:16px">🌅 매일 시작할 때 (Step 0~2)</h3>
+        <ul class="checklist">
+          <li>PowerShell에서 <code style="color:#a5b4fc">subst X:</code> 실행</li>
+          <li><code style="color:#a5b4fc">X:\</code> 로 이동</li>
+          <li><code style="color:#a5b4fc">docker compose up</code> 4개 서비스 실행</li>
+          <li>새 터미널에서 <code style="color:#a5b4fc">npm run dev</code></li>
+          <li>브라우저 2곳 확인 (localhost, localhost:3000)</li>
+        </ul>
+        <div class="alert alert-blue" style="margin-top:16px;font-size:13px">
+          컴퓨터를 껐다 켤 때마다 Step 0~2를 반복해야 합니다.<br>
+          <code style="color:#67e8f9">subst</code> 매핑은 재부팅하면 초기화됩니다.
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="color:#a5b4fc;margin-bottom:16px">💬 Claude 세션 시작할 때 (Step 3~5)</h3>
+        <ul class="checklist">
+          <li>터미널에서 <code style="color:#a5b4fc">claude</code> 입력</li>
+          <li>task_plan.md + progress.md 확인 요청</li>
+          <li><code style="color:#a5b4fc">/next-task</code> 또는 <code style="color:#a5b4fc">/plan</code> 으로 시작</li>
+          <li>작업 후 세션 종료 전 핸드오프 작성</li>
+        </ul>
+        <div class="alert alert-purple" style="margin-top:16px;font-size:13px">
+          Claude 세션은 컨텍스트(기억)가 유한합니다.<br>
+          오래 사용하면 초기화가 필요 — <code style="color:#c4b5fd">/checkpoint</code> 로 저장하세요.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Claude Code 사용법 ═══ -->
+<div class="section-full" id="claude-usage" style="background:#0c0f1a">
+  <div style="max-width:1200px;margin:0 auto;padding:64px 24px">
+    <div class="section-header">
+      <div class="section-label">Claude Code Usage</div>
+      <h2 class="section-title">Claude Code 사용법</h2>
+      <p class="section-desc">명령어를 언제, 어떻게 쓰는지 — 상황별 가이드</p>
+    </div>
+
+    <div class="alert alert-green" style="margin-bottom:32px;font-size:16px;text-align:center">
+      <strong>🎯 바이브코딩 핵심 원칙</strong><br>
+      코드를 직접 쓸 필요가 없습니다. <strong>좋은 지시(프롬프트)가 좋은 코드를 만듭니다.</strong><br>
+      Claude에게 무엇을 만들지 설명하면, Claude가 코드를 짜고 파일을 수정합니다.
+    </div>
+
+    <!-- 5가지 모드 시스템 -->
+    <div class="card" style="margin-bottom:32px;background:linear-gradient(135deg,#0f172a,#1e1b4b)">
+      <h3 style="color:#818cf8;margin-bottom:20px">5가지 기본 모드 — 이것만 기억하면 됩니다</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+        <div style="background:#0c0f1a;border:1px solid #06b6d4;border-radius:12px;padding:16px">
+          <div style="color:#67e8f9;font-weight:700;font-size:15px;margin-bottom:8px">▶ Start</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">세션 시작할 때</div>
+          <code style="font-size:11px;color:#67e8f9">"progress.md 읽어줘"</code><br>
+          <code style="font-size:11px;color:#67e8f9">/next-task</code>
+        </div>
+        <div style="background:#0c0f1a;border:1px solid #818cf8;border-radius:12px;padding:16px">
+          <div style="color:#a5b4fc;font-weight:700;font-size:15px;margin-bottom:8px">🔨 Build</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">새 기능 만들 때</div>
+          <code style="font-size:11px;color:#a5b4fc">/plan</code> → 확인 →<br>
+          <code style="font-size:11px;color:#a5b4fc">"실행해줘"</code> →<br>
+          <code style="font-size:11px;color:#a5b4fc">/evaluate</code> → <code style="font-size:11px;color:#a5b4fc">/commit-push-pr</code>
+        </div>
+        <div style="background:#0c0f1a;border:1px solid #ef4444;border-radius:12px;padding:16px">
+          <div style="color:#f87171;font-weight:700;font-size:15px;margin-bottom:8px">🔧 Fix</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">에러/버그 났을 때</div>
+          <code style="font-size:11px;color:#f87171">/build-fix</code><br>
+          <code style="font-size:11px;color:#f87171">/learn</code>
+        </div>
+        <div style="background:#0c0f1a;border:1px solid #f59e0b;border-radius:12px;padding:16px">
+          <div style="color:#fcd34d;font-weight:700;font-size:15px;margin-bottom:8px">🔍 Review</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">코드 정리할 때</div>
+          <code style="font-size:11px;color:#fcd34d">/explore</code> →<br>
+          <code style="font-size:11px;color:#fcd34d">/plan</code> →<br>
+          <code style="font-size:11px;color:#fcd34d">/code-review</code>
+        </div>
+        <div style="background:#0c0f1a;border:1px solid #10b981;border-radius:12px;padding:16px">
+          <div style="color:#6ee7b7;font-weight:700;font-size:15px;margin-bottom:8px">■ End</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:8px">세션 끝낼 때</div>
+          <code style="font-size:11px;color:#6ee7b7">/checkpoint</code><br>
+          <code style="font-size:11px;color:#6ee7b7">/commit-push-pr</code>
+        </div>
+      </div>
+    </div>
+
+    <!-- 명령어 테이블 -->
+    <div class="card" style="margin-bottom:32px">
+      <h3 style="margin-bottom:20px;color:#818cf8">12개 명령어 완전 가이드</h3>
+      <table class="tbl">
+        <tr>
+          <th style="width:170px">명령어</th>
+          <th>언제 쓰나?</th>
+          <th>한 줄 설명</th>
+          <th style="width:80px;text-align:center">우선순위</th>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/plan</code></td>
+          <td>새 기능 만들기 전</td>
+          <td>구현 계획을 먼저 세우고 사용자 승인을 받는다</td>
+          <td style="text-align:center"><span class="badge badge-red">필수</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/next-task</code></td>
+          <td>세션 시작 시 / 할 일 모를 때</td>
+          <td>task_plan.md 기반으로 다음 작업을 제안</td>
+          <td style="text-align:center"><span class="badge badge-red">필수</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/build-fix</code></td>
+          <td>에러가 났을 때</td>
+          <td>에러 메시지 분석 후 수정 방법 제안·실행 (3회 실패 시 중단)</td>
+          <td style="text-align:center"><span class="badge badge-red">필수</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/evaluate</code></td>
+          <td>코드 수정 후 검증할 때</td>
+          <td>네이밍·보안·의료 가드레일 등 프로젝트 특화 품질 체크</td>
+          <td style="text-align:center"><span class="badge badge-red">필수</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/commit-push-pr</code></td>
+          <td>작업 완료 후 저장·공유</td>
+          <td>build→보안 스캔→commit→push→PR 생성 전 파이프라인 자동화</td>
+          <td style="text-align:center"><span class="badge badge-red">필수</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/checkpoint</code></td>
+          <td>세션 종료 직전</td>
+          <td>현재 진행 상황을 progress.md에 저장 + 핸드오프 작성</td>
+          <td style="text-align:center"><span class="badge badge-red">필수</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/learn</code></td>
+          <td>에러 해결 후 / 새로 배운 것 있을 때</td>
+          <td>배운 내용을 findings.md에 분류·기록 (자동화 제안도 포함)</td>
+          <td style="text-align:center"><span class="badge badge-purple">권장</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/tdd</code></td>
+          <td>새 API나 핵심 로직 만들 때</td>
+          <td>테스트 먼저 작성 (RED) → 코드로 통과 (GREEN) → 개선 (REFACTOR)</td>
+          <td style="text-align:center"><span class="badge badge-purple">권장</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/explore</code></td>
+          <td>코드 구조를 모를 때 / 리팩토링 전</td>
+          <td>키워드 확장 탐색, 관련 파일·의존성 자동 분석</td>
+          <td style="text-align:center"><span class="badge badge-purple">권장</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/code-review</code></td>
+          <td>리팩토링 후 / 코드 정리 후</td>
+          <td>CRITICAL/HIGH/MEDIUM 3단계 보안+품질 리뷰</td>
+          <td style="text-align:center"><span class="badge badge-purple">권장</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/handoff-verify</code></td>
+          <td>PR 머지 직전</td>
+          <td>fresh-context 7단계 검증 (빌드·타입·린트·테스트·코드리뷰·보안)</td>
+          <td style="text-align:center"><span class="badge badge-blue">PR 전</span></td>
+        </tr>
+        <tr>
+          <td><code style="color:#a5b4fc">/security-review</code></td>
+          <td>인증/건강 데이터 API 수정 시</td>
+          <td>CWE Top 25 취약점 스캔 (SQL인젝션·XSS·하드코딩 시크릿 등)</td>
+          <td style="text-align:center"><span class="badge badge-orange">보안 시</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 스킬 충돌 규칙 -->
+    <div class="card" style="margin-bottom:32px;border:1px solid rgba(239,68,68,.3)">
+      <h3 style="color:#f59e0b;margin-bottom:16px">⚠️ 스킬 충돌 규칙 — 이것은 쓰지 마세요</h3>
+      <table class="tbl" style="font-size:13px">
+        <tr>
+          <th>사용 금지</th>
+          <th>이유</th>
+          <th>대신 쓸 것</th>
+        </tr>
+        <tr>
+          <td><code style="color:#f87171">frontend-design</code></td>
+          <td>baseline-ui와 직접 충돌 (그라디언트·애니메이션 모순), 의료 앱 부적합</td>
+          <td><code style="color:#a5b4fc">baseline-ui</code> (Tailwind 설치 후)</td>
+        </tr>
+        <tr>
+          <td><code style="color:#f87171">cache-components</code></td>
+          <td>Next.js 14.2에서 'use cache' 미지원 (canary 전용)</td>
+          <td>일반 <code style="color:#a5b4fc">export const revalidate</code></td>
+        </tr>
+        <tr>
+          <td><code style="color:#f87171">pi-planning-with-files</code></td>
+          <td>planning-with-files 구버전 중복</td>
+          <td><code style="color:#a5b4fc">/plan</code></td>
+        </tr>
+        <tr>
+          <td><code style="color:#f87171">verify-loop</code></td>
+          <td>v5 레거시, handoff-verify로 대체됨</td>
+          <td><code style="color:#a5b4fc">/handoff-verify</code></td>
+        </tr>
+        <tr>
+          <td><code style="color:#f87171">executing-plans</code></td>
+          <td>superpowers:* 3개 의존성 미설치, 워크플로우 중단 위험</td>
+          <td><code style="color:#a5b4fc">/plan</code> + "실행해줘"</td>
+        </tr>
+      </table>
+      <div class="alert alert-blue" style="margin-top:16px;font-size:13px">
+        <strong>UI 스킬 순서:</strong> Tailwind 설치 전 → <code style="color:#67e8f9">ui-ux-pro-max --stack nextjs</code> 만 사용 |
+        Tailwind 설치 후 → <code style="color:#67e8f9">baseline-ui</code> + <code style="color:#67e8f9">web-design-guidelines</code> 추가
+      </div>
+    </div>
+
+    <!-- 좋은/나쁜 프롬프트 비교 -->
+    <div class="grid-2" style="margin-bottom:32px">
+      <div class="card" style="border:1px solid rgba(16,185,129,.3)">
+        <h3 style="color:#10b981;margin-bottom:16px">✅ 좋은 프롬프트 예시</h3>
+        <div class="code-block" style="font-size:13px;margin-bottom:12px">"로그인 API를 만들어줘.
+JWT 토큰 방식으로,
+이메일+비밀번호로 인증하고,
+성공 시 access_token을 반환해줘.
+기존 app/api/auth.py 파일에 추가해줘."</div>
+        <div class="code-block" style="font-size:13px;margin-bottom:12px">"apps/web/app/page.tsx 에서
+로그인 버튼을 클릭하면
+/login 페이지로 이동하게 해줘."</div>
+        <ul style="font-size:13px;color:#6ee7b7;list-style:none;padding:0">
+          <li>✓ 무엇을 만드는지 명확</li>
+          <li>✓ 어떤 파일에 작업하는지 지정</li>
+          <li>✓ 결과물이 어떠해야 하는지 설명</li>
+        </ul>
+      </div>
+      <div class="card" style="border:1px solid rgba(239,68,68,.3)">
+        <h3 style="color:#ef4444;margin-bottom:16px">❌ 나쁜 프롬프트 예시</h3>
+        <div class="code-block" style="font-size:13px;margin-bottom:12px">"로그인 만들어줘"</div>
+        <div class="code-block" style="font-size:13px;margin-bottom:12px">"고쳐줘"</div>
+        <div class="code-block" style="font-size:13px;margin-bottom:12px">"더 좋게 만들어줘"</div>
+        <ul style="font-size:13px;color:#fca5a5;list-style:none;padding:0">
+          <li>✗ 어떤 파일인지 모름</li>
+          <li>✗ 어디에 만들지 불분명</li>
+          <li>✗ 기대 결과가 없어 엉뚱한 결과가 나올 수 있음</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5단계 워크플로우 -->
+    <div class="card" style="margin-bottom:24px">
+      <h3 style="color:#818cf8;margin-bottom:20px">5단계 기본 워크플로우</h3>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px">
+        <div style="background:#1e1b4b;border:1px solid #4f46e5;border-radius:10px;padding:10px 18px;color:#a5b4fc;font-weight:600">
+          1️⃣ <code>/plan</code><br><span style="font-size:11px;color:#64748b">계획 수립</span>
+        </div>
+        <div style="color:#475569;font-size:20px">→</div>
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:10px;padding:10px 18px;color:#94a3b8;font-weight:600">
+          2️⃣ 계획 확인<br><span style="font-size:11px;color:#64748b">내용 검토</span>
+        </div>
+        <div style="color:#475569;font-size:20px">→</div>
+        <div style="background:#0c2a1a;border:1px solid #10b981;border-radius:10px;padding:10px 18px;color:#6ee7b7;font-weight:600">
+          3️⃣ "실행해줘"<br><span style="font-size:11px;color:#64748b">구현 시작</span>
+        </div>
+        <div style="color:#475569;font-size:20px">→</div>
+        <div style="background:#1e1b4b;border:1px solid #4f46e5;border-radius:10px;padding:10px 18px;color:#a5b4fc;font-weight:600">
+          4️⃣ <code>/evaluate</code><br><span style="font-size:11px;color:#64748b">품질 검증</span>
+        </div>
+        <div style="color:#475569;font-size:20px">→</div>
+        <div style="background:#0c1f2e;border:1px solid #06b6d4;border-radius:10px;padding:10px 18px;color:#67e8f9;font-weight:600">
+          5️⃣ <code>/commit-push-pr</code><br><span style="font-size:11px;color:#64748b">저장·공유</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-purple">
+      <strong>💡 중요한 원칙</strong> — <code style="color:#c4b5fd">/plan</code> 을 실행하면 Claude는 계획만 보여주고 기다립니다.<br>
+      <strong>"실행해줘"</strong> 라고 말하기 전까지 Claude는 파일을 수정하지 않습니다.<br>
+      계획이 마음에 들지 않으면 수정을 요청하고, 괜찮으면 "실행해줘"를 입력하세요.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 학습 노트 & 개발 일지 ═══ -->
+<div class="section-full" id="learning-system">
+  <div style="max-width:1200px;margin:0 auto;padding:64px 24px">
+    <div class="section-header">
+      <div class="section-label">Learning System</div>
+      <h2 class="section-title">학습 노트 &amp; 개발 일지</h2>
+      <p class="section-desc">개발하면서 배우고, 배운 걸 기록하는 3파일 시스템</p>
+    </div>
+
+    <!-- 3파일 시스템 -->
+    <div class="grid-3" style="margin-bottom:40px">
+      <div class="card" style="border-top:3px solid #06b6d4">
+        <div style="font-size:32px;margin-bottom:12px">📋</div>
+        <h3 style="color:#67e8f9;margin-bottom:8px">task_plan.md</h3>
+        <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">"지금 뭘 하고 있는가?"</p>
+        <ul style="font-size:13px;list-style:none;padding:0;color:#cbd5e1">
+          <li style="margin-bottom:6px">• 전체 개발 계획 (Phase 1~4)</li>
+          <li style="margin-bottom:6px">• 현재 진행 중인 작업</li>
+          <li style="margin-bottom:6px">• 완료된 항목 체크</li>
+          <li>• 다음에 할 일 목록</li>
+        </ul>
+        <div class="alert alert-blue" style="margin-top:12px;font-size:12px">
+          Claude가 <code>/next-task</code> 실행 시 이 파일을 읽습니다
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid #818cf8">
+        <div style="font-size:32px;margin-bottom:12px">📝</div>
+        <h3 style="color:#a5b4fc;margin-bottom:8px">progress.md</h3>
+        <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">"오늘 뭘 했고, 어디까지 왔는가?"</p>
+        <ul style="font-size:13px;list-style:none;padding:0;color:#cbd5e1">
+          <li style="margin-bottom:6px">• 날짜별 세션 로그</li>
+          <li style="margin-bottom:6px">• 에러 발생 기록 (Error Log)</li>
+          <li style="margin-bottom:6px">• 5-Question Reboot Check</li>
+          <li>• 세션 종료 핸드오프</li>
+        </ul>
+        <div class="alert alert-blue" style="margin-top:12px;font-size:12px">
+          <code>/checkpoint</code> 실행 시 자동으로 업데이트됩니다
+        </div>
+      </div>
+      <div class="card" style="border-top:3px solid #10b981">
+        <div style="font-size:32px;margin-bottom:12px">🔬</div>
+        <h3 style="color:#6ee7b7;margin-bottom:8px">findings.md</h3>
+        <p style="color:#94a3b8;font-size:14px;margin-bottom:12px">"뭘 알아냈고, 왜 이렇게 결정했는가?"</p>
+        <ul style="font-size:13px;list-style:none;padding:0;color:#cbd5e1">
+          <li style="margin-bottom:6px">• 기술 선택 이유와 근거</li>
+          <li style="margin-bottom:6px">• 에러 해결 방법 기록</li>
+          <li style="margin-bottom:6px">• 성능 측정 결과</li>
+          <li>• 중요한 설계 결정</li>
+        </ul>
+        <div class="alert alert-blue" style="margin-top:12px;font-size:12px">
+          <code>/learn</code> 실행 시 배운 내용이 여기 저장됩니다
+        </div>
+      </div>
+    </div>
+
+    <!-- 에러 학습 사이클 -->
+    <div class="card" style="margin-bottom:32px">
+      <h3 style="color:#f59e0b;margin-bottom:20px">🔄 에러 학습 사이클 — 에러가 나면 이렇게 하세요</h3>
+      <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div style="flex:1;min-width:200px;background:#1a0a0a;border:1px solid #ef4444;border-radius:12px;padding:16px">
+          <div style="color:#f87171;font-weight:700;margin-bottom:8px">1️⃣ 에러 만남</div>
+          <div style="font-size:13px;color:#94a3b8">터미널에 에러가 뜨거나 화면이 깨지거나 예상과 다른 결과가 나온다</div>
+        </div>
+        <div style="color:#475569;font-size:24px;align-self:center">→</div>
+        <div style="flex:1;min-width:200px;background:#0a1628;border:1px solid #818cf8;border-radius:12px;padding:16px">
+          <div style="color:#a5b4fc;font-weight:700;margin-bottom:8px">2️⃣ progress.md 기록</div>
+          <div style="font-size:13px;color:#94a3b8">Claude에게: <code style="color:#c4b5fd">"이 에러를 progress.md Error Log에 기록해줘"</code></div>
+        </div>
+        <div style="color:#475569;font-size:24px;align-self:center">→</div>
+        <div style="flex:1;min-width:200px;background:#0a1a10;border:1px solid #10b981;border-radius:12px;padding:16px">
+          <div style="color:#6ee7b7;font-weight:700;margin-bottom:8px">3️⃣ /build-fix 해결</div>
+          <div style="font-size:13px;color:#94a3b8">Claude에게: <code style="color:#86efac">"/build-fix"</code> — 에러 분석 후 수정 방법 제안</div>
+        </div>
+        <div style="color:#475569;font-size:24px;align-self:center">→</div>
+        <div style="flex:1;min-width:200px;background:#0a1225;border:1px solid #06b6d4;border-radius:12px;padding:16px">
+          <div style="color:#67e8f9;font-weight:700;margin-bottom:8px">4️⃣ /learn 교훈 저장</div>
+          <div style="font-size:13px;color:#94a3b8">Claude에게: <code style="color:#67e8f9">"/learn"</code> — 배운 내용을 findings.md에 저장</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-Question Reboot Check -->
+    <div class="card" style="margin-bottom:32px">
+      <h3 style="color:#818cf8;margin-bottom:20px">🔍 5-Question Reboot Check — 헷갈릴 때 이 5가지만 답하면 됩니다</h3>
+      <p style="color:#94a3b8;font-size:14px;margin-bottom:20px">
+        Claude 세션이 길어지거나 흐름을 잃었을 때, Claude에게 이렇게 말하세요:<br>
+        <code style="color:#c4b5fd">"5-Question Reboot Check 해줘"</code>
+      </p>
+      <table class="tbl">
+        <tr>
+          <th style="width:50px">#</th>
+          <th>질문</th>
+          <th>왜 물어보나?</th>
+          <th>어디서 답을 찾나?</th>
+        </tr>
+        <tr>
+          <td style="text-align:center;font-size:18px">1</td>
+          <td><strong>지금 어디에 있는가?</strong><br><span style="font-size:12px;color:#94a3b8">현재 코드 상태는?</span></td>
+          <td>git status + 최근 변경 파악</td>
+          <td>git status, task_plan.md</td>
+        </tr>
+        <tr>
+          <td style="text-align:center;font-size:18px">2</td>
+          <td><strong>어디로 가는가?</strong><br><span style="font-size:12px;color:#94a3b8">이번 세션 목표는?</span></td>
+          <td>목표 없이 작업하면 방향을 잃음</td>
+          <td>task_plan.md 현재 Phase</td>
+        </tr>
+        <tr>
+          <td style="text-align:center;font-size:18px">3</td>
+          <td><strong>지금 하는 작업의 목적은?</strong><br><span style="font-size:12px;color:#94a3b8">왜 이걸 만드나?</span></td>
+          <td>큰 그림과 연결이 끊기지 않도록</td>
+          <td>CLAUDE.md, docs/planning/</td>
+        </tr>
+        <tr>
+          <td style="text-align:center;font-size:18px">4</td>
+          <td><strong>뭘 알아냈는가?</strong><br><span style="font-size:12px;color:#94a3b8">이 세션에서 배운 것?</span></td>
+          <td>배운 것을 기록하지 않으면 다음 세션에서 또 헤맴</td>
+          <td>progress.md 이번 세션 로그</td>
+        </tr>
+        <tr>
+          <td style="text-align:center;font-size:18px">5</td>
+          <td><strong>실제로 뭘 했는가?</strong><br><span style="font-size:12px;color:#94a3b8">코드 변경 내역?</span></td>
+          <td>말만 하고 실제 코드는 안 바꾼 게 없는지 확인</td>
+          <td>git diff, 변경된 파일 목록</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- 핸드오프 형식 -->
+    <div class="card">
+      <h3 style="color:#f59e0b;margin-bottom:16px">🤝 세션 종료 핸드오프 — 매 세션 끝에 기록하세요</h3>
+      <p style="color:#94a3b8;font-size:14px;margin-bottom:16px">
+        Claude에게: <code style="color:#fcd34d">"세션 종료 핸드오프를 progress.md에 작성해줘"</code>
+      </p>
+      <div class="code-block">## [날짜] 세션 핸드오프
+
+### ✅ 한 일
+- (실제로 완료한 작업 목록)
+
+### ❌ 안 한 일 (계획했지만 못 한 것)
+- (시간 부족 또는 블로커로 못 한 것)
+
+### ⚠️ 남은 리스크
+- (다음 세션에서 주의할 것들)
+
+### 🧪 다음 검증 항목
+- (다음에 테스트하거나 확인해야 할 것)
+
+### 📁 증빙 위치
+- (변경된 파일 경로, PR 링크 등)</div>
+      <div class="alert alert-green" style="margin-top:16px;font-size:13px">
+        이 핸드오프가 있으면 다음 세션에서 <code style="color:#86efac">"progress.md 읽고 이어서 시작해줘"</code> 한 마디로 바로 이어갈 수 있습니다.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 개발 로드맵 ═══ -->
+<div class="section-full" id="roadmap" style="background:#0c0f1a">
+  <div style="max-width:1200px;margin:0 auto;padding:64px 24px">
+    <div class="section-header">
+      <div class="section-label">Dev Roadmap</div>
+      <h2 class="section-title">개발 로드맵 &amp; 체크리스트</h2>
+      <p class="section-desc">앞으로 뭘 만들고, 어떤 순서로 진행하는지</p>
+    </div>
+
+    <!-- 6단계 로드맵 타임라인 -->
+    <div class="tl-wrap" style="margin-bottom:48px">
+
+      <!-- Phase 0 -->
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#ef4444;border-color:#ef4444"></div>
+        <div class="tl-title" style="color:#f87171">Phase 0 — 초기 설정 <span class="badge badge-red" style="margin-left:8px">지금 여기</span></div>
+        <div class="tl-body">
+          <p style="color:#94a3b8;margin-bottom:12px">개발을 시작하기 전에 한 번만 해야 하는 설정입니다. 이게 완료되어야 Phase 1이 시작됩니다.</p>
+          <div class="grid-2" style="gap:16px">
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">주요 작업</strong>
+              <ul class="checklist" style="margin-top:8px;font-size:13px">
+                <li>첫 git commit (.gitignore에 .env 포함 확인)</li>
+                <li>apps/web에 Tailwind CSS 설치</li>
+                <li>apps/web에 Jest + @testing-library/react 설치</li>
+                <li>CLAUDE.md 섹션 13 확인</li>
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">실행 명령어</strong>
+              <div class="code-block" style="font-size:12px;margin-top:8px">cd apps/web
+npm install tailwindcss @tailwindcss/postcss postcss
+npm install --save-dev jest @testing-library/react</div>
+              <div class="alert alert-red" style="margin-top:8px;font-size:12px">
+                git commit 전에 .gitignore에 <code style="color:#fca5a5">.env</code> 가 포함되어 있는지 반드시 확인!
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#06b6d4;border-color:#06b6d4"></div>
+        <div class="tl-title" style="color:#67e8f9">Phase 1 — 온보딩 설문 시스템 <span class="badge badge-blue" style="margin-left:8px">시작점</span></div>
+        <div class="tl-body">
+          <p style="color:#94a3b8;margin-bottom:12px">기존 <code style="color:#a5b4fc">apps/web/data/diabetes.js</code> 데이터로 설문 UI를 만들고 FINDRISC 점수를 계산합니다.</p>
+          <div class="grid-2" style="gap:16px">
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">주요 작업</strong>
+              <ul class="checklist" style="margin-top:8px;font-size:13px">
+                <li>설문 페이지 컴포넌트 (apps/web/app/onboarding/)</li>
+                <li>단계별 질문 화면 UI</li>
+                <li>FINDRISC 점수 계산 로직</li>
+                <li>결과 페이지 + 위험도 시각화</li>
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">사용 명령어</strong>
+              <div class="code-block" style="font-size:12px;margin-top:8px">/plan     # 온보딩 페이지 설계
+/tdd      # FINDRISC 점수 계산 테스트
+/evaluate # 의료 가드레일 검증
+/commit-push-pr # 완료 후 저장</div>
+              <strong style="color:#94a3b8;font-size:12px;display:block;margin-top:8px">참고 파일</strong>
+              <code style="color:#a5b4fc;font-size:11px">apps/web/data/diabetes.js</code><br>
+              <code style="color:#a5b4fc;font-size:11px">docs/prototypes/다나아_데이터수집_설계가이드V2.html</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#818cf8;border-color:#818cf8"></div>
+        <div class="tl-title" style="color:#a5b4fc">Phase 2 — 건강 추적 대시보드</div>
+        <div class="tl-body">
+          <p style="color:#94a3b8;margin-bottom:12px">7묶음 건강 질문을 AI 채팅에 삽입하고, 수집된 데이터를 시각화합니다. 90분 쿨다운 로직 구현 필수.</p>
+          <div class="grid-2" style="gap:16px">
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">주요 작업</strong>
+              <ul class="checklist" style="margin-top:8px;font-size:13px">
+                <li>수면/운동/식단/복약/정서 데이터 수집 API</li>
+                <li>7묶음 질문 AI 채팅 삽입 (90분 쿨다운)</li>
+                <li>Chart.js 기반 추이 시각화 대시보드</li>
+                <li>P95 latency 3초 이내 측정·기록</li>
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">사용 명령어</strong>
+              <div class="code-block" style="font-size:12px;margin-top:8px">/plan     # 대시보드 API 설계
+/tdd      # 쿨다운 로직 테스트
+/explore  # 기존 채팅 코드 파악
+/evaluate # 민감정보 노출 검증</div>
+              <strong style="color:#94a3b8;font-size:12px;display:block;margin-top:8px">참고 파일</strong>
+              <code style="color:#a5b4fc;font-size:11px">docs/prototypes/다나아_웹서비스_데모V8-2.html</code><br>
+              <code style="color:#a5b4fc;font-size:11px">.claude/rules/design-context.md</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#10b981;border-color:#10b981"></div>
+        <div class="tl-title" style="color:#6ee7b7">Phase 3 — 당뇨 위험도 예측 모델</div>
+        <div class="tl-body">
+          <p style="color:#94a3b8;margin-bottom:12px">Scikit-learn으로 예측 모델을 학습하고, Redis 큐로 비동기 처리합니다. AUC ≥ 0.80 목표.</p>
+          <div class="grid-2" style="gap:16px">
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">주요 작업</strong>
+              <ul class="checklist" style="margin-top:8px;font-size:13px">
+                <li>Scikit-learn 모델 학습 (tools/python/)</li>
+                <li>Redis 큐 비동기 추론 API</li>
+                <li>AUC + F1-Score 2개 이상 지표 기록</li>
+                <li>적용 전후 latency 비교·문서화</li>
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">사용 명령어</strong>
+              <div class="code-block" style="font-size:12px;margin-top:8px">/plan     # 모델 파이프라인 설계
+/tdd      # 예측 API 엔드투엔드 테스트
+/evaluate # 하드코딩 키 / 보안 검증
+/learn    # 모델 성능 결과 기록</div>
+              <strong style="color:#94a3b8;font-size:12px;display:block;margin-top:8px">참고 파일</strong>
+              <code style="color:#a5b4fc;font-size:11px">docs/planning/다나아_프로젝트_브리핑.md</code><br>
+              <code style="color:#a5b4fc;font-size:11px">.claude/rules/medical-domain.md</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#f59e0b;border-color:#f59e0b"></div>
+        <div class="tl-title" style="color:#fcd34d">Phase 4 — 생활습관 챌린지</div>
+        <div class="tl-body">
+          <p style="color:#94a3b8;margin-bottom:12px">P1/P2/P3 우선순위로 챌린지를 제안하고, 5단계 참여 머신으로 지속적인 참여를 유도합니다.</p>
+          <div class="grid-2" style="gap:16px">
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">주요 작업</strong>
+              <ul class="checklist" style="margin-top:8px;font-size:13px">
+                <li>P1 챌린지 API (운동·채소·음주)</li>
+                <li>5단계 참여 상태 머신 구현</li>
+                <li>챌린지 완료 추적·배지 시스템</li>
+                <li>미접속 복귀 전략 로직</li>
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">사용 명령어</strong>
+              <div class="code-block" style="font-size:12px;margin-top:8px">/plan     # 챌린지 상태 머신 설계
+/tdd      # 참여 상태 전이 테스트
+/explore  # 기존 API 패턴 파악
+/commit-push-pr # 최종 배포 준비</div>
+              <strong style="color:#94a3b8;font-size:12px;display:block;margin-top:8px">참고 파일</strong>
+              <code style="color:#a5b4fc;font-size:11px">docs/prototypes/다나아_데이터수집_설계가이드V2.html</code><br>
+              <code style="color:#a5b4fc;font-size:11px">docs/prototypes/다나아_웹서비스_데모V8-2.html</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase 5 -->
+      <div class="tl-item">
+        <div class="tl-dot" style="background:#475569;border-color:#475569"></div>
+        <div class="tl-title" style="color:#94a3b8">Phase 5 — 통합 테스트 &amp; 배포</div>
+        <div class="tl-body">
+          <p style="color:#94a3b8;margin-bottom:12px">모든 기능이 완성된 후 Docker 배포 환경에서 핵심 3기능 동작을 확인하고 발표를 준비합니다.</p>
+          <div class="grid-2" style="gap:16px">
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">주요 작업</strong>
+              <ul class="checklist" style="margin-top:8px;font-size:13px">
+                <li>Playwright E2E 테스트 (webapp-testing 스킬)</li>
+                <li>Docker 배포 환경 핵심 3기능 동작 확인</li>
+                <li>P95 latency, AUC, async 전후 성능 벤치마크 문서화</li>
+                <li>발표 준비 (평가 체크리스트 기준)</li>
+              </ul>
+            </div>
+            <div>
+              <strong style="color:#e2e8f0;font-size:13px">사용 명령어</strong>
+              <div class="code-block" style="font-size:12px;margin-top:8px">/handoff-verify  # 최종 검증
+/commit-push-pr  # 최종 배포</div>
+              <strong style="color:#94a3b8;font-size:12px;display:block;margin-top:8px">참고 파일</strong>
+              <code style="color:#a5b4fc;font-size:11px">docs/planning/03-23 13-51 만성질환 프로젝트 평가 대응 체크리스트.md</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 상황별 명령어 매핑 요약표 -->
+    <div class="card">
+      <h3 style="color:#818cf8;margin-bottom:20px">📌 상황별 명령어 매핑 요약표</h3>
+      <table class="tbl">
+        <tr>
+          <th>상황</th>
+          <th>명령어</th>
+          <th>설명</th>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">새 기능 만들기</span></td>
+          <td><code style="color:#a5b4fc">/plan</code> → 확인 → "실행해줘" → <code style="color:#a5b4fc">/evaluate</code></td>
+          <td>계획 수립 후 승인, 구현, 검증 순서</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-red">버그/에러 발생</span></td>
+          <td><code style="color:#a5b4fc">/build-fix</code> → 수정 → <code style="color:#a5b4fc">/learn</code></td>
+          <td>에러 분석·수정 후 교훈을 findings.md에 저장</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-blue">코드 정리/리팩토링</span></td>
+          <td><code style="color:#a5b4fc">/explore</code> → <code style="color:#a5b4fc">/plan</code> → <code style="color:#a5b4fc">/code-review</code></td>
+          <td>현황 파악 후 계획, 리뷰까지</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-purple">세션 시작</span></td>
+          <td>"progress.md 읽어줘" → <code style="color:#a5b4fc">/next-task</code></td>
+          <td>이전 진행 상황 파악 후 다음 작업 시작</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-orange">세션 종료</span></td>
+          <td><code style="color:#a5b4fc">/checkpoint</code> → <code style="color:#a5b4fc">/commit-push-pr</code></td>
+          <td>진행 상황 저장 후 코드 커밋·푸시</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">테스트 작성</span></td>
+          <td><code style="color:#a5b4fc">/tdd</code> → 테스트 통과 → <code style="color:#a5b4fc">/evaluate</code></td>
+          <td>테스트 먼저 작성하고 코드로 통과시키기</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 요약 카드 ═══ -->
+<section>
+  <div class="section-header">
+    <div class="section-label">Summary</div>
+    <h2 class="section-title">한 장으로 보는 전체 시스템</h2>
+  </div>
+
+  <div class="card" style="background: linear-gradient(135deg, #1e293b, #1e1b4b)">
+    <table class="tbl" style="font-size:13px">
+      <tr>
+        <th>영역</th><th>파일/경로</th><th>역할</th><th>언제 작동?</th>
+      </tr>
+      <tr>
+        <td><span class="badge badge-purple">프로젝트 안내</span></td>
+        <td><code style="color:#a5b4fc">CLAUDE.md</code></td>
+        <td>12개 섹션의 규칙, 실행 방법, 체크리스트</td>
+        <td>Claude 세션 시작 시 항상</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-cyan">설계 규칙</span></td>
+        <td><code style="color:#67e8f9">.claude/rules/design-context.md</code></td>
+        <td>90분 쿨다운, 터치포인트, FINDRISC 규칙</td>
+        <td>docs/앱 파일 열 때 자동</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-red">의료 가드</span></td>
+        <td><code style="color:#fca5a5">.claude/rules/medical-domain.md</code></td>
+        <td>의료 표현 금지, 논문 근거, AUC 목표</td>
+        <td>항상 로드</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-yellow">평가 기준</span></td>
+        <td><code style="color:#fde68a">.claude/rules/eval-criteria.md</code></td>
+        <td>P95 3초, 지표 2개+, 비동기 수치</td>
+        <td>app/ apps/web/ 파일 열 때 자동</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-yellow">방어 Hook</span></td>
+        <td><code style="color:#fde68a">.claude/hooks/write-guard.sh</code></td>
+        <td>50줄+ 파일 Write 전 사용자 확인 요청</td>
+        <td>Write 도구 사용 직전</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">품질 검증</span></td>
+        <td><code style="color:#6ee7b7">.claude/skills/evaluate/SKILL.md</code></td>
+        <td>패턴, 의존성, 도메인, 보안 검증</td>
+        <td>/evaluate 명령어 입력 시</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-cyan">Hook 등록</span></td>
+        <td><code style="color:#67e8f9">.claude/settings.json</code></td>
+        <td>write-guard.sh를 Write 이벤트에 연결</td>
+        <td>Claude 시작 시 설정 로드</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-purple">프론트엔드</span></td>
+        <td><code style="color:#a5b4fc">apps/web/</code></td>
+        <td>Next.js 14 웹 UI</td>
+        <td>npm run dev / Docker</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-purple">백엔드</span></td>
+        <td><code style="color:#a5b4fc">app/</code></td>
+        <td>FastAPI + Tortoise ORM + JWT</td>
+        <td>Docker fastapi 서비스</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-green">AI 추론</span></td>
+        <td><code style="color:#6ee7b7">ai_worker/</code></td>
+        <td>PyTorch + Scikit-learn 비동기 추론</td>
+        <td>Redis 큐 구독 후 처리</td>
+      </tr>
+    </table>
+  </div>
+</section>
+
+<footer style="background:#0a0f1a;padding:40px 24px;text-align:center;color:#475569;font-size:13px;border-top:1px solid #1e293b">
+  <div style="color:#818cf8;font-size:16px;font-weight:700;margin-bottom:8px">다나아 (DA-NA-A)</div>
+  만성질환(당뇨·고혈압) 생활습관 AI 건강관리 웹 서비스<br>
+  <div style="margin-top:12px;font-size:12px">
+    FastAPI + Next.js 14 + PyTorch + Docker<br>
+    Generated by Claude Code — 2026-03-30
+  </div>
+</footer>
+
+<button class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// 내비 활성화
+const sections = document.querySelectorAll('section[id], div[id]');
+const navLinks = document.querySelectorAll('.topnav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 80) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+</body>
+</html>

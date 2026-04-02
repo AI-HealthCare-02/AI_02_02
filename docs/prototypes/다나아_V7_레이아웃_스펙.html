@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 V7 — 종합 레이아웃 스펙 문서</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#0F172A;--card:#1E293B;--border:#334155;
+  --t1:#F8FAFC;--t2:#94A3B8;--t3:#64748B;
+  --blue:#0EA5E9;--green:#10B981;--amber:#F59E0B;--red:#EF4444;--purple:#8B5CF6;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--t1);line-height:1.7;}
+code,pre,.mono{font-family:'JetBrains Mono',monospace;}
+
+/* 헤더 */
+.header{
+  padding:40px 48px 32px;border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);
+}
+.header h1{font-size:28px;font-weight:900;margin-bottom:4px;display:flex;align-items:center;gap:12px;}
+.header h1 em{font-style:normal;background:linear-gradient(135deg,var(--blue),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header .sub{font-size:13px;color:var(--t3);margin-bottom:16px;}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;}
+.badge{padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;border:1px solid;}
+.badge.v{background:rgba(14,165,233,.1);color:var(--blue);border-color:rgba(14,165,233,.3);}
+.badge.d{background:rgba(245,158,11,.1);color:var(--amber);border-color:rgba(245,158,11,.3);}
+.badge.f{background:rgba(16,185,129,.1);color:var(--green);border-color:rgba(16,185,129,.3);}
+
+/* 네비게이션 */
+.nav-bar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(15,23,42,.95);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:0 48px;display:flex;gap:0;overflow-x:auto;
+}
+.nav-item{
+  padding:14px 20px;font-size:13px;font-weight:600;color:var(--t3);
+  cursor:pointer;border-bottom:2px solid transparent;transition:.2s;white-space:nowrap;
+}
+.nav-item:hover{color:var(--t1);}
+.nav-item.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+/* 섹션 */
+.content{padding:0 48px 80px;}
+.section{padding:40px 0;border-bottom:1px solid var(--border);}
+.section:last-child{border:none;}
+.section-title{
+  font-size:20px;font-weight:800;margin-bottom:6px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-title .num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:8px;font-size:13px;font-weight:800;
+  background:rgba(14,165,233,.15);color:var(--blue);
+}
+.section-desc{font-size:13px;color:var(--t3);margin-bottom:24px;}
+
+/* 다이어그램 */
+.diagram{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:32px;margin-bottom:24px;overflow-x:auto;
+}
+.diagram-title{font-size:12px;font-weight:700;color:var(--t3);letter-spacing:1px;margin-bottom:16px;}
+
+/* 레이아웃 다이어그램 */
+.layout-box{
+  border:2px dashed;border-radius:12px;padding:16px;position:relative;
+  min-height:60px;
+}
+.layout-box .lb-label{
+  position:absolute;top:-10px;left:12px;
+  padding:2px 10px;border-radius:6px;font-size:10px;font-weight:700;
+  letter-spacing:.5px;
+}
+.layout-box .lb-size{
+  font-size:11px;font-weight:600;color:var(--t2);
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* 테이블 */
+.spec-table{
+  width:100%;border-collapse:collapse;font-size:13px;
+  background:var(--card);border-radius:12px;overflow:hidden;
+  border:1px solid var(--border);
+}
+.spec-table thead{background:rgba(14,165,233,.08);}
+.spec-table th{
+  text-align:left;padding:12px 16px;font-weight:700;font-size:11px;
+  color:var(--blue);letter-spacing:.5px;border-bottom:1px solid var(--border);
+}
+.spec-table td{
+  padding:10px 16px;border-bottom:1px solid rgba(51,65,85,.5);
+  vertical-align:top;
+}
+.spec-table tr:last-child td{border:none;}
+.spec-table .prop{font-weight:600;color:var(--t1);}
+.spec-table .val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green);}
+.spec-table .note{font-size:11px;color:var(--t3);}
+
+/* 코드 블록 */
+.code-block{
+  background:#0D1117;border:1px solid var(--border);border-radius:10px;
+  padding:16px 20px;font-size:12px;line-height:1.8;overflow-x:auto;
+  font-family:'JetBrains Mono',monospace;color:#E2E8F0;
+  margin-bottom:16px;
+}
+.code-block .comment{color:#6B7280;}
+.code-block .key{color:#7DD3FC;}
+.code-block .val{color:#34D399;}
+.code-block .sel{color:#FBBF24;}
+
+/* 컬러 팔레트 */
+.color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;}
+.color-swatch{
+  border-radius:10px;overflow:hidden;border:1px solid var(--border);
+}
+.color-swatch .swatch-top{height:48px;}
+.color-swatch .swatch-info{padding:8px 10px;background:var(--card);}
+.color-swatch .swatch-name{font-size:11px;font-weight:600;color:var(--t1);}
+.color-swatch .swatch-hex{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;}
+
+/* 상태 표시 */
+.state-row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.state-card{
+  flex:1;min-width:200px;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+}
+.state-card h6{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.state-card .sc-detail{font-size:11px;color:var(--t2);line-height:1.8;}
+
+/* 플로우 */
+.flow-steps{display:flex;gap:0;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.flow-step{
+  padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;
+  background:var(--card);border:1px solid var(--border);
+}
+.flow-arrow{padding:0 8px;color:var(--t3);font-size:16px;}
+
+/* 반응형 표 */
+.breakpoint-table{margin-top:12px;}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ 헤더 ═══════════════════ -->
+<div class="header">
+  <h1>📐 다나아(<em>DA-NA-A</em>) V7 종합 레이아웃 스펙</h1>
+  <p class="sub">화면의 모든 구성요소 — 구성, 형태, 크기, 간격, 넓이를 정확하게 기록한 문서</p>
+  <div class="badge-row">
+    <span class="badge v">V7 기준</span>
+    <span class="badge d">2026-03-27 작성</span>
+    <span class="badge f">파일: 다나아_웹서비스_데모V7.html (4104줄)</span>
+  </div>
+</div>
+
+<!-- ═══════════════════ 네비게이션 ═══════════════════ -->
+<div class="nav-bar">
+  <div class="nav-item active" onclick="scrollToSection('sec-overview')">전체 구조</div>
+  <div class="nav-item" onclick="scrollToSection('sec-vars')">CSS 변수</div>
+  <div class="nav-item" onclick="scrollToSection('sec-sidebar')">사이드바</div>
+  <div class="nav-item" onclick="scrollToSection('sec-main')">메인 영역</div>
+  <div class="nav-item" onclick="scrollToSection('sec-chat')">채팅 영역</div>
+  <div class="nav-item" onclick="scrollToSection('sec-sidepanel')">사이드패널</div>
+  <div class="nav-item" onclick="scrollToSection('sec-input')">입력 영역</div>
+  <div class="nav-item" onclick="scrollToSection('sec-dash')">대시보드 스트립</div>
+  <div class="nav-item" onclick="scrollToSection('sec-auth')">인증 오버레이</div>
+  <div class="nav-item" onclick="scrollToSection('sec-responsive')">반응형</div>
+</div>
+
+<div class="content">
+
+<!-- ══════════ 1. 전체 구조 ══════════ -->
+<div class="section" id="sec-overview">
+  <div class="section-title"><span class="num">1</span> 전체 레이아웃 구조</div>
+  <p class="section-desc">메인 화면은 Flexbox row 레이아웃. 왼쪽 사이드바 + 메인 영역(탭 콘텐츠) 구조.</p>
+
+  <div class="diagram">
+    <div class="diagram-title">SCREEN-MAIN 전체 구조 (height: 100vh, flex-direction: row)</div>
+    <div style="display:flex;gap:0;min-height:400px;">
+      <!-- 사이드바 -->
+      <div style="width:180px;flex-shrink:0;border:2px solid var(--blue);border-radius:12px;padding:12px;position:relative;">
+        <div style="position:absolute;top:-10px;left:12px;padding:2px 10px;border-radius:6px;font-size:10px;font-weight:700;background:var(--blue);color:#fff;">SIDEBAR</div>
+        <div style="font-size:11px;color:var(--t2);margin-top:8px;">
+          <div class="mono" style="color:var(--green);font-size:10px;">width: 260px</div>
+          <div class="mono" style="color:var(--green);font-size:10px;">flex-shrink: 0</div>
+          <div class="mono" style="color:var(--amber);font-size:10px;">margin-right: 16px ←</div>
+          <div style="margin-top:12px;border:1px dashed var(--border);border-radius:8px;padding:8px;font-size:10px;">
+            <div style="font-weight:700;margin-bottom:4px;">구성</div>
+            ① 로고 (20px 24px)<br>
+            ② 카테고리 토글<br>
+            ③ 대화 히스토리 (flex:1)<br>
+            ④ 오늘의 미션<br>
+            ⑤ 프로필
+          </div>
+        </div>
+      </div>
+
+      <!-- 16px 갭 표시 -->
+      <div style="width:16px;display:flex;align-items:center;justify-content:center;position:relative;">
+        <div style="width:1px;height:100%;background:var(--amber);opacity:.5;"></div>
+        <div style="position:absolute;top:50%;transform:translateY(-50%) rotate(-90deg);font-size:9px;font-weight:700;color:var(--amber);white-space:nowrap;">16px GAP</div>
+      </div>
+
+      <!-- 메인 영역 -->
+      <div style="flex:1;border:2px solid var(--green);border-radius:12px;padding:12px;position:relative;display:flex;flex-direction:column;">
+        <div style="position:absolute;top:-10px;left:12px;padding:2px 10px;border-radius:6px;font-size:10px;font-weight:700;background:var(--green);color:#fff;">MAIN-AREA (flex:1)</div>
+
+        <!-- 탭 콘텐츠 영역 안의 채팅 탭 -->
+        <div style="flex:1;margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+          <!-- 대시 스트립 -->
+          <div style="border:1px dashed var(--amber);border-radius:8px;padding:8px;position:relative;">
+            <div style="font-size:9px;font-weight:700;color:var(--amber);">DASH-STRIP (collapsible)</div>
+            <div class="mono" style="font-size:10px;color:var(--green);">max-width:780px | gap:12px | padding:12px 0</div>
+          </div>
+
+          <!-- 채팅 영역 -->
+          <div style="flex:1;display:flex;gap:0;">
+            <!-- chat-main -->
+            <div style="flex:1;border:1.5px solid var(--purple);border-radius:8px;padding:8px;position:relative;">
+              <div style="font-size:9px;font-weight:700;color:var(--purple);">CHAT-MAIN</div>
+              <div class="mono" style="font-size:10px;color:var(--green);">flex:1<br>max-width: calc(100% - 280px) ← 고정!</div>
+              <div style="margin-top:8px;border:1px dotted var(--border);border-radius:6px;padding:6px;font-size:9px;">
+                <div style="font-weight:600;">chat-messages</div>
+                <span class="mono" style="color:var(--green);font-size:9px;">padding: 24px 24px</span>
+              </div>
+              <div style="margin-top:4px;border:1px dotted var(--border);border-radius:6px;padding:6px;font-size:9px;">
+                <div style="font-weight:600;">LIVE nudge bar</div>
+                <span class="mono" style="color:var(--green);font-size:9px;">max-width:720px</span>
+              </div>
+              <div style="margin-top:4px;border:1px dotted var(--border);border-radius:6px;padding:6px;font-size:9px;">
+                <div style="font-weight:600;">chat-input-area</div>
+                <span class="mono" style="color:var(--green);font-size:9px;">max-width:720px | border-radius:24px</span>
+              </div>
+              <div style="margin-top:4px;border:1px dotted var(--border);border-radius:6px;padding:6px;font-size:9px;">
+                <div style="font-weight:600;">chat-disclaimer</div>
+                <span class="mono" style="color:var(--green);font-size:9px;">padding:4px 16px 8px | font:10px</span>
+              </div>
+            </div>
+
+            <!-- chat-side-panel -->
+            <div style="width:120px;flex-shrink:0;border:1.5px solid var(--red);border-radius:8px;padding:8px;position:relative;">
+              <div style="font-size:9px;font-weight:700;color:var(--red);">SIDE-PANEL</div>
+              <div class="mono" style="font-size:10px;color:var(--green);">width: 280px<br>collapsed: 72px</div>
+              <div style="margin-top:8px;font-size:9px;color:var(--t2);">
+                ① 토글 버튼<br>
+                ② 건강운세 (3D flip)<br>
+                ③ 오늘 한눈에
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 핵심 수치 요약 테이블 -->
+  <table class="spec-table">
+    <thead><tr><th>구성요소</th><th>CSS 선택자</th><th>핵심 수치</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">전체 화면</td>
+        <td class="val">.screen-main</td>
+        <td class="val">height:100vh; flex-direction:row</td>
+        <td class="note">전체 뷰포트 사용</td>
+      </tr>
+      <tr>
+        <td class="prop">사이드바</td>
+        <td class="val">.sidebar</td>
+        <td class="val">width:260px; margin-right:16px</td>
+        <td class="note">고정 너비 + 우측 여백</td>
+      </tr>
+      <tr>
+        <td class="prop">메인 영역</td>
+        <td class="val">.main-area</td>
+        <td class="val">flex:1; min-width:0</td>
+        <td class="note">나머지 공간 전체 사용</td>
+      </tr>
+      <tr>
+        <td class="prop">채팅 메인</td>
+        <td class="val">.chat-main</td>
+        <td class="val">flex:1; max-width:calc(100% - 280px)</td>
+        <td class="note">사이드패널 접혀도 너비 고정</td>
+      </tr>
+      <tr>
+        <td class="prop">사이드패널 (펼침)</td>
+        <td class="val">.chat-side-panel</td>
+        <td class="val">width:280px</td>
+        <td class="note">flex-shrink:0</td>
+      </tr>
+      <tr>
+        <td class="prop">사이드패널 (접힘)</td>
+        <td class="val">.chat-side-panel.collapsed</td>
+        <td class="val">width:72px; padding:12px 8px</td>
+        <td class="note">아이콘+값만 표시</td>
+      </tr>
+      <tr>
+        <td class="prop">입력창 래퍼</td>
+        <td class="val">.chat-input-wrap</td>
+        <td class="val">max-width:720px; border-radius:24px</td>
+        <td class="note">중앙 정렬</td>
+      </tr>
+      <tr>
+        <td class="prop">LIVE 넛지</td>
+        <td class="val">.live-nudge-bar</td>
+        <td class="val">max-width:720px; border-radius:12px</td>
+        <td class="note">입력창 위에 위치</td>
+      </tr>
+      <tr>
+        <td class="prop">대시 스트립</td>
+        <td class="val">.dash-strip-inner</td>
+        <td class="val">max-width:780px; gap:12px</td>
+        <td class="note">접기/펼치기 가능</td>
+      </tr>
+      <tr>
+        <td class="prop">전송 버튼</td>
+        <td class="val">.chat-send</td>
+        <td class="val">width:36px; height:36px; border-radius:50%</td>
+        <td class="note">원형 버튼</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 2. CSS 변수 ══════════ -->
+<div class="section" id="sec-vars">
+  <div class="section-title"><span class="num">2</span> CSS 변수 (디자인 토큰)</div>
+  <p class="section-desc">:root에 정의된 모든 변수. 색상 변경 시 이 값만 수정하면 전체 반영.</p>
+
+  <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">브랜드 컬러</h4>
+  <div class="color-grid" style="margin-bottom:24px;">
+    <div class="color-swatch"><div class="swatch-top" style="background:#0EA5E9;"></div><div class="swatch-info"><div class="swatch-name">--primary</div><div class="swatch-hex">#0EA5E9</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#0284C7;"></div><div class="swatch-info"><div class="swatch-name">--primary-dark</div><div class="swatch-hex">#0284C7</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#E0F2FE;"></div><div class="swatch-info"><div class="swatch-name">--primary-light</div><div class="swatch-hex">#E0F2FE</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#10B981;"></div><div class="swatch-info"><div class="swatch-name">--accent</div><div class="swatch-hex">#10B981</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#059669;"></div><div class="swatch-info"><div class="swatch-name">--accent-dark</div><div class="swatch-hex">#059669</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#D1FAE5;"></div><div class="swatch-info"><div class="swatch-name">--accent-light</div><div class="swatch-hex">#D1FAE5</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#F59E0B;"></div><div class="swatch-info"><div class="swatch-name">--warning</div><div class="swatch-hex">#F59E0B</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#EF4444;"></div><div class="swatch-info"><div class="swatch-name">--danger</div><div class="swatch-hex">#EF4444</div></div></div>
+  </div>
+
+  <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">그레이 스케일</h4>
+  <div class="color-grid" style="margin-bottom:24px;">
+    <div class="color-swatch"><div class="swatch-top" style="background:#F8FAFC;"></div><div class="swatch-info"><div class="swatch-name">--g50</div><div class="swatch-hex">#F8FAFC</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#F1F5F9;"></div><div class="swatch-info"><div class="swatch-name">--g100</div><div class="swatch-hex">#F1F5F9</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#E2E8F0;"></div><div class="swatch-info"><div class="swatch-name">--g200</div><div class="swatch-hex">#E2E8F0</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#CBD5E1;"></div><div class="swatch-info"><div class="swatch-name">--g300</div><div class="swatch-hex">#CBD5E1</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#94A3B8;"></div><div class="swatch-info"><div class="swatch-name">--g400</div><div class="swatch-hex">#94A3B8</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#64748B;"></div><div class="swatch-info"><div class="swatch-name">--g500</div><div class="swatch-hex">#64748B</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#475569;"></div><div class="swatch-info"><div class="swatch-name">--g600</div><div class="swatch-hex">#475569</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#334155;"></div><div class="swatch-info"><div class="swatch-name">--g700</div><div class="swatch-hex">#334155</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#1E293B;"></div><div class="swatch-info"><div class="swatch-name">--g800</div><div class="swatch-hex">#1E293B</div></div></div>
+    <div class="color-swatch"><div class="swatch-top" style="background:#0F172A;"></div><div class="swatch-info"><div class="swatch-name">--g900</div><div class="swatch-hex">#0F172A</div></div></div>
+  </div>
+
+  <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;">기타 토큰</h4>
+  <table class="spec-table">
+    <thead><tr><th>변수</th><th>값</th><th>용도</th></tr></thead>
+    <tbody>
+      <tr><td class="prop">--r</td><td class="val">16px</td><td class="note">기본 border-radius</td></tr>
+      <tr><td class="prop">--rs</td><td class="val">10px</td><td class="note">작은 border-radius</td></tr>
+      <tr><td class="prop">font-family</td><td class="val">'Noto Sans KR', -apple-system, sans-serif</td><td class="note">전역 서체</td></tr>
+      <tr><td class="prop">line-height</td><td class="val">1.6</td><td class="note">body 기본 행간</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 3. 사이드바 ══════════ -->
+<div class="section" id="sec-sidebar">
+  <div class="section-title"><span class="num">3</span> 왼쪽 사이드바 (.sidebar)</div>
+  <p class="section-desc">고정 너비 260px, 세로 전체(100vh), 흰색 배경, 5개 영역으로 구성.</p>
+
+  <table class="spec-table">
+    <thead><tr><th>영역</th><th>CSS 선택자</th><th>크기/간격</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">사이드바 전체</td>
+        <td class="val">.sidebar</td>
+        <td class="val">width:260px; margin-right:16px<br>border-right:1px solid var(--g200)<br>background:#fff</td>
+        <td class="note">L354~358</td>
+      </tr>
+      <tr>
+        <td class="prop">① 로고</td>
+        <td class="val">.sidebar-logo</td>
+        <td class="val">padding:20px 24px<br>font-size:18px; font-weight:900<br>border-bottom:1px solid var(--g100)</td>
+        <td class="note">L360~365</td>
+      </tr>
+      <tr>
+        <td class="prop">② 카테고리 토글</td>
+        <td class="val">.sidebar-category-wrap</td>
+        <td class="val">padding:0 16px; margin-bottom:4px<br>선택 항목: padding:8px 12px; border-radius:10px<br>토글 리스트: max-height:0→200px (expanded)</td>
+        <td class="note">L385~396</td>
+      </tr>
+      <tr>
+        <td class="prop">③ 대화 히스토리</td>
+        <td class="val">.sidebar-history</td>
+        <td class="val">padding:8px 8px; flex:1; overflow-y:auto<br>border-bottom:1px solid var(--g100)<br>새 대화 버튼: border:1.5px dashed; padding:10px<br>히스토리 항목: padding:8px 10px; font-size:12px</td>
+        <td class="note">L415~436</td>
+      </tr>
+      <tr>
+        <td class="prop">④ 오늘의 미션</td>
+        <td class="val">.sidebar-mission</td>
+        <td class="val">padding:12px 16px; border-top:1px solid var(--g100)<br>프로그레스 바: height:6px; border-radius:100px<br>퍼센트: font-size:11px</td>
+        <td class="note">L439~452</td>
+      </tr>
+      <tr>
+        <td class="prop">⑤ 프로필</td>
+        <td class="val">.sidebar-bottom / .sidebar-profile</td>
+        <td class="val">padding:16px; margin-top:auto<br>border-top:1px solid var(--g100)<br>아바타: 36x36px; border-radius:50%<br>이름: 13px/600; 타입: 11px</td>
+        <td class="note">L398~412</td>
+      </tr>
+      <tr>
+        <td class="prop">메뉴 항목</td>
+        <td class="val">.sidebar-item</td>
+        <td class="val">padding:10px 12px; gap:10px; border-radius:10px<br>font-size:13px; font-weight:500<br>아이콘: 18px (width:24px)<br>배지: font-size:10px; padding:2px 8px</td>
+        <td class="note">L370~382</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 4. 메인 영역 ══════════ -->
+<div class="section" id="sec-main">
+  <div class="section-title"><span class="num">4</span> 메인 영역 (.main-area)</div>
+  <p class="section-desc">사이드바 오른쪽의 나머지 공간 전체. 탭 콘텐츠 구조.</p>
+
+  <table class="spec-table">
+    <thead><tr><th>구성</th><th>CSS 선택자</th><th>크기/간격</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">메인 영역 컨테이너</td>
+        <td class="val">.main-area</td>
+        <td class="val">flex:1; min-width:0<br>display:flex; flex-direction:column</td>
+        <td class="note">L455~457</td>
+      </tr>
+      <tr>
+        <td class="prop">탭 콘텐츠</td>
+        <td class="val">.tab-content</td>
+        <td class="val">display:none → flex (active)<br>flex:1; flex-direction:column; overflow:hidden</td>
+        <td class="note">L460~461</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 5. 채팅 영역 ══════════ -->
+<div class="section" id="sec-chat">
+  <div class="section-title"><span class="num">5</span> 채팅 영역 (.chat-area, .chat-main)</div>
+  <p class="section-desc">채팅 메인 + 사이드패널 2열 구조. 사이드패널 접혀도 채팅 너비 불변.</p>
+
+  <div class="diagram">
+    <div class="diagram-title">채팅 영역 너비 계산 (핵심!)</div>
+    <div class="code-block">
+<span class="comment">/* 채팅 영역 = chat-main + chat-side-panel */</span>
+<span class="sel">.chat-area</span> { <span class="key">flex</span>:<span class="val">1</span>; <span class="key">display</span>:<span class="val">flex</span>; <span class="key">flex-direction</span>:<span class="val">row</span>; }
+
+<span class="sel">.chat-main</span> {
+  <span class="key">flex</span>:<span class="val">1</span>;
+  <span class="key">max-width</span>:<span class="val">calc(100% - 280px)</span>;  <span class="comment">/* ← 사이드패널 만큼 빼기 */</span>
+}
+
+<span class="comment">/* 사이드패널이 접혀도(72px) chat-main 너비는 동일하게 유지 */</span>
+<span class="sel">.chat-area:has(.chat-side-panel.collapsed) .chat-main</span> {
+  <span class="key">max-width</span>:<span class="val">calc(100% - 280px)</span>;  <span class="comment">/* ← 변하지 않음! */</span>
+}
+    </div>
+  </div>
+
+  <table class="spec-table">
+    <thead><tr><th>요소</th><th>CSS 선택자</th><th>크기/간격</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">채팅 영역 컨테이너</td>
+        <td class="val">.chat-area</td>
+        <td class="val">flex:1; flex-direction:row; overflow:hidden</td>
+        <td class="note">L536~538</td>
+      </tr>
+      <tr>
+        <td class="prop">채팅 메인</td>
+        <td class="val">.chat-main</td>
+        <td class="val">flex:1; max-width:calc(100% - 280px)<br>min-width:0</td>
+        <td class="note">L539~542</td>
+      </tr>
+      <tr>
+        <td class="prop">메시지 목록</td>
+        <td class="val">.chat-messages</td>
+        <td class="val">flex:1; overflow-y:auto<br>padding:24px 24px; gap:16px<br>스크롤바: 5px; color:var(--g200)</td>
+        <td class="note">L721~728</td>
+      </tr>
+      <tr>
+        <td class="prop">메시지 버블 (AI)</td>
+        <td class="val">.msg.ai .msg-bubble</td>
+        <td class="val">padding:12px 16px; border-radius:18px<br>border-top-left-radius:4px<br>background:#fff; border:1px solid var(--g200)</td>
+        <td class="note">L743~747</td>
+      </tr>
+      <tr>
+        <td class="prop">메시지 버블 (사용자)</td>
+        <td class="val">.msg.user .msg-bubble</td>
+        <td class="val">padding:12px 16px; border-radius:18px<br>border-top-right-radius:4px<br>background:var(--g800); color:#fff</td>
+        <td class="note">L748~752</td>
+      </tr>
+      <tr>
+        <td class="prop">메시지 아바타 (AI)</td>
+        <td class="val">.msg-av</td>
+        <td class="val">width:28px; height:28px; border-radius:50%<br>font-size:11px; font-weight:700</td>
+        <td class="note">L734~738</td>
+      </tr>
+      <tr>
+        <td class="prop">메시지 내용 영역</td>
+        <td class="val">.msg-content</td>
+        <td class="val">max-width:85%; min-width:0</td>
+        <td class="note">L742</td>
+      </tr>
+      <tr>
+        <td class="prop">면책조항</td>
+        <td class="val">.chat-disclaimer</td>
+        <td class="val">padding:4px 16px 8px<br>font-size:10px; color:var(--g400)</td>
+        <td class="note">L1482~1486</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 6. 사이드패널 ══════════ -->
+<div class="section" id="sec-sidepanel">
+  <div class="section-title"><span class="num">6</span> 우측 사이드패널 (.chat-side-panel)</div>
+  <p class="section-desc">건강운세(3D 플립) + 오늘 한눈에. 접기/펼치기 280px ↔ 72px.</p>
+
+  <div class="state-row">
+    <div class="state-card">
+      <h6 style="color:var(--green);">펼침 상태 (기본)</h6>
+      <div class="sc-detail">
+        width: <b style="color:var(--green);">280px</b><br>
+        padding: 0 (side-panel-expanded가 20px 16px)<br>
+        border-left: 1px solid var(--g100)<br>
+        background: #FAFBFC<br>
+        transition: width .3s ease
+      </div>
+    </div>
+    <div class="state-card">
+      <h6 style="color:var(--amber);">접힘 상태 (.collapsed)</h6>
+      <div class="sc-detail">
+        width: <b style="color:var(--amber);">72px</b><br>
+        padding: 12px 8px<br>
+        건강운세: display:none<br>
+        미니 프로그레스: display:none<br>
+        위젯 제목(h5): font-size:0<br>
+        아이콘+값만 표시
+      </div>
+    </div>
+  </div>
+
+  <table class="spec-table">
+    <thead><tr><th>요소</th><th>CSS 선택자</th><th>크기/간격</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">토글 버튼</td>
+        <td class="val">.side-panel-toggle</td>
+        <td class="val">min-height:44px; padding:12px 10px<br>font-size:12px; font-weight:600<br>접힘 시: transform:rotate(180deg)</td>
+        <td class="note">L561~578</td>
+      </tr>
+      <tr>
+        <td class="prop">접힌 아이콘 컨테이너</td>
+        <td class="val">.side-panel-collapsed-icons</td>
+        <td class="val">gap:8px; padding:12px 6px<br>아이콘: 36x36px; border-radius:12px</td>
+        <td class="note">L581~602</td>
+      </tr>
+      <tr>
+        <td class="prop">펼친 컨텐츠</td>
+        <td class="val">.side-panel-expanded</td>
+        <td class="val">padding:20px 16px; gap:16px<br>overflow-y:auto; flex:1</td>
+        <td class="note">L605~614</td>
+      </tr>
+      <tr>
+        <td class="prop">위젯 공통</td>
+        <td class="val">.side-widget</td>
+        <td class="val">background:#fff; border-radius:16px; padding:16px<br>border:1px solid var(--g200)<br>box-shadow:0 1px 6px rgba(0,0,0,.03)</td>
+        <td class="note">L648~652</td>
+      </tr>
+      <tr>
+        <td class="prop">건강운세 플립카드</td>
+        <td class="val">.fortune-flip-wrap</td>
+        <td class="val">perspective:800px<br>inner min-height:200px<br>뒷면: gradient(135deg,#0EA5E9→#10B981)<br>앞면: rotateY(180deg); background:#fff<br>transition: .6s ease</td>
+        <td class="note">L655~711</td>
+      </tr>
+      <tr>
+        <td class="prop">미니 통계 행</td>
+        <td class="val">.mini-stat-row</td>
+        <td class="val">font-size:12px; gap:6px<br>라벨: color:var(--g500)<br>값: font-weight:800</td>
+        <td class="note">L714~719</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 7. 입력 영역 ══════════ -->
+<div class="section" id="sec-input">
+  <div class="section-title"><span class="num">7</span> 채팅 입력 영역</div>
+  <p class="section-desc">하단 고정. LIVE 넛지바 + 입력창 + 면책조항 3단 구성.</p>
+
+  <table class="spec-table">
+    <thead><tr><th>요소</th><th>CSS 선택자</th><th>크기/간격</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">입력 영역 래퍼</td>
+        <td class="val">.chat-input-area</td>
+        <td class="val">padding:12px 24px 24px<br>background:linear-gradient(0deg,var(--g50),transparent)<br>justify-content:center</td>
+        <td class="note">L787~792</td>
+      </tr>
+      <tr>
+        <td class="prop">입력창 래퍼</td>
+        <td class="val">.chat-input-wrap</td>
+        <td class="val">max-width:720px; width:100%<br>border-radius:24px<br>padding:6px 6px 6px 20px<br>border:1.5px solid var(--g200)<br>box-shadow:0 2px 12px rgba(0,0,0,.04)</td>
+        <td class="note">L793~799</td>
+      </tr>
+      <tr>
+        <td class="prop">포커스 상태</td>
+        <td class="val">.chat-input-wrap:focus-within</td>
+        <td class="val">border-color:var(--primary)<br>box-shadow:0 0 0 3px rgba(14,165,233,.1)</td>
+        <td class="note">L800</td>
+      </tr>
+      <tr>
+        <td class="prop">텍스트 입력</td>
+        <td class="val">.chat-input</td>
+        <td class="val">flex:1; font-size:14px<br>placeholder color:var(--g400)</td>
+        <td class="note">L801~805</td>
+      </tr>
+      <tr>
+        <td class="prop">전송 버튼</td>
+        <td class="val">.chat-send</td>
+        <td class="val">width:36px; height:36px; border-radius:50%<br>background:var(--primary); color:#fff<br>hover: scale(1.05)</td>
+        <td class="note">L806~812</td>
+      </tr>
+      <tr>
+        <td class="prop">LIVE 넛지바</td>
+        <td class="val">.live-nudge-bar</td>
+        <td class="val">max-width:720px; width:100%; margin:0 auto<br>padding:10px 16px; gap:12px<br>border-radius:12px<br>animation:nudgeSlideUp .3s</td>
+        <td class="note">L815~843</td>
+      </tr>
+      <tr>
+        <td class="prop">LIVE 배지</td>
+        <td class="val">.live-badge</td>
+        <td class="val">padding:3px 10px; border-radius:100px<br>background:#EF4444; font-size:10px; font-weight:800</td>
+        <td class="note">L828~833</td>
+      </tr>
+      <tr>
+        <td class="prop">닫기 버튼</td>
+        <td class="val">.live-close</td>
+        <td class="val">width:24px; height:24px; border-radius:50%<br>background:var(--g100)</td>
+        <td class="note">L839~843</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 8. 대시보드 스트립 ══════════ -->
+<div class="section" id="sec-dash">
+  <div class="section-title"><span class="num">8</span> 대시보드 컴팩트 스트립</div>
+  <p class="section-desc">채팅 영역 위에 위치. 접기/펼치기 가능. 3장의 미니 카드.</p>
+
+  <table class="spec-table">
+    <thead><tr><th>요소</th><th>CSS 선택자</th><th>크기/간격</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">스트립 래퍼</td>
+        <td class="val">.dash-strip</td>
+        <td class="val">padding:12px 0; background:#fff<br>border-bottom:1px solid var(--g100)<br>max-height:100px → 0 (collapsed)<br>transition: .3s ease</td>
+        <td class="note">L465~471</td>
+      </tr>
+      <tr>
+        <td class="prop">접기 토글</td>
+        <td class="val">.strip-toggle</td>
+        <td class="val">width:28px; height:28px; border-radius:50%<br>position:absolute; bottom:-14px; left:50%<br>border:1.5px solid var(--g200)<br>box-shadow:0 2px 8px rgba(0,0,0,.06)</td>
+        <td class="note">L472~479</td>
+      </tr>
+      <tr>
+        <td class="prop">내부 컨테이너</td>
+        <td class="val">.dash-strip-inner</td>
+        <td class="val">max-width:780px; width:100%<br>display:flex; gap:12px; padding:0 24px</td>
+        <td class="note">L480~482</td>
+      </tr>
+      <tr>
+        <td class="prop">카드 공통</td>
+        <td class="val">.ds-card</td>
+        <td class="val">flex:1; padding:14px 16px; border-radius:16px<br>gap:14px; hover:translateY(-1px)</td>
+        <td class="note">L484~489</td>
+      </tr>
+      <tr>
+        <td class="prop">위험도 카드</td>
+        <td class="val">.ds-card.risk-card</td>
+        <td class="val">gradient(135deg,#FFF7ED→#FEF3C7)<br>border:1px solid #FDE68A<br>게이지: 48x48px (conic-gradient)</td>
+        <td class="note">L491~505</td>
+      </tr>
+      <tr>
+        <td class="prop">응답률 카드</td>
+        <td class="val">.ds-card.response-card</td>
+        <td class="val">gradient(135deg,#ECFDF5→#D1FAE5)<br>border:1px solid #A7F3D0<br>미니바: width:6px; gap:3px; height:42px</td>
+        <td class="note">L510~521</td>
+      </tr>
+      <tr>
+        <td class="prop">수면 카드</td>
+        <td class="val">.ds-card.sleep-card</td>
+        <td class="val">gradient(135deg,#EFF6FF→#DBEAFE)<br>border:1px solid #93C5FD<br>아이콘: 48x48px; border-radius:14px</td>
+        <td class="note">L523~533</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 9. 인증 오버레이 ══════════ -->
+<div class="section" id="sec-auth">
+  <div class="section-title"><span class="num">9</span> 인증 오버레이 시스템 (P0 법적 요구사항)</div>
+  <p class="section-desc">4단계 순차 오버레이. 회원가입 → 약관 동의 → 건강정보 동의 → 의료 면책조항.</p>
+
+  <div class="flow-steps">
+    <div class="flow-step" style="border-color:var(--blue);color:var(--blue);">① 로그인<br><span style="font-size:10px;color:var(--t3);">#auth-overlay</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:var(--green);color:var(--green);">② 약관 동의<br><span style="font-size:10px;color:var(--t3);">#terms-overlay</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:var(--amber);color:var(--amber);">③ 건강정보<br><span style="font-size:10px;color:var(--t3);">#health-consent-overlay</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:var(--red);color:var(--red);">④ 면책조항<br><span style="font-size:10px;color:var(--t3);">#disclaimer-overlay</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:var(--purple);color:var(--purple);">메인 화면</div>
+  </div>
+
+  <table class="spec-table">
+    <thead><tr><th>요소</th><th>CSS 선택자</th><th>크기/간격</th><th>JS 함수</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">오버레이 배경</td>
+        <td class="val">.auth-overlay</td>
+        <td class="val">position:fixed; z-index:1000<br>background:rgba(0,0,0,.4)<br>backdrop-filter:blur(6px)</td>
+        <td class="note">-</td>
+      </tr>
+      <tr>
+        <td class="prop">카드 컨테이너</td>
+        <td class="val">.auth-card</td>
+        <td class="val">width:420px; max-width:90vw<br>border-radius:24px; max-height:90vh<br>box-shadow:0 20px 60px rgba(0,0,0,.15)</td>
+        <td class="note">-</td>
+      </tr>
+      <tr>
+        <td class="prop">① 소셜 로그인</td>
+        <td class="val">#auth-overlay</td>
+        <td class="val">카카오(#FEE500) + 네이버(#03C75A)<br>+ 구글(#fff) + 이메일(var(--g100))<br>버튼: padding:14px; border-radius:12px</td>
+        <td class="note">socialLogin()</td>
+      </tr>
+      <tr>
+        <td class="prop">② 약관 동의</td>
+        <td class="val">#terms-overlay</td>
+        <td class="val">전체동의 + 필수2 + 선택1<br>체크박스: width:20px; height:20px<br>border-radius:6px</td>
+        <td class="note">toggleConsent()<br>toggleAllConsent()<br>updateConsentButtons()</td>
+      </tr>
+      <tr>
+        <td class="prop">③ 건강정보 동의</td>
+        <td class="val">#health-consent-overlay</td>
+        <td class="val">개인정보보호법 제23조 민감정보<br>수집 항목 명시</td>
+        <td class="note">showHealthConsent()</td>
+      </tr>
+      <tr>
+        <td class="prop">④ 의료 면책조항</td>
+        <td class="val">#disclaimer-overlay</td>
+        <td class="val">의료법 제27조 준수<br>응급 연락처 포함</td>
+        <td class="note">goToMainFromDisclaimer()</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 10. 반응형 ══════════ -->
+<div class="section" id="sec-responsive">
+  <div class="section-title"><span class="num">10</span> 반응형 브레이크포인트</div>
+  <p class="section-desc">2개의 @media 쿼리로 태블릿/모바일 대응.</p>
+
+  <table class="spec-table">
+    <thead><tr><th>브레이크포인트</th><th>변경 내용</th><th>라인</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="prop">@media (max-width: 900px)</td>
+        <td class="val">
+          .sidebar → display:none<br>
+          .dash-strip-inner → flex-direction:column; padding:0 12px<br>
+          .nav → padding:0 20px<br>
+          .hero h1 → font-size:32px<br>
+          .features → padding:40px 20px<br>
+          .survey-modal → width:95%; max-width:480px<br>
+          .chat-messages → padding:16px 16px<br>
+          .chat-input-area → padding:12px 16px 20px
+        </td>
+        <td class="note">L1489~1502</td>
+      </tr>
+      <tr>
+        <td class="prop">@media (max-width: 768px)</td>
+        <td class="val">
+          .score-cards → grid 2열<br>
+          .dual-chart-row → 1열<br>
+          .activity-rings-row → 세로 방향<br>
+          .chat-side-panel → display:none
+        </td>
+        <td class="note">L1010~1015</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 부록: 전체 치수 한눈에 보기 ══════════ -->
+<div class="section" id="sec-summary">
+  <div class="section-title"><span class="num">+</span> 부록: 전체 치수 퀵 레퍼런스</div>
+
+  <div class="code-block" style="font-size:11px;line-height:2;">
+<span class="comment">/* ═══ 전체 레이아웃 치수 한눈에 보기 ═══ */</span>
+
+<span class="comment">/* 1. 전체 화면 */</span>
+<span class="sel">.screen-main</span>        → <span class="val">height:100vh</span>; <span class="val">flex-direction:row</span>
+
+<span class="comment">/* 2. 사이드바 */</span>
+<span class="sel">.sidebar</span>             → <span class="val">width:260px</span>; <span class="val">margin-right:16px</span>
+<span class="sel">.sidebar-logo</span>        → <span class="val">padding:20px 24px</span>; <span class="val">font:18px/900</span>
+<span class="sel">.sidebar-item</span>        → <span class="val">padding:10px 12px</span>; <span class="val">font:13px/500</span>; <span class="val">border-radius:10px</span>
+<span class="sel">.sidebar-avatar</span>      → <span class="val">36×36px</span>; <span class="val">border-radius:50%</span>
+<span class="sel">.sidebar-history</span>     → <span class="val">flex:1</span>; <span class="val">padding:8px</span>
+<span class="sel">.sidebar-mission bar</span> → <span class="val">height:6px</span>; <span class="val">border-radius:100px</span>
+
+<span class="comment">/* 3. 대시보드 스트립 */</span>
+<span class="sel">.dash-strip</span>          → <span class="val">padding:12px 0</span>; <span class="val">max-height:100px→0</span>
+<span class="sel">.dash-strip-inner</span>    → <span class="val">max-width:780px</span>; <span class="val">gap:12px</span>; <span class="val">padding:0 24px</span>
+<span class="sel">.ds-card</span>             → <span class="val">flex:1</span>; <span class="val">padding:14px 16px</span>; <span class="val">border-radius:16px</span>
+<span class="sel">.ds-gauge</span>            → <span class="val">48×48px</span>; <span class="val">border-radius:50%</span>
+<span class="sel">.strip-toggle</span>        → <span class="val">28×28px</span>; <span class="val">border-radius:50%</span>
+
+<span class="comment">/* 4. 채팅 영역 (핵심) */</span>
+<span class="sel">.chat-main</span>           → <span class="val">flex:1</span>; <span class="val">max-width:calc(100% - 280px)</span> <span class="comment">/* 고정! */</span>
+<span class="sel">.chat-messages</span>       → <span class="val">padding:24px</span>; <span class="val">gap:16px</span>; <span class="val">scrollbar:5px</span>
+<span class="sel">.msg-av</span>              → <span class="val">28×28px</span>; <span class="val">border-radius:50%</span>
+<span class="sel">.msg-bubble</span>          → <span class="val">padding:12px 16px</span>; <span class="val">border-radius:18px</span>; <span class="val">font:14px</span>
+<span class="sel">.msg-content</span>         → <span class="val">max-width:85%</span>
+
+<span class="comment">/* 5. 입력 영역 */</span>
+<span class="sel">.chat-input-area</span>     → <span class="val">padding:12px 24px 24px</span>
+<span class="sel">.chat-input-wrap</span>     → <span class="val">max-width:720px</span>; <span class="val">border-radius:24px</span>; <span class="val">padding:6px 6px 6px 20px</span>
+<span class="sel">.chat-send</span>           → <span class="val">36×36px</span>; <span class="val">border-radius:50%</span>
+<span class="sel">.live-nudge-bar</span>      → <span class="val">max-width:720px</span>; <span class="val">padding:10px 16px</span>; <span class="val">border-radius:12px</span>
+<span class="sel">.live-badge</span>          → <span class="val">padding:3px 10px</span>; <span class="val">font:10px/800</span>
+<span class="sel">.live-close</span>          → <span class="val">24×24px</span>; <span class="val">border-radius:50%</span>
+
+<span class="comment">/* 6. 사이드패널 */</span>
+<span class="sel">.chat-side-panel</span>     → <span class="val">width:280px</span> (펼침) / <span class="val">72px</span> (접힘)
+<span class="sel">.side-panel-toggle</span>   → <span class="val">min-height:44px</span>; <span class="val">padding:12px 10px</span>
+<span class="sel">.side-widget</span>         → <span class="val">padding:16px</span>; <span class="val">border-radius:16px</span>
+<span class="sel">.fortune-flip-wrap</span>   → <span class="val">perspective:800px</span>; <span class="val">min-height:200px</span>
+<span class="sel">.collapsed-icon</span>      → <span class="val">36×36px</span>; <span class="val">border-radius:12px</span>
+
+<span class="comment">/* 7. 인증 오버레이 */</span>
+<span class="sel">.auth-overlay</span>        → <span class="val">z-index:1000</span>; <span class="val">blur:6px</span>
+<span class="sel">.auth-card</span>           → <span class="val">width:420px</span>; <span class="val">border-radius:24px</span>; <span class="val">max-height:90vh</span>
+
+<span class="comment">/* 8. 반응형 */</span>
+<span class="sel">@media ≤ 900px</span>       → 사이드바 숨김, 스트립 세로, 패딩 축소
+<span class="sel">@media ≤ 768px</span>       → 사이드패널 숨김, 그리드 축소
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function scrollToSection(id){
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// 스크롤 시 네비 활성화
+const sections = document.querySelectorAll('.section[id]');
+const navItems = document.querySelectorAll('.nav-item');
+window.addEventListener('scroll',()=>{
+  let current='';
+  sections.forEach(s=>{
+    if(window.scrollY >= s.offsetTop - 100) current = s.id;
+  });
+  navItems.forEach(n=>{
+    n.classList.remove('active');
+    if(n.getAttribute('onclick')?.includes(current)) n.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,2159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 — 데이터 수집 설계 가이드 V3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+:root{
+  --primary:#0EA5E9;--primary-dark:#0284C7;--primary-light:#E0F2FE;
+  --accent:#10B981;--accent-light:#D1FAE5;
+  --warning:#F59E0B;--warning-light:#FEF3C7;
+  --danger:#EF4444;--danger-light:#FEE2E2;
+  --purple:#7C3AED;--purple-light:#EDE9FE;
+  --g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;
+  --g400:#94A3B8;--g500:#64748B;--g600:#475569;--g700:#334155;--g800:#1E293B;--g900:#0F172A;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:#F8FAFC;color:var(--g800);line-height:1.7;}
+.container{max-width:1140px;margin:0 auto;padding:40px 24px 80px;}
+
+/* Nav */
+.nav-tabs{display:flex;gap:4px;background:#fff;border-radius:16px;padding:6px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:40px;position:sticky;top:12px;z-index:100;flex-wrap:wrap;}
+.nav-tab{flex:1;min-width:100px;text-align:center;padding:13px 6px;border-radius:12px;font-size:11.5px;font-weight:700;cursor:pointer;transition:.2s;color:var(--g500);border:none;background:transparent;font-family:inherit;}
+.nav-tab:hover{background:var(--g100);}
+.nav-tab.active{background:var(--g900);color:#fff;}
+
+.section{display:none;}.section.active{display:block;}
+.section-title{font-size:28px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.section-sub{font-size:13px;color:var(--g500);margin-bottom:28px;}
+
+/* Cards */
+.card{background:#fff;border-radius:20px;padding:26px;margin-bottom:18px;border:1px solid var(--g200);box-shadow:0 2px 8px rgba(0,0,0,.03);}
+.card h3{font-size:16px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.card p{font-size:13px;color:var(--g600);line-height:1.8;}
+
+/* Tags */
+.tag{display:inline-flex;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;margin:2px;white-space:nowrap;}
+.tag-critical{background:#FEE2E2;color:#DC2626;}
+.tag-important{background:#FEF3C7;color:#92400E;}
+.tag-nice{background:var(--g100);color:var(--g500);}
+.tag-model{background:#DBEAFE;color:#1E40AF;}
+.tag-dash{background:#D1FAE5;color:#065F46;}
+.tag-challenge{background:#EDE9FE;color:#6D28D9;}
+.tag-once{background:#FFF7ED;color:#EA580C;}
+.tag-daily{background:#E0F2FE;color:#0284C7;}
+.tag-device{background:#FCE7F3;color:#BE185D;}
+.tag-lab{background:#FEF9C3;color:#A16207;}
+
+/* Tables */
+table.dt{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin-top:10px;}
+table.dt th{background:var(--g900);color:#fff;padding:10px 12px;font-weight:700;text-align:left;white-space:nowrap;}
+table.dt th:first-child{border-radius:12px 0 0 0;}
+table.dt th:last-child{border-radius:0 12px 0 0;}
+table.dt td{padding:10px 12px;border-bottom:1px solid var(--g100);vertical-align:top;}
+table.dt tr:hover td{background:var(--g50);}
+table.dt tr:last-child td:first-child{border-radius:0 0 0 12px;}
+table.dt tr:last-child td:last-child{border-radius:0 0 12px 0;}
+
+/* Grouped question card */
+.gq{background:#fff;border-radius:16px;padding:20px 22px;margin-bottom:14px;border:2px solid var(--g200);transition:.15s;}
+.gq:hover{border-color:var(--primary);box-shadow:0 2px 16px rgba(14,165,233,.08);}
+.gq-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.gq-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.gq-title{font-size:14px;font-weight:800;}
+.gq-sub{font-size:11px;color:var(--g400);}
+.gq-body{display:flex;flex-direction:column;gap:8px;}
+.gq-q{padding:10px 14px;border-radius:10px;background:var(--g50);border:1px solid var(--g200);}
+.gq-q-label{font-size:12px;font-weight:700;color:var(--g700);margin-bottom:4px;}
+.gq-q-opts{display:flex;flex-wrap:wrap;gap:6px;}
+.gq-q-opt{padding:5px 12px;border-radius:100px;border:1.5px solid var(--g200);font-size:11px;font-weight:600;background:#fff;cursor:pointer;transition:.1s;}
+.gq-q-opt:hover{border-color:var(--primary);color:var(--primary);}
+.gq-q-opt.sel{background:var(--primary);color:#fff;border-color:var(--primary);}
+.gq-answer{margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--primary-light);border:1px solid #BAE6FD;}
+.gq-answer-label{font-size:10px;font-weight:700;color:var(--primary-dark);margin-bottom:4px;}
+.gq-answer-text{font-size:13px;font-weight:800;color:var(--primary-dark);letter-spacing:1px;}
+.gq-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+.stat-card{background:#fff;border-radius:14px;padding:18px;border:1px solid var(--g200);text-align:center;}
+.stat-num{font-size:28px;font-weight:900;margin-bottom:2px;}
+.stat-label{font-size:11px;color:var(--g500);line-height:1.5;}
+
+/* Flow */
+.flow-h{display:flex;align-items:center;gap:0;overflow-x:auto;padding:10px 0;}
+.flow-h-node{flex-shrink:0;background:#fff;border-radius:14px;padding:14px 18px;border:2px solid var(--g200);text-align:center;min-width:140px;}
+.flow-h-node.hl{border-color:var(--primary);background:var(--primary-light);}
+.flow-h-arrow{flex-shrink:0;font-size:20px;color:var(--g300);padding:0 4px;}
+.flow-h-node .fh-title{font-size:12px;font-weight:800;}
+.flow-h-node .fh-sub{font-size:10px;color:var(--g500);margin-top:2px;}
+
+/* Legend row */
+.legend{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px;background:var(--g50);border-radius:12px;margin-bottom:16px;font-size:11px;color:var(--g600);}
+.legend-item{display:flex;align-items:center;gap:4px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+@media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr 1fr;}.nav-tab{min-width:70px;font-size:10px;padding:10px 4px;}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div style="text-align:center;margin-bottom:28px;">
+  <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px;">DA-NA-A 데이터 수집 설계 가이드 V2</div>
+  <h1 style="font-size:30px;font-weight:900;line-height:1.3;">
+    필수 3기능을 위한<br>
+    <span style="background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">데이터 수집 완전 설계서</span>
+  </h1>
+  <p style="font-size:13px;color:var(--g500);margin-top:8px;">당뇨 도메인 | 질문 묶음 설계 | 수집 맥락별 구분</p>
+</div>
+
+<!-- Nav -->
+<div class="nav-tabs" id="nav">
+  <button class="nav-tab active" onclick="showSection(0)">전체 구조</button>
+  <button class="nav-tab" onclick="showSection(1)">온보딩 설문</button>
+  <button class="nav-tab" onclick="showSection(2)">AI 사용 중 수집</button>
+  <button class="nav-tab" onclick="showSection(3)">검사/장비 데이터</button>
+  <button class="nav-tab" onclick="showSection(4)">질문 묶음 설계</button>
+  <button class="nav-tab" onclick="showSection(5)">3기능 매핑</button>
+  <button class="nav-tab" onclick="showSection(6)">우선순위</button>
+  <button class="nav-tab" onclick="showSection(7)">의학적 근거</button>
+  <button class="nav-tab" onclick="showSection(8)">미접속/저사용 전략</button>
+  <button class="nav-tab" onclick="showSection(9)">UI 인터랙션 설계</button>
+</div>
+
+
+<!-- ═══ 0. 전체 구조 ═══ -->
+<div class="section active" id="sec-0">
+  <div class="section-title">데이터 수집 전체 구조</div>
+  <div class="section-sub">모든 데이터를 "언제·어떻게 받는가" 기준으로 4가지로 나눕니다. <span style="font-size:11px;color:var(--accent);font-weight:700;">V3 — 듀얼채널(AI 채팅+사이드패널) 확정, UI 인터랙션 탭 추가</span></div>
+
+  <!-- 범례 -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--warning);"></div> 1회성 (온보딩)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--primary);"></div> AI 사용 중 반복 수집</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple);"></div> 검사 결과 입력 (있을 때만)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--danger);"></div> 측정 장비 필요</div>
+  </div>
+
+  <!-- 4가지 수집 맥락 -->
+  <div class="grid-2">
+    <div class="card" style="border-left:4px solid var(--warning);">
+      <h3><span class="tag tag-once">1회성</span> 온보딩 설문</h3>
+      <p><strong>서비스 가입 시 1번만 받는 설문.</strong><br>
+      나이, 성별, 키/체중, 가족력, 질환 이력 등 "변하지 않거나 천천히 변하는" 기본 정보.<br>
+      13개 화면, 약 3-5분 소요.</p>
+      <div style="margin-top:10px;">
+        <span class="tag tag-model">예측 모델 베이스라인</span>
+        <span class="tag tag-dash">대시보드 초기값</span>
+        <span class="tag tag-challenge">챌린지 추천 기준</span>
+      </div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--primary);">
+      <h3><span class="tag tag-daily">반복</span> AI 사용 중 수집</h3>
+      <p><strong>듀얼채널: AI 채팅 + 사이드패널 직접입력.</strong><br>
+      수면, 식사, 운동 등 "매일/2-3일마다 변하는" 생활습관 데이터.<br>
+      AI 채팅: 3 터치포인트, 90분 쿨다운, 최대 2묶음. 사이드패널: 쿨다운 없음.<br>
+      <span style="font-size:11px;color:var(--accent);">First Answer Wins — 어느 채널이든 먼저 응답하면 다른 채널 스킵</span></p>
+      <div style="margin-top:10px;">
+        <span class="tag tag-model">모델 동적 갱신</span>
+        <span class="tag tag-dash">대시보드 추이</span>
+        <span class="tag tag-challenge">챌린지 달성 판정</span>
+      </div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--purple);">
+      <h3><span class="tag tag-lab">검사결과</span> 건강검진 데이터</h3>
+      <p><strong>병원/건강검진 결과가 있을 때만 입력.</strong><br>
+      HbA1c, 공복혈당, 콜레스테롤 등. 한국 국민건강검진에서 받을 수 있음.<br>
+      3-12개월 주기, 입력은 선택.</p>
+      <div style="margin-top:10px;">
+        <span class="tag tag-model">예측 정확도 대폭↑</span>
+        <span class="tag tag-dash">임상 마커 차트</span>
+      </div>
+    </div>
+    <div class="card" style="border-left:4px solid var(--danger);">
+      <h3><span class="tag tag-device">장비 필요</span> 자가 측정 데이터</h3>
+      <p><strong>체중계, 줄자, 혈압계 등 도구가 필요한 측정.</strong><br>
+      체중(주간), 허리둘레(15일), 혈압(주간/해당자).<br>
+      도구가 없으면 건너뛸 수 있음.</p>
+      <div style="margin-top:10px;">
+        <span class="tag tag-model">FINDRISC 핵심 변수</span>
+        <span class="tag tag-dash">체중/체형 추이</span>
+        <span class="tag tag-challenge">감량 챌린지</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 수집 흐름도 -->
+  <div class="card" style="margin-top:8px;">
+    <h3>수집 흐름 — 사용자 여정 순서</h3>
+    <div class="flow-h" style="margin-top:12px;">
+      <div class="flow-h-node hl"><div class="fh-title">가입</div><div class="fh-sub">온보딩 설문<br>13화면 3-5분</div></div>
+      <div class="flow-h-arrow">→</div>
+      <div class="flow-h-node"><div class="fh-title">매일</div><div class="fh-sub">AI 채팅 중<br>묶음 질문 3회</div></div>
+      <div class="flow-h-arrow">→</div>
+      <div class="flow-h-node"><div class="fh-title">2-3일</div><div class="fh-sub">스트레스+음주<br>격일 묶음</div></div>
+      <div class="flow-h-arrow">→</div>
+      <div class="flow-h-node"><div class="fh-title">주간</div><div class="fh-sub">체중 입력<br>(체중계)</div></div>
+      <div class="flow-h-arrow">→</div>
+      <div class="flow-h-node"><div class="fh-title">15일</div><div class="fh-sub">허리둘레<br>(줄자)</div></div>
+      <div class="flow-h-arrow">→</div>
+      <div class="flow-h-node"><div class="fh-title">월간</div><div class="fh-sub">흡연/투약<br>변경 확인</div></div>
+      <div class="flow-h-arrow">→</div>
+      <div class="flow-h-node"><div class="fh-title">3-6개월</div><div class="fh-sub">검진 결과 입력<br>(선택)</div></div>
+    </div>
+  </div>
+
+  <!-- 핵심 수치 -->
+  <div class="grid-4" style="margin-top:8px;">
+    <div class="stat-card"><div class="stat-num" style="color:var(--warning);">13</div><div class="stat-label">온보딩 설문 항목</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--primary);">6</div><div class="stat-label">매일 묶음 질문 수<br>(개별 10-11문항→6묶음)</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent);">~8초</div><div class="stat-label">묶음 1개 응답 시간</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--purple);">3</div><div class="stat-label">장비 필요 항목<br>(체중계/줄자/혈압계)</div></div>
+  </div>
+</div>
+
+
+<!-- ═══ 1. 온보딩 설문 ═══ -->
+<div class="section" id="sec-1">
+  <div class="section-title">온보딩 설문 (1회성)</div>
+  <div class="section-sub">서비스 가입 시 1번만 받습니다. 베이스라인 데이터를 확보합니다.</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#FEF3C7,#FFF7ED);border-color:#FDE68A;">
+    <h3>온보딩에서 수집하는 것 = "변하지 않거나 아주 천천히 변하는 정보"</h3>
+    <p>이 데이터는 예측 모델의 <strong>기준선(베이스라인)</strong>이 됩니다. 이후 AI 사용 중 수집하는 데이터는 이 기준선 대비 "변화"를 추적합니다.</p>
+  </div>
+
+  <div class="card">
+    <h3>온보딩 설문 항목 — 전체 목록</h3>
+    <table class="dt">
+      <tr><th>#</th><th>항목</th><th>수집 방식</th><th>예측모델</th><th>대시보드</th><th>챌린지</th><th>비고</th></tr>
+      <tr><td>1</td><td><strong>당뇨 관계</strong></td><td>5지선다 (진단/전당뇨/가족력/궁금/관리)</td><td style="background:#DBEAFE;">그룹 분류</td><td>-</td><td>-</td><td>A/B/C 그룹 결정</td></tr>
+      <tr><td>2</td><td><strong>나이대</strong></td><td>선택 (20대~60대+)</td><td style="background:#DBEAFE;">7/7 공통</td><td>프로필</td><td>-</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>3</td><td><strong>성별</strong></td><td>선택</td><td style="background:#DBEAFE;">4/7 도구</td><td>프로필</td><td>-</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>4</td><td><strong>키</strong></td><td>슬라이더 (140-200cm)</td><td style="background:#DBEAFE;">BMI 계산</td><td>-</td><td>-</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>5</td><td><strong>체중</strong></td><td>슬라이더 (35-150kg)</td><td style="background:#DBEAFE;">BMI → FINDRISC 3점</td><td>초기값</td><td>감량 목표 기준</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>6</td><td><strong>가족력</strong></td><td>선택 (부모/형제/양쪽/없음/모름)</td><td style="background:#DBEAFE;">7/7 공통</td><td>-</td><td>-</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>7</td><td><strong>기저질환</strong></td><td>다중선택 (고혈압/이상지질/고혈당/임신성)</td><td style="background:#DBEAFE;">FINDRISC 5점</td><td>-</td><td>-</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>8</td><td><strong>치료 상태</strong></td><td>다중선택 (A그룹만)</td><td style="background:#DBEAFE;">KDRS</td><td>-</td><td>복약 챌린지 기준</td><td>A그룹 전용</td></tr>
+      <tr><td>9</td><td><strong>검사값</strong></td><td>범주 선택 (HbA1c/공복혈당 범위)</td><td style="background:#DBEAFE;">ML 1-2위 변수</td><td>초기 마커</td><td>-</td><td>A/B그룹, 모르면 "모름"</td></tr>
+      <tr><td>10</td><td><strong>운동 빈도</strong></td><td>선택 (안함/1-2/3-4/5+회/주)</td><td style="background:#DBEAFE;">7/7 공통, 2점</td><td>초기값</td><td>운동 챌린지 기준</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>11</td><td><strong>식습관</strong></td><td>다중선택 (탄수화물/단음료/야식/채소/불규칙)</td><td style="background:#DBEAFE;">FINDRISC 1점</td><td>초기값</td><td>식단 챌린지 기준</td><td><span class="tag tag-critical">필수</span></td></tr>
+      <tr><td>12</td><td><strong>수면/음주/흡연</strong></td><td>3-in-1 (각 범주 선택)</td><td style="background:#DBEAFE;">KDRS</td><td>초기값</td><td>수면/절주/금연 기준</td><td><span class="tag tag-important">중요</span></td></tr>
+      <tr><td>13</td><td><strong>목표 선택</strong></td><td>다중선택 (위험도/기록/식단/운동/체중/전부)</td><td>-</td><td>-</td><td style="background:#EDE9FE;">챌린지 추천 기준</td><td><span class="tag tag-critical">필수</span></td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="background:var(--accent-light);border-color:#A7F3D0;">
+    <h3>온보딩만으로 예측 모델이 돌아간다</h3>
+    <p>위 13항목으로 FINDRISC+KDRS 하이브리드 모델 실행 가능. <strong>AUC ~0.80</strong> (Allesoe 2023 근거). 이후 AI 사용 중 데이터가 쌓이면 정확도가 0.88~0.90으로 올라감.</p>
+  </div>
+</div>
+
+
+<!-- ═══ 2. AI 사용 중 수집 ═══ -->
+<div class="section" id="sec-2">
+  <div class="section-title">AI 사용 중 수집</div>
+  <div class="section-sub">다나아 AI와 대화하면서 자연스럽게 수집합니다. 관련 질문을 묶어서 한 번에 받습니다.</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#E0F2FE,#DBEAFE);border-color:#93C5FD;">
+    <h3>핵심 원칙: 질문 묶음 (Grouped Questions)</h3>
+    <p>관련된 질문은 하나로 묶어서 한 번에 받습니다.<br>
+    개별 문항 10-11개 → <strong>6개 묶음</strong>으로 압축. 사용자는 하나의 카드에서 연속 응답.</p>
+    <div style="margin-top:10px;padding:10px 14px;background:rgba(245,158,11,.15);border-radius:10px;border-left:3px solid var(--warning);font-size:12px;color:#92400E;">
+      <strong>삽입 규칙:</strong> AI 응답 1회당 질문묶음 <strong>최대 2개</strong>. 아침 터치포인트에서 묶음1+묶음2★(또는 묶음2) 이후 추가 묶음은 다음 윈도우로. 90분 쿨다운 적용.
+    </div>
+    <div class="grid-3" style="margin-top:12px;">
+      <div style="padding:12px;background:rgba(255,255,255,.8);border-radius:10px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:var(--g400);">개별 문항 수</div>
+        <div style="font-size:24px;font-weight:900;color:var(--g400);text-decoration:line-through;">10-11개</div>
+      </div>
+      <div style="font-size:28px;display:flex;align-items:center;justify-content:center;color:var(--primary);">→</div>
+      <div style="padding:12px;background:rgba(255,255,255,.8);border-radius:10px;text-align:center;">
+        <div style="font-size:11px;font-weight:700;color:var(--primary-dark);">묶음 수</div>
+        <div style="font-size:24px;font-weight:900;color:var(--primary-dark);">6개</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 듀얼채널 설계 (V3 추가) -->
+  <div class="card" style="background:linear-gradient(135deg,#D1FAE5,#ECFDF5);border-color:#6EE7B7;margin-top:8px;">
+    <h3>V3 확정: 듀얼채널 수집 (AI 채팅 + 사이드패널)</h3>
+    <div class="grid-2" style="margin-top:12px;gap:12px;">
+      <div style="padding:14px;background:rgba(255,255,255,.85);border-radius:12px;border:1px solid #BAE6FD;">
+        <div style="font-size:13px;font-weight:800;color:var(--primary-dark);margin-bottom:6px;">📱 AI 채팅 채널</div>
+        <ul style="font-size:12px;color:var(--g600);margin-left:14px;line-height:2;">
+          <li>90분 쿨다운 적용</li>
+          <li>1회당 최대 2묶음</li>
+          <li>3 터치포인트 시간윈도우</li>
+          <li>야간(22-07시) 차단</li>
+        </ul>
+      </div>
+      <div style="padding:14px;background:rgba(255,255,255,.85);border-radius:12px;border:1px solid #A7F3D0;">
+        <div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:6px;">📋 사이드패널 직접입력</div>
+        <ul style="font-size:12px;color:var(--g600);margin-left:14px;line-height:2;">
+          <li>쿨다운 미적용</li>
+          <li>시간윈도우만 적용</li>
+          <li>1카테고리씩 (식사/당섭취/활동/수분)</li>
+          <li>사용자가 원할 때 바로 입력</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:10px 14px;background:rgba(16,185,129,.12);border-radius:10px;border-left:3px solid var(--accent);font-size:12px;color:#065F46;">
+      <strong>First Answer Wins:</strong> AI 채팅이든 사이드패널이든, 먼저 응답된 채널의 값이 채택. 다른 채널의 동일 질문은 자동 스킵.<br>
+      <strong>소급 입력:</strong> 미접속 사용자는 "누락됐어요~" 모달에서 최대 3일치(오늘+어제+2일 전) 일괄 입력 가능. DORMANT=2건/일, LOW=4건/일 제한.
+    </div>
+  </div>
+
+  <!-- 질문 병합 확정 (V3 추가) -->
+  <div class="card" style="margin-top:8px;border-left:4px solid var(--accent);">
+    <h3>V3 확정: 질문 병합</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;">
+      <thead><tr style="background:var(--g100);"><th style="padding:8px 10px;text-align:left;">대상</th><th style="padding:8px 10px;text-align:left;">기존</th><th style="padding:8px 10px;text-align:left;">병합 후</th><th style="padding:8px 10px;text-align:left;">형태</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--g100);"><td style="padding:8px 10px;">수면</td><td style="padding:8px 10px;">Q1(수면시간) + Q2(수면질)</td><td style="padding:8px 10px;">1문항</td><td style="padding:8px 10px;">5택 복합 (시간+질 통합)</td></tr>
+        <tr style="border-bottom:1px solid var(--g100);"><td style="padding:8px 10px;">정서</td><td style="padding:8px 10px;">Q12(스트레스) + Q13(기분)</td><td style="padding:8px 10px;">1문항</td><td style="padding:8px 10px;">5택 복합 (스트레스+기분 통합)</td></tr>
+        <tr style="border-bottom:1px solid var(--g100);"><td style="padding:8px 10px;">운동</td><td style="padding:8px 10px;">Q8(운동여부) + Q9(운동종류/시간)</td><td style="padding:8px 10px;">1문항 + 조건부 서브</td><td style="padding:8px 10px;">"했어요" 선택 시에만 종류/시간 추가</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:8px;font-size:11px;color:var(--g500);">이 병합으로 응답 피로도 감소. FINDRISC 100% 커버 유지. 하루 총 ~22초.</div>
+  </div>
+
+  <!-- 매일 묶음 -->
+  <div style="margin-bottom:28px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:22px;">☀️</span>
+      <div>
+        <div style="font-size:17px;font-weight:800;">매일 수집 — 6개 묶음 <span style="font-size:12px;color:var(--warning);font-weight:700;">(AI 응답 1회당 최대 2개)</span></div>
+        <div style="font-size:12px;color:var(--g400);">3 터치포인트 × 최대 2묶음 = 하루 최대 6묶음 (아침 2, 점심 1, 저녁 2) · A그룹 아침: 묶음2★(오전식사+복약)</div>
+      </div>
+    </div>
+
+    <!-- 묶음 1: 수면 -->
+    <div class="gq">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#DBEAFE;color:#1E40AF;">💤</div>
+        <div>
+          <div class="gq-title">묶음 1: 수면 (시간+질)</div>
+          <div class="gq-sub">아침 터치포인트 (07-09시) · 2문항 1카드</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">Q1. 어젯밤 몇 시간 주무셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt">① 5시간 이하</span>
+            <span class="gq-q-opt">② 5~6시간</span>
+            <span class="gq-q-opt sel">③ 6~7시간</span>
+            <span class="gq-q-opt">④ 7~8시간</span>
+            <span class="gq-q-opt">⑤ 8시간 이상</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q2. 잠은 잘 주무셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt">① 개운해요</span>
+            <span class="gq-q-opt sel">② 그냥 그래요</span>
+            <span class="gq-q-opt">③ 피곤해요</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">3 / 2</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-dash">수면 점수</span>
+        <span class="tag tag-dash">히트맵 (수면7h+)</span>
+        <span class="tag tag-challenge">수면 챌린지</span>
+        <span class="tag tag-model">종단 향상</span>
+      </div>
+    </div>
+
+    <!-- 묶음 2: 아침+채소 -->
+    <div class="gq">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#D1FAE5;color:#065F46;">🍽️</div>
+        <div>
+          <div class="gq-title">묶음 2: 오전 식사 (아침+채소)</div>
+          <div class="gq-sub">아침 터치포인트 (07-09시) 또는 점심 (11:30-13:30) · 2문항 1카드</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">Q1. 오늘 아침 드셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 든든히 먹었어요</span>
+            <span class="gq-q-opt">② 간단히 먹었어요</span>
+            <span class="gq-q-opt">③ 못 먹었어요</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q2. 오늘 채소나 과일 드셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt">① 충분히 먹었어요</span>
+            <span class="gq-q-opt sel">② 조금 먹었어요</span>
+            <span class="gq-q-opt">③ 못 먹었어요</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">1 / 2</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-model">FINDRISC 1점 (채소)</span>
+        <span class="tag tag-dash">식단 점수</span>
+        <span class="tag tag-dash">히트맵 (아침/채소)</span>
+        <span class="tag tag-challenge">아침식사 챌린지</span>
+        <span class="tag tag-challenge">채소 챌린지</span>
+      </div>
+    </div>
+
+    <!-- 묶음 3: 식단 질 -->
+    <div class="gq">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#FEF3C7;color:#92400E;">🥗</div>
+        <div>
+          <div class="gq-title">묶음 3: 식단 질 (구성+단음료)</div>
+          <div class="gq-sub">점심 터치포인트 (11:30-13:30) · 2문항 1카드</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">Q1. 오늘 주요 식사는 어떤 구성이었나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt">① 밥/면 위주</span>
+            <span class="gq-q-opt sel">② 균형 잡힘</span>
+            <span class="gq-q-opt">③ 고기/채소 위주</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q2. 단 음료나 달콤한 간식 드셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 안 먹었어요</span>
+            <span class="gq-q-opt">② 1개 정도</span>
+            <span class="gq-q-opt">③ 2개 이상</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">2 / 1</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-dash">식단 질 추적</span>
+        <span class="tag tag-dash">식단 점수 감점 (단음료)</span>
+        <span class="tag tag-challenge">잡곡/저GI 챌린지</span>
+        <span class="tag tag-challenge">단음료 끊기 챌린지</span>
+        <span class="tag tag-model">종단 향상</span>
+      </div>
+    </div>
+
+    <!-- 묶음 4: 운동 -->
+    <div class="gq">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#FEE2E2;color:#DC2626;">🏃</div>
+        <div>
+          <div class="gq-title">묶음 4: 운동 (여부+종류)</div>
+          <div class="gq-sub">저녁 터치포인트 (17-20시) · 2문항 1카드 (운동 안 했으면 종류 스킵)</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">Q1. 오늘 운동하셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt">① 안 했어요</span>
+            <span class="gq-q-opt">② 가볍게 (산책)</span>
+            <span class="gq-q-opt sel">③ 보통 (30분+)</span>
+            <span class="gq-q-opt">④ 열심히 (60분+)</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q2. 어떤 운동이었나요? <span style="font-weight:400;color:var(--g400);">(①번 선택 시 자동 스킵)</span></div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 걷기/달리기</span>
+            <span class="gq-q-opt">② 근력운동</span>
+            <span class="gq-q-opt">③ 수영/자전거</span>
+            <span class="gq-q-opt">④ 기타</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">3 / 1</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-model">FINDRISC 2점</span>
+        <span class="tag tag-dash">운동 점수 + 히트맵</span>
+        <span class="tag tag-dash">운동 유형 분포</span>
+        <span class="tag tag-challenge">150분/주 챌린지</span>
+        <span class="tag tag-challenge">근력 추가 챌린지</span>
+      </div>
+    </div>
+
+    <!-- 묶음 5: 저녁 습관 -->
+    <div class="gq">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#EDE9FE;color:#6D28D9;">🌙</div>
+        <div>
+          <div class="gq-title">묶음 5: 저녁 습관 (야식+식후산책)</div>
+          <div class="gq-sub">저녁 터치포인트 (17-20시) · 2문항 1카드</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">Q1. 저녁 9시 이후에 야식 드셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 안 먹었어요</span>
+            <span class="gq-q-opt">② 조금 먹었어요</span>
+            <span class="gq-q-opt">③ 많이 먹었어요</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q2. 오늘 식후에 산책하셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 예</span>
+            <span class="gq-q-opt">② 아니오</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">1 / 1</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-dash">식단 점수 감점 (야식)</span>
+        <span class="tag tag-challenge">야식 끊기 챌린지</span>
+        <span class="tag tag-challenge">식후 산책 챌린지</span>
+      </div>
+    </div>
+
+    <!-- 묶음 6: 복약 (A그룹) — 묶음2★에 병합됨 -->
+    <div class="gq" style="border-color:var(--warning);border-style:dashed;opacity:0.85;">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#FEF3C7;color:#92400E;">💊</div>
+        <div>
+          <div class="gq-title">묶음 2★ 추가 질문: 복약 확인 (A그룹 전용) <span style="font-size:10px;font-weight:600;color:var(--warning);background:#FEF3C7;padding:2px 7px;border-radius:6px;margin-left:4px;">→ 묶음2에 병합</span></div>
+          <div class="gq-sub">아침 터치포인트 · 묶음2★ 마지막 질문으로 삽입 · 당뇨 진단자(A그룹)만 표시</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">오늘 약 드셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 예</span>
+            <span class="gq-q-opt">② 아니오</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">1</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-dash">복약 순응도</span>
+        <span class="tag tag-challenge">복약 챌린지</span>
+        <span class="tag" style="background:#FFF7ED;color:#EA580C;">A그룹만</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-3일마다 묶음 -->
+  <div style="margin-bottom:28px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-size:22px;">🔄</span>
+      <div>
+        <div style="font-size:17px;font-weight:800;">2~3일마다 수집 — 1개 묶음</div>
+        <div style="font-size:12px;color:var(--g400);">아무 터치포인트에 추가 삽입</div>
+      </div>
+    </div>
+
+    <div class="gq">
+      <div class="gq-header">
+        <div class="gq-icon" style="background:#FCE7F3;color:#BE185D;">🧠</div>
+        <div>
+          <div class="gq-title">묶음 7: 정서+음주 (스트레스+기분+음주)</div>
+          <div class="gq-sub">2~3일마다 · 3문항 1카드 · 매일은 과도하므로 격일</div>
+        </div>
+      </div>
+      <div class="gq-body">
+        <div class="gq-q">
+          <div class="gq-q-label">Q1. 요즘 스트레스 수준은?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt">① 매우 낮음</span>
+            <span class="gq-q-opt">② 낮음</span>
+            <span class="gq-q-opt sel">③ 보통</span>
+            <span class="gq-q-opt">④ 높음</span>
+            <span class="gq-q-opt">⑤ 매우 높음</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q2. 오늘 기분은 어떠세요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 좋아요</span>
+            <span class="gq-q-opt">② 그냥 그래요</span>
+            <span class="gq-q-opt">③ 별로예요</span>
+          </div>
+        </div>
+        <div class="gq-q">
+          <div class="gq-q-label">Q3. 최근 이틀간 술 드셨나요?</div>
+          <div class="gq-q-opts">
+            <span class="gq-q-opt sel">① 안 마셨어요</span>
+            <span class="gq-q-opt">② 소량 (1~2잔)</span>
+            <span class="gq-q-opt">③ 보통 (3~4잔)</span>
+            <span class="gq-q-opt">④ 많이 (5잔+)</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-answer">
+        <div class="gq-answer-label">사용자 간편 응답</div>
+        <div class="gq-answer-text">3 / 1 / 1</div>
+      </div>
+      <div class="gq-tags">
+        <span class="tag tag-model">KDRS (음주)</span>
+        <span class="tag tag-dash">스트레스 점수</span>
+        <span class="tag tag-dash">음주 추이</span>
+        <span class="tag tag-challenge">스트레스 관리 챌린지</span>
+        <span class="tag tag-challenge">절주 챌린지</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 터치포인트 배분 -->
+  <div class="card">
+    <h3>하루 터치포인트 배분표</h3>
+    <table class="dt">
+      <tr><th>시간대</th><th>묶음</th><th>문항 수</th><th>응답 시간</th></tr>
+      <tr><td><strong>🌅 아침 (07-09시)</strong></td><td>묶음1 수면 + 묶음2★ 오전식사+복약 <span style="font-size:10px;color:var(--warning);">(A그룹: 묶음2에 복약 1문항 병합)</span></td><td>4문항 (2+2) / A그룹 5문항</td><td>~10초 / A그룹 ~12초</td></tr>
+      <tr><td><strong>☀️ 점심 (11:30-13:30)</strong></td><td>묶음3 식단질</td><td>2문항</td><td>~6초</td></tr>
+      <tr><td><strong>🌙 저녁 (17-20시)</strong></td><td>묶음4 운동 + 묶음5 저녁습관</td><td>4문항 (2+2)</td><td>~10초</td></tr>
+      <tr><td style="color:var(--g400);">격일 추가</td><td>묶음7 정서+음주 (2-3일마다)</td><td>3문항</td><td>~8초</td></tr>
+      <tr style="background:var(--g50);"><td><strong>합계</strong></td><td><strong>B/C그룹 / A그룹★</strong></td><td><strong>10문항 (6묶음) / A그룹 11문항</strong></td><td><strong>~26초/일 / A그룹 ~28초</strong></td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══ 3. 검사/장비 ═══ -->
+<div class="section" id="sec-3">
+  <div class="section-title">검사 결과 & 장비 측정 데이터</div>
+  <div class="section-sub">질문으로 수집할 수 없는 데이터. 장비가 있거나 검사를 받았을 때만 입력합니다.</div>
+
+  <div class="card">
+    <h3><span class="tag tag-device">측정 장비 필요</span> 자가 측정 항목</h3>
+    <table class="dt">
+      <tr><th>항목</th><th>필요 장비</th><th>수집 주기</th><th>기능 연결</th><th>없으면?</th></tr>
+      <tr>
+        <td><strong>체중</strong></td><td>체중계</td><td>주 1회</td>
+        <td><span class="tag tag-model">BMI→FINDRISC 3점</span><span class="tag tag-dash">체중 추이</span><span class="tag tag-challenge">감량 챌린지</span></td>
+        <td style="color:var(--danger);">체중/BMI 추적 불가 — 가능하면 반드시 수집</td>
+      </tr>
+      <tr>
+        <td><strong>허리둘레</strong></td><td>줄자</td><td>15일 1회</td>
+        <td><span class="tag tag-model">FINDRISC/KDRS 핵심</span><span class="tag tag-dash">체형 변화</span></td>
+        <td>BMI로 대체 가능하나 한국인은 허리둘레가 더 정확</td>
+      </tr>
+      <tr>
+        <td><strong>혈압</strong></td><td>혈압계</td><td>주 1-2회 (해당자)</td>
+        <td><span class="tag tag-model">KDRS Extended</span><span class="tag tag-dash">혈압 추이</span></td>
+        <td>온보딩 고혈압 이력으로 대체 (정적)</td>
+      </tr>
+    </table>
+    <div style="margin-top:12px;padding:12px;background:var(--warning-light);border-radius:10px;font-size:12px;color:#92400E;">
+      <strong>장비 없는 사용자 대응:</strong> "체중계가 없으시면, 편의점이나 약국 체중계를 이용하거나 최근 측정값을 입력해주세요."<br>
+      줄자도 없으면 건너뛰기 가능. 혈압은 고혈압 해당자만.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="tag tag-lab">검사 결과</span> 건강검진 데이터</h3>
+    <table class="dt">
+      <tr><th>항목</th><th>출처</th><th>수집 주기</th><th>기능 연결</th><th>예측력 향상</th></tr>
+      <tr>
+        <td><strong>HbA1c (당화혈색소)</strong></td><td>병원 혈액검사</td><td>3-6개월</td>
+        <td><span class="tag tag-model">ML 1위 예측 변수</span><span class="tag tag-dash">임상 마커 차트</span></td>
+        <td style="color:var(--accent);font-weight:700;">AUC +0.05</td>
+      </tr>
+      <tr>
+        <td><strong>공복혈당</strong></td><td>국민건강검진 포함</td><td>3-6개월</td>
+        <td><span class="tag tag-model">한국 AI 최고 변수</span><span class="tag tag-dash">임상 마커 차트</span></td>
+        <td style="color:var(--accent);font-weight:700;">AUC +0.05</td>
+      </tr>
+      <tr>
+        <td><strong>총콜레스테롤</strong></td><td>국민건강검진 포함</td><td>6-12개월</td>
+        <td><span class="tag tag-model">KDRS Extended</span><span class="tag tag-dash">임상 마커 차트</span></td>
+        <td>보조</td>
+      </tr>
+    </table>
+    <div style="margin-top:12px;padding:12px;background:var(--purple-light);border-radius:10px;font-size:12px;color:#6D28D9;">
+      <strong>수집 방법:</strong> AI 채팅에서 "최근 건강검진 받으셨나요? 결과를 입력하면 예측 정확도가 올라갑니다" 형태로 자연스럽게 유도.<br>
+      한국 40세+ 국민건강검진(2년 주기)에 공복혈당, 콜레스테롤이 포함되어 있어 대부분 가지고 있음.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>월간 상태 변경 확인</h3>
+    <p>빠르게 변하지 않지만, 변하면 예측에 영향을 주는 항목. AI가 월 1회 자연스럽게 확인.</p>
+    <table class="dt">
+      <tr><th>항목</th><th>질문</th><th>기능 연결</th></tr>
+      <tr><td><strong>흡연 상태</strong></td><td>"혹시 흡연 상태에 변화가 있으신가요?" (변화없음/시작/금연중/금연완료)</td><td><span class="tag tag-model">KDRS 1점</span></td></tr>
+      <tr><td><strong>투약 변경</strong></td><td>"복용 중인 약이 바뀌셨나요?" (변화없음/추가/중단/변경)</td><td><span class="tag tag-model">KDRS Extended</span></td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══ 4. 질문 묶음 설계 ═══ -->
+<div class="section" id="sec-4">
+  <div class="section-title">질문 묶음 설계 상세</div>
+  <div class="section-sub">사용자 피로도를 최소화하면서 필요한 데이터를 수집하는 묶음 규칙</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#D1FAE5,#ECFDF5);border-color:#A7F3D0;">
+    <h3>묶음 설계 3원칙</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">1</div>
+        <div style="font-size:13px;"><strong>같은 주제끼리 묶는다.</strong> 수면시간+수면질, 운동여부+운동종류, 야식+식후산책 — 맥락이 같아서 사용자가 자연스럽게 연속 응답.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">2</div>
+        <div style="font-size:13px;"><strong>1묶음 최대 3문항.</strong> 4문항 이상이면 "많다"는 느낌. 2-3문항이 최적.</div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">3</div>
+        <div style="font-size:13px;"><strong>숫자로 빠르게 응답 가능.</strong> "3/2" 처럼 번호만 입력하면 완료. 탭/클릭도 가능하지만, 숫자 입력이 가장 빠름.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>묶음 전체 요약표</h3>
+    <table class="dt">
+      <tr><th>묶음</th><th>주제</th><th>하위 질문</th><th>응답 형태</th><th>터치포인트</th><th>주기</th></tr>
+      <tr><td style="font-weight:800;color:var(--primary);">1</td><td>💤 수면</td><td>수면시간(5) + 수면질(3)</td><td><strong>3/2</strong></td><td>아침</td><td>매일</td></tr>
+      <tr><td style="font-weight:800;color:var(--primary);">2</td><td>🍽️ 오전식사 <span style="font-size:10px;font-weight:700;color:var(--warning);">★A그룹: +복약 1문항</span></td><td>아침식사(3) + 채소(3)<br><span style="font-size:10px;color:var(--warning);">A그룹: +복약여부(2)</span></td><td><strong>1/2</strong><br><span style="font-size:10px;color:var(--warning);">A그룹 +1</span></td><td>아침~점심</td><td>매일</td></tr>
+      <tr><td style="font-weight:800;color:var(--primary);">3</td><td>🥗 식단질</td><td>식사구성(3) + 단음료(3)</td><td><strong>2/1</strong></td><td>점심</td><td>매일</td></tr>
+      <tr><td style="font-weight:800;color:var(--primary);">4</td><td>🏃 운동</td><td>운동여부(4) + 운동종류(4)</td><td><strong>3/1</strong></td><td>저녁</td><td>매일</td></tr>
+      <tr><td style="font-weight:800;color:var(--primary);">5</td><td>🌙 저녁습관</td><td>야식(3) + 식후산책(2)</td><td><strong>1/1</strong></td><td>저녁</td><td>매일</td></tr>
+      <tr><td style="font-weight:800;color:var(--warning);text-decoration:line-through;">6</td><td style="color:var(--g400);">💊 복약 <span style="font-size:10px;">(→ 묶음2★에 병합)</span></td><td style="color:var(--g400);">묶음2 아침 터치포인트에서 수집 (A그룹)</td><td style="color:var(--g400);">-</td><td style="color:var(--g400);">아침 (묶음2★)</td><td style="color:var(--g400);">매일 (A만)</td></tr>
+      <tr><td style="font-weight:800;color:var(--purple);">7</td><td>🧠 정서+음주</td><td>스트레스(5) + 기분(3) + 음주(4)</td><td><strong>3/1/1</strong></td><td>아무 때</td><td>2-3일</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>조건부 스킵 규칙</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;font-size:13px;">
+      <div style="padding:10px 14px;background:var(--g50);border-radius:10px;border-left:3px solid var(--primary);">
+        <strong>묶음 4 운동:</strong> Q1에서 "① 안 했어요" 선택 → Q2 운동종류 <strong>자동 스킵</strong> (물을 필요 없음)
+      </div>
+      <div style="padding:10px 14px;background:var(--g50);border-radius:10px;border-left:3px solid var(--warning);">
+        <strong>묶음 2★ 복약 (A그룹):</strong> A그룹(당뇨 진단자)에게는 묶음2 오전식사 마지막에 복약 1문항이 추가됨 → <strong>묶음2★</strong>. B/C그룹은 <strong>아예 안 보임</strong>. AI 응답 1회당 <strong>최대 2묶음</strong> 원칙 유지됨 (묶음1+묶음2★ = 2묶음)
+      </div>
+      <div style="padding:10px 14px;background:var(--g50);border-radius:10px;border-left:3px solid var(--purple);">
+        <strong>묶음 7 정서+음주:</strong> 마지막 묶음7 응답으로부터 <strong>48시간 이상</strong> 경과해야 다시 표시
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>간편 응답 UI 예시</h3>
+    <div style="max-width:400px;margin:12px auto;">
+      <div style="background:var(--g900);border-radius:16px;padding:20px;">
+        <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:8px;">💚 다나아 건강 질문</div>
+        <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px;">어젯밤 수면은 어땠나요?</div>
+        <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px;">
+          <div style="color:var(--g300);font-size:11px;margin-bottom:6px;">시간: ①5h↓ ②5-6 ③6-7 ④7-8 ⑤8h↑</div>
+          <div style="color:var(--g300);font-size:11px;">질: ①개운 ②그저그럭 ③피곤</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;background:var(--primary);color:#fff;padding:10px;border-radius:10px;text-align:center;font-size:14px;font-weight:800;">4 / 1</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;margin-top:2px;">↑</div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--accent);">✅ 7~8시간, 개운하게 주무셨군요! 좋은 수면이에요.</div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:var(--g400);margin-top:8px;">사용자가 "4/1"만 입력하면 → 수면시간 7-8시간, 수면질 개운 → 즉시 피드백</p>
+  </div>
+</div>
+
+
+<!-- ═══ 5. 3기능 매핑 ═══ -->
+<div class="section" id="sec-5">
+  <div class="section-title">3기능 연결 매핑</div>
+  <div class="section-sub">각 데이터가 예측 모델 · 대시보드 · 챌린지 중 어디에 사용되는지</div>
+
+  <div class="card">
+    <h3>매핑 테이블 — 전체 데이터 × 3기능</h3>
+    <table class="dt">
+      <tr><th>수집 시점</th><th>데이터</th><th>예측 모델</th><th>대시보드</th><th>챌린지</th></tr>
+      <tr style="background:#FFF7ED;"><td colspan="5" style="font-weight:800;color:#EA580C;">온보딩 (1회)</td></tr>
+      <tr><td></td><td>나이/성별/키/체중</td><td style="background:#DBEAFE;">FINDRISC/KDRS/ML</td><td>프로필, 초기값</td><td>-</td></tr>
+      <tr><td></td><td>가족력/기저질환</td><td style="background:#DBEAFE;">FINDRISC 최대 5점</td><td>-</td><td>-</td></tr>
+      <tr><td></td><td>운동/식습관/수면/음주/흡연</td><td style="background:#DBEAFE;">FINDRISC+KDRS</td><td>초기값</td><td>챌린지 추천 기준</td></tr>
+      <tr><td></td><td>목표 선택</td><td>-</td><td>-</td><td style="background:#EDE9FE;">추천 우선순위</td></tr>
+
+      <tr style="background:#E0F2FE;"><td colspan="5" style="font-weight:800;color:#0284C7;">매일 (AI 채팅)</td></tr>
+      <tr><td>묶음1</td><td>수면 시간+질</td><td>종단 향상</td><td style="background:#D1FAE5;">수면 점수, 히트맵</td><td style="background:#EDE9FE;">수면 챌린지</td></tr>
+      <tr><td>묶음2</td><td>아침식사+채소</td><td style="background:#DBEAFE;">FINDRISC 1점 (채소)</td><td style="background:#D1FAE5;">식단 점수, 히트맵</td><td style="background:#EDE9FE;">아침/채소 챌린지</td></tr>
+      <tr><td>묶음3</td><td>식사구성+단음료</td><td>종단 향상</td><td style="background:#D1FAE5;">식단 질, 감점</td><td style="background:#EDE9FE;">잡곡/단음료 챌린지</td></tr>
+      <tr><td>묶음4</td><td>운동 여부+종류</td><td style="background:#DBEAFE;">FINDRISC 2점</td><td style="background:#D1FAE5;">운동 점수, 유형분포, 히트맵</td><td style="background:#EDE9FE;">150분/근력 챌린지</td></tr>
+      <tr><td>묶음5</td><td>야식+식후산책</td><td>-</td><td style="background:#D1FAE5;">식단 감점</td><td style="background:#EDE9FE;">야식/산책 챌린지</td></tr>
+      <tr><td>묶음6</td><td>복약 (A그룹)</td><td>-</td><td style="background:#D1FAE5;">복약 순응도</td><td style="background:#EDE9FE;">복약 챌린지</td></tr>
+
+      <tr style="background:#EDE9FE;"><td colspan="5" style="font-weight:800;color:#6D28D9;">2-3일 (AI 채팅)</td></tr>
+      <tr><td>묶음7</td><td>스트레스+기분+음주</td><td style="background:#DBEAFE;">KDRS (음주)</td><td style="background:#D1FAE5;">스트레스 점수, 음주 추이</td><td style="background:#EDE9FE;">절주/스트레스 챌린지</td></tr>
+
+      <tr style="background:#FCE7F3;"><td colspan="5" style="font-weight:800;color:#BE185D;">주간~월간 (장비/확인)</td></tr>
+      <tr><td>주간</td><td>체중 <span class="tag tag-device">체중계</span></td><td style="background:#DBEAFE;">BMI→FINDRISC 3점</td><td style="background:#D1FAE5;">체중 추이 차트</td><td style="background:#EDE9FE;">감량 챌린지</td></tr>
+      <tr><td>15일</td><td>허리둘레 <span class="tag tag-device">줄자</span></td><td style="background:#DBEAFE;">FINDRISC/KDRS 핵심</td><td style="background:#D1FAE5;">체형 변화</td><td style="background:#EDE9FE;">허리줄이기</td></tr>
+      <tr><td>주간</td><td>혈압 <span class="tag tag-device">혈압계</span></td><td style="background:#DBEAFE;">KDRS Extended</td><td style="background:#D1FAE5;">혈압 추이</td><td>-</td></tr>
+      <tr><td>월간</td><td>흡연/투약 변경</td><td style="background:#DBEAFE;">KDRS 1점</td><td>상태 갱신</td><td>금연 챌린지</td></tr>
+
+      <tr style="background:#FEF9C3;"><td colspan="5" style="font-weight:800;color:#A16207;">3-6개월 (검사 결과)</td></tr>
+      <tr><td>3-6개월</td><td>HbA1c <span class="tag tag-lab">혈액검사</span></td><td style="background:#DBEAFE;">ML 1위 변수 (AUC+0.05)</td><td style="background:#D1FAE5;">임상 마커 차트</td><td>-</td></tr>
+      <tr><td>3-6개월</td><td>공복혈당 <span class="tag tag-lab">건강검진</span></td><td style="background:#DBEAFE;">한국 AI 최고 변수</td><td style="background:#D1FAE5;">임상 마커 차트</td><td>-</td></tr>
+      <tr><td>6-12개월</td><td>콜레스테롤 <span class="tag tag-lab">건강검진</span></td><td style="background:#DBEAFE;">KDRS Extended</td><td style="background:#D1FAE5;">임상 마커 차트</td><td>-</td></tr>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══ 6. 우선순위 ═══ -->
+<div class="section" id="sec-6">
+  <div class="section-title">구현 우선순위</div>
+  <div class="section-sub">Phase 1(MVP) → Phase 2 → Phase 3 순서로 구현합니다.</div>
+
+  <div class="card" style="border-left:4px solid var(--danger);">
+    <h3><span style="color:var(--danger);">Phase 1 — MVP</span> 이것 없으면 3기능이 안 돌아감</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:6px;">온보딩</div>
+        <div style="font-size:13px;">나이 · 성별 · 키/체중(BMI) · 가족력 · 고혈압이력 · 고혈당이력 · 운동빈도 · 채소섭취 · 목표</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--g400);margin-bottom:6px;">매일 수집</div>
+        <div style="font-size:13px;"><strong>묶음2</strong> 아침+채소 (FINDRISC) · <strong>묶음4</strong> 운동 (FINDRISC) · <strong>체중</strong> (주간)</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:10px;background:#FEE2E2;border-radius:10px;font-size:12px;color:#DC2626;">
+      → 예측 모델 실행 가능 (AUC ~0.80) + 대시보드 핵심 3카드 + 체중/운동 챌린지
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--warning);">
+    <h3><span style="color:var(--warning);">Phase 2</span> 대시보드 4영역 + 모든 챌린지</h3>
+    <div style="font-size:13px;margin-top:8px;">
+      <strong>추가:</strong> 묶음1 수면 · 묶음3 식단질 · 묶음5 저녁습관 · 묶음7 정서+음주 · 허리둘레(15일)
+    </div>
+    <div style="margin-top:10px;padding:10px;background:#FEF3C7;border-radius:10px;font-size:12px;color:#92400E;">
+      → 생활습관 4영역 점수 완성 + 히트맵 + 전체 챌린지 추적 + KDRS 갱신
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--accent);">
+    <h3><span style="color:var(--accent);">Phase 3</span> 예측 정확도 최대화</h3>
+    <div style="font-size:13px;margin-top:8px;">
+      <strong>추가:</strong> 묶음6 복약(A그룹) · 검사결과 입력(HbA1c/공복혈당) · 혈압(해당자) · 월간 흡연/투약 변경
+    </div>
+    <div style="margin-top:10px;padding:10px;background:#D1FAE5;border-radius:10px;font-size:12px;color:#065F46;">
+      → 예측 AUC 0.88~0.90 + 임상 마커 차트 + A그룹 전용 기능
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>챌린지 효과 순위 — 뭘 먼저 챌린지로 만들어야 하나?</h3>
+    <table class="dt">
+      <tr><th>순위</th><th>챌린지</th><th>효과</th><th>필요 데이터</th><th>Phase</th></tr>
+      <tr><td style="font-weight:900;color:var(--danger);">1</td><td>체중 5-7% 감량</td><td>1kg당 16% 위험↓</td><td>W1 체중</td><td>Phase 1</td></tr>
+      <tr><td style="font-weight:900;color:var(--danger);">2</td><td>주 150분 운동</td><td>58% 위험↓</td><td>묶음4 운동</td><td>Phase 1</td></tr>
+      <tr><td style="font-weight:900;color:var(--warning);">3</td><td>근력운동 주2-3회 추가</td><td>HbA1c 30-40% 더↓</td><td>묶음4 운동종류</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--warning);">4</td><td>단음료 끊기</td><td>1잔/일 → 26%↑ 해소</td><td>묶음3 단음료</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--warning);">5</td><td>잡곡밥 전환</td><td>백미 최고섭취 55%↑ 해소</td><td>묶음3 식사구성</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--accent);">6</td><td>식후 15분 산책</td><td>혈당 스파이크↓</td><td>묶음5 식후산책</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--accent);">7</td><td>수면 7-8시간</td><td><=5h: 시간당 9-18%↑</td><td>묶음1 수면</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--g500);">8</td><td>야식 끊기</td><td>야간식사 → 혈당18%↑</td><td>묶음5 야식</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--g500);">9</td><td>절주</td><td>50g+/일 유해</td><td>묶음7 음주</td><td>Phase 2</td></tr>
+      <tr><td style="font-weight:900;color:var(--g500);">10</td><td>복약 순응</td><td>비순응 35-65% 영향</td><td>묶음6 복약</td><td>Phase 3</td></tr>
+    </table>
+  </div>
+</div>
+
+
+
+<!-- ═══ 7. 의학적 근거 ═══ -->
+<div class="section" id="sec-7">
+  <div class="section-title">의학적 근거</div>
+  <div class="section-sub">각 질문 묶음이 왜 필요한지, 어떤 논문/예측도구에 기반하는지, 이 정도면 충분한지를 정리합니다.</div>
+
+  <!-- 참조 예측도구 -->
+  <div class="card" style="background:linear-gradient(135deg,#DBEAFE,#E0F2FE);border-color:#93C5FD;">
+    <h3>참조 예측도구 — 질문 선정의 출발점</h3>
+    <p style="margin-bottom:12px;">질문을 "감"으로 정하지 않았습니다. 국제적으로 검증된 예측도구들이 요구하는 변수를 역추적하여 뽑았습니다.</p>
+    <table class="dt">
+      <tr><th>도구</th><th>개발국</th><th>변수 수</th><th>AUC</th><th>특징</th></tr>
+      <tr><td><strong>FINDRISC</strong></td><td>핀란드</td><td>8개</td><td>0.78~0.81</td><td>전 세계 가장 널리 사용, 혈액검사 불필요</td></tr>
+      <tr><td><strong>KDRS</strong></td><td>한국</td><td>5~7개</td><td>0.72~0.75</td><td>국민건강영양조사(KNHANES) 기반, 한국인 특화</td></tr>
+      <tr><td><strong>ADA Risk Test</strong></td><td>미국</td><td>7개</td><td>0.72</td><td>미국당뇨병학회 공식 도구</td></tr>
+      <tr><td><strong>QDiabetes</strong></td><td>영국</td><td>15개+</td><td>0.80~0.85</td><td>가장 정밀하지만 임상 데이터 필요</td></tr>
+    </table>
+    <div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.8);border-radius:10px;font-size:12px;color:var(--primary-dark);">
+      <strong>설계 원칙:</strong> 이 도구들이 공통으로 요구하는 변수를 온보딩(1회)과 매일 반복 수집으로 나누고, 매일 수집분을 7개 묶음으로 압축했습니다.
+    </div>
+  </div>
+
+  <!-- 묶음별 의학적 근거 -->
+  <div style="margin:28px 0 14px;font-size:20px;font-weight:900;color:var(--g800);">묶음별 의학적 근거</div>
+
+  <!-- 묶음 1: 수면 -->
+  <div class="card">
+    <h3>💤 묶음 1: 수면 (시간 + 질)</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          • <strong>Cappuccio 등 (2010, Diabetes Care)</strong> 메타분석:<br>
+          &nbsp;&nbsp;수면 6시간 이하 → 제2형 당뇨 위험 <strong style="color:var(--danger);">28% 증가</strong><br><br>
+          • <strong>Shan 등 (2015)</strong> 메타분석:<br>
+          &nbsp;&nbsp;5시간 이하 → 시간당 <strong style="color:var(--danger);">9~18% 위험 증가</strong><br><br>
+          • <strong>Stamatakis & Punjabi (2010)</strong>:<br>
+          &nbsp;&nbsp;수면의 질이 나쁜 경우(자주 깸, 피곤하게 일어남) → 인슐린 저항성 독립적 증가
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">생리학적 기전</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          수면 부족<br>
+          &nbsp;&nbsp;→ 코르티솔(스트레스 호르몬) 만성 상승<br>
+          &nbsp;&nbsp;→ 교감신경 활성화<br>
+          &nbsp;&nbsp;→ 인슐린 저항성 증가<br>
+          &nbsp;&nbsp;→ 포도당 조절 장애<br><br>
+          + 식욕 호르몬(그렐린↑ / 렙틴↓) 불균형<br>
+          &nbsp;&nbsp;→ 과식 → 체중 증가 → 인슐린 저항성 (간접 경로)
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#DBEAFE;border-radius:10px;font-size:12px;color:#1E40AF;">
+      <strong>왜 2문항인가:</strong> 시간만 물으면 부족합니다. 8시간 자도 수면무호흡으로 깊은 잠을 못 자면 인슐린 저항성이 높아집니다. 반대로 6시간이라도 깊게 자면 영향이 적습니다. 시간(양적 지표)과 질(질적 지표)을 모두 측정해야 정확합니다.
+    </div>
+  </div>
+
+  <!-- 묶음 2: 오전 식사 -->
+  <div class="card">
+    <h3>🍽️ 묶음 2: 오전 식사 (아침 + 채소)</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          • <strong>Bi 등 (2015)</strong> 메타분석:<br>
+          &nbsp;&nbsp;아침 결식 → 제2형 당뇨 위험 <strong style="color:var(--danger);">21~55% 증가</strong><br><br>
+          • <strong>Finnish DPS (핀란드 당뇨예방연구)</strong>:<br>
+          &nbsp;&nbsp;식이섬유 섭취량이 당뇨 예방의 독립적 예측인자로 확인<br><br>
+          • <strong>FINDRISC 공식 채점</strong>:<br>
+          &nbsp;&nbsp;"매일 채소/과일을 먹지 않는다" → <strong style="color:var(--danger);">1점 가산</strong> (총 26점 중)
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">생리학적 기전</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          <strong>아침 결식:</strong><br>
+          장시간 공복 → 점심 과식(보상 섭식)<br>
+          → 급격한 혈당 스파이크<br>
+          → 인슐린 과분비 → 베타세포 피로<br><br>
+          <strong>채소/과일 부족:</strong><br>
+          식이섬유 부족 → 포도당 흡수 속도 빨라짐<br>
+          → 식후 혈당 급등 → 만성 반복 시 인슐린 저항성
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#D1FAE5;border-radius:10px;font-size:12px;color:#065F46;">
+      <strong>왜 FINDRISC가 채소를 묻는가:</strong> 채소/과일 섭취는 식이섬유의 가장 실용적인 대리 지표(proxy)입니다. 복잡한 영양소 분석 대신 "채소 먹었냐"만 물어도 충분한 예측력을 확보합니다.
+    </div>
+  </div>
+
+  <!-- 묶음 3: 식단 질 -->
+  <div class="card">
+    <h3>🥗 묶음 3: 식단 질 (구성 + 단음료)</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          • <strong>Hu 등 (2012, BMJ)</strong> 메타분석:<br>
+          &nbsp;&nbsp;백미 최고 섭취군 → 당뇨 위험 <strong style="color:var(--danger);">55% 증가</strong><br>
+          &nbsp;&nbsp;(아시아인 대상 — 한국인에게 특히 중요)<br><br>
+          • <strong>Malik 등 (2010, Diabetes Care)</strong> 메타분석:<br>
+          &nbsp;&nbsp;가당 음료 1잔/일 → 당뇨 위험 <strong style="color:var(--danger);">26% 증가</strong><br><br>
+          • 백미 GI(혈당지수) ≈ 73 (높음)<br>
+          &nbsp;&nbsp;잡곡밥 GI ≈ 55 (중간) → 전환만으로 효과
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">생리학적 기전</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          <strong>고GI 식사(백미/면류 위주):</strong><br>
+          급격한 혈당 상승 → 인슐린 과분비<br>
+          → 장기적 베타세포 기능 저하<br><br>
+          <strong>가당 음료:</strong><br>
+          액체 칼로리(포만감 없이 칼로리만 섭취)<br>
+          → 과당(fructose) → 간 지방 축적<br>
+          → 인슐린 저항성 + 내장지방 증가
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#FEF3C7;border-radius:10px;font-size:12px;color:#92400E;">
+      <strong>왜 2문항으로 분리하는가:</strong> "밥은 균형 있게 먹었지만 커피에 설탕 2개"라는 패턴을 잡으려면 식사 구성(GI 부하)과 추가 당분 섭취(단음료/간식)를 분리해서 물어야 합니다.
+    </div>
+  </div>
+
+  <!-- 묶음 4: 운동 -->
+  <div class="card" style="border-left:4px solid var(--danger);">
+    <h3>🏃 묶음 4: 운동 (여부 + 종류) — <span style="color:var(--danger);">가장 강력한 근거</span></h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거 (6대 임상시험)</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          • <strong>DPP 연구 (Knowler 등, 2002, NEJM)</strong>:<br>
+          &nbsp;&nbsp;주 150분 중등도 운동 → 당뇨 발생 <strong style="color:var(--danger);">58% 감소</strong><br>
+          &nbsp;&nbsp;— 메트포르민(31%)보다 효과가 큼<br><br>
+          • <strong>Da Qing 연구 (Li 등, 2008)</strong>:<br>
+          &nbsp;&nbsp;운동 그룹 30년 추적 → 당뇨 발생 <strong style="color:var(--danger);">46% 감소</strong><br>
+          &nbsp;&nbsp;심혈관 사망 33% 감소<br><br>
+          • <strong>Finnish DPS (Tuomilehto 등, 2001, NEJM)</strong>:<br>
+          &nbsp;&nbsp;생활습관 중재 → 당뇨 발생 58% 감소<br><br>
+          • <strong>Sigal 등 (2007, Annals of Internal Medicine)</strong>:<br>
+          &nbsp;&nbsp;유산소 + 근력운동 병행 → HbA1c 추가 <strong style="color:var(--danger);">30~40% 개선</strong><br><br>
+          • <strong>FINDRISC 공식 채점</strong>:<br>
+          &nbsp;&nbsp;"주 30분 이상 운동 안 함" → <strong>2점 가산</strong><br><br>
+          • <strong>ADA 권고</strong>: 유산소 150분/주 + 근력 2~3회/주
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">생리학적 기전</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          <strong>운동 시 (급성 효과):</strong><br>
+          골격근 수축<br>
+          → GLUT4 수송체가 세포 표면으로 이동<br>
+          → <strong>인슐린 없이도</strong> 포도당을 근육으로 흡수<br>
+          → 혈당 직접 강하<br><br>
+          <strong>장기적 효과:</strong><br>
+          인슐린 감수성 개선<br>
+          내장지방 감소<br>
+          전신 염증 감소<br><br>
+          <strong>근력운동이 추가로 중요한 이유:</strong><br>
+          근육량 증가 = "포도당 흡수 조직" 증가<br>
+          → 기저 상태 혈당 조절 능력 향상
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#FEE2E2;border-radius:10px;font-size:12px;color:#DC2626;">
+      <strong>왜 운동 종류도 묻는가:</strong> ADA 권고에 따르면 유산소만으로는 부족합니다. 근력운동 병행 시 HbA1c 추가 개선 효과가 있으므로, "했냐/안 했냐" 외에 "어떤 운동인지"도 추적해야 합니다. 단, Q1에서 "안 했어요"를 선택하면 Q2는 자동 스킵합니다.
+    </div>
+  </div>
+
+  <!-- 묶음 5: 저녁 습관 -->
+  <div class="card">
+    <h3>🌙 묶음 5: 저녁 습관 (야식 + 식후 산책)</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          • <strong>Gu 등 (2020)</strong>:<br>
+          &nbsp;&nbsp;야간 식사(21시 이후) → 다음 날 아침 공복혈당 <strong style="color:var(--danger);">평균 18% 상승</strong><br><br>
+          • <strong>Colberg 등 (2016, Diabetes Care)</strong>:<br>
+          &nbsp;&nbsp;식후 15분 걷기 → 식후 혈당 스파이크 <strong style="color:var(--accent);">12~22% 감소</strong><br><br>
+          • 일주기 리듬(Circadian rhythm) 연구:<br>
+          &nbsp;&nbsp;인슐린 감수성은 아침에 가장 높고 저녁/밤에 낮아짐<br>
+          &nbsp;&nbsp;→ 같은 음식이라도 밤에 먹으면 혈당 영향이 더 큼
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">생리학적 기전</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          <strong>야간 식사:</strong><br>
+          인슐린 감수성이 낮은 시간대에 포도당 유입<br>
+          → 혈당 처리 능력 저하<br>
+          → 다음 날 아침까지 고혈당 지속<br><br>
+          <strong>식후 산책:</strong><br>
+          골격근 포도당 흡수 활성화<br>
+          + 위장 운동 촉진 → 영양소 흡수 속도 분산<br>
+          → 혈당 스파이크 완화
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#EDE9FE;border-radius:10px;font-size:12px;color:#6D28D9;">
+      <strong>왜 2문항으로 분리하는가:</strong> "야식을 먹었지만 산책도 했다" vs "야식을 먹고 바로 잠"은 혈당 영향이 크게 다릅니다. 분리해야 정확한 식단 점수를 계산할 수 있습니다.
+    </div>
+  </div>
+
+  <!-- 묶음 6: 복약 -->
+  <div class="card" style="border-style:dashed;border-color:var(--warning);">
+    <h3>💊 묶음 6: 복약 확인 (A그룹 전용)</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          • <strong>Cramer (2004)</strong> 체계적 리뷰:<br>
+          &nbsp;&nbsp;약물 비순응(non-adherence) → 혈당 조절 실패율 <strong style="color:var(--danger);">35~65% 증가</strong><br><br>
+          • 실제 당뇨 환자의 메트포르민 순응률:<br>
+          &nbsp;&nbsp;약 60~70%에 불과<br><br>
+          • 복약 순응도는 혈당 조절의 가장 강력한 예측인자 중 하나
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">설계 판단</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          <strong>왜 A그룹만:</strong><br>
+          B그룹(전당뇨)과 C그룹(궁금해서 온 사람)은 당뇨약을 복용하지 않음 → 질문 해당 없음<br><br>
+          <strong>왜 1문항:</strong><br>
+          "했다/안 했다"의 이진(binary) 데이터면 충분<br>
+          어떤 약인지, 몇 mg인지는 의사의 영역<br>
+          우리가 추적하는 건 <strong>순응률</strong>(주 7일 중 몇 일 복용)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 묶음 7: 정서+음주 -->
+  <div class="card">
+    <h3>🧠 묶음 7: 정서 + 음주 (2~3일마다)</h3>
+    <div class="grid-2" style="margin-top:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">핵심 논문 근거</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.8;">
+          <strong style="color:var(--g800);">스트레스:</strong><br>
+          • <strong>Cosgrove 등 (2004)</strong>: 만성 스트레스 → 코르티솔 만성 상승 → 인슐린 저항성 증가<br>
+          • <strong>Heraclides 등 (2009)</strong>: 직장 스트레스 상위군 → 당뇨 위험 <strong style="color:var(--danger);">45% 증가</strong> (여성)<br><br>
+          <strong style="color:var(--g800);">기분/우울:</strong><br>
+          • <strong>Mezuk 등 (2008, Diabetes Care)</strong> 메타분석: 우울증 → 제2형 당뇨 위험 <strong style="color:var(--danger);">60% 증가</strong><br>
+          • 양방향 관계: 당뇨 → 우울 15%↑ / 우울 → 당뇨 60%↑<br><br>
+          <strong style="color:var(--g800);">음주:</strong><br>
+          • <strong>Baliunas 등 (2009)</strong> 메타분석: 남성 22g/일, 여성 24g/일까지 보호 효과. <strong style="color:var(--danger);">50g/일 이상 → 위험 증가</strong><br>
+          • KDRS(한국)에서 음주를 채점 변수로 포함
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;">생리학적 기전</div>
+        <div style="padding:14px;background:var(--g50);border-radius:12px;font-size:11px;line-height:2;color:var(--g700);">
+          <strong>스트레스:</strong><br>
+          코르티솔 만성 상승<br>
+          → 간 포도당 생성 촉진<br>
+          → 인슐린 저항성<br>
+          + 과식/음주/운동 포기 같은 2차 행동 변화<br><br>
+          <strong>우울:</strong><br>
+          HPA축(시상하부-뇌하수체-부신) 과활성화<br>
+          + 자기 관리 의욕 저하 → 생활습관 악화<br><br>
+          <strong>과음:</strong><br>
+          간 기능 저하 → 포도당 대사 장애<br>
+          + 칼로리 과잉 → 내장지방 축적
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--purple-light);border-radius:10px;font-size:12px;color:#6D28D9;">
+      <strong>왜 2~3일마다:</strong> ① 매일 물으면 응답 피로 → 대충 답함 → 데이터 질 하락 ② 하루 단위 변동이 커서 매일 값은 노이즈 ③ "요즘 어떤가요?" 형태의 2~3일 간격이 추세 파악에 더 정확 (EMA 연구, Shiffman 등, 2008)
+    </div>
+  </div>
+
+  <!-- FINDRISC 커버리지 -->
+  <div style="margin:28px 0 14px;font-size:20px;font-weight:900;color:var(--g800);">이 정도면 충분한가?</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#D1FAE5,#E0F2FE);border-color:#A7F3D0;">
+    <h3>FINDRISC 8개 변수 — 100% 커버</h3>
+    <table class="dt">
+      <tr><th>FINDRISC 변수</th><th>배점</th><th>수집 시점</th><th>수집 방법</th></tr>
+      <tr><td>나이</td><td>0~4점</td><td>온보딩 (1회)</td><td>생년월일 입력</td></tr>
+      <tr><td>BMI (키/체중)</td><td>0~3점</td><td>온보딩 + 주간</td><td>온보딩 입력 + 체중계</td></tr>
+      <tr><td>허리둘레</td><td>0~4점</td><td>온보딩 + 15일마다</td><td>줄자 측정</td></tr>
+      <tr style="background:#D1FAE5;"><td><strong>신체활동 부족</strong></td><td><strong>0~2점</strong></td><td><strong>매일</strong></td><td><strong>묶음4 운동</strong></td></tr>
+      <tr style="background:#D1FAE5;"><td><strong>채소/과일 부족</strong></td><td><strong>0~1점</strong></td><td><strong>매일</strong></td><td><strong>묶음2 오전식사</strong></td></tr>
+      <tr><td>고혈압약 복용 이력</td><td>0~2점</td><td>온보딩 (1회)</td><td>설문 선택</td></tr>
+      <tr><td>고혈당 이력</td><td>0~5점</td><td>온보딩 (1회)</td><td>설문 선택</td></tr>
+      <tr><td>가족력</td><td>0~5점</td><td>온보딩 (1회)</td><td>설문 선택</td></tr>
+    </table>
+    <div style="margin-top:12px;font-size:12px;color:#065F46;line-height:1.7;">
+      초록색 행이 <strong>매일 수집으로 동적 갱신</strong>되는 변수입니다. 나머지 6개는 온보딩에서 고정 점수로 산출합니다.<br>
+      → FINDRISC 총 26점을 완전히 산출할 수 있으며, 운동/채소 변화에 따라 점수가 시간에 따라 변합니다.
+    </div>
+  </div>
+
+  <!-- Phase별 정확도 -->
+  <div class="card">
+    <h3>Phase별 예측 정확도 — 질문 추가에 따른 AUC 변화</h3>
+    <table class="dt">
+      <tr><th>Phase</th><th>수집 데이터</th><th>AUC</th><th>의미</th></tr>
+      <tr style="background:#FEE2E2;"><td><strong>Phase 1 (MVP)</strong></td><td>온보딩 + 묶음2(채소) + 묶음4(운동) + 체중</td><td><strong>~0.80</strong></td><td>FINDRISC 수준. 국제적으로 인정받는 정확도</td></tr>
+      <tr style="background:#FEF3C7;"><td><strong>Phase 2</strong></td><td>+ 묶음1,3,5,7 + 허리둘레</td><td><strong>0.82~0.85</strong></td><td>KDRS 변수 추가. 한국인 특화 정확도</td></tr>
+      <tr style="background:#D1FAE5;"><td><strong>Phase 3</strong></td><td>+ 묶음6(복약) + HbA1c + 공복혈당</td><td><strong>0.88~0.90</strong></td><td>혈액검사 포함 모델과 비슷한 최고 수준</td></tr>
+    </table>
+    <div style="margin-top:12px;padding:12px;background:var(--g50);border-radius:10px;font-size:12px;color:var(--g700);">
+      <strong>핵심:</strong> Phase 1만으로도 AUC 0.80 — 최소한의 질문으로도 예측모델이 유의미하게 작동합니다. 이후 묶음을 추가할수록 정확도가 올라가지만, Phase 1 없이는 서비스 자체가 불가능합니다.
+    </div>
+  </div>
+
+  <!-- 왜 더 안 묻는가 -->
+  <div class="card">
+    <h3>왜 더 많이 묻지 않는가? — 피로도-데이터가치 트레이드오프</h3>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:20px 0;">
+      <div style="flex:1;text-align:center;padding:16px;background:#FEE2E2;border-radius:14px 0 0 14px;">
+        <div style="font-size:22px;font-weight:900;">5문항</div>
+        <div style="font-size:10px;color:var(--g500);margin-top:4px;">피로도 매우 낮음<br>핵심만 수집 — 부족할 수 있음</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:16px;background:#D1FAE5;border:3px solid var(--accent);">
+        <div style="font-size:22px;font-weight:900;color:#065F46;">10문항 ✓</div>
+        <div style="font-size:10px;color:#065F46;margin-top:4px;font-weight:700;">현재 설계 — 최적<br>3기능 전부 연결, 빈 칸 없음</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:16px;background:#FEF3C7;">
+        <div style="font-size:22px;font-weight:900;">15문항</div>
+        <div style="font-size:10px;color:var(--g500);margin-top:4px;">약간 중복<br>한계효용 감소 시작</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:16px;background:#FEE2E2;border-radius:0 14px 14px 0;">
+        <div style="font-size:22px;font-weight:900;">20+문항</div>
+        <div style="font-size:10px;color:var(--g500);margin-top:4px;">피로도 높음<br>이탈 시작 — 역효과</div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:var(--g400);margin-bottom:16px;">EMA(Ecological Momentary Assessment) 연구: 반복 측정 최적 문항 수는 2~5문항/회 (Shiffman 등, 2008)</p>
+
+    <h3 style="margin-top:16px;">묻지 않는 것들과 그 이유</h3>
+    <table class="dt" style="margin-top:8px;">
+      <tr><th>안 묻는 것</th><th>이유</th></tr>
+      <tr><td>수분 섭취</td><td>당뇨 예측력에 독립적 기여 약함. 대시보드에 넣어도 actionable하지 않음</td></tr>
+      <tr><td>카페인</td><td>블랙커피 자체는 당뇨 보호 효과 (Huxley 등, 2009). 설탕/시럽 첨가는 묶음3 단음료로 커버</td></tr>
+      <tr><td>혈당 자가측정</td><td>장비(혈당계+시험지) 필요. 사용자 대부분이 없음. Phase 3 이후 선택</td></tr>
+      <tr><td>상세 식단 기록</td><td>"어제 뭘 먹었는지" 전부 기록 → 피로도 극심. 핵심 변수(구성/채소/단음료)로 압축하면 충분</td></tr>
+      <tr><td>흡연 매일 확인</td><td>온보딩 1회 + 월 1회 변경 확인으로 충분 (급격히 변하지 않음)</td></tr>
+    </table>
+  </div>
+
+  <!-- 최종 결론 -->
+  <div class="card" style="background:linear-gradient(135deg,#0F172A,#1E293B);color:#fff;">
+    <h3 style="color:#fff;">결론: 현재 설계가 최소이자 충분한 이유</h3>
+    <div class="grid-3" style="margin-top:16px;">
+      <div style="text-align:center;padding:16px;background:rgba(255,255,255,.1);border-radius:12px;">
+        <div style="font-size:28px;font-weight:900;color:var(--accent);">100%</div>
+        <div style="font-size:11px;color:var(--g300);margin-top:4px;">FINDRISC/KDRS<br>예측 변수 커버</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:rgba(255,255,255,.1);border-radius:12px;">
+        <div style="font-size:28px;font-weight:900;color:var(--primary);">0개</div>
+        <div style="font-size:11px;color:var(--g300);margin-top:4px;">대시보드<br>빈 칸</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:rgba(255,255,255,.1);border-radius:12px;">
+        <div style="font-size:28px;font-weight:900;color:var(--warning);">26초</div>
+        <div style="font-size:11px;color:var(--g300);margin-top:4px;">하루 총<br>응답 시간</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;padding:12px;background:rgba(255,255,255,.08);border-radius:10px;font-size:12px;color:var(--g300);line-height:1.8;">
+      • 하나를 빼면 3기능(예측/대시보드/챌린지) 중 어딘가에 빈 칸이 생긴다<br>
+      • 하나를 더 넣으면 논문 근거 없이 피로도만 올라간다<br>
+      • 10개 챌린지 전부 달성 판정 가능, 논문 근거 없는 질문은 0개<br>
+      • 90분 쿨다운 + 터치포인트 배분으로 대화 흐름 방해하지 않는다
+    </div>
+  </div>
+
+  <!-- 참고 논문 목록 -->
+  <div class="card">
+    <h3>참고 논문 전체 목록</h3>
+    <div style="font-size:11px;color:var(--g600);line-height:2;">
+      <strong>예측도구</strong><br>
+      • Lindström J, Tuomilehto J. The diabetes risk score. <em>Diabetes Care</em>. 2003;26(3):725-731. (FINDRISC)<br>
+      • Lee YH, et al. Korean diabetes risk score. <em>Diabetes Res Clin Pract</em>. 2012;96(1):132-138. (KDRS)<br><br>
+      <strong>생활습관 임상시험</strong><br>
+      • Knowler WC, et al. Reduction in the incidence of type 2 diabetes with lifestyle intervention. <em>NEJM</em>. 2002;346:393-403. (DPP)<br>
+      • Tuomilehto J, et al. Prevention of type 2 diabetes by changes in lifestyle. <em>NEJM</em>. 2001;344:1343-1350. (Finnish DPS)<br>
+      • Li G, et al. The long-term effect of lifestyle interventions. <em>Lancet</em>. 2008;371:1783-1789. (Da Qing 30yr)<br>
+      • Lean ME, et al. Primary care-led weight management for remission of type 2 diabetes (DiRECT). <em>Lancet</em>. 2018;391:541-551.<br><br>
+      <strong>수면</strong><br>
+      • Cappuccio FP, et al. Quantity and quality of sleep and incidence of type 2 diabetes. <em>Diabetes Care</em>. 2010;33(2):414-420.<br>
+      • Shan Z, et al. Sleep duration and risk of type 2 diabetes: a meta-analysis. <em>Ann Med</em>. 2015;47(2):137-146.<br><br>
+      <strong>식단</strong><br>
+      • Hu EA, et al. White rice consumption and risk of type 2 diabetes: meta-analysis. <em>BMJ</em>. 2012;344:e1454.<br>
+      • Malik VS, et al. Sugar-sweetened beverages and risk of metabolic syndrome and type 2 diabetes. <em>Diabetes Care</em>. 2010;33(11):2477-2483.<br>
+      • Bi H, et al. Breakfast skipping and the risk of type 2 diabetes: a meta-analysis. <em>Epidemiology</em>. 2015;26(6):e65-e67.<br><br>
+      <strong>운동</strong><br>
+      • Sigal RJ, et al. Effects of aerobic training, resistance training, or both on glycemic control in type 2 diabetes. <em>Ann Intern Med</em>. 2007;147(6):357-369.<br>
+      • Colberg SR, et al. Physical activity/exercise and diabetes: ADA position statement. <em>Diabetes Care</em>. 2016;39(11):2065-2079.<br><br>
+      <strong>저녁 습관</strong><br>
+      • Gu C, et al. Night eating and glucose regulation in type 2 diabetes. <em>J Diabetes</em>. 2020;12(3):232-241.<br><br>
+      <strong>복약</strong><br>
+      • Cramer JA. A systematic review of adherence with medications for diabetes. <em>Diabetes Care</em>. 2004;27(5):1218-1224.<br><br>
+      <strong>정서·음주</strong><br>
+      • Mezuk B, et al. Depression and type 2 diabetes over the lifespan: a meta-analysis. <em>Diabetes Care</em>. 2008;31(12):2383-2390.<br>
+      • Cosgrove MP, et al. Work-related stress and type 2 diabetes. <em>Occup Med</em>. 2004;54(2):92-97.<br>
+      • Baliunas DO, et al. Alcohol as a risk factor for type 2 diabetes: a systematic review. <em>Diabetes Care</em>. 2009;32(11):2123-2132.<br>
+      • Huxley R, et al. Coffee, decaffeinated coffee, and tea consumption and risk of type 2 diabetes. <em>Arch Intern Med</em>. 2009;169(22):2053-2063.<br><br>
+      <strong>수집 방법론</strong><br>
+      • Shiffman S, et al. Ecological momentary assessment. <em>Ann Rev Clin Psychol</em>. 2008;4:1-32.
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ 8. 미접속/저사용 전략 ═══ -->
+<div class="section" id="sec-8">
+  <div class="section-title">미접속/저사용 시 데이터 수집 전략</div>
+  <div class="section-sub">사용자가 매일 3회 접속하지 않아도, 예측 모델·대시보드·챌린지 3기능을 유지하는 적응형 수집 전략입니다.</div>
+
+  <!-- 핵심 원칙 -->
+  <div class="card" style="border-left:4px solid var(--danger);margin-bottom:24px;">
+    <h3>&#x1F6A8; 절대 원칙 3가지</h3>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">1</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--g800);">폭탄 투하 금지</div>
+          <div style="font-size:12px;color:var(--g500);">"미응답 질문이 8개 있습니다" 같은 누적 질문 한꺼번에 쏟아내기 절대 금지</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">2</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--g800);">죄책감 유발 금지</div>
+          <div style="font-size:12px;color:var(--g500);">"어제 못 한 질문입니다", "N일 연속 끊겼어요" 등 실패를 암시하는 문구 사용 금지</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">3</div>
+        <div>
+          <div style="font-size:13px;font-weight:800;color:var(--g800);">복귀 시 최대 1묶음(2문항)만</div>
+          <div style="font-size:12px;color:var(--g500);">아무리 오래 부재했어도, 복귀 첫 인터랙션에서 최대 1묶음만 질문. 이후 정상 흐름으로 복귀</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 참여 상태 머신 ── -->
+  <div class="card">
+    <h3>&#x1F4CA; 5단계 참여 상태 머신 (Engagement State Machine)</h3>
+    <p style="margin-bottom:14px;">사용자의 7일 응답률을 기반으로 5단계 상태를 자동 전환합니다. <strong>하락은 즉시, 상승은 7일 연속 충족 후</strong> 1단계씩만.</p>
+    <table class="dt">
+      <tr><th>상태</th><th>조건</th><th>터치포인트</th><th>일일 질문</th><th>묶음 구성</th></tr>
+      <tr style="background:#D1FAE5;">
+        <td><strong>ACTIVE</strong></td>
+        <td>7일 응답률 <strong>80%+</strong></td>
+        <td>3회</td>
+        <td><strong>10문항</strong></td>
+        <td>전체 7묶음 + 격일 묶음7</td>
+      </tr>
+      <tr>
+        <td><strong>MODERATE</strong></td>
+        <td>응답률 <strong>50-80%</strong></td>
+        <td>3회</td>
+        <td>9문항</td>
+        <td>6묶음 (묶음7 → 월1회)</td>
+      </tr>
+      <tr style="background:#FEF3C7;">
+        <td><strong>LOW</strong></td>
+        <td>응답률 <strong>&lt;50%</strong></td>
+        <td><strong>2회</strong> (점심 제외)</td>
+        <td>4-6문항</td>
+        <td>묶음1+2(아침), 묶음4(저녁), 묶음3/5 교대</td>
+      </tr>
+      <tr style="background:#FEE2E2;">
+        <td><strong>DORMANT</strong></td>
+        <td><strong>3일 연속</strong> 무응답</td>
+        <td>2회 + 넛지</td>
+        <td>3문항</td>
+        <td>묶음2(채소) + 묶음4(운동) + 주간 체중</td>
+      </tr>
+      <tr style="background:var(--g100);">
+        <td><strong>HIBERNATING</strong></td>
+        <td><strong>2주+</strong> 저참여</td>
+        <td>주1회</td>
+        <td><strong>2문항</strong></td>
+        <td>주간 운동 + 식단 요약</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:16px;padding:14px;background:var(--g50);border-radius:12px;font-size:12px;color:var(--g600);">
+      <strong>왜 HIBERNATING에서도 예측 가능한가?</strong><br>
+      FINDRISC 8개 변수 중 6개(나이/BMI/가족력/기저질환/고혈압약/고혈당이력)는 <strong>온보딩에서 고정</strong>.<br>
+      동적 변수 2개(운동/채소)만 주간 데이터 필요 → 주1회 체크인으로도 추정 가능.<br>
+      AUC: ~0.80(ACTIVE) → ~0.75(HIBERNATING). 임상 유용성 임계값 0.70 이상 유지 <span class="tag tag-model" style="font-size:9px;">Lindstrom & Tuomilehto 2003</span>
+    </div>
+  </div>
+
+  <!-- ── 부재 시간별 대응 ── -->
+  <div class="card">
+    <h3>&#x23F1; 부재 시간별 대응 규칙</h3>
+    <p style="margin-bottom:14px;">마지막 세션으로부터 경과 시간에 따라 복귀 시 행동이 달라집니다.</p>
+    <table class="dt">
+      <tr><th>부재 시간</th><th>복귀 인사</th><th>최대 질문</th><th>처리 규칙</th></tr>
+      <tr>
+        <td><strong>1.5~3시간</strong></td>
+        <td>"잠깐 사이에 2가지만 여쭤볼게요"</td>
+        <td>1묶음(2문항)</td>
+        <td>유효한 질문 중 최대 2문항 선별</td>
+      </tr>
+      <tr>
+        <td><strong>3~6시간</strong></td>
+        <td>"2가지만 빠르게 확인할게요"</td>
+        <td>1묶음(2문항)</td>
+        <td>만료된 질문 스킵, 유효한 것 1-2문항</td>
+      </tr>
+      <tr style="background:#FEF3C7;">
+        <td><strong>6~24시간</strong></td>
+        <td>"오랜만이에요! 간단히 1가지만 물어볼게요"</td>
+        <td>1묶음(2문항)</td>
+        <td>과거 질문 전부 폐기, 현재 시간대 시퀀스부터</td>
+      </tr>
+      <tr style="background:#FEE2E2;">
+        <td><strong>24시간+</strong></td>
+        <td>"다시 돌아오셨네요! 오늘부터 시작해요"</td>
+        <td>1묶음(2문항)</td>
+        <td>어제를 "미수집일"로 기록, 오늘 현재 시퀀스부터</td>
+      </tr>
+      <tr style="background:#FEE2E2;">
+        <td><strong>48시간~7일</strong></td>
+        <td>"반가워요! 오늘부터 다시 시작해볼까요?"</td>
+        <td>1묶음 + 건너뛰기</td>
+        <td>부재일 전부 미수집일 처리, P1 데이터 손실 수용</td>
+      </tr>
+      <tr style="background:var(--g100);">
+        <td><strong>30일+</strong></td>
+        <td>"오랫동안 못 뵈었네요! 반갑습니다"</td>
+        <td>경량 재확인 + 1묶음</td>
+        <td>체중/운동습관 변화 확인 후 Tier 5에서 시작</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── 5대 시나리오 ── -->
+  <div style="margin-top:8px;margin-bottom:14px;">
+    <div style="font-size:18px;font-weight:900;color:var(--g800);">5대 시나리오별 전략</div>
+  </div>
+
+  <!-- 시나리오 1 -->
+  <div class="card" style="border-left:4px solid var(--danger);">
+    <h3>&#x1F6AB; 시나리오 1 — 하루종일 미접속</h3>
+    <p><strong>상황:</strong> 사용자가 하루 내내 앱을 열지 않음. 3개 터치포인트 전부 놓침.</p>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">당일 조치</div>
+      <p>없음. 시스템이 기다린다. 알림/푸시 보내지 않음.</p>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">다음날 복귀 시</div>
+      <p>전일을 <strong>"미수집일"</strong>로 마킹 → 복귀 첫 질문에 <strong>현재 시간대의 최고 우선순위 1묶음만</strong> 질문</p>
+      <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;padding:12px;background:var(--primary-light);border-radius:10px;font-size:12px;">
+          <strong>07:00~13:30 복귀</strong><br>→ 묶음2 아침/채소 <span class="tag tag-model" style="font-size:9px;">FINDRISC 1점</span>
+        </div>
+        <div style="flex:1;min-width:200px;padding:12px;background:#EDE9FE;border-radius:10px;font-size:12px;">
+          <strong>14:00~22:00 복귀</strong><br>→ 묶음4 운동 <span class="tag tag-model" style="font-size:9px;">FINDRISC 2점</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">3기능 영향</div>
+      <table class="dt">
+        <tr><th>기능</th><th>영향</th><th>완화</th></tr>
+        <tr>
+          <td><span class="tag tag-model">예측 모델</span></td>
+          <td>동적 변수 1일 결손</td>
+          <td>주간 집계로 계산 → 1일 무시 가능. FINDRISC 정적 6개 변수는 온보딩에서 확보</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-dash">대시보드</span></td>
+          <td>히트맵 1일 공백</td>
+          <td>"--"으로 표시, 추세선은 선형 보간법</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-challenge">챌린지</span></td>
+          <td>운동 챌린지 1일 미확인</td>
+          <td>미기록일은 분모에서 제외 ("6/7일 기록됨")</td>
+        </tr>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--g50);border-radius:10px;font-size:11px;color:var(--g500);">
+      <strong>의학적 근거:</strong> DPP(Knowler 2002)는 운동을 주간 단위(150분/주)로 추적 — 1일 결손은 주간 집계에 무시 가능. Cappuccio(2010)의 수면 위험은 만성적 수면 부족에서 발생 — 단일 야간 결손은 무의미.
+    </div>
+  </div>
+
+  <!-- 시나리오 2 -->
+  <div class="card" style="border-left:4px solid var(--warning);">
+    <h3>&#x26A1; 시나리오 2 — 짧게만 사용 (1-2개 질문만)</h3>
+    <p><strong>상황:</strong> 사용자가 1-2개 메시지만 보내고 떠남. 시간이 1묶음뿐.</p>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">우선순위 점수로 최고 가치 1묶음 자동 선택</div>
+      <div style="padding:14px;background:var(--g50);border-radius:12px;font-family:monospace;font-size:12px;line-height:1.8;">
+        score = (FINDRISC가중치 x 3) + (활성챌린지 x 2) + (미수집일수 x 1.5) + 시간유효보너스
+      </div>
+      <table class="dt" style="margin-top:12px;">
+        <tr><th>묶음</th><th>FINDRISC 가중치</th><th>점수 예시 (아침, 챌린지 없음)</th></tr>
+        <tr style="background:#D1FAE5;">
+          <td><strong>묶음4 운동</strong></td>
+          <td><strong>2.0</strong> (FINDRISC 2점)</td>
+          <td>2.0x3 + 0 + 1x1.5 + 0 = <strong>7.5</strong> (저녁 최우선)</td>
+        </tr>
+        <tr>
+          <td><strong>묶음2 채소/아침</strong></td>
+          <td>1.0 (FINDRISC 1점)</td>
+          <td>1.0x3 + 0 + 1x1.5 + 2.0 = <strong>6.5</strong> (아침 최우선)</td>
+        </tr>
+        <tr>
+          <td>묶음7 음주</td>
+          <td>0.5 (KDRS)</td>
+          <td>0.5x3 + 0 + 2x1.5 + 1.0 = <strong>5.5</strong></td>
+        </tr>
+        <tr>
+          <td>묶음1/3/5</td>
+          <td>0 (보조 지표)</td>
+          <td>0 + 0 + 1x1.5 + 2.0 = <strong>3.5</strong></td>
+        </tr>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#FEF3C7;border-radius:10px;font-size:11px;color:#92400E;">
+      <strong>핵심:</strong> 딱 1묶음(2문항, ~6초)만 질문. 답변 후 "기록했어요!" 피드백. 추가 질문 없음.
+    </div>
+  </div>
+
+  <!-- 시나리오 3 -->
+  <div class="card" style="border-left:4px solid var(--primary);">
+    <h3>&#x2600; 시나리오 3 — 아침만 접속</h3>
+    <p><strong>상황:</strong> 아침(07-09시)에 채팅 후 하루 내내 미접속. 묶음1(수면)+묶음2(아침/채소) 수집 완료, 나머지 미수집.</p>
+    <div style="margin-top:14px;">
+      <table class="dt">
+        <tr><th>놓친 묶음</th><th>우선순위</th><th>처리</th><th>기본값</th></tr>
+        <tr style="background:#FEE2E2;">
+          <td><strong>묶음4 운동</strong></td>
+          <td><span class="tag tag-critical">P1 Critical</span></td>
+          <td>22시 전 복귀하면 최우선 복구. 미복구 시 보수적 기본값</td>
+          <td><strong>"안 했어요"</strong></td>
+        </tr>
+        <tr>
+          <td>묶음3 식단질</td>
+          <td><span class="tag tag-important">P2 Important</span></td>
+          <td>20시 전 복귀하면 재질문 가능</td>
+          <td>미기록 (null)</td>
+        </tr>
+        <tr>
+          <td>묶음5 저녁습관</td>
+          <td><span class="tag tag-important">P2 Important</span></td>
+          <td>기본값 적용</td>
+          <td>야식="안 먹었어요"</td>
+        </tr>
+        <tr>
+          <td>묶음7 정서+음주</td>
+          <td><span class="tag tag-nice">P3 Optional</span></td>
+          <td>스킵, 다음 주기 대기</td>
+          <td>스킵</td>
+        </tr>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--primary-light);border-radius:10px;font-size:11px;color:var(--primary-dark);">
+      <strong>다음날 아침에 "어제 운동하셨나요?" 묻지 않는 이유:</strong> 운동 질문은 14:00-22:00에만 유효. 시간 민감도 규칙을 위반하면 데이터 정확성이 떨어짐. 대신 주간 집계에서 해당일을 비운동일로 처리.
+    </div>
+  </div>
+
+  <!-- 시나리오 4 -->
+  <div class="card" style="border-left:4px solid var(--purple);">
+    <h3>&#x1F4E6; 시나리오 4 — 누적 미응답 (여러 날 부분 데이터)</h3>
+    <p><strong>상황:</strong> 며칠간 부분 데이터만 쌓임. 예: 월(아침만) → 화(미접속) → 수(미접속) → 목(복귀)</p>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">복구 판단 흐름</div>
+      <div class="flow-h">
+        <div class="flow-h-node">
+          <div class="fh-title">P1 미수집일 체크</div>
+          <div class="fh-sub">운동/채소 결손일 수</div>
+        </div>
+        <div class="flow-h-arrow">→</div>
+        <div class="flow-h-node" style="border-color:var(--accent);">
+          <div class="fh-title">0일 결손</div>
+          <div class="fh-sub">복구 불필요<br>정상 흐름</div>
+        </div>
+        <div class="flow-h-arrow">→</div>
+        <div class="flow-h-node" style="border-color:var(--warning);">
+          <div class="fh-title">1-2일 결손</div>
+          <div class="fh-sub">연성 복구<br>오늘 흐름에서 우선 배정</div>
+        </div>
+        <div class="flow-h-arrow">→</div>
+        <div class="flow-h-node" style="border-color:var(--danger);">
+          <div class="fh-title">3일+ 결손</div>
+          <div class="fh-sub">데이터 손실 수용<br>오늘부터 새 시작</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;">FINDRISC 주간 집계: 부분 데이터 처리</div>
+      <table class="dt">
+        <tr><th>주간 데이터</th><th>처리 방식</th><th>예시</th></tr>
+        <tr style="background:#D1FAE5;">
+          <td><strong>3일+</strong> 데이터 있음</td>
+          <td>비례 추정</td>
+          <td>5일 중 3일 운동 → 3/5 = 60% → ~4.2일/주 환산</td>
+        </tr>
+        <tr style="background:#FEF3C7;">
+          <td><strong>2일 이하</strong></td>
+          <td>추정 불가 → 최근 신뢰 가능 주간 평균 사용</td>
+          <td>지난주 운동 빈도 그대로 적용</td>
+        </tr>
+        <tr style="background:var(--g100);">
+          <td><strong>0일</strong></td>
+          <td>온보딩 기저값 폴백</td>
+          <td>가입 시 "주 2-3회 운동" → 그대로 사용</td>
+        </tr>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:#EDE9FE;border-radius:10px;font-size:11px;color:#6D28D9;">
+      <strong>대시보드 표시:</strong> 모든 점수 옆에 "(N일 기준)" 표기. 예: "운동 점수 7/10 (5일 기준)". 사용자가 데이터 정확도를 직관적으로 알 수 있음.
+    </div>
+  </div>
+
+  <!-- 시나리오 5 -->
+  <div class="card" style="border-left:4px solid var(--g400);">
+    <h3>&#x1F4C9; 시나리오 5 — 적응형 축소 (Adaptive Reduction)</h3>
+    <p><strong>상황:</strong> 장기간 참여도가 하락. 시스템이 질문 부담을 자동으로 줄이면서 최소 기능 유지.</p>
+    <div style="margin-top:14px;">
+      <table class="dt">
+        <tr><th>Tier</th><th>묶음 구성</th><th>문항 수</th><th>예측 AUC</th><th>대시보드</th></tr>
+        <tr style="background:#D1FAE5;">
+          <td><strong>1 Standard</strong><br><span style="font-size:10px;color:var(--g400);">응답률 80%+</span></td>
+          <td>전체 7묶음</td>
+          <td>10문항</td>
+          <td><strong>~0.80</strong></td>
+          <td>전체 카드, 완전한 히트맵</td>
+        </tr>
+        <tr>
+          <td><strong>2 Reduced</strong><br><span style="font-size:10px;color:var(--g400);">50-80%</span></td>
+          <td>6묶음 (묶음7→월1회)</td>
+          <td>9문항</td>
+          <td>~0.80</td>
+          <td>전체 카드, "일부 미기록일 포함"</td>
+        </tr>
+        <tr style="background:#FEF3C7;">
+          <td><strong>3 Minimal</strong><br><span style="font-size:10px;color:var(--g400);">&lt;50%</span></td>
+          <td>4묶음 (묶음1+2, 묶음4, 묶음3/5 교대)</td>
+          <td>4-6문항</td>
+          <td>~0.78</td>
+          <td>핵심 카드만, "일부 추정 포함"</td>
+        </tr>
+        <tr style="background:#FEE2E2;">
+          <td><strong>4 Survival</strong><br><span style="font-size:10px;color:var(--g400);">3일 무응답</span></td>
+          <td>3묶음 (묶음2+묶음4+체중)</td>
+          <td>3문항</td>
+          <td>~0.77</td>
+          <td>FINDRISC 게이지만, "데이터 부족"</td>
+        </tr>
+        <tr style="background:var(--g100);">
+          <td><strong>5 Hibernation</strong><br><span style="font-size:10px;color:var(--g400);">2주+ 저참여</span></td>
+          <td>주1회 (운동+식단 요약)</td>
+          <td>2문항/주</td>
+          <td>~0.75</td>
+          <td>월간 요약만, "기록 부족"</td>
+        </tr>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:10px 14px;background:var(--g50);border-radius:10px;font-size:11px;color:var(--g600);">
+      <strong>Tier 전환 규칙:</strong> 하락은 즉시(임계값 도달 시). DORMANT→HIBERNATING만 14일 유지 후. 상승은 7일 연속 상위 기준 충족 시 1단계만 올림. 급격한 질문 증가로 인한 피로감 방지.
+    </div>
+  </div>
+
+  <!-- ── 기본값 매트릭스 ── -->
+  <div class="card">
+    <h3>&#x1F4CB; 미수집 시 기본값(Default) 매트릭스</h3>
+    <p style="margin-bottom:12px;">질문을 받지 못했을 때 어떤 값을 사용하는지, 그리고 <strong>왜 그 값인지</strong> 의학적 근거.</p>
+    <table class="dt">
+      <tr><th>묶음</th><th>질문</th><th>기본값</th><th>근거</th></tr>
+      <tr>
+        <td>B1 수면</td>
+        <td>몇 시간?</td>
+        <td>7h (인구 중앙값)</td>
+        <td>Cappuccio 2010: 7h = 중립 위험도</td>
+      </tr>
+      <tr>
+        <td>B1 수면질</td>
+        <td>잠 잘 잤나요?</td>
+        <td>"그냥 그래요"</td>
+        <td>중립 기본값이 가장 보수적</td>
+      </tr>
+      <tr style="background:#FEF3C7;">
+        <td>B2 아침</td>
+        <td>드셨나요?</td>
+        <td><strong>미기록 (null)</strong></td>
+        <td>Bi 2015: 결식 21-55% 위험↑, 가정 불가</td>
+      </tr>
+      <tr style="background:#FEF3C7;">
+        <td>B2 채소</td>
+        <td>챙기셨나요?</td>
+        <td><strong>미기록 (null)</strong></td>
+        <td>FINDRISC 1점 — 잘못된 가정은 점수 왜곡</td>
+      </tr>
+      <tr>
+        <td>B3 단음료</td>
+        <td>드셨나요?</td>
+        <td>"안 먹었어요"</td>
+        <td>가당음료 섭취는 예외적 행동 (낙관적 기본값)</td>
+      </tr>
+      <tr style="background:#FEE2E2;">
+        <td><strong>B4 운동</strong></td>
+        <td>하셨나요?</td>
+        <td><strong>"안 했어요"</strong></td>
+        <td>DPP 2002: 보수적 처리. 주간 집계 시 비운동일 카운트</td>
+      </tr>
+      <tr>
+        <td>B5 야식</td>
+        <td>드셨나요?</td>
+        <td>"안 먹었어요"</td>
+        <td>야식은 예외 행동 (낙관적)</td>
+      </tr>
+      <tr style="background:#FEE2E2;">
+        <td><strong>B6 복약</strong></td>
+        <td>드셨나요?</td>
+        <td><strong>미기록 (절대 가정 불가)</strong></td>
+        <td>Cramer 2004: 비순응 35-65% 영향, 오가정 위험</td>
+      </tr>
+      <tr>
+        <td>B7 정서</td>
+        <td>스트레스/기분</td>
+        <td>스킵 (마지막 값 유지)</td>
+        <td>2-3일 주기이므로 1일 스킵은 정상</td>
+      </tr>
+      <tr>
+        <td>B7 음주</td>
+        <td>마셨나요?</td>
+        <td>"안 마셨어요"</td>
+        <td>음주는 비일상적 행동 (보수적 안전 기본값)</td>
+      </tr>
+    </table>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <div style="padding:8px 12px;background:#D1FAE5;border-radius:8px;font-size:10px;font-weight:700;color:#065F46;">낙관적 = 미해당이 더 일반적인 행동</div>
+      <div style="padding:8px 12px;background:#FEF3C7;border-radius:8px;font-size:10px;font-weight:700;color:#92400E;">미기록 = 양방향 위험, 가정 불가</div>
+      <div style="padding:8px 12px;background:#FEE2E2;border-radius:8px;font-size:10px;font-weight:700;color:#DC2626;">보수적 = 위험 쪽으로 가정 (안전)</div>
+    </div>
+  </div>
+
+  <!-- ── 대시보드 단계적 약화 ── -->
+  <div class="card">
+    <h3>&#x1F4CA; 대시보드 단계적 약화 (Graceful Degradation)</h3>
+    <p style="margin-bottom:12px;">주간 데이터 커버리지에 따라 대시보드 표시 수준이 자동 조절됩니다.</p>
+    <table class="dt">
+      <tr><th>커버리지</th><th>일수</th><th>표시 방식</th><th>라벨</th></tr>
+      <tr style="background:#D1FAE5;">
+        <td><strong>80-100%</strong></td>
+        <td>6-7일</td>
+        <td>전체 카드, 완전한 추세선, 히트맵 완성</td>
+        <td>없음 (정상)</td>
+      </tr>
+      <tr>
+        <td>60-79%</td>
+        <td>4-5일</td>
+        <td>전체 카드, 추세선 일부 공백</td>
+        <td style="color:var(--primary);">"일부 미기록일 포함"</td>
+      </tr>
+      <tr style="background:#FEF3C7;">
+        <td>40-59%</td>
+        <td>3-4일</td>
+        <td>핵심 카드만 (FINDRISC/운동/식단)</td>
+        <td style="color:var(--warning);">"일부 추정 포함"</td>
+      </tr>
+      <tr style="background:#FEE2E2;">
+        <td>20-39%</td>
+        <td>1-2일</td>
+        <td>FINDRISC 게이지만, 하위 점수 숨김</td>
+        <td style="color:var(--danger);">"데이터 부족"</td>
+      </tr>
+      <tr style="background:var(--g100);">
+        <td>&lt;20%</td>
+        <td>0일</td>
+        <td>온보딩 기반 FINDRISC만, 동적 카드 전부 숨김</td>
+        <td style="color:var(--g500);">"이번 주 기록이 부족합니다"</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── 재참여 전략 ── -->
+  <div class="card" style="border-left:4px solid var(--accent);">
+    <h3>&#x1F49A; 재참여 전략 (가치 프레이밍)</h3>
+    <p style="margin-bottom:14px;">모든 재참여 메시지는 <strong>"뭘 놓쳤는지"가 아니라 "뭘 얻을 수 있는지"</strong> 중심으로 작성합니다.</p>
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;color:var(--danger);">금지 문구 (절대 사용 금지)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <span style="padding:5px 10px;background:#FEE2E2;border-radius:8px;font-size:11px;color:#DC2626;text-decoration:line-through;">"미응답 질문이 N개 있습니다"</span>
+        <span style="padding:5px 10px;background:#FEE2E2;border-radius:8px;font-size:11px;color:#DC2626;text-decoration:line-through;">"어제 못 한 질문입니다"</span>
+        <span style="padding:5px 10px;background:#FEE2E2;border-radius:8px;font-size:11px;color:#DC2626;text-decoration:line-through;">"N일 연속 끊겼어요"</span>
+        <span style="padding:5px 10px;background:#FEE2E2;border-radius:8px;font-size:11px;color:#DC2626;text-decoration:line-through;">"응답률이 낮아요"</span>
+        <span style="padding:5px 10px;background:#FEE2E2;border-radius:8px;font-size:11px;color:#DC2626;text-decoration:line-through;">"데이터가 부족해서 정확하지 않아요"</span>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:13px;font-weight:800;margin-bottom:8px;color:var(--accent);">허용 문구 (가치 제안 중심)</div>
+      <table class="dt">
+        <tr><th>상황</th><th>메시지</th><th>프레이밍</th></tr>
+        <tr>
+          <td>대시보드 공백</td>
+          <td>"3일만 더 기록하면 이번 주 운동 점수를 볼 수 있어요"</td>
+          <td>무엇을 <strong>얻는지</strong></td>
+        </tr>
+        <tr>
+          <td>긍정 추세 중단</td>
+          <td>"지난주에 수면 패턴이 좋아지고 있었어요. 이번 주도 볼까요?"</td>
+          <td>과거 <strong>성과 인정</strong></td>
+        </tr>
+        <tr>
+          <td>챌린지 일시정지</td>
+          <td>"챌린지를 잠시 쉬어갈까요? 언제든 다시 시작할 수 있어요"</td>
+          <td><strong>자율권</strong> 강조</td>
+        </tr>
+        <tr>
+          <td>Tier 하락/상승</td>
+          <td><strong>(무음)</strong> — 사용자에게 알리지 않음</td>
+          <td>등급 <strong>판단 자체를 숨김</strong></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 질문 시간 민감도 ── -->
+  <div class="card">
+    <h3>&#x23F0; 질문별 시간 민감도 (Time Sensitivity)</h3>
+    <p style="margin-bottom:12px;">각 질문은 유효 시간이 있으며, 만료 시 기본값이 적용되거나 다음 시간대로 이월됩니다.</p>
+    <table class="dt">
+      <tr><th>질문</th><th>유효 시작</th><th>유효 종료</th><th>만료 시 처리</th></tr>
+      <tr>
+        <td>Q1 수면 시간</td><td>06:00</td><td>12:00</td><td>기본값 7h 적용</td>
+      </tr>
+      <tr>
+        <td>Q2 수면 질</td><td>06:00</td><td>12:00</td><td>"그냥 그래요" 적용</td>
+      </tr>
+      <tr>
+        <td>Q3 음주 (묶음7)</td><td>06:00</td><td>14:00</td><td>기본값 "안 마심"</td>
+      </tr>
+      <tr style="background:#FEF3C7;">
+        <td>Q4 아침식사</td><td>07:00</td><td>12:00</td><td><strong>"미기록"</strong> (가정 불가)</td>
+      </tr>
+      <tr>
+        <td>Q5-6 식단 (점심)</td><td>11:00</td><td>20:00</td><td>저녁 터치포인트에서 재질문 가능</td>
+      </tr>
+      <tr style="background:#D1FAE5;">
+        <td><strong>Q7 운동</strong></td><td><strong>14:00</strong></td><td><strong>22:00</strong></td><td>유효 시간 가장 김 → 복구 확률 높음</td>
+      </tr>
+      <tr>
+        <td>Q9 야식</td><td>20:00</td><td>22:00</td><td>저녁 윈도우에서만 유효</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── P1/P2/P3 우선순위 ── -->
+  <div class="card">
+    <h3>&#x1F3AF; 미응답 복구 우선순위 (3단계)</h3>
+    <p style="margin-bottom:12px;">복귀 시 어떤 질문을 먼저 복구할지 결정하는 3단계 체계.</p>
+    <div class="grid-3" style="margin-top:10px;">
+      <div style="padding:16px;background:#FEE2E2;border-radius:14px;border:2px solid #FECACA;">
+        <div style="font-size:12px;font-weight:900;color:#DC2626;margin-bottom:6px;">P1 Critical</div>
+        <div style="font-size:11px;font-weight:700;color:var(--g700);margin-bottom:4px;">위험 모델에 직접 영향</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.6;">
+          Q3 음주<br>Q7 운동<br>Q5 채소
+        </div>
+        <div style="margin-top:8px;font-size:10px;font-weight:700;color:#DC2626;">2시간 내 재질문</div>
+      </div>
+      <div style="padding:16px;background:#FEF3C7;border-radius:14px;border:2px solid #FDE68A;">
+        <div style="font-size:12px;font-weight:900;color:#92400E;margin-bottom:6px;">P2 Important</div>
+        <div style="font-size:11px;font-weight:700;color:var(--g700);margin-bottom:4px;">생활습관 점수에 영향</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.6;">
+          Q1 수면<br>Q4 아침<br>Q6 단음료<br>Q9 야식
+        </div>
+        <div style="margin-top:8px;font-size:10px;font-weight:700;color:#92400E;">6시간 내 배치 복구</div>
+      </div>
+      <div style="padding:16px;background:var(--g100);border-radius:14px;border:2px solid var(--g200);">
+        <div style="font-size:12px;font-weight:900;color:var(--g500);margin-bottom:6px;">P3 Optional</div>
+        <div style="font-size:11px;font-weight:700;color:var(--g700);margin-bottom:4px;">보조 지표</div>
+        <div style="font-size:12px;color:var(--g600);line-height:1.6;">
+          Q2 수면질<br>Q8 수분<br>Q10-11 스트레스/기분
+        </div>
+        <div style="margin-top:8px;font-size:10px;font-weight:700;color:var(--g500);">스킵, 다음 주기 대기</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 엣지 케이스 ── -->
+  <div class="card">
+    <h3>&#x1F527; 엣지 케이스 처리</h3>
+    <table class="dt">
+      <tr><th>케이스</th><th>감지 방법</th><th>처리</th></tr>
+      <tr>
+        <td><strong>주말 패턴</strong></td>
+        <td>2주+ 데이터 후 주중/주말 참여 비교</td>
+        <td>주말 30%+ 낮으면 자동 2터치포인트, Tier 하락 미반영</td>
+      </tr>
+      <tr>
+        <td><strong>공휴일(설/추석)</strong></td>
+        <td>한국 공휴일 DB 자동 감지</td>
+        <td>주말 행동 자동 적용</td>
+      </tr>
+      <tr>
+        <td><strong>해외여행 (시차)</strong></td>
+        <td>브라우저 시간대 3h+ 변화 감지</td>
+        <td>"새 시작" 적용, 새 시간대 기준 윈도우 재계산</td>
+      </tr>
+      <tr>
+        <td><strong>폭풍 사용 (2-3h 집중)</strong></td>
+        <td>단일 세션 내 다수 메시지</td>
+        <td>90분 쿨다운으로 최대 2묶음까지만, 3번째는 다음 윈도우</td>
+      </tr>
+      <tr>
+        <td><strong>챌린지 중 중단</strong></td>
+        <td>3일 무데이터</td>
+        <td>3일→"진행 확인 필요", 7일→자동 일시정지 + "언제든 재시작"</td>
+      </tr>
+      <tr>
+        <td><strong>30일+ 장기 부재</strong></td>
+        <td>last_active_date 30일+ 경과</td>
+        <td>경량 온보딩 재확인(체중/습관 변화) → Tier 5에서 시작</td>
+      </tr>
+      <tr>
+        <td><strong>휴가 모드</strong></td>
+        <td>설정 또는 AI에게 "여행 가요" 발화</td>
+        <td>질문 삽입 전면 중단, 대시보드 "휴가 모드" 뱃지, 휴가일은 응답률 분모 제외</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ── V3 추가: 소급 입력 (Retrospective Input) ── -->
+  <div class="card" style="border-left:4px solid var(--accent);margin-bottom:24px;">
+    <h3>V3 확정: 소급 입력 — "누락됐어요~" 모달</h3>
+    <p style="margin-bottom:14px;">미접속/저사용자가 복귀했을 때, 과거 누락분을 날짜별로 소급 입력할 수 있는 모달 제공.</p>
+    <table class="dt">
+      <tr><th>항목</th><th>규칙</th></tr>
+      <tr><td><strong>소급 범위</strong></td><td>최대 3일 (오늘 + 어제 + 2일 전). 행동과학 연구 기반 기억 정확도 한계.</td></tr>
+      <tr><td><strong>표시 형태</strong></td><td>"누락됐어요~" 간소 카드 (건수 + 프로그레스바). 클릭 시 날짜별 그룹핑 모달 오픈.</td></tr>
+      <tr><td><strong>입력 방식</strong></td><td>각 질문에 pill 버튼 (선택지) 바로 표시. 선택 즉시 저장 + ✅ 전환.</td></tr>
+      <tr><td><strong>Tier 제한</strong></td><td>DORMANT/HIBERNATING = 날짜당 최대 2건 + "+N개는 천천히"<br>LOW = 날짜당 최대 4건<br>ACTIVE/MODERATE = 제한 없음 (전체 표시)</td></tr>
+      <tr><td><strong>기본값 적용</strong></td><td>3일 이상 경과한 누락 데이터 → 기본값 매트릭스 적용 (운동="안 했어요", 복약=절대 가정 불가)</td></tr>
+    </table>
+    <div style="margin-top:10px;padding:10px 14px;background:rgba(16,185,129,.1);border-radius:10px;font-size:11px;color:#065F46;">
+      <strong>근거:</strong> 기억 정확도는 48-72시간이 한계 (Nisbett & Wilson, 1977). 3일 이상 지난 식사/운동 기억은 정확도 급감 → 소급 3일 제한.
+    </div>
+  </div>
+
+  <!-- ── 구현 핵심 요약 ── -->
+  <div class="card" style="background:linear-gradient(135deg,var(--g900),#1a2744);color:#fff;border:none;">
+    <h3 style="color:#fff;">구현 핵심 요약</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+      <div style="padding:14px;background:rgba(255,255,255,.08);border-radius:12px;">
+        <div style="font-size:11px;font-weight:800;color:var(--primary);margin-bottom:6px;">백엔드 신규 모델</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.7;">
+          DailyHealthRecord — 일별 묶음 응답<br>
+          UserEngagementState — Tier + 7일 응답률<br>
+          QuestionSchedule — 오늘 질문 상태<br>
+          AbsenceRecord — 부재 이벤트 기록
+        </div>
+      </div>
+      <div style="padding:14px;background:rgba(255,255,255,.08);border-radius:12px;">
+        <div style="font-size:11px;font-weight:800;color:var(--accent);margin-bottom:6px;">핵심 서비스 로직</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);line-height:1.7;">
+          QuestionScheduler — 부재 감지 + 묶음 선택<br>
+          DataImputation — 기본값 + 주간 FINDRISC 계산<br>
+          EngagementTracker — Tier 전환 + 넛지 관리<br>
+          DashboardDegrader — 표시 수준 결정
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:12px;background:rgba(255,255,255,.05);border-radius:10px;font-size:11px;color:rgba(255,255,255,.6);">
+      <strong style="color:var(--warning);">크론 잡:</strong> 매일 자정 — 미수집일 마킹, Tier 전환 체크, 챌린지 일시정지 / 매주 월요일 — FINDRISC 재계산, 대시보드 약화 수준 갱신
+    </div>
+  </div>
+
+</div>
+
+
+</div>
+
+
+<!-- ═══ 9. UI 인터랙션 설계 (V3 신규) ═══ -->
+<div class="section" id="sec-9">
+  <div class="section-title">UI 인터랙션 설계</div>
+  <div class="section-sub">V8-8 데모 기준. 데이터 수집 방식이 화면에서 어떻게 구현되는지 정의합니다.</div>
+
+  <!-- 5색 색상 체계 -->
+  <div class="card">
+    <h3>🎨 5색 색상 체계 (확정)</h3>
+    <p style="margin-bottom:14px;">모든 UI 요소는 아래 5역할로만 색상 표현. 보라(#7C3AED)/핑크(#EC4899) 완전 제거.</p>
+    <div class="grid-5" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+      <div style="padding:14px;border-radius:12px;text-align:center;background:var(--primary-light);border:1.5px solid var(--primary);">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--primary);margin:0 auto 6px;"></div>
+        <div style="font-size:11px;font-weight:800;color:var(--primary-dark);">Primary</div>
+        <div style="font-size:10px;color:var(--g500);">#0EA5E9</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:4px;">진행중 · 링크 · 강조</div>
+      </div>
+      <div style="padding:14px;border-radius:12px;text-align:center;background:var(--accent-light);border:1.5px solid var(--accent);">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);margin:0 auto 6px;"></div>
+        <div style="font-size:11px;font-weight:800;color:#065F46;">Accent</div>
+        <div style="font-size:10px;color:var(--g500);">#10B981</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:4px;">완료 · 달성 · 안전</div>
+      </div>
+      <div style="padding:14px;border-radius:12px;text-align:center;background:var(--warning-light);border:1.5px solid var(--warning);">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--warning);margin:0 auto 6px;"></div>
+        <div style="font-size:11px;font-weight:800;color:#92400E;">Warning</div>
+        <div style="font-size:10px;color:var(--g500);">#F59E0B</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:4px;">경고 · 미완료 · 주의</div>
+      </div>
+      <div style="padding:14px;border-radius:12px;text-align:center;background:var(--danger-light);border:1.5px solid var(--danger);">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--danger);margin:0 auto 6px;"></div>
+        <div style="font-size:11px;font-weight:800;color:#991B1B;">Danger</div>
+        <div style="font-size:10px;color:var(--g500);">#EF4444</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:4px;">위험 · 삭제 · 긴급</div>
+      </div>
+      <div style="padding:14px;border-radius:12px;text-align:center;background:var(--g100);border:1.5px solid var(--g300);">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--g400);margin:0 auto 6px;"></div>
+        <div style="font-size:11px;font-weight:800;color:var(--g700);">Neutral</div>
+        <div style="font-size:10px;color:var(--g500);">Gray scale</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:4px;">배경 · 텍스트 · 보조</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--g700);margin-bottom:8px;">동적 색상 적용 규칙</div>
+      <table class="dt">
+        <tr><th>함수</th><th>로직</th><th>용도</th></tr>
+        <tr><td><code>getProgressColor(pct)</code></td><td>80%+ → Accent(초록), 50%+ → Primary(파랑), 미만 → Warning(앰버)</td><td>리포트 차트, 챌린지 프로그레스</td></tr>
+        <tr><td><code>getBarColor(pct)</code></td><td>100% → Accent, 미만 → Primary</td><td>사이드패널 "오늘 한눈에" 프로그레스바</td></tr>
+        <tr><td><code>getValColor(done)</code></td><td>완료 → Accent-dark, 미완 → Warning</td><td>사이드패널 수치 텍스트</td></tr>
+      </table>
+    </div>
+    <div style="margin-top:10px;padding:10px 14px;background:rgba(14,165,233,.08);border-radius:10px;border-left:3px solid var(--primary);font-size:11px;color:var(--g600);">
+      <strong>카테고리 구분:</strong> 색상이 아닌 이모지/아이콘으로. 식사🍽️ / 당섭취🍭 / 활동🏃 / 수분💧<br>
+      <strong>위험도 통일:</strong> 빨강=위험, 노랑=경고, 초록=안전 (Apple HIG, Material 3 기준)
+    </div>
+  </div>
+
+  <!-- 사이드패널 설계 -->
+  <div class="card" style="margin-top:8px;">
+    <h3>📋 사이드패널 설계 (V8-8 확정)</h3>
+    <p style="margin-bottom:14px;">AI 채팅 우측에 위치. 읽기 전용 상태 확인 + 직접입력 진입점. 모든 그룹(A/B/C) 동일 4위젯.</p>
+
+    <div class="grid-2" style="gap:16px;">
+      <!-- 접힌 상태 -->
+      <div style="padding:16px;background:var(--g50);border-radius:14px;border:1px solid var(--g200);">
+        <div style="font-size:12px;font-weight:800;color:var(--g800);margin-bottom:10px;">접힌 상태 (기본값)</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border-radius:10px;border:1px solid var(--g200);width:fit-content;">
+          <div style="font-size:16px;">›</div>
+          <div style="width:18px;height:18px;border-radius:50%;background:var(--primary);color:#fff;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;">7</div>
+        </div>
+        <ul style="font-size:11px;color:var(--g500);margin-top:10px;margin-left:14px;line-height:2;">
+          <li>폭 44px — 최소 공간 점유</li>
+          <li>아이콘 전부 숨김</li>
+          <li>› 토글 + 미입력 뱃지(건수)만</li>
+          <li>뱃지: 미입력 0건 → 숨김</li>
+        </ul>
+      </div>
+
+      <!-- 펼친 상태 -->
+      <div style="padding:16px;background:var(--g50);border-radius:14px;border:1px solid var(--g200);">
+        <div style="font-size:12px;font-weight:800;color:var(--g800);margin-bottom:10px;">펼친 상태 (4위젯)</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--g200);font-size:11px;">
+            <span style="font-weight:700;">📊 오늘 한눈에</span> — 식사/당섭취/활동/수분 4행. 클릭→건강 모달
+          </div>
+          <div style="padding:8px 10px;background:linear-gradient(135deg,#f0f9ff,#ecfdf5);border-radius:8px;border:1px solid var(--g200);font-size:11px;">
+            <span style="font-weight:700;">💡 오늘의 브리핑</span> — 그룹별 5줄 동기부여 메시지
+          </div>
+          <div style="padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--g200);font-size:11px;">
+            <span style="font-weight:700;">🌟 챌린지</span> — 칭찬 소제목 + 내 최고 습관 + 연속일 + 프로그레스
+          </div>
+          <div style="padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--g200);font-size:11px;">
+            <span style="font-weight:700;">📋 누락됐어요~</span> — N건 + 프로그레스바. 클릭→누락 모달
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--g400);margin-top:8px;">* LOW/DORMANT에서는 "⚡ 한번에 입력" 버튼 추가 표시</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 챌린지 동기부여 UX -->
+  <div class="card" style="margin-top:8px;">
+    <h3>🏆 챌린지 칭찬 소제목 (V8-8 확정)</h3>
+    <p style="margin-bottom:14px;">사이드패널 챌린지 카드 상단에 연속일(streak) 기반 칭찬 문구 표시. 사용자 동기부여 강화.</p>
+    <table class="dt">
+      <tr><th>연속일</th><th>소제목</th><th>의도</th></tr>
+      <tr><td>7일+</td><td>🏆 대단해요! 일주일 연속!</td><td>최고 성취 인정</td></tr>
+      <tr><td>5일+</td><td>🌟 잘하고 있어요!</td><td>지속 칭찬</td></tr>
+      <tr><td>3일+</td><td>💪 좋은 습관이 만들어지고 있어요</td><td>습관 형성 인식</td></tr>
+      <tr><td>1일+</td><td>🌱 좋은 시작이에요!</td><td>시작 격려</td></tr>
+      <tr><td>0일</td><td>🎯 오늘부터 시작해봐요</td><td>부드러운 제안 (죄책감 X)</td></tr>
+    </table>
+    <div style="margin-top:8px;font-size:11px;color:var(--g500);">
+      그룹별 챌린지: A(당뇨 진단)=매일 건강 기록하기 / B,C(주의·예방)=매일 7,000보 걷기. 표시 내용은 "내가 제일 잘하고 있는 습관"의 챌린지 진행률.
+    </div>
+  </div>
+
+  <!-- 건강 리포트 탭 -->
+  <div class="card" style="margin-top:8px;">
+    <h3>📊 건강 리포트 UI (V8-8 확정)</h3>
+    <div class="grid-2" style="gap:16px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--g700);margin-bottom:8px;">기간 선택</div>
+        <ul style="font-size:12px;color:var(--g600);margin-left:14px;line-height:2;">
+          <li>7일/30일/90일 pill 버튼 → <strong>드롭다운 &lt;select&gt;</strong>로 변경</li>
+          <li>공간 절약, 깔끔한 인터페이스</li>
+          <li>기본값: "최근 7일" selected</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--g700);margin-bottom:8px;">차트 색상 규칙</div>
+        <ul style="font-size:12px;color:var(--g600);margin-left:14px;line-height:2;">
+          <li>점수 바: <code>getProgressColor(pct)</code> 동적 적용</li>
+          <li>달성 100%: Accent(초록) / 진행중: Primary(파랑) / 미달: Warning(앰버)</li>
+          <li>하드코딩 색상 사용 금지</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상단 영역 -->
+  <div class="card" style="margin-top:8px;">
+    <h3>🗑️ 제거된 UI 요소 (V8-8)</h3>
+    <table class="dt">
+      <tr><th>요소</th><th>상태</th><th>사유</th></tr>
+      <tr><td>상단 대시보드 스트립 (위험도/응답/수면 3카드)</td><td style="color:var(--danger);font-weight:700;">삭제</td><td>채팅 영역 공간 확보. 해당 정보는 건강 리포트 탭에서 확인.</td></tr>
+      <tr><td>A/B,C그룹 사이드패널 분기</td><td style="color:var(--danger);font-weight:700;">삭제</td><td>불필요 복잡도. 모든 그룹 동일 4위젯 통합.</td></tr>
+      <tr><td>보라색(#8B5CF6/#7C3AED), 핑크(#EC4899) 색상</td><td style="color:var(--danger);font-weight:700;">삭제</td><td>5색 원칙 위반. Primary(파랑)으로 대체.</td></tr>
+      <tr><td>체크리스트 (✨ N개 완료!)</td><td style="color:var(--danger);font-weight:700;">삭제</td><td>"오늘 한눈에"와 중복.</td></tr>
+      <tr><td>건강운세 플립카드</td><td style="color:var(--danger);font-weight:700;">삭제</td><td>의료 앱 톤과 부적합.</td></tr>
+    </table>
+  </div>
+
+  <!-- 온보딩 설문 모달 -->
+  <div class="card" style="margin-top:8px;">
+    <h3>📝 온보딩 설문 모달 (V8-8 확정)</h3>
+    <table class="dt">
+      <tr><th>속성</th><th>값</th><th>사유</th></tr>
+      <tr><td>모달 크기</td><td><strong>480px × 640px 고정</strong></td><td>모든 스텝(1~11) 동일 크기. 콘텐츠 양에 따른 크기 변동 방지.</td></tr>
+      <tr><td>max-height</td><td>90vh</td><td>모바일/소형 화면 대응</td></tr>
+      <tr><td>body 영역</td><td>flex:1 + overflow-y:auto</td><td>콘텐츠 초과 시 스크롤. 모달 크기는 불변.</td></tr>
+      <tr><td>모바일</td><td>width:95%, height:640px</td><td>반응형 유지하며 높이 고정</td></tr>
+    </table>
+  </div>
+
+  <!-- 데모 버전 이력 -->
+  <div class="card" style="margin-top:8px;background:var(--g50);">
+    <h3>📁 데모 버전 이력</h3>
+    <table class="dt" style="font-size:11px;">
+      <tr><th>버전</th><th>핵심 변경</th></tr>
+      <tr style="background:var(--primary-light);"><td><strong>V8-8 (최신)</strong></td><td>상단바 삭제, collapsed 44px 최소화, 챌린지 칭찬 소제목, 설문 640px 고정, 리포트 드롭다운</td></tr>
+      <tr><td>V8-7</td><td>A/BC 통합 사이드패널(4위젯), 누락 입력 모달(날짜별 그룹, pill 답변), 5색 색상 통일</td></tr>
+      <tr><td>V8-6</td><td>A/B,C 사이드패널 분기, collapsed 기본값, A그룹 미입력 섹션, B/C 읽기전용</td></tr>
+      <tr><td>V8-5</td><td>"오늘 한눈에" 복원, 팝업 모달 상세입력, 체크리스트, 한번에 입력 위자드</td></tr>
+      <tr><td>V8-4</td><td>질문 병합(수면·정서 5택복합), 채소→저녁, 4카테고리 사이드패널</td></tr>
+      <tr><td>V8-3</td><td>묶음 최대 2개 규칙, 묶음2★ 반영</td></tr>
+      <tr><td>V8-2</td><td>90분 쿨다운 반영</td></tr>
+      <tr><td>V8-1 / V8</td><td>초기 데모 프로토타입</td></tr>
+    </table>
+  </div>
+
+</div>
+
+
+</div>
+
+<script>
+function showSection(idx){
+  document.querySelectorAll('.section').forEach((s,i)=>{s.classList.toggle('active',i===idx);});
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',i===idx);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

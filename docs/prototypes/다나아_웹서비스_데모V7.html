@@ -1,0 +1,4104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아(DA-NA-A) — 웹서비스 데모</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --primary: #0EA5E9;
+  --primary-dark: #0284C7;
+  --primary-light: #E0F2FE;
+  --accent: #10B981;
+  --accent-dark: #059669;
+  --accent-light: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-light: #FEF3C7;
+  --danger: #EF4444;
+  --g50:#F8FAFC; --g100:#F1F5F9; --g200:#E2E8F0; --g300:#CBD5E1;
+  --g400:#94A3B8; --g500:#64748B; --g600:#475569; --g700:#334155;
+  --g800:#1E293B; --g900:#0F172A;
+  --r:16px; --rs:10px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:#fff;color:var(--g800);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+a{text-decoration:none;color:inherit;}
+
+/* ═══════════════════════════════
+   화면 전환 시스템
+   ═══════════════════════════════ */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:block;}
+.screen-main.active{display:flex;}
+
+/* ═══════════════════════════════
+   1. 랜딩 페이지
+   ═══════════════════════════════ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(255,255,255,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(0,0,0,.06);
+  padding:0 48px;height:64px;
+  display:flex;align-items:center;
+}
+.nav-logo{font-size:20px;font-weight:900;display:flex;align-items:center;gap:8px;}
+.nav-logo em{font-style:normal;background:linear-gradient(135deg,#0EA5E9,#10B981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav-links{margin-left:auto;display:flex;align-items:center;gap:32px;}
+.nav-links a{font-size:14px;font-weight:500;color:var(--g600);transition:.2s;}
+.nav-links a:hover{color:var(--g900);}
+.nav-cta{
+  padding:10px 24px;border-radius:100px;border:none;
+  background:var(--g900);color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;transition:.2s;font-family:inherit;
+}
+.nav-cta:hover{background:#000;transform:translateY(-1px);}
+
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  padding:120px 24px 80px;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#F8FAFC 0%,#E0F2FE 50%,#D1FAE5 100%);
+}
+.hero::before{
+  content:'';position:absolute;top:10%;right:-10%;
+  width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(14,165,233,.08),transparent 70%);
+}
+.hero::after{
+  content:'';position:absolute;bottom:10%;left:-10%;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(16,185,129,.08),transparent 70%);
+}
+.hero *{position:relative;z-index:1;}
+
+.hero-trust{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 20px;border-radius:100px;
+  background:rgba(255,255,255,.8);border:1px solid rgba(0,0,0,.06);
+  font-size:13px;font-weight:600;color:var(--g700);margin-bottom:28px;
+  backdrop-filter:blur(8px);
+}
+.hero-trust .stars{color:#FBBF24;}
+
+.hero h1{
+  font-size:52px;font-weight:900;line-height:1.25;
+  color:var(--g900);margin-bottom:16px;letter-spacing:-1px;
+}
+.hero h1 em{
+  font-style:normal;
+  background:linear-gradient(135deg,#0EA5E9,#10B981);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+
+.hero .hero-desc{
+  font-size:17px;color:var(--g500);max-width:520px;
+  margin:0 auto 36px;line-height:1.8;
+}
+
+.hero-cta-group{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+
+.hero-cta{
+  padding:16px 36px;border-radius:100px;border:none;
+  background:var(--g900);color:#fff;font-size:16px;font-weight:700;
+  cursor:pointer;transition:.2s;font-family:inherit;
+  box-shadow:0 4px 20px rgba(0,0,0,.15);
+  display:flex;align-items:center;gap:8px;
+}
+.hero-cta:hover{background:#000;transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.2);}
+.hero-cta-sub{
+  padding:16px 36px;border-radius:100px;
+  border:2px solid var(--g200);background:#fff;
+  font-size:16px;font-weight:600;color:var(--g700);
+  cursor:pointer;transition:.2s;font-family:inherit;
+}
+.hero-cta-sub:hover{border-color:var(--g400);}
+
+.features{
+  padding:80px 48px;background:#fff;
+  display:flex;gap:32px;justify-content:center;flex-wrap:wrap;
+}
+.feat-card{
+  flex:1;min-width:260px;max-width:320px;padding:32px;
+  border-radius:var(--r);border:1px solid var(--g200);
+  text-align:center;transition:.2s;
+}
+.feat-card:hover{transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,0,0,.06);}
+.feat-icon{font-size:36px;margin-bottom:16px;}
+.feat-card h3{font-size:17px;font-weight:700;margin-bottom:8px;}
+.feat-card p{font-size:13px;color:var(--g500);line-height:1.7;}
+
+.landing-footer{
+  text-align:center;padding:40px;font-size:12px;color:var(--g400);
+  border-top:1px solid var(--g100);
+}
+
+
+/* ═══════════════════════════════
+   2. 온보딩 설문 팝업 (오버레이)
+   ═══════════════════════════════ */
+
+.overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(15,23,42,.6);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+.overlay.show{display:flex;}
+
+.survey-modal{
+  width:480px;max-height:90vh;background:#fff;
+  border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.25);
+  overflow:hidden;display:flex;flex-direction:column;
+  animation:modalIn .35s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97);}to{opacity:1;transform:none;}}
+
+.survey-modal-header{
+  padding:20px 28px 0;display:flex;align-items:center;gap:12px;
+}
+.sm-back{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--g200);
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:var(--g500);cursor:pointer;
+}
+.sm-info{flex:1;}
+.sm-info .sm-phase{font-size:10px;font-weight:700;color:var(--g400);letter-spacing:.5px;}
+.sm-info .sm-title{font-size:14px;font-weight:700;}
+.sm-step{font-size:14px;font-weight:700;color:var(--primary);}
+.sm-close{
+  width:34px;height:34px;border-radius:10px;border:none;
+  background:var(--g100);display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--g500);cursor:pointer;
+}
+
+.sm-progress{height:4px;background:var(--g100);margin-top:16px;}
+.sm-progress-bar{height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:0 4px 4px 0;transition:width .4s;}
+
+.survey-modal-body{flex:1;overflow-y:auto;padding:28px;}
+.survey-modal-body::-webkit-scrollbar{width:0;}
+
+.survey-modal-footer{
+  padding:16px 28px 24px;display:flex;gap:10px;
+  border-top:1px solid var(--g100);
+}
+
+/* 질문 스타일 (모달 내) */
+.q-title{font-size:22px;font-weight:800;line-height:1.4;margin-bottom:6px;white-space:pre-line;}
+.q-sub{font-size:13px;color:var(--g400);margin-bottom:20px;}
+.q-why{
+  display:flex;gap:6px;padding:10px 14px;
+  background:var(--primary-light);border-radius:var(--rs);
+  margin-bottom:20px;font-size:11px;color:var(--primary-dark);line-height:1.6;
+}
+
+/* 옵션 버튼 */
+.opt-list{display:flex;flex-direction:column;gap:8px;}
+.opt-btn{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:14px;
+  border:2px solid var(--g200);background:#fff;
+  font-size:14px;font-weight:500;color:var(--g700);
+  cursor:pointer;transition:.2s;
+}
+.opt-btn:hover{border-color:var(--primary);background:#F0F9FF;}
+.opt-btn.sel{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+.opt-btn.disabled-opt{opacity:.4;cursor:not-allowed;pointer-events:none;}
+.opt-btn.disabled-opt:hover{border-color:var(--g200);background:#fff;}
+.opt-btn .em{font-size:18px;}
+.opt-btn .chk{
+  margin-left:auto;width:20px;height:20px;border-radius:50%;
+  border:2px solid var(--g300);display:flex;align-items:center;
+  justify-content:center;font-size:10px;color:transparent;flex-shrink:0;
+}
+.opt-btn.sel .chk{background:var(--primary);border-color:var(--primary);color:#fff;}
+.opt-btn .coming-tag{
+  margin-left:auto;font-size:10px;font-weight:600;
+  padding:3px 10px;border-radius:100px;background:var(--g100);color:var(--g400);
+}
+
+/* 그리드 */
+.grid-group{margin-bottom:20px;}
+.grid-group:last-child{margin-bottom:0;}
+.grid-lbl{font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px;}
+.grid-row{display:flex;flex-wrap:wrap;gap:6px;}
+.g-btn{
+  padding:9px 16px;border-radius:10px;border:2px solid var(--g200);
+  background:#fff;font-size:13px;font-weight:500;color:var(--g600);cursor:pointer;transition:.2s;
+}
+.g-btn:hover{border-color:var(--primary);}
+.g-btn.sel{border-color:var(--primary);background:var(--primary);color:#fff;font-weight:600;}
+
+/* 칩 */
+.chip-list{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  padding:9px 16px;border-radius:100px;border:2px solid var(--g200);
+  background:#fff;font-size:13px;font-weight:500;color:var(--g600);cursor:pointer;transition:.2s;
+}
+.chip:hover{border-color:var(--primary);}
+.chip.sel{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+
+/* 슬라이더 */
+.slider-group{margin-bottom:20px;}
+.slider-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.slider-top .sl-lbl{font-size:13px;font-weight:600;}
+.slider-top .sl-val{
+  font-size:15px;font-weight:800;color:var(--primary);cursor:pointer;position:relative;
+  padding:3px 10px;border-radius:8px;border:1.5px dashed var(--primary);
+  background:var(--primary-light);transition:.2s;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.slider-top .sl-val::after{
+  content:'✎';font-size:11px;opacity:.6;
+}
+.slider-top .sl-val:hover{
+  background:#DBEAFE;border-style:solid;
+}
+.sl-val-input{
+  width:70px;font-size:15px;font-weight:800;color:var(--primary);
+  border:2px solid var(--primary);border-radius:8px;padding:3px 6px;
+  text-align:center;font-family:inherit;outline:none;
+  background:var(--primary-light);
+}
+.slider-hint{
+  text-align:center;font-size:11px;color:var(--g400);
+  margin-top:4px;padding:4px 0;
+}
+input[type=range]{
+  width:100%;height:8px;border-radius:100px;-webkit-appearance:none;
+  background:var(--g200);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+  background:#fff;border:4px solid var(--primary);cursor:pointer;
+  box-shadow:0 2px 8px rgba(14,165,233,.3);
+}
+.slider-range{display:flex;justify-content:space-between;font-size:10px;color:var(--g400);margin-top:4px;}
+.bmi-box{
+  text-align:center;margin-top:16px;padding:12px;border-radius:10px;
+  font-size:14px;font-weight:700;
+}
+
+/* 완료 */
+.complete-area{text-align:center;}
+.complete-emoji{font-size:48px;margin-bottom:12px;}
+.complete-title{font-size:22px;font-weight:800;margin-bottom:6px;}
+.complete-sub{font-size:13px;color:var(--g500);margin-bottom:24px;}
+.summary-card{
+  background:var(--g50);border-radius:14px;padding:20px;
+  text-align:left;margin-bottom:16px;border:1px solid var(--g200);
+}
+.summary-card h4{font-size:14px;font-weight:700;margin-bottom:12px;}
+.s-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--g100);font-size:13px;}
+.s-row:last-child{border:none;}
+.s-row .sl{color:var(--g500);}.s-row .sv{font-weight:600;}
+.risk-result{
+  padding:16px;border-radius:14px;margin-bottom:20px;
+  font-size:14px;font-weight:700;
+}
+.risk-result .rg{font-size:24px;font-weight:900;display:block;margin-bottom:4px;}
+
+.group-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 16px;border-radius:100px;font-size:12px;font-weight:700;
+  margin-bottom:16px;
+}
+.group-badge.group-a{background:#FEE2E2;color:#DC2626;}
+.group-badge.group-b{background:#FEF3C7;color:#B45309;}
+.group-badge.group-c{background:#D1FAE5;color:#059669;}
+
+/* 버튼 공통 */
+.btn-prev{
+  padding:12px 20px;border-radius:14px;border:2px solid var(--g200);
+  background:#fff;font-size:14px;font-weight:600;color:var(--g600);cursor:pointer;font-family:inherit;
+}
+.btn-next{
+  flex:1;padding:12px 20px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 12px rgba(14,165,233,.3);
+}
+.btn-next:disabled{opacity:.4;cursor:not-allowed;}
+.btn-done{
+  flex:1;padding:12px 20px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--accent),var(--accent-dark));
+  font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;
+}
+
+.phase-msg{
+  text-align:center;padding:10px 16px;background:var(--accent-light);
+  border-radius:100px;font-size:12px;font-weight:600;color:var(--accent-dark);margin-bottom:20px;
+}
+
+.skip-indicator{
+  font-size:10px;color:var(--g400);text-align:center;
+  padding:6px;font-style:italic;
+}
+
+.grid-divider{
+  height:1px;background:var(--g200);margin:16px 0;
+}
+
+
+/* ═══════════════════════════════
+   3. 메인 화면 (AI 채팅 + 사이드바 + 대시보드)
+   ═══════════════════════════════ */
+
+.screen-main{
+  height:100vh;flex-direction:row;background:var(--g50);
+}
+
+/* 왼쪽 사이드바 */
+.sidebar{
+  width:260px;background:#fff;border-right:1px solid var(--g200);
+  display:flex;flex-direction:column;flex-shrink:0;
+  margin-right:16px;
+}
+
+.sidebar-logo{
+  padding:20px 24px;font-size:18px;font-weight:900;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid var(--g100);
+}
+.sidebar-logo em{font-style:normal;background:linear-gradient(135deg,#0EA5E9,#10B981);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+
+.sidebar-section{padding:16px 16px 8px;}
+.sidebar-section-label{font-size:10px;font-weight:700;color:var(--g400);letter-spacing:1px;margin-bottom:8px;padding:0 8px;}
+
+.sidebar-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:10px;cursor:pointer;transition:.15s;margin-bottom:2px;
+  font-size:13px;font-weight:500;color:var(--g600);
+}
+.sidebar-item:hover{background:var(--g50);}
+.sidebar-item.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+.sidebar-item.disabled{opacity:.4;cursor:not-allowed;}
+.sidebar-item .si-icon{font-size:18px;width:24px;text-align:center;}
+.sidebar-item .si-badge{
+  margin-left:auto;font-size:10px;font-weight:600;
+  padding:2px 8px;border-radius:100px;background:var(--g100);color:var(--g400);
+}
+
+/* 카테고리 토글 */
+.sidebar-category-wrap{padding:0 16px;margin-bottom:4px;}
+.sidebar-category-selected{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:10px;background:var(--primary-light);
+  cursor:pointer;font-size:13px;font-weight:600;color:var(--primary-dark);
+}
+.sidebar-category-toggle{font-size:10px;transition:transform .2s;}
+.sidebar-category-list{
+  max-height:0;overflow:hidden;transition:max-height .3s ease;
+}
+.sidebar-category-list.expanded{max-height:200px;}
+.sidebar-category-list .sidebar-item{font-size:12px;padding:6px 12px;}
+
+.sidebar-bottom{
+  margin-top:auto;padding:16px;border-top:1px solid var(--g100);
+}
+.sidebar-profile{
+  display:flex;align-items:center;gap:10px;padding:8px;
+  border-radius:10px;
+}
+.sidebar-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:14px;font-weight:700;flex-shrink:0;
+}
+.sidebar-profile .sp-name{font-size:13px;font-weight:600;}
+.sidebar-profile .sp-type{font-size:11px;color:var(--g400);}
+
+/* 사이드바 대화 히스토리 */
+.sidebar-history{
+  padding:8px 8px;
+  border-bottom:1px solid var(--g100);
+  flex:1;overflow-y:auto;
+}
+.sh-new-btn{
+  width:100%;border:1.5px dashed var(--g200);border-radius:10px;padding:10px;
+  font-size:13px;font-weight:600;color:var(--g500);background:transparent;
+  cursor:pointer;transition:.15s;margin-bottom:8px;
+}
+.sh-new-btn:hover{border-color:var(--primary);color:var(--primary);}
+.sh-group-label{
+  font-size:10px;font-weight:700;color:var(--g400);padding:12px 8px 4px;
+}
+.sh-item{
+  font-size:12px;padding:8px 10px;border-radius:8px;cursor:pointer;
+  color:var(--g600);display:flex;justify-content:space-between;align-items:center;
+  transition:.15s;margin-bottom:2px;
+}
+.sh-item:hover{background:var(--g50);}
+.sh-item.active{background:var(--primary-light);color:var(--primary-dark);font-weight:600;}
+.sh-time{font-size:10px;color:var(--g400);}
+
+/* 오늘의 미션 위젯 */
+.sidebar-mission{
+  padding:12px 16px;border-top:1px solid var(--g100);
+}
+.sm-header{display:flex;align-items:center;}
+.sm-title{font-size:12px;font-weight:700;color:var(--g700);}
+.sm-progress-bar{
+  height:6px;background:var(--g100);border-radius:100px;
+  margin-top:8px;overflow:hidden;
+}
+.sm-progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));
+  border-radius:100px;
+}
+.sm-percent{font-size:11px;color:var(--accent-dark);font-weight:600;margin-top:4px;}
+
+/* 메인 영역 */
+.main-area{
+  flex:1;display:flex;flex-direction:column;min-width:0;
+}
+
+/* ── 탭 콘텐츠 영역 ── */
+.tab-content{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.tab-content.active{display:flex;}
+
+/* ── 대시보드 컴팩트 스트립 ── */
+.dash-strip-wrap{position:relative;}
+.dash-strip{
+  background:#fff;border-bottom:1px solid var(--g100);
+  padding:12px 0;display:flex;gap:0;justify-content:center;
+  transition:max-height .3s ease,padding .3s ease,opacity .3s ease;
+  max-height:100px;overflow:hidden;
+}
+.dash-strip.collapsed{max-height:0;padding:0;opacity:0;border-bottom:none;}
+.strip-toggle{
+  position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);z-index:20;
+  width:28px;height:28px;border-radius:50%;border:1.5px solid var(--g200);
+  background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--g400);transition:.2s;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.strip-toggle:hover{background:var(--primary-light);color:var(--primary-dark);border-color:var(--primary);}
+.dash-strip-inner{
+  display:flex;gap:12px;max-width:780px;width:100%;padding:0 24px;
+}
+
+.ds-card{
+  flex:1;padding:14px 16px;border-radius:16px;
+  display:flex;align-items:center;gap:14px;
+  transition:.2s;cursor:default;position:relative;overflow:hidden;
+}
+.ds-card:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.06);}
+
+.ds-card.risk-card{
+  background:linear-gradient(135deg,#FFF7ED,#FEF3C7);
+  border:1px solid #FDE68A;
+}
+.ds-gauge{
+  width:48px;height:48px;border-radius:50%;
+  background:conic-gradient(#F59E0B var(--gauge,55%),#FEF3C7 0);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.ds-gauge-inner{
+  width:36px;height:36px;border-radius:50%;background:#FFFBEB;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:900;color:#B45309;
+}
+.ds-card .ds-label{font-size:10px;font-weight:600;color:var(--g400);letter-spacing:.3px;}
+.ds-card .ds-value{font-size:16px;font-weight:800;margin-top:1px;}
+.ds-card .ds-sub{font-size:10px;margin-top:2px;font-weight:500;}
+
+.ds-card.response-card{
+  background:linear-gradient(135deg,#ECFDF5,#D1FAE5);
+  border:1px solid #A7F3D0;
+}
+.ds-mini-chart{
+  display:flex;align-items:flex-end;gap:3px;height:42px;flex-shrink:0;
+}
+.ds-bar{
+  width:6px;border-radius:3px;background:#34D399;
+  transition:height .3s;
+}
+.ds-bar.empty{background:#A7F3D0;}
+
+.ds-card.sleep-card{
+  background:linear-gradient(135deg,#EFF6FF,#DBEAFE);
+  border:1px solid #93C5FD;
+}
+.ds-sleep-icon{
+  width:48px;height:48px;border-radius:14px;
+  background:linear-gradient(135deg,#3B82F6,#60A5FA);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+  box-shadow:0 4px 12px rgba(59,130,246,.25);
+}
+
+/* ── 채팅 영역 (좌: 채팅 / 우: 사이드패널) ── */
+.chat-area{
+  flex:1;display:flex;flex-direction:row;overflow:hidden;
+}
+.chat-main{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;
+  max-width:calc(100% - 280px);
+}
+/* 사이드패널 접혀도 chat-main 너비 유지 */
+.chat-area:has(.chat-side-panel.collapsed) .chat-main{
+  max-width:calc(100% - 280px);
+}
+.chat-side-panel{
+  width:280px;flex-shrink:0;border-left:1px solid var(--g100);
+  background:#FAFBFC;overflow-y:auto;padding:0;
+  display:flex;flex-direction:column;gap:0;
+  transition:width .3s ease;
+  position:relative;
+}
+.chat-side-panel.collapsed{
+  width:72px;padding:12px 8px;
+}
+.chat-side-panel::-webkit-scrollbar{width:4px;}
+.chat-side-panel::-webkit-scrollbar-thumb{background:var(--g200);border-radius:100px;}
+
+/* 사이드패널 토글 버튼 */
+.side-panel-toggle{
+  padding:12px 10px;
+  background:#fff;border:none;border-bottom:1px solid var(--g100);
+  font-size:12px;color:var(--g600);font-weight:600;
+  cursor:pointer;text-align:center;
+  transition:transform .3s ease, color .2s ease;
+  white-space:nowrap;
+  flex-shrink:0;
+  min-height:44px;display:flex;align-items:center;justify-content:center;
+}
+.side-panel-toggle:hover{color:var(--g700);}
+.chat-side-panel.collapsed .side-panel-toggle{
+  transform:rotate(180deg);
+  padding:12px 6px;
+  font-size:11px;
+  white-space:normal;
+}
+.chat-side-panel.collapsed .side-panel-toggle span{display:none;}
+
+/* 접힌 상태 아이콘 컨테이너 */
+.side-panel-collapsed-icons{
+  display:none;
+  flex-direction:column;
+  gap:8px;
+  padding:12px 6px;
+  overflow-y:auto;
+  flex:1;
+  border-bottom:1px solid var(--g100);
+}
+.chat-side-panel.collapsed .side-panel-collapsed-icons{
+  display:flex;
+}
+.collapsed-icon{
+  width:36px;height:36px;
+  border:1px solid var(--g200);border-radius:12px;
+  background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  cursor:pointer;
+  transition:background .2s, border-color .2s;
+}
+.collapsed-icon:hover{background:var(--g50);border-color:var(--g300);}
+
+/* 펼친 상태 컨테이너 */
+.side-panel-expanded{
+  padding:20px 16px;
+  display:flex;flex-direction:column;gap:16px;
+  overflow-y:auto;
+  flex:1;
+  transition:opacity .3s ease;
+}
+.chat-side-panel.collapsed .side-panel-expanded{
+  display:flex;padding:8px 4px;gap:0;
+}
+
+/* 접힌 상태: 위젯 스타일 */
+.chat-side-panel.collapsed .side-widget{
+  padding:0;border:none;background:transparent;box-shadow:none;
+}
+.chat-side-panel.collapsed .side-widget h5{
+  font-size:0;overflow:hidden;height:0;margin:0;
+}
+
+/* 접힌 상태: 미니 통계 */
+.chat-side-panel.collapsed .mini-stats{
+  flex-direction:column;gap:2px;
+}
+.chat-side-panel.collapsed .mini-stat-row{
+  flex-direction:column;gap:1px;text-align:center;
+  justify-content:center;align-items:center;font-size:10px;padding:4px 0;
+}
+.chat-side-panel.collapsed .mini-stat-row .ms-label{
+  color:transparent;gap:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:16px;
+}
+.chat-side-panel.collapsed .mini-stat-row .ms-val{
+  font-size:11px;font-weight:700;
+}
+.chat-side-panel.collapsed .mini-progress{
+  display:none;
+}
+
+/* 접힌 상태: 건강운세 숨기기 */
+.chat-side-panel.collapsed .fortune-flip-wrap{
+  display:none;
+}
+
+/* 사이드패널 위젯 공통 */
+.side-widget{
+  background:#fff;border-radius:16px;padding:16px;
+  border:1px solid var(--g200);box-shadow:0 1px 6px rgba(0,0,0,.03);
+}
+.side-widget h5{font-size:13px;font-weight:700;color:var(--g700);margin:0 0 12px;display:flex;align-items:center;gap:6px;}
+
+/* 건강운세 위젯 (3D 플립 카드) */
+.fortune-flip-wrap{
+  perspective:800px;cursor:pointer;
+}
+.fortune-flip-inner{
+  position:relative;width:100%;min-height:200px;
+  transition:transform .6s ease;transform-style:preserve-3d;
+}
+.fortune-flip-wrap.flipped .fortune-flip-inner{
+  transform:rotateY(180deg);
+}
+.fortune-front,.fortune-back{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:16px;border:1px solid var(--g200);
+  box-shadow:0 1px 6px rgba(0,0,0,.03);overflow:hidden;
+}
+/* 뒷면 (기본 보이는 면) */
+.fortune-back{
+  background:linear-gradient(135deg,#0EA5E9 0%,#10B981 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:24px 16px;color:#fff;
+}
+.fortune-back-icon{font-size:48px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15));}
+.fortune-back-title{font-size:15px;font-weight:800;letter-spacing:1px;}
+.fortune-back-sub{font-size:11px;opacity:.8;font-weight:500;}
+.fortune-back-hint{
+  margin-top:8px;font-size:10px;opacity:.6;
+  padding:4px 12px;border:1px solid rgba(255,255,255,.3);border-radius:100px;
+}
+/* 앞면 (플립 후 보이는 면) */
+.fortune-front{
+  transform:rotateY(180deg);
+  background:#fff;padding:16px;
+  display:flex;flex-direction:column;
+}
+.fortune-front .fc-bg{
+  position:absolute;top:-20px;right:-20px;font-size:64px;opacity:.08;transform:rotate(15deg);
+}
+.fortune-front h5{font-size:13px;font-weight:700;color:var(--g700);margin:0 0 10px;display:flex;align-items:center;gap:6px;}
+.fortune-icon{font-size:28px;margin-bottom:6px;}
+.fortune-title{font-size:14px;font-weight:800;color:var(--g800);margin-bottom:4px;line-height:1.5;}
+.fortune-desc{font-size:12px;color:var(--g500);line-height:1.7;}
+.fortune-tag{
+  display:inline-flex;padding:3px 10px;border-radius:100px;
+  font-size:10px;font-weight:700;margin-top:8px;
+}
+.fortune-weekly{margin-top:10px;padding-top:10px;border-top:1px solid var(--g100);}
+.fortune-weekly h6{font-size:11px;font-weight:700;color:var(--g500);margin-bottom:6px;}
+.fortune-week-grid{display:flex;gap:2px;justify-content:space-between;}
+.fw-day{display:flex;flex-direction:column;align-items:center;gap:3px;padding:3px 5px;border-radius:8px;}
+.fw-day .fw-label{font-size:9px;color:var(--g400);font-weight:600;}
+.fw-day .fw-emoji{font-size:14px;}
+.fw-day.fw-today{background:var(--primary-light);}
+.fw-day.fw-today .fw-label{color:var(--primary);font-weight:800;}
+.fortune-close-hint{
+  font-size:10px;color:var(--g400);text-align:center;margin-top:6px;
+}
+
+/* 미니 통계 위젯 */
+.mini-stats{display:flex;flex-direction:column;gap:10px;}
+.mini-stat-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+.mini-stat-row .ms-label{color:var(--g500);display:flex;align-items:center;gap:6px;}
+.mini-stat-row .ms-val{font-weight:800;}
+.mini-progress{height:4px;background:var(--g100);border-radius:100px;margin-top:4px;overflow:hidden;}
+.mini-progress-fill{height:100%;border-radius:100px;}
+
+.chat-messages{
+  flex:1;overflow-y:auto;padding:24px 24px;
+  display:flex;flex-direction:column;gap:16px;
+  width:100%;
+}
+.chat-messages::-webkit-scrollbar{width:5px;}
+.chat-messages::-webkit-scrollbar-track{background:transparent;}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--g200);border-radius:100px;}
+.chat-messages::-webkit-scrollbar-thumb:hover{background:var(--g300);}
+
+.msg{display:flex;gap:12px;width:100%;}
+.msg.user{justify-content:flex-end;}
+
+.msg-av{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;margin-top:4px;
+}
+.msg.ai .msg-av{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;}
+.msg.user .msg-av{display:none;}
+
+.msg-content{max-width:85%;min-width:0;}
+.msg-bubble{padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.75;}
+.msg.ai .msg-bubble{
+  background:#fff;border:1px solid var(--g200);
+  border-top-left-radius:4px;
+}
+.msg.user .msg-bubble{
+  background:var(--g800);color:#fff;
+  border-top-right-radius:4px;
+  margin-left:auto;
+}
+
+.hq-card{
+  margin-top:12px;border-top:1px dashed var(--g200);padding-top:12px;
+}
+.hq-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;color:var(--accent-dark);
+  background:var(--accent-light);padding:3px 10px;
+  border-radius:100px;margin-bottom:8px;
+}
+.hq-q{font-size:13px;font-weight:600;margin-bottom:10px;line-height:1.5;}
+.hq-opts{display:flex;flex-wrap:wrap;gap:6px;}
+.hq-opt{
+  padding:6px 14px;border-radius:100px;border:1.5px solid var(--g200);
+  background:var(--g50);font-size:12px;font-weight:500;color:var(--g600);
+  cursor:pointer;transition:.2s;
+}
+.hq-opt:hover{border-color:var(--accent);background:var(--accent-light);color:var(--accent-dark);}
+.hq-opt.ans{border-color:var(--accent);background:var(--accent-light);color:var(--accent-dark);font-weight:600;}
+.hq-fb{
+  margin-top:8px;padding:8px 12px;background:var(--accent-light);
+  border-radius:10px;font-size:12px;color:var(--accent-dark);line-height:1.5;
+}
+
+.chat-widget{
+  background:var(--g50);border:1px solid var(--g200);
+  border-radius:14px;padding:14px;margin-top:10px;
+}
+.cw-title{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.cw-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid var(--g100);}
+.cw-row:last-child{border:none;}
+.cw-label{color:var(--g500);}
+.cw-val{font-weight:700;}
+
+.chat-input-area{
+  padding:12px 24px 24px;
+  display:flex;flex-shrink:0;
+  background:linear-gradient(0deg,var(--g50) 0%,transparent 100%);
+  width:100%;justify-content:center;
+}
+.chat-input-wrap{
+  display:flex;gap:10px;align-items:center;
+  background:#fff;border:1.5px solid var(--g200);
+  border-radius:24px;padding:6px 6px 6px 20px;
+  transition:.2s;width:100%;max-width:720px;
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+}
+.chat-input-wrap:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(14,165,233,.1),0 2px 12px rgba(0,0,0,.04);}
+.chat-input{
+  flex:1;border:none;outline:none;font-size:14px;
+  font-family:inherit;background:transparent;color:var(--g800);
+}
+.chat-input::placeholder{color:var(--g400);}
+.chat-send{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--primary);color:#fff;font-size:16px;
+  cursor:pointer;transition:.2s;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.chat-send:hover{background:var(--primary-dark);transform:scale(1.05);}
+
+/* LIVE 넛지 바 */
+.live-nudge-bar{
+  display:flex;align-items:center;gap:12px;
+  max-width:720px;margin:0 auto;width:100%;
+  padding:10px 16px;
+  background:#fff;border:1px solid var(--g200);border-radius:12px;
+  margin-bottom:8px;
+  box-shadow:0 1px 4px rgba(0,0,0,.03);
+  animation:nudgeSlideUp .3s ease-out;
+}
+@keyframes nudgeSlideUp{
+  from{opacity:0;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.live-badge{
+  flex-shrink:0;
+  padding:3px 10px;border-radius:100px;
+  background:#EF4444;color:#fff;
+  font-size:10px;font-weight:800;letter-spacing:1px;
+}
+.live-nudge-messages{
+  flex:1;display:flex;align-items:center;gap:10px;
+  font-size:12px;color:var(--g600);overflow:hidden;
+}
+.live-divider{color:var(--g300);}
+.live-close{
+  flex-shrink:0;width:24px;height:24px;border-radius:50%;
+  border:none;background:var(--g100);color:var(--g500);
+  font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.live-close:hover{background:var(--g200);}
+
+/* ═══════════════════════════════
+   4. 건강 분석 탭 (서브탭 구조)
+   ═══════════════════════════════ */
+.analysis-page{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* 서브탭 네비게이션 (Underline 스타일, sticky) */
+.sub-tab-bar{
+  display:flex;gap:0;background:#fff;
+  border-bottom:1px solid var(--g200);
+  padding:0 32px;position:sticky;top:0;z-index:10;
+  flex-shrink:0;justify-content:center;
+}
+.sub-tab{
+  padding:14px 20px;font-size:14px;font-weight:500;color:var(--g400);
+  cursor:pointer;position:relative;transition:.2s;
+  display:flex;align-items:center;gap:6px;
+  border-bottom:3px solid transparent;margin-bottom:-1px;
+}
+.sub-tab:hover{color:var(--g700);background:var(--g50);}
+.sub-tab.active{color:var(--primary-dark);font-weight:700;border-bottom-color:var(--primary);}
+.sub-tab .st-icon{font-size:16px;}
+
+/* 서브탭 콘텐츠 */
+.sub-tab-content{display:none;flex:1;overflow-y:auto;padding:28px 32px;}
+.sub-tab-content.active{display:block;}
+.sub-tab-content::-webkit-scrollbar{width:6px;}
+.sub-tab-content::-webkit-scrollbar-thumb{background:var(--g200);border-radius:100px;}
+.sub-inner{max-width:800px;margin:0 auto;}
+
+/* ── 요약 서브탭 ── */
+.greeting-card{
+  background:linear-gradient(135deg,#EFF6FF,#DBEAFE);
+  border-radius:20px;padding:24px;margin-bottom:24px;
+  border:1px solid #BFDBFE;
+}
+.greeting-time{font-size:12px;font-weight:600;color:#3B82F6;margin-bottom:4px;}
+.greeting-msg{font-size:18px;font-weight:800;color:#1E3A5F;line-height:1.5;}
+.greeting-sub{font-size:13px;color:#64748B;margin-top:6px;}
+
+.summary-gauge-row{
+  display:flex;gap:20px;align-items:center;margin-bottom:24px;
+}
+.big-gauge{
+  width:160px;height:160px;border-radius:50%;
+  position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.big-gauge svg{position:absolute;top:0;left:0;width:100%;height:100%;transform:rotate(-90deg);}
+.big-gauge .gauge-bg{fill:none;stroke:var(--g100);stroke-width:12;}
+.big-gauge .gauge-fill{fill:none;stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .8s ease;}
+.big-gauge .gauge-center{position:relative;z-index:1;text-align:center;}
+.big-gauge .gauge-score{font-size:36px;font-weight:900;line-height:1;}
+.big-gauge .gauge-max{font-size:12px;color:var(--g400);font-weight:500;}
+.big-gauge .gauge-label{font-size:13px;font-weight:700;margin-top:4px;}
+.gauge-side{flex:1;}
+.gauge-side .gs-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:100px;font-size:12px;font-weight:700;margin-bottom:10px;
+}
+.gauge-side .gs-factors{font-size:12px;color:var(--g500);line-height:1.8;}
+.gauge-side .gs-factor-tag{
+  display:inline-flex;padding:3px 10px;border-radius:100px;
+  font-size:11px;font-weight:600;margin:2px 4px 2px 0;
+}
+
+.chart-card{
+  background:#fff;border-radius:20px;padding:24px;
+  border:1px solid var(--g200);margin-bottom:24px;
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+}
+.chart-card h4{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:6px;}
+.chart-wrap{position:relative;height:220px;}
+
+/* ── 건강 스코어카드 (4 미니 카드) ── */
+.score-cards{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;
+}
+.score-card{
+  background:#fff;border-radius:16px;padding:16px 14px;text-align:center;
+  border:1px solid var(--g200);transition:.2s;cursor:pointer;
+  box-shadow:0 1px 6px rgba(0,0,0,.03);
+}
+.score-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.07);}
+.score-card .sc-ring{width:56px;height:56px;margin:0 auto 8px;position:relative;}
+.score-card .sc-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.score-card .sc-ring .ring-bg{fill:none;stroke:var(--g100);stroke-width:5;}
+.score-card .sc-ring .ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .8s ease;}
+.score-card .sc-ring .ring-val{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:13px;font-weight:800;
+}
+.score-card .sc-label{font-size:11px;font-weight:600;color:var(--g500);margin-bottom:2px;}
+.score-card .sc-value{font-size:16px;font-weight:800;}
+.score-card .sc-trend{font-size:11px;font-weight:600;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:3px;}
+.sc-trend.up-good{color:#059669;} .sc-trend.up-bad{color:#EF4444;}
+.sc-trend.down-good{color:#059669;} .sc-trend.down-bad{color:#EF4444;}
+.sc-trend.neutral{color:var(--g400);}
+
+/* ── 주간 활동 히트맵 ── */
+.weekly-heatmap{margin-bottom:24px;}
+.heatmap-grid{display:grid;grid-template-columns:60px repeat(7,1fr);gap:4px;font-size:11px;}
+.hm-header{font-weight:700;color:var(--g400);text-align:center;padding:6px 0;}
+.hm-label{font-weight:600;color:var(--g500);display:flex;align-items:center;height:32px;}
+.hm-cell{
+  height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;transition:.15s;cursor:default;
+}
+.hm-cell.done{background:#D1FAE5;color:#059669;}
+.hm-cell.miss{background:#FEE2E2;color:#EF4444;}
+.hm-cell.partial{background:#FEF3C7;color:#92400E;}
+.hm-cell.empty{background:var(--g50);color:var(--g300);}
+
+/* ── 활동 링 (Apple Health 스타일) ── */
+.activity-rings-row{
+  display:flex;gap:16px;align-items:center;margin-bottom:24px;
+}
+.activity-ring-wrap{
+  width:140px;height:140px;position:relative;flex-shrink:0;
+}
+.activity-ring-wrap svg{width:100%;height:100%;transform:rotate(-90deg);}
+.ar-bg{fill:none;stroke-width:10;opacity:.15;}
+.ar-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1s ease;}
+.activity-ring-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;
+}
+.ar-center-val{font-size:18px;font-weight:900;color:var(--g800);}
+.ar-center-label{font-size:10px;color:var(--g400);font-weight:600;}
+.activity-ring-legend{flex:1;display:flex;flex-direction:column;gap:10px;}
+.ar-legend-item{display:flex;align-items:center;gap:10px;font-size:13px;}
+.ar-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.ar-legend-label{color:var(--g500);font-weight:500;flex:1;}
+.ar-legend-val{font-weight:800;color:var(--g800);}
+.ar-legend-pct{font-size:11px;font-weight:600;margin-left:4px;}
+
+/* ── 레이더 차트 + 혈당 변동 카드 ── */
+.dual-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+.glucose-card{display:flex;flex-direction:column;gap:12px;}
+.glu-metric{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;border-radius:14px;
+}
+.glu-metric .gm-label{font-size:12px;font-weight:600;color:var(--g500);}
+.glu-metric .gm-val{font-size:20px;font-weight:900;}
+.glu-metric .gm-unit{font-size:11px;color:var(--g400);margin-left:2px;font-weight:500;}
+.sparkline-wrap{height:48px;margin-top:8px;}
+.sparkline-wrap svg{width:100%;height:100%;}
+
+/* ── 식사 패턴 타임라인 (요약용) ── */
+.meal-pattern-summary{margin-bottom:24px;}
+.mps-row{
+  display:flex;align-items:center;gap:12px;padding:12px 0;
+  border-bottom:1px solid var(--g50);
+}
+.mps-row:last-child{border:none;}
+.mps-icon{font-size:20px;width:28px;text-align:center;}
+.mps-info{flex:1;}
+.mps-label{font-size:12px;font-weight:700;color:var(--g700);}
+.mps-time{font-size:11px;color:var(--g400);}
+.mps-bar{width:80px;height:6px;background:var(--g100);border-radius:100px;overflow:hidden;}
+.mps-bar-fill{height:100%;border-radius:100px;transition:width .5s ease;}
+.mps-pct{font-size:12px;font-weight:800;width:38px;text-align:right;}
+
+@media(max-width:768px){
+  .score-cards{grid-template-columns:repeat(2,1fr);}
+  .dual-chart-row{grid-template-columns:1fr;}
+  .activity-rings-row{flex-direction:column;}
+  .chat-side-panel{display:none;}
+}
+
+/* 미리보기 카드 3개 */
+.preview-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.pv-card{
+  background:#fff;border-radius:16px;padding:18px;
+  border:1px solid var(--g200);cursor:pointer;transition:.2s;
+}
+.pv-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:var(--primary);}
+.pv-card .pv-icon{font-size:20px;margin-bottom:6px;}
+.pv-card .pv-label{font-size:11px;font-weight:600;color:var(--g400);margin-bottom:4px;}
+.pv-card .pv-value{font-size:16px;font-weight:800;}
+.pv-card .pv-sub{font-size:10px;color:var(--g400);margin-top:4px;}
+.pv-card .pv-bar{height:4px;background:var(--g100);border-radius:100px;margin-top:8px;overflow:hidden;}
+.pv-card .pv-bar-fill{height:100%;border-radius:100px;}
+
+/* ── 식단 서브탭 ── */
+.meal-timeline{margin-bottom:24px;}
+.meal-slot{
+  display:flex;align-items:flex-start;gap:16px;padding:16px 0;
+  border-bottom:1px solid var(--g100);
+}
+.meal-slot:last-child{border:none;}
+.meal-time-col{width:60px;flex-shrink:0;text-align:center;}
+.meal-time-icon{font-size:24px;margin-bottom:2px;}
+.meal-time-label{font-size:11px;font-weight:700;color:var(--g400);}
+.meal-info{flex:1;}
+.meal-status{font-size:14px;font-weight:700;margin-bottom:2px;}
+.meal-detail{font-size:12px;color:var(--g500);line-height:1.6;}
+.meal-badge{
+  display:inline-flex;padding:3px 10px;border-radius:100px;
+  font-size:10px;font-weight:700;margin-top:6px;
+}
+.meal-badge.good{background:#D1FAE5;color:#059669;}
+.meal-badge.warn{background:#FEF3C7;color:#92400E;}
+.meal-badge.miss{background:#FEE2E2;color:#DC2626;}
+.meal-badge.unknown{background:var(--g100);color:var(--g400);}
+
+.diet-pattern-card{
+  background:#fff;border-radius:16px;padding:20px;
+  border:1px solid var(--g200);margin-bottom:16px;
+}
+.diet-pattern-card h4{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.dp-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--g100);}
+.dp-row:last-child{border:none;}
+.dp-label{font-size:13px;font-weight:600;width:100px;}
+.dp-bar-wrap{flex:1;height:8px;background:var(--g100);border-radius:100px;overflow:hidden;}
+.dp-bar{height:100%;border-radius:100px;}
+.dp-val{font-size:12px;font-weight:700;width:50px;text-align:right;}
+
+.diet-tip-card{
+  background:linear-gradient(135deg,#FFF7ED,#FEF3C7);
+  border:1px solid #FDE68A;border-radius:16px;padding:18px;
+  font-size:13px;color:#92400E;line-height:1.7;
+}
+
+/* ── 습관 서브탭 ── */
+.habit-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px;}
+.habit-card{
+  background:#fff;border-radius:16px;padding:20px;
+  border:1px solid var(--g200);transition:.2s;
+}
+.habit-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);}
+.habit-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.habit-emoji{font-size:24px;}
+.habit-name{font-size:14px;font-weight:700;flex:1;}
+.habit-streak-badge{
+  font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;
+  background:#FEF3C7;color:#92400E;display:flex;align-items:center;gap:3px;
+}
+.habit-ring-wrap{display:flex;align-items:center;gap:14px;}
+.habit-ring{width:56px;height:56px;position:relative;flex-shrink:0;}
+.habit-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.habit-ring .ring-bg{fill:none;stroke:var(--g100);stroke-width:5;}
+.habit-ring .ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s;}
+.habit-ring-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:14px;font-weight:900;
+}
+.habit-detail{flex:1;}
+.habit-detail .hd-main{font-size:13px;font-weight:600;margin-bottom:2px;}
+.habit-detail .hd-sub{font-size:11px;color:var(--g400);}
+.habit-check-btn{
+  margin-top:10px;width:100%;padding:8px;border-radius:10px;border:2px solid var(--g200);
+  background:#fff;font-size:12px;font-weight:600;color:var(--g600);
+  cursor:pointer;font-family:inherit;transition:.2s;
+}
+.habit-check-btn:hover{border-color:var(--primary);color:var(--primary);}
+.habit-check-btn.checked{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* 주간 캘린더 */
+.week-calendar{
+  background:#fff;border-radius:16px;padding:20px;
+  border:1px solid var(--g200);margin-bottom:24px;
+}
+.week-calendar h4{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.wc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+.wc-day{text-align:center;}
+.wc-day-label{font-size:10px;font-weight:600;color:var(--g400);margin-bottom:6px;}
+.wc-day-cell{
+  width:100%;aspect-ratio:1;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;border:2px solid var(--g100);transition:.2s;
+}
+.wc-day-cell.done{background:#D1FAE5;border-color:#34D399;}
+.wc-day-cell.partial{background:#FEF3C7;border-color:#FBBF24;}
+.wc-day-cell.miss{background:#FEE2E2;border-color:#FCA5A5;}
+.wc-day-cell.today{border-color:var(--primary);box-shadow:0 0 0 2px rgba(14,165,233,.2);}
+.wc-day-cell.future{background:var(--g50);border-color:var(--g100);opacity:.5;}
+
+/* ── 코치 서브탭 ── */
+.coach-greeting{
+  display:flex;align-items:center;gap:14px;
+  padding:20px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);
+  border-radius:16px;border:1px solid #BBF7D0;margin-bottom:24px;
+}
+.coach-avatar{
+  width:48px;height:48px;border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.coach-text{flex:1;}
+.coach-text .ct-name{font-size:13px;font-weight:800;color:#065F46;}
+.coach-text .ct-msg{font-size:13px;color:#047857;line-height:1.6;margin-top:2px;}
+
+.coach-section-title{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+
+.coach-card{
+  background:#fff;border-radius:16px;padding:22px;
+  border:1px solid var(--g200);margin-bottom:14px;
+  transition:.2s;cursor:pointer;
+}
+.coach-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);}
+.coach-card-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.coach-card-icon{
+  width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.coach-card-info{flex:1;}
+.coach-card-title{font-size:14px;font-weight:800;margin-bottom:2px;}
+.coach-card-reason{font-size:12px;color:var(--g500);line-height:1.5;}
+.coach-action{
+  padding:12px 16px;border-radius:12px;
+  background:var(--g50);margin-bottom:10px;
+}
+.coach-action-label{font-size:10px;font-weight:700;color:var(--g400);margin-bottom:6px;}
+.coach-action-text{font-size:13px;font-weight:600;line-height:1.6;}
+.coach-effect{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:600;padding:8px 14px;
+  border-radius:10px;
+}
+
+/* 주간 리포트 (코치) */
+.weekly-report{
+  background:#fff;border-radius:16px;padding:22px;
+  border:1px solid var(--g200);margin-bottom:14px;
+}
+.weekly-report h4{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:6px;}
+.wr-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--g100);}
+.wr-item:last-child{border:none;}
+.wr-icon{font-size:16px;flex-shrink:0;margin-top:2px;}
+.wr-text{font-size:13px;line-height:1.6;}
+.wr-text b{font-weight:700;}
+
+.coach-history-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px;border-radius:12px;border:1.5px dashed var(--g200);
+  background:#fff;font-size:13px;font-weight:600;color:var(--g400);
+  cursor:pointer;width:100%;font-family:inherit;transition:.2s;
+}
+.coach-history-btn:hover{border-color:var(--primary);color:var(--primary);}
+
+
+/* ═══════════════════════════════
+   5. 챌린지 탭
+   ═══════════════════════════════ */
+.challenge-page{
+  flex:1;overflow-y:auto;padding:32px;
+}
+.challenge-page::-webkit-scrollbar{width:6px;}
+.challenge-page::-webkit-scrollbar-thumb{background:var(--g200);border-radius:100px;}
+
+.tab-header{margin-bottom:24px;}
+.tab-header h2{font-size:1.4rem;font-weight:700;color:var(--g900);margin:0 0 4px;}
+.tab-header .tab-desc{font-size:0.88rem;color:var(--g500);}
+
+.challenge-inner{max-width:960px;margin:0 auto;}
+
+/* 상단 스탯 */
+.challenge-stats{
+  display:flex;gap:14px;margin-bottom:28px;
+}
+.cs-card{
+  flex:1;background:#fff;border-radius:16px;padding:18px 20px;
+  border:1px solid var(--g200);display:flex;align-items:center;gap:14px;
+}
+.cs-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;flex-shrink:0;
+}
+.cs-card .cs-label{font-size:11px;font-weight:600;color:var(--g400);}
+.cs-card .cs-value{font-size:20px;font-weight:900;margin-top:2px;}
+.cs-card .cs-sub{font-size:10px;margin-top:2px;}
+
+/* 진행 중 챌린지 */
+.ch-section-title{font-size:16px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+.ch-card{
+  background:#fff;border-radius:20px;padding:22px;
+  border:1px solid var(--g200);margin-bottom:14px;
+  transition:.2s;cursor:pointer;
+  box-shadow:0 2px 12px rgba(0,0,0,.04);
+}
+.ch-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.08);}
+.ch-card.active-challenge{border-left:4px solid var(--primary);}
+.ch-card.completed-challenge{border-left:4px solid var(--accent);opacity:.85;}
+
+.ch-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;}
+.ch-emoji{font-size:32px;flex-shrink:0;}
+.ch-info{flex:1;}
+.ch-name{font-size:15px;font-weight:800;margin-bottom:2px;}
+.ch-desc{font-size:12px;color:var(--g500);line-height:1.5;}
+.ch-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.ch-tag{
+  font-size:10px;font-weight:600;padding:3px 10px;
+  border-radius:100px;
+}
+.ch-tag.difficulty{background:#DBEAFE;color:#1E40AF;}
+.ch-tag.duration{background:#FEF3C7;color:#92400E;}
+.ch-tag.group-tag{background:#E0E7FF;color:#4338CA;}
+.ch-tag.reward{background:#D1FAE5;color:#065F46;}
+
+.ch-progress-area{margin-bottom:10px;}
+.ch-progress-top{display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px;}
+.ch-progress-label{font-weight:600;color:var(--g600);}
+.ch-progress-pct{font-weight:800;color:var(--primary);}
+.ch-progress-bar{height:8px;background:var(--g100);border-radius:100px;overflow:hidden;}
+.ch-progress-fill{height:100%;border-radius:100px;transition:width .6s;background:linear-gradient(90deg,var(--primary),var(--accent));}
+
+.ch-bottom{display:flex;align-items:center;gap:10px;}
+.ch-streak{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;
+  background:#FEF3C7;color:#92400E;
+}
+.ch-today-check{
+  margin-left:auto;padding:8px 18px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  color:#fff;font-size:12px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:.2s;
+}
+.ch-today-check:hover{transform:scale(1.03);}
+.ch-today-check.done{background:var(--g200);color:var(--g500);cursor:default;}
+
+/* 추천 챌린지 */
+.ch-recommend{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:28px;
+}
+.ch-rec-card{
+  background:#fff;border-radius:16px;padding:20px;
+  border:1px solid var(--g200);transition:.2s;cursor:pointer;
+}
+.ch-rec-card:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.06);border-color:var(--primary);}
+.ch-rec-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ch-rec-emoji{font-size:28px;}
+.ch-rec-name{font-size:14px;font-weight:700;}
+.ch-rec-reason{font-size:11px;color:var(--primary-dark);background:var(--primary-light);padding:6px 12px;border-radius:10px;margin-bottom:10px;line-height:1.5;}
+.ch-rec-meta{display:flex;gap:8px;font-size:10px;color:var(--g400);}
+.ch-rec-btn{
+  margin-top:12px;width:100%;padding:10px;border-radius:12px;border:2px solid var(--primary);
+  background:#fff;color:var(--primary);font-size:13px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.2s;
+}
+.ch-rec-btn:hover{background:var(--primary);color:#fff;}
+
+/* 뱃지 섹션 */
+.badge-section{margin-bottom:24px;}
+.badge-grid{display:flex;gap:14px;flex-wrap:wrap;}
+.badge-item{
+  width:80px;text-align:center;
+}
+.badge-icon{
+  width:64px;height:64px;border-radius:50%;
+  margin:0 auto 8px;display:flex;align-items:center;justify-content:center;
+  font-size:28px;border:3px solid var(--g200);
+  transition:.2s;
+}
+.badge-item.earned .badge-icon{border-color:#FBBF24;background:#FFFBEB;box-shadow:0 4px 12px rgba(251,191,36,.3);}
+.badge-item.locked .badge-icon{background:var(--g100);opacity:.4;filter:grayscale(1);}
+.badge-label{font-size:10px;font-weight:600;color:var(--g600);}
+
+
+/* ═══════════════════════════════
+   6. 설정 탭
+   ═══════════════════════════════ */
+.settings-page{
+  flex:1;overflow-y:auto;padding:32px;
+}
+.settings-page::-webkit-scrollbar{width:6px;}
+.settings-page::-webkit-scrollbar-thumb{background:var(--g200);border-radius:100px;}
+
+.settings-inner{max-width:640px;margin:0 auto;}
+
+.settings-group{
+  background:#fff;border-radius:20px;padding:24px;
+  border:1px solid var(--g200);margin-bottom:20px;
+}
+.settings-group h3{font-size:15px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--g100);
+}
+.setting-row:last-child{border:none;}
+.setting-label{font-size:13px;font-weight:600;}
+.setting-desc{font-size:11px;color:var(--g400);margin-top:2px;}
+.setting-value{font-size:13px;font-weight:600;color:var(--primary);text-align:right;}
+
+/* 토글 스위치 */
+.toggle{
+  width:44px;height:24px;border-radius:100px;
+  background:var(--g200);position:relative;cursor:pointer;
+  transition:.2s;flex-shrink:0;
+}
+.toggle.on{background:var(--primary);}
+.toggle-knob{
+  width:20px;height:20px;border-radius:50%;background:#fff;
+  position:absolute;top:2px;left:2px;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);
+  transition:.2s;
+}
+.toggle.on .toggle-knob{left:22px;}
+
+
+/* ═══ 회원가입/동의/면책 공통 ═══ */
+.auth-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;
+  background:rgba(0,0,0,.4);backdrop-filter:blur(6px);
+  display:none;align-items:center;justify-content:center;
+}
+.auth-overlay.show{display:flex;}
+.auth-card{
+  background:#fff;border-radius:24px;width:420px;max-width:90vw;
+  max-height:90vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.15);
+  animation:authSlideUp .35s ease-out;
+}
+@keyframes authSlideUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.auth-card-header{
+  padding:32px 32px 0;text-align:center;
+}
+.auth-card-header .auth-logo{font-size:32px;margin-bottom:8px;}
+.auth-card-header h2{font-size:20px;font-weight:800;color:var(--g800);margin-bottom:4px;}
+.auth-card-header p{font-size:13px;color:var(--g500);line-height:1.6;}
+.auth-card-body{padding:24px 32px 32px;}
+
+/* 소셜 로그인 버튼 */
+.social-login-btns{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.social-btn{
+  display:flex;align-items:center;gap:12px;
+  width:100%;padding:13px 20px;border-radius:12px;border:none;
+  font-size:14px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:.2s;
+}
+.social-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.1);}
+.social-btn.kakao{background:#FEE500;color:#191919;}
+.social-btn.naver{background:#03C75A;color:#fff;}
+.social-btn.google{background:#fff;color:var(--g700);border:1.5px solid var(--g200);}
+.social-btn.email{background:var(--g800);color:#fff;}
+.social-btn .social-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+
+.auth-divider{
+  display:flex;align-items:center;gap:12px;margin:16px 0;
+  font-size:11px;color:var(--g400);
+}
+.auth-divider::before,.auth-divider::after{
+  content:'';flex:1;height:1px;background:var(--g200);
+}
+
+/* 약관 동의 */
+.consent-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.consent-item{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;border-radius:12px;border:1.5px solid var(--g200);
+  cursor:pointer;transition:.2s;font-size:13px;
+}
+.consent-item:hover{border-color:var(--primary);background:var(--primary-light);}
+.consent-item.checked{border-color:var(--primary);background:rgba(14,165,233,.05);}
+.consent-check{
+  width:22px;height:22px;border-radius:6px;border:2px solid var(--g300);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:#fff;transition:.2s;flex-shrink:0;
+}
+.consent-item.checked .consent-check{
+  background:var(--primary);border-color:var(--primary);
+}
+.consent-tag{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;
+  flex-shrink:0;
+}
+.consent-tag.required{background:#FEE2E2;color:#DC2626;}
+.consent-tag.optional{background:var(--g100);color:var(--g500);}
+.consent-text{flex:1;color:var(--g700);font-weight:500;}
+.consent-arrow{color:var(--g400);font-size:14px;flex-shrink:0;}
+
+.consent-all{
+  display:flex;align-items:center;gap:10px;
+  padding:14px;border-radius:12px;background:var(--g50);
+  cursor:pointer;margin-bottom:12px;font-size:14px;font-weight:700;color:var(--g800);
+  border:1.5px solid var(--g200);transition:.2s;
+}
+.consent-all.checked{border-color:var(--primary);background:rgba(14,165,233,.05);}
+.consent-all .consent-check{border-radius:50%;}
+
+/* 건강정보 동의 특별 화면 */
+.health-consent-info{
+  background:linear-gradient(135deg,var(--primary-light),#D1FAE5);
+  border-radius:16px;padding:20px;margin-bottom:20px;
+}
+.health-consent-info h4{font-size:14px;font-weight:800;color:var(--g800);margin-bottom:8px;}
+.health-consent-info ul{font-size:12px;color:var(--g600);line-height:2;list-style:none;}
+.health-consent-info ul li::before{content:'✓ ';color:var(--accent);font-weight:800;}
+
+/* 의료 면책조항 */
+.disclaimer-box{
+  background:var(--g50);border:1.5px solid var(--g200);
+  border-radius:16px;padding:20px;margin-bottom:16px;
+  max-height:280px;overflow-y:auto;
+}
+.disclaimer-box h4{font-size:13px;font-weight:800;color:var(--g700);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.disclaimer-box p,.disclaimer-box li{font-size:12px;color:var(--g500);line-height:1.8;}
+.disclaimer-box ul{list-style:none;margin-top:8px;}
+.disclaimer-box ul li{padding-left:16px;position:relative;}
+.disclaimer-box ul li::before{content:'•';position:absolute;left:4px;color:var(--g400);}
+
+.disclaimer-emergency{
+  background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;
+  padding:14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;
+}
+.disclaimer-emergency .de-icon{font-size:24px;flex-shrink:0;}
+.disclaimer-emergency .de-text{font-size:12px;color:#991B1B;line-height:1.6;font-weight:500;}
+
+/* 공통 버튼 */
+.auth-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  font-size:15px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:.2s;
+}
+.auth-btn.primary{background:var(--primary);color:#fff;}
+.auth-btn.primary:hover{background:var(--primary-dark);}
+.auth-btn.primary:disabled{background:var(--g200);color:var(--g400);cursor:not-allowed;}
+.auth-btn.accent{background:var(--g800);color:#fff;}
+.auth-btn.accent:hover{background:#000;}
+
+.auth-link{
+  text-align:center;margin-top:16px;font-size:12px;color:var(--g400);
+}
+.auth-link a{color:var(--primary);font-weight:600;cursor:pointer;}
+
+/* 채팅 하단 상시 면책 */
+.chat-disclaimer{
+  text-align:center;padding:4px 16px 8px;
+  font-size:10px;color:var(--g400);line-height:1.5;
+}
+.chat-disclaimer a{color:var(--primary);text-decoration:underline;cursor:pointer;}
+
+/* ═══ 반응형 ═══ */
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .dash-strip-inner{flex-direction:column;padding:0 12px;}
+  .nav{padding:0 20px;}
+  .hero h1{font-size:32px;}
+  .features{padding:40px 20px;}
+  .survey-modal{width:95%;max-width:480px;border-radius:20px;}
+  .chat-messages{padding:16px 16px;}
+  .chat-input-area{padding:12px 16px 20px;}
+  .pred-section{grid-template-columns:1fr;}
+  .indicator-grid{grid-template-columns:repeat(2,1fr);}
+  .ch-recommend{grid-template-columns:1fr;}
+  .challenge-stats{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 1: 랜딩 페이지
+     ═══════════════════════════════════════════ -->
+<div id="screen-landing" class="screen active">
+
+  <nav class="nav">
+    <div class="nav-logo">🩺 <em>다나아</em></div>
+    <div class="nav-links">
+      <a href="#">서비스 소개</a>
+      <a href="#">블로그</a>
+      <a href="#">문의하기</a>
+      <button class="nav-cta" onclick="openSurvey()">지금 시작하기 →</button>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-trust">
+      <span class="stars">★★★★★</span> 건강관리를 가장 쉽게 시작하는 방법
+    </div>
+    <h1>AI와 대화하면<br>건강이 <em>다 나아</em></h1>
+    <p class="hero-desc">
+      평소처럼 AI에게 질문하세요.<br>
+      답변 끝에 짧은 건강 질문이 하나 붙고,<br>
+      그 작은 응답이 쌓여 당신만의 건강 데이터가 됩니다.
+    </p>
+    <div class="hero-cta-group">
+      <button class="hero-cta" onclick="openSurvey()">지금 시작하기 →</button>
+      <button class="hero-cta-sub">서비스 소개 보기</button>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feat-card">
+      <div class="feat-icon">💬</div>
+      <h3>AI 대화 속 건강 기록</h3>
+      <p>별도 앱 없이, AI 채팅 중 자연스럽게 건강 데이터가 쌓입니다. 하루 10초면 충분합니다.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>맞춤 위험도 분석</h3>
+      <p>국제 검증 도구 기반의 당뇨 위험도 예측과 주간 건강 리포트를 제공합니다.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎯</div>
+      <h3>행동 유도형 챌린지</h3>
+      <p>데이터가 쌓일수록 더 정확한 맞춤 챌린지를 추천합니다. 작은 변화부터 시작하세요.</p>
+    </div>
+  </section>
+
+  <div class="landing-footer">
+    © 2026 다나아(DA-NA-A). AI 건강관리 플랫폼.
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     오버레이: 온보딩 설문 팝업
+     ═══════════════════════════════════════════ -->
+<div id="survey-overlay" class="overlay">
+  <div class="survey-modal">
+    <div class="survey-modal-header">
+      <button class="sm-back" id="sm-back-btn" onclick="surveyPrev()">←</button>
+      <div class="sm-info">
+        <div class="sm-phase" id="sm-phase">시작</div>
+        <div class="sm-title" id="sm-title">카테고리 선택</div>
+      </div>
+      <span class="sm-step" id="sm-step">1/13</span>
+      <button class="sm-close" onclick="closeSurvey()">✕</button>
+    </div>
+    <div class="sm-progress">
+      <div class="sm-progress-bar" id="sm-progress" style="width:0%;"></div>
+    </div>
+
+    <div class="survey-modal-body" id="survey-body"></div>
+
+    <div class="survey-modal-footer" id="survey-footer"></div>
+  </div>
+</div>
+
+<!-- ═══ 회원가입/로그인 ═══ -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="auth-logo">🩺</div>
+      <h2>다나아 시작하기</h2>
+      <p>AI와 대화하며 건강을 관리하세요</p>
+    </div>
+    <div class="auth-card-body">
+      <div class="social-login-btns">
+        <button class="social-btn kakao" onclick="socialLogin('kakao')">
+          <span class="social-icon">💬</span> 카카오로 시작하기
+        </button>
+        <button class="social-btn naver" onclick="socialLogin('naver')">
+          <span class="social-icon">N</span> 네이버로 시작하기
+        </button>
+        <button class="social-btn google" onclick="socialLogin('google')">
+          <span class="social-icon">G</span> Google로 시작하기
+        </button>
+      </div>
+      <div class="auth-divider">또는</div>
+      <button class="social-btn email" onclick="socialLogin('email')">
+        <span class="social-icon">✉</span> 이메일로 가입하기
+      </button>
+      <div class="auth-link">
+        이미 계정이 있으신가요? <a onclick="socialLogin('login')">로그인</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 필수 약관 동의 ═══ -->
+<div id="terms-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="auth-logo">📋</div>
+      <h2>서비스 이용 동의</h2>
+      <p>다나아 서비스 이용을 위해<br>아래 약관에 동의해주세요</p>
+    </div>
+    <div class="auth-card-body">
+      <div class="consent-all" id="consent-all-terms" onclick="toggleAllConsent('terms')">
+        <div class="consent-check">✓</div>
+        <span>전체 동의합니다</span>
+      </div>
+      <div class="consent-list" id="consent-list-terms">
+        <div class="consent-item" data-consent="terms-service" data-required="true" onclick="toggleConsent(this)">
+          <div class="consent-check">✓</div>
+          <span class="consent-tag required">필수</span>
+          <span class="consent-text">서비스 이용약관</span>
+          <span class="consent-arrow">›</span>
+        </div>
+        <div class="consent-item" data-consent="terms-privacy" data-required="true" onclick="toggleConsent(this)">
+          <div class="consent-check">✓</div>
+          <span class="consent-tag required">필수</span>
+          <span class="consent-text">개인정보 수집·이용 동의</span>
+          <span class="consent-arrow">›</span>
+        </div>
+        <div class="consent-item" data-consent="terms-marketing" data-required="false" onclick="toggleConsent(this)">
+          <div class="consent-check">✓</div>
+          <span class="consent-tag optional">선택</span>
+          <span class="consent-text">마케팅 정보 수신 동의</span>
+          <span class="consent-arrow">›</span>
+        </div>
+      </div>
+      <button class="auth-btn primary" id="terms-next-btn" disabled onclick="showHealthConsent()">동의하고 계속하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 건강정보 수집 동의 (민감정보) ═══ -->
+<div id="health-consent-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="auth-logo">🔒</div>
+      <h2>건강정보 수집 동의</h2>
+      <p>맞춤 건강관리를 위해<br>건강정보 처리에 동의해주세요</p>
+    </div>
+    <div class="auth-card-body">
+      <div class="health-consent-info">
+        <h4>수집하는 건강정보</h4>
+        <ul>
+          <li>신체 정보 (키, 몸무게, 나이, 성별)</li>
+          <li>건강 상태 (만성질환, 가족력, 복용 약물)</li>
+          <li>생활 습관 (식사, 운동, 수면, 음주/흡연)</li>
+          <li>건강 목표 및 관심사</li>
+        </ul>
+      </div>
+      <div class="consent-list" id="consent-list-health">
+        <div class="consent-item" data-consent="health-collect" data-required="true" onclick="toggleConsent(this)">
+          <div class="consent-check">✓</div>
+          <span class="consent-tag required">필수</span>
+          <span class="consent-text">개인건강정보 수집·이용 동의</span>
+          <span class="consent-arrow">›</span>
+        </div>
+        <div class="consent-item" data-consent="health-third" data-required="false" onclick="toggleConsent(this)">
+          <div class="consent-check">✓</div>
+          <span class="consent-tag optional">선택</span>
+          <span class="consent-text">의료기관 정보 연동 동의</span>
+          <span class="consent-arrow">›</span>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--g400);margin-bottom:16px;line-height:1.6;">
+        건강정보는 개인정보보호법 제23조에 따른 민감정보로,<br>
+        별도의 동의 없이 수집·이용되지 않습니다.<br>
+        동의를 거부할 권리가 있으나, 서비스 이용이 제한될 수 있습니다.
+      </p>
+      <button class="auth-btn primary" id="health-next-btn" disabled onclick="startOnboarding()">동의하고 건강설문 시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 의료 면책조항 확인 ═══ -->
+<div id="disclaimer-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-card-header">
+      <div class="auth-logo">⚕️</div>
+      <h2>서비스 이용 안내</h2>
+      <p>다나아 AI를 시작하기 전에<br>아래 내용을 꼭 확인해주세요</p>
+    </div>
+    <div class="auth-card-body">
+      <div class="disclaimer-emergency">
+        <span class="de-icon">🚨</span>
+        <span class="de-text">응급 상황 시에는 즉시 <strong>119</strong>에 신고하거나<br>가까운 응급실을 방문하세요.</span>
+      </div>
+      <div class="disclaimer-box">
+        <h4>⚕️ 의료 면책조항</h4>
+        <p>다나아(DA-NA-A)는 사용자의 건강 관리를 돕기 위한 <strong>정보 제공 서비스</strong>이며, 의료법에 따른 의료 행위가 아닙니다.</p>
+        <ul>
+          <li>본 서비스는 의사의 진단, 치료, 처방을 대체할 수 없습니다.</li>
+          <li>제공되는 건강 정보와 분석은 참고 목적이며, 의학적 판단의 근거로 사용할 수 없습니다.</li>
+          <li>건강에 이상이 느껴지면 반드시 의료 전문가와 상담하세요.</li>
+          <li>AI의 분석 결과는 통계적 예측이며, 개인의 실제 건강 상태와 다를 수 있습니다.</li>
+          <li>서비스 이용으로 발생한 건강 관련 결과에 대해 다나아는 법적 책임을 지지 않습니다.</li>
+        </ul>
+      </div>
+      <div class="consent-item" id="disclaimer-agree" data-consent="disclaimer" onclick="toggleConsent(this)" style="margin-bottom:16px;">
+        <div class="consent-check">✓</div>
+        <span class="consent-text" style="font-weight:700;color:var(--g800);">위 내용을 이해했으며, 동의합니다</span>
+      </div>
+      <button class="auth-btn accent" id="disclaimer-start-btn" disabled onclick="goToMainFromDisclaimer()">다나아 AI 시작하기 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 2: 메인 화면 (4탭: 대시보드 / 건강분석 / 챌린지 / 설정)
+     ═══════════════════════════════════════════ -->
+<div id="screen-main" class="screen screen-main">
+
+  <!-- 왼쪽 사이드바 -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">🩺 <em>다나아</em></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">메뉴</div>
+      <div class="sidebar-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="si-icon">💬</span> 다나아 AI
+      </div>
+      <div class="sidebar-item" data-tab="analysis" onclick="switchTab('analysis')">
+        <span class="si-icon">📈</span> AI 건강 리포트
+      </div>
+      <div class="sidebar-item" data-tab="challenge" onclick="switchTab('challenge')">
+        <span class="si-icon">🎯</span> 챌린지
+        <span class="si-badge" id="ch-active-count" style="background:#D1FAE5;color:#059669;">1</span>
+      </div>
+      <div class="sidebar-item" data-tab="settings" onclick="switchTab('settings')">
+        <span class="si-icon">⚙️</span> 설정
+      </div>
+    </div>
+
+    <!-- 대화 히스토리 -->
+    <div class="sidebar-history">
+      <button class="sh-new-btn">+ 새 대화</button>
+      <div class="sh-group-label">오늘</div>
+      <div class="sh-item">점심 메뉴 추천<span class="sh-time">오후 12:15</span></div>
+      <div class="sh-item active">혈당 관리 팁<span class="sh-time">오전 10:20</span></div>
+      <div class="sh-group-label">어제</div>
+      <div class="sh-item">운동 루틴 상담<span class="sh-time">오후 6:30</span></div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-category-wrap">
+        <div class="sidebar-category-selected" onclick="toggleCategoryList()">
+          <span>🩸 당뇨</span>
+          <span class="sidebar-category-toggle" id="cat-toggle">▼</span>
+        </div>
+        <div class="sidebar-category-list" id="category-list">
+          <div class="sidebar-item disabled"><span class="si-icon">💓</span> 고혈압 <span style="font-size:10px;color:var(--g400);margin-left:auto;">준비 중</span></div>
+          <div class="sidebar-item disabled"><span class="si-icon">⚖️</span> 비만 <span style="font-size:10px;color:var(--g400);margin-left:auto;">준비 중</span></div>
+          <div class="sidebar-item disabled"><span class="si-icon">🫀</span> 심혈관질환 <span style="font-size:10px;color:var(--g400);margin-left:auto;">준비 중</span></div>
+          <div class="sidebar-item disabled"><span class="si-icon">🏥</span> 기타 <span style="font-size:10px;color:var(--g400);margin-left:auto;">준비 중</span></div>
+        </div>
+      </div>
+      <div class="sidebar-mission">
+        <div class="sm-header">
+          <span class="sm-title">오늘의 미션 2/3</span>
+        </div>
+        <div class="sm-progress-bar"><div class="sm-progress-fill" style="width:67%;"></div></div>
+        <div class="sm-percent">67% 완료</div>
+      </div>
+      <div class="sidebar-profile">
+        <div class="sidebar-avatar" id="main-avatar">홍</div>
+        <div>
+          <div class="sp-name" id="main-name">사용자</div>
+          <div class="sp-type" id="main-type">설문 완료 후 표시</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 메인 영역 -->
+  <div class="main-area">
+
+    <!-- ═══ TAB 1: 다나아 AI (AI 채팅) ═══ -->
+    <div class="tab-content active" id="tab-dashboard">
+      <!-- 대시보드 컴팩트 스트립 (접기/펼치기) -->
+      <div class="dash-strip-wrap">
+        <div class="dash-strip" id="dash-strip">
+          <div class="dash-strip-inner">
+          <div class="ds-card risk-card" id="ds-risk-card">
+            <div class="ds-gauge" id="ds-gauge" style="--gauge:55%;">
+              <div class="ds-gauge-inner" id="ds-gauge-score">12</div>
+            </div>
+            <div>
+              <div class="ds-label">위험도</div>
+              <div class="ds-value" id="ds-risk-label" style="color:#B45309;">보통 위험</div>
+              <div class="ds-sub" id="ds-risk-sub" style="color:#D97706;">22점 중 12점</div>
+            </div>
+          </div>
+
+          <div class="ds-card response-card">
+            <div class="ds-mini-chart">
+              <div class="ds-bar" style="height:70%;"></div>
+              <div class="ds-bar" style="height:100%;"></div>
+              <div class="ds-bar" style="height:50%;"></div>
+              <div class="ds-bar" style="height:85%;"></div>
+              <div class="ds-bar" style="height:60%;"></div>
+              <div class="ds-bar empty" style="height:30%;"></div>
+              <div class="ds-bar empty" style="height:20%;"></div>
+            </div>
+            <div>
+              <div class="ds-label">이번 주 건강 응답</div>
+              <div class="ds-value" style="color:#059669;">12<span style="font-size:11px;font-weight:500;color:var(--g400);"> / 21개</span></div>
+              <div class="ds-sub" style="color:#10B981;">꾸준히 잘하고 있어요!</div>
+            </div>
+          </div>
+
+          <div class="ds-card sleep-card">
+            <div class="ds-sleep-icon">🌙</div>
+            <div>
+              <div class="ds-label">주간 평균 수면</div>
+              <div class="ds-value" style="color:#1D4ED8;">5.5<span style="font-size:11px;font-weight:500;color:var(--g400);">시간</span></div>
+              <div class="ds-sub" style="color:#F59E0B;">⚠ 목표 7h 대비 부족</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="strip-toggle" id="strip-toggle" onclick="toggleDashStrip()" title="접기/펼치기">▲</button>
+      </div>
+
+      <!-- AI 채팅 영역 (좌: 채팅 / 우: 사이드패널) -->
+      <div class="chat-area">
+       <div class="chat-main">
+        <div class="chat-messages" id="chat-messages">
+          <div class="msg ai">
+            <div class="msg-av">D</div>
+            <div class="msg-content">
+              <div class="msg-bubble">
+                안녕하세요! 다나아 AI입니다 😊<br><br>
+                무엇이든 물어보세요. 평소처럼 대화하시면 됩니다.<br>
+                답변 끝에 짧은 건강 질문이 하나 붙을 수 있는데, 부담 없이 응답하시면 건강 데이터가 쌓여요.
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="msg-bubble">프로젝트 마감이 다음주인데 효율적으로 일정 관리하는 방법 알려줘</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="msg-av">D</div>
+            <div class="msg-content">
+              <div class="msg-bubble">
+                프로젝트 마감이 다음주라면, 이렇게 관리해보세요:<br><br>
+                <b>1. 작업 분해</b> — 남은 할 일을 30분~1시간 단위로 쪼개세요.<br>
+                <b>2. 우선순위 매트릭스</b> — 긴급+중요한 것부터 처리하세요.<br>
+                <b>3. 타임블록</b> — 하루를 2~3시간 블록으로 나누고 각 블록에 작업 배정.<br>
+                <b>4. 버퍼 시간</b> — 예상의 1.3배를 잡아두면 돌발 상황에 대응할 수 있습니다.
+
+                <div class="hq-card">
+                  <div class="hq-badge">💚 다나아 건강 질문</div>
+                  <div class="hq-q">바쁜 시기인데, 어제 수면은 충분하셨나요?</div>
+                  <div class="hq-opts">
+                    <span class="hq-opt">5시간 미만</span>
+                    <span class="hq-opt ans">5~6시간</span>
+                    <span class="hq-opt">7~8시간</span>
+                    <span class="hq-opt">9시간+</span>
+                  </div>
+                  <div class="hq-fb">✅ 기록 완료! 수면 부족이 3일째예요. 혈당 변동에 영향을 줄 수 있으니 오늘은 일찍 쉬어보세요.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="msg-bubble">고마워! 점심 메뉴 추천해줘</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="msg-av">D</div>
+            <div class="msg-content">
+              <div class="msg-bubble">
+                에너지 유지 + 오후 졸음 방지 기준으로 추천드려요:<br><br>
+                🥗 <b>추천:</b> 닭가슴살 샐러드 + 현미밥<br>
+                🍱 <b>대안:</b> 제육볶음 + 잡곡밥 (소스 적게)<br>
+                🚫 <b>피하기:</b> 짜장면, 라면 등 고탄수+고나트륨
+
+                <div class="hq-card">
+                  <div class="hq-badge">💚 다나아 건강 질문</div>
+                  <div class="hq-q">오늘 아침은 드셨나요?</div>
+                  <div class="hq-opts">
+                    <span class="hq-opt">안 먹었어요</span>
+                    <span class="hq-opt">간단히</span>
+                    <span class="hq-opt ans">든든히 먹었어요</span>
+                  </div>
+                  <div class="hq-fb">✅ 좋아요! 아침 식사는 혈당 안정에 도움됩니다. 규칙적 식사를 유지해주세요!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg user">
+            <div class="msg-bubble">요즘 내 건강 데이터 어때?</div>
+          </div>
+
+          <div class="msg ai">
+            <div class="msg-av">D</div>
+            <div class="msg-content">
+              <div class="msg-bubble">
+                이번 주 쌓인 데이터를 분석해봤어요:
+
+                <div class="chat-widget">
+                  <div class="cw-title">📊 이번 주 건강 리포트</div>
+                  <div class="cw-row"><span class="cw-label">응답한 건강 질문</span><span class="cw-val" style="color:var(--accent);">12개</span></div>
+                  <div class="cw-row"><span class="cw-label">평균 수면</span><span class="cw-val" style="color:var(--warning);">5.5시간 ⚠️</span></div>
+                  <div class="cw-row"><span class="cw-label">아침 식사</span><span class="cw-val" style="color:var(--accent);">5/7일 ✓</span></div>
+                  <div class="cw-row"><span class="cw-label">운동</span><span class="cw-val" style="color:var(--danger);">1회 (목표 3회)</span></div>
+                </div>
+
+                <br>수면이 좀 부족한 한 주였어요. 운동도 1회로 줄었구요.<br><br>
+                <b>🌙 이번 주 미니 챌린지:</b> "3일 연속 11시 전 취침" 도전해볼까요?
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="live-nudge-bar" id="live-nudge-bar">
+          <span class="live-badge">LIVE</span>
+          <div class="live-nudge-messages">
+            <span class="live-msg">지금 10분 걷기를 하면 활동 점수가 올라갈 수 있어요</span>
+            <span class="live-divider">|</span>
+            <span class="live-msg">오후 2시 기준 수분 기록이 평소보다 1회 적어요</span>
+          </div>
+          <button class="live-close" onclick="dismissLiveNudge()">✕</button>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="chat-input-wrap">
+            <input class="chat-input" id="chat-main-input" placeholder="메시지를 입력하세요..." readonly>
+            <button class="chat-send">↑</button>
+          </div>
+          <div class="chat-disclaimer">
+            ⚕️ 건강 참고 정보이며 의학적 진단이 아닙니다 · <a onclick="document.getElementById('disclaimer-overlay').classList.add('show')">자세히 보기</a>
+          </div>
+        </div>
+       </div><!-- /chat-main -->
+
+       <!-- 오른쪽 사이드 패널 -->
+       <div class="chat-side-panel" id="chat-side-panel">
+
+         <!-- 사이드패널 토글 버튼 -->
+         <button class="side-panel-toggle" id="side-panel-toggle" onclick="toggleSidePanel()"><span>< 패널 접기</span></button>
+
+         <!-- 접힌 상태용 아이콘 컨테이너 -->
+         <div class="side-panel-collapsed-icons" id="side-panel-collapsed-icons">
+           <div class="collapsed-icon">🍽️</div>
+           <div class="collapsed-icon">💧</div>
+           <div class="collapsed-icon">🏃</div>
+           <div class="collapsed-icon">😴</div>
+         </div>
+
+         <!-- 펼친 상태 컨테이너 -->
+         <div class="side-panel-expanded" id="side-panel-expanded">
+           <!-- 1. 오늘 한눈에 -->
+           <div class="side-widget">
+             <h5>📊 오늘 한눈에</h5>
+             <div class="mini-stats">
+               <div>
+                 <div class="mini-stat-row">
+                   <span class="ms-label">🍽️ 식사</span>
+                   <span class="ms-val" style="color:#059669;">2/3끼</span>
+                 </div>
+                 <div class="mini-progress"><div class="mini-progress-fill" style="width:66%;background:#10B981;"></div></div>
+               </div>
+               <div>
+                 <div class="mini-stat-row">
+                   <span class="ms-label">💧 수분</span>
+                   <span class="ms-val" style="color:#0EA5E9;">5/8잔</span>
+                 </div>
+                 <div class="mini-progress"><div class="mini-progress-fill" style="width:62%;background:#0EA5E9;"></div></div>
+               </div>
+               <div>
+                 <div class="mini-stat-row">
+                   <span class="ms-label">🏃 운동</span>
+                   <span class="ms-val" style="color:#F59E0B;">10/30분</span>
+                 </div>
+                 <div class="mini-progress"><div class="mini-progress-fill" style="width:33%;background:#F59E0B;"></div></div>
+               </div>
+               <div>
+                 <div class="mini-stat-row">
+                   <span class="ms-label">😴 수면</span>
+                   <span class="ms-val" style="color:#7C3AED;">5.5h</span>
+                 </div>
+                 <div class="mini-progress"><div class="mini-progress-fill" style="width:78%;background:#7C3AED;"></div></div>
+               </div>
+             </div>
+           </div>
+
+           <!-- 2. 건강운세 (플립 카드) -->
+           <div class="fortune-flip-wrap" id="fortune-widget" onclick="toggleFortune()">
+             <div class="fortune-flip-inner" id="fortune-flip-inner">
+               <!-- 뒷면 (기본 보이는 면) -->
+               <div class="fortune-back">
+                 <div class="fortune-back-icon">🍀</div>
+                 <div class="fortune-back-title">오늘의 건강운세</div>
+                 <div class="fortune-back-sub">당신의 하루를 확인하세요</div>
+                 <div class="fortune-back-hint">탭하여 확인</div>
+               </div>
+               <!-- 앞면 (플립 후 보이는 면) -->
+               <div class="fortune-front">
+                 <div class="fc-bg">🍀</div>
+                 <h5>🔮 오늘의 건강운세</h5>
+                 <div class="fortune-icon" id="fortune-icon">🌿</div>
+                 <div class="fortune-title" id="fortune-title">오늘은 몸이 가벼운 날!</div>
+                 <div class="fortune-desc" id="fortune-desc">가벼운 스트레칭이나 산책이 효과적인 날이에요. 15분만 걸어보세요.</div>
+                 <div class="fortune-tag" id="fortune-tag" style="background:#D1FAE5;color:#059669;">운동 운세 ★★★★☆</div>
+                 <div class="fortune-weekly">
+                   <h6>이번 주 건강 운세</h6>
+                   <div class="fortune-week-grid">
+                     <div class="fw-day"><span class="fw-label">월</span><span class="fw-emoji">🌿</span></div>
+                     <div class="fw-day"><span class="fw-label">화</span><span class="fw-emoji">💪</span></div>
+                     <div class="fw-day fw-today"><span class="fw-label">수</span><span class="fw-emoji">🍀</span></div>
+                     <div class="fw-day"><span class="fw-label">목</span><span class="fw-emoji">🧘</span></div>
+                     <div class="fw-day"><span class="fw-label">금</span><span class="fw-emoji">🌞</span></div>
+                     <div class="fw-day"><span class="fw-label">토</span><span class="fw-emoji">🌈</span></div>
+                     <div class="fw-day"><span class="fw-label">일</span><span class="fw-emoji">😌</span></div>
+                   </div>
+                 </div>
+                 <div class="fortune-close-hint">다시 탭하면 닫힘</div>
+               </div>
+             </div>
+           </div>
+         </div>
+
+       </div><!-- /chat-side-panel -->
+
+      </div>
+    </div>
+
+
+    <!-- ═══ TAB 2: AI 건강 리포트 (서브탭 4개) ═══ -->
+    <div class="tab-content" id="tab-analysis">
+      <div class="analysis-page">
+
+        <!-- 서브탭 네비게이션 -->
+        <div class="sub-tab-bar">
+          <div class="sub-tab active" data-subtab="summary" onclick="switchSubTab('summary')">
+            <span class="st-icon">📊</span> 요약
+          </div>
+          <div class="sub-tab" data-subtab="diet" onclick="switchSubTab('diet')">
+            <span class="st-icon">🍽️</span> 식단
+          </div>
+          <div class="sub-tab" data-subtab="habit" onclick="switchSubTab('habit')">
+            <span class="st-icon">🔄</span> 습관
+          </div>
+          <div class="sub-tab" data-subtab="coach" onclick="switchSubTab('coach')">
+            <span class="st-icon">🧑‍⚕️</span> 코치
+          </div>
+        </div>
+
+        <!-- ── 서브탭 1: 요약 ── -->
+        <div class="sub-tab-content active" id="subtab-summary">
+          <div class="sub-inner">
+
+            <!-- 1. 인사 메시지 -->
+            <div class="greeting-card">
+              <div class="greeting-time" id="greeting-time">오후</div>
+              <div class="greeting-msg" id="greeting-msg">좋은 오후예요, 사용자님 👋</div>
+              <div class="greeting-sub" id="greeting-sub">오늘 건강 응답 2개를 완료했어요. 잘하고 있어요!</div>
+            </div>
+
+            <!-- 2. 위험도 게이지 + 사이드 정보 -->
+            <div class="summary-gauge-row">
+              <div class="big-gauge">
+                <svg viewBox="0 0 160 160">
+                  <circle class="gauge-bg" cx="80" cy="80" r="70"/>
+                  <circle class="gauge-fill" id="pred-gauge-fill" cx="80" cy="80" r="70"
+                    stroke-dasharray="439.82" stroke-dashoffset="200" style="stroke:#F59E0B;"/>
+                </svg>
+                <div class="gauge-center">
+                  <div class="gauge-score" id="pred-score">12</div>
+                  <div class="gauge-max">/ 22점</div>
+                  <div class="gauge-label" id="pred-risk-label" style="color:#B45309;">보통 위험</div>
+                </div>
+              </div>
+              <div class="gauge-side">
+                <div class="gs-badge" id="pred-badge" style="background:#FEF3C7;color:#92400E;">B. 주의형</div>
+                <div class="gs-factors" id="gs-factors">
+                  주요 위험 인자:<br>
+                  <span class="gs-factor-tag" style="background:#FEE2E2;color:#DC2626;">운동 부족</span>
+                  <span class="gs-factor-tag" style="background:#FEF3C7;color:#92400E;">수면 부족</span>
+                  <span class="gs-factor-tag" style="background:#DBEAFE;color:#1E40AF;">BMI 과체중</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. 건강 스코어카드 (4 미니 카드) -->
+            <div class="score-cards" id="score-cards">
+              <!-- JS 렌더링 -->
+            </div>
+
+            <!-- 4. 활동 링 (Apple Health 스타일) + 범례 -->
+            <div class="chart-card">
+              <h4>🎯 오늘의 활동 링</h4>
+              <div class="activity-rings-row" id="activity-rings">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 5. 주간 활동 히트맵 -->
+            <div class="chart-card weekly-heatmap">
+              <h4>📅 이번 주 건강 기록</h4>
+              <div class="heatmap-grid" id="weekly-heatmap">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 6. 위험도 추이 + 영양소 레이더 (나란히) -->
+            <div class="dual-chart-row">
+              <div class="chart-card" style="margin-bottom:0;">
+                <h4>📉 위험도 추이 (6개월)</h4>
+                <div class="chart-wrap">
+                  <canvas id="chart-risk-trend"></canvas>
+                </div>
+              </div>
+              <div class="chart-card" style="margin-bottom:0;">
+                <h4>🕸️ 영양 밸런스</h4>
+                <div class="chart-wrap">
+                  <canvas id="chart-nutrition-radar"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- 7. 혈당 변동성 지표 + 스파크라인 -->
+            <div class="chart-card glucose-card" id="glucose-card">
+              <h4>🩸 건강 지표 현황</h4>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;" id="glucose-metrics">
+                <!-- JS 렌더링 -->
+              </div>
+              <div class="sparkline-wrap" id="sparkline-wrap">
+                <!-- JS SVG 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 8. 식사 패턴 규칙성 요약 -->
+            <div class="chart-card meal-pattern-summary">
+              <h4>🍽️ 식사 패턴 규칙성</h4>
+              <div id="meal-pattern-bars">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 9. 미리보기 카드 -->
+            <div class="preview-cards">
+              <div class="pv-card" onclick="switchSubTab('diet')">
+                <div class="pv-icon">🍽️</div>
+                <div class="pv-label">오늘 식단</div>
+                <div class="pv-value" style="color:#059669;">2/3끼 완료</div>
+                <div class="pv-sub">아침 ✓ 점심 ✓ 저녁 —</div>
+                <div class="pv-bar"><div class="pv-bar-fill" style="width:66%;background:var(--accent);"></div></div>
+              </div>
+              <div class="pv-card" onclick="switchSubTab('habit')">
+                <div class="pv-icon">🔄</div>
+                <div class="pv-label">오늘 습관</div>
+                <div class="pv-value" style="color:var(--primary);">2/4 달성</div>
+                <div class="pv-sub">🔥 5일 연속 진행 중</div>
+                <div class="pv-bar"><div class="pv-bar-fill" style="width:50%;background:var(--primary);"></div></div>
+              </div>
+              <div class="pv-card" onclick="switchSubTab('coach')">
+                <div class="pv-icon">🧑‍⚕️</div>
+                <div class="pv-label">AI 코치</div>
+                <div class="pv-value" style="color:#7C3AED;">추천 2건</div>
+                <div class="pv-sub">오늘의 부족한 부분 분석</div>
+                <div class="pv-bar"><div class="pv-bar-fill" style="width:100%;background:#7C3AED;"></div></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── 서브탭 2: 식단 ── -->
+        <div class="sub-tab-content" id="subtab-diet">
+          <div class="sub-inner">
+
+            <!-- 오늘의 식사 타임라인 -->
+            <div class="diet-pattern-card">
+              <h4>🕐 오늘의 식사</h4>
+              <div class="meal-timeline" id="meal-timeline">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 주간 식사 패턴 -->
+            <div class="diet-pattern-card">
+              <h4>📅 이번 주 식사 규칙성</h4>
+              <div id="diet-weekly-pattern">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 식습관 지표 -->
+            <div class="diet-pattern-card">
+              <h4>📊 식습관 점수</h4>
+              <div id="diet-scores">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 식단 팁 -->
+            <div class="diet-tip-card" id="diet-tip">
+              💡 <b>오늘의 팁:</b> 식사 시 채소를 먼저 먹으면 식후 혈당 상승을 15~30% 줄일 수 있어요.
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── 서브탭 3: 습관 ── -->
+        <div class="sub-tab-content" id="subtab-habit">
+          <div class="sub-inner">
+
+            <!-- 4개 핵심 습관 카드 -->
+            <div class="habit-grid" id="habit-grid">
+              <!-- JS 렌더링 -->
+            </div>
+
+            <!-- 주간 캘린더 -->
+            <div class="week-calendar">
+              <h4>📅 이번 주 달성 현황</h4>
+              <div class="wc-grid" id="wc-grid">
+                <!-- JS 렌더링 -->
+              </div>
+            </div>
+
+            <!-- 스트릭 요약 -->
+            <div class="chart-card">
+              <h4>🏃 주간 운동 추이</h4>
+              <div class="chart-wrap" style="height:180px;">
+                <canvas id="chart-exercise"></canvas>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── 서브탭 4: 코치 ── -->
+        <div class="sub-tab-content" id="subtab-coach">
+          <div class="sub-inner">
+
+            <!-- 코치 인사 -->
+            <div class="coach-greeting">
+              <div class="coach-avatar">🧑‍⚕️</div>
+              <div class="coach-text">
+                <div class="ct-name">다나아 코치</div>
+                <div class="ct-msg" id="coach-msg">오늘 데이터를 분석했어요. 수면과 운동에서 개선할 부분이 보입니다.</div>
+              </div>
+            </div>
+
+            <!-- AI 추천 카드 2장 -->
+            <div class="coach-section-title">💡 오늘의 추천</div>
+            <div id="coach-cards">
+              <!-- JS 렌더링 -->
+            </div>
+
+            <!-- 주간 리포트 -->
+            <div class="coach-section-title" style="margin-top:24px;">📋 이번 주 리포트</div>
+            <div class="weekly-report" id="weekly-report">
+              <!-- JS 렌더링 -->
+            </div>
+
+            <!-- 과거 추천 기록 -->
+            <button class="coach-history-btn">📂 과거 추천 기록 보기</button>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- ═══ TAB 3: 챌린지 ═══ -->
+    <div class="tab-content" id="tab-challenge">
+      <div class="challenge-page">
+        <div class="challenge-inner">
+
+          <div class="tab-header">
+            <h2>🎯 챌린지</h2>
+            <span class="tab-desc">건강 습관을 만드는 작은 도전들</span>
+          </div>
+
+          <!-- 상단 스탯 -->
+          <div class="challenge-stats">
+            <div class="cs-card">
+              <div class="cs-icon" style="background:#FEF3C7;">🔥</div>
+              <div>
+                <div class="cs-label">연속 달성</div>
+                <div class="cs-value" id="stat-streak">5일</div>
+                <div class="cs-sub" style="color:var(--warning);">최고 기록: 12일</div>
+              </div>
+            </div>
+            <div class="cs-card">
+              <div class="cs-icon" style="background:#D1FAE5;">⭐</div>
+              <div>
+                <div class="cs-label">획득 포인트</div>
+                <div class="cs-value" id="stat-points">2,340</div>
+                <div class="cs-sub" style="color:var(--accent);">이번 주 +180</div>
+              </div>
+            </div>
+            <div class="cs-card">
+              <div class="cs-icon" style="background:#DBEAFE;">🏆</div>
+              <div>
+                <div class="cs-label">완료한 챌린지</div>
+                <div class="cs-value" id="stat-completed">3개</div>
+                <div class="cs-sub" style="color:var(--primary);">레벨: 🌿 새싹</div>
+              </div>
+            </div>
+            <div class="cs-card">
+              <div class="cs-icon" style="background:#FEE2E2;">🎖️</div>
+              <div>
+                <div class="cs-label">획득 뱃지</div>
+                <div class="cs-value" id="stat-badges">4개</div>
+                <div class="cs-sub" style="color:var(--g400);">전체 12개 중</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 진행 중 챌린지 -->
+          <div class="ch-section-title">🏃 진행 중인 챌린지</div>
+
+          <div id="active-challenges">
+            <!-- JS가 렌더링 -->
+          </div>
+
+          <!-- 추천 챌린지 -->
+          <div class="ch-section-title" style="margin-top:28px;">💡 추천 챌린지</div>
+          <div style="font-size:12px;color:var(--g400);margin-bottom:16px;">위험 인자 분석 결과를 기반으로 추천합니다</div>
+
+          <div class="ch-recommend" id="recommended-challenges">
+            <!-- JS가 렌더링 -->
+          </div>
+
+          <!-- 뱃지 컬렉션 -->
+          <div class="badge-section">
+            <div class="ch-section-title">🎖️ 뱃지 컬렉션</div>
+            <div class="badge-grid" id="badge-grid">
+              <!-- JS가 렌더링 -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══ TAB 4: 설정 ═══ -->
+    <div class="tab-content" id="tab-settings">
+      <div class="settings-page">
+        <div class="settings-inner">
+
+          <div class="tab-header">
+            <h2>⚙️ 설정</h2>
+          </div>
+
+          <div class="settings-group">
+            <h3>👤 프로필</h3>
+            <div class="setting-row">
+              <div><div class="setting-label">그룹 분류</div><div class="setting-desc">설문 기반 자동 분류</div></div>
+              <div class="setting-value" id="set-group">B. 주의형</div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">성별 / 연령대</div></div>
+              <div class="setting-value" id="set-profile">남성 / 40대</div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">BMI</div></div>
+              <div class="setting-value" id="set-bmi">24.2</div>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>💬 AI 건강 질문</h3>
+            <div class="setting-row">
+              <div><div class="setting-label">질문 빈도</div><div class="setting-desc">AI 답변 끝에 건강 질문이 붙는 간격</div></div>
+              <div class="setting-value" id="set-freq">1시간 30분마다</div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">질문 알림</div><div class="setting-desc">건강 질문 시 소리 알림</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>🔔 알림</h3>
+            <div class="setting-row">
+              <div><div class="setting-label">챌린지 리마인더</div><div class="setting-desc">매일 오후 9시 챌린지 확인 알림</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">주간 리포트</div><div class="setting-desc">매주 일요일 건강 분석 요약</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">위험도 변화 알림</div><div class="setting-desc">위험도 점수가 3점 이상 변동 시 알림</div></div>
+              <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>🛡️ 데이터</h3>
+            <div class="setting-row">
+              <div><div class="setting-label">건강 데이터 수집 동의</div><div class="setting-desc">AI 응답 기반 건강 데이터 수집 허용</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">데이터 내보내기</div><div class="setting-desc">내 건강 데이터를 CSV로 다운로드</div></div>
+              <div class="setting-value" style="cursor:pointer;">다운로드 →</div>
+            </div>
+            <div class="setting-row">
+              <div><div class="setting-label">설문 다시 하기</div><div class="setting-desc">온보딩 설문을 초기화하고 다시 진행</div></div>
+              <div class="setting-value" style="color:var(--danger);cursor:pointer;" onclick="resetSurvey()">초기화 →</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     JavaScript: 전체 로직
+     ═══════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════
+// 설문 데이터 (14스텝: 0~12 + 완료)
+// ══════════════════════════════════════
+const steps = [
+
+  // ── Step 0: 카테고리 선택 ──
+  {
+    id: 'category',
+    phase: '시작', phaseLabel: '카테고리 선택',
+    title: '관심 있는 건강 카테고리를\n선택해주세요',
+    sub: '현재 당뇨 서비스가 운영 중이며, 나머지는 곧 오픈됩니다.',
+    why: null,
+    type: 'category',
+    showFor: null,
+    options: [
+      { emoji:'🩸', label:'당뇨', desc:'혈당 관리, 위험도 예측, 생활습관 추적', active:true },
+      { emoji:'💓', label:'고혈압', desc:'혈압 관리, 심혈관 위험 모니터링', active:false },
+      { emoji:'⚖️', label:'비만', desc:'체중 관리, 식단 및 활동량 추적', active:false },
+      { emoji:'🫀', label:'심혈관질환', desc:'심장 건강, 종합 위험인자 관리', active:false },
+      { emoji:'🏥', label:'기타', desc:'기타 만성질환 및 건강 고민', active:false },
+    ]
+  },
+
+  // ── Step 1: 당뇨와의 관계 (분기점) ──
+  {
+    id: 'relation',
+    phase: 'PHASE 1', phaseLabel: '기본 분류',
+    title: '당뇨와 어떤 관계인가요?',
+    sub: '답변에 따라 맞춤 설문이 달라집니다',
+    why: '불필요한 질문을 건너뛰고, 딱 맞는 설문만 보여드리기 위해 물어봅니다.',
+    type: 'single',
+    showFor: null,
+    options: [
+      { emoji:'🏥', label:'당뇨 진단을 받았어요', group:'A' },
+      { emoji:'⚠️', label:'전당뇨(경계)라고 들었어요', group:'B' },
+      { emoji:'👨‍👩‍👧', label:'가족 중에 당뇨가 있어요', group:'C' },
+      { emoji:'💪', label:'건강관리 / 궁금해서', group:'C' },
+    ]
+  },
+
+  // ── Step 2: 기본 정보 ──
+  {
+    id: 'profile',
+    phase: 'PHASE 1', phaseLabel: '기본 분류',
+    title: '기본 정보를 알려주세요',
+    sub: null,
+    why: '나이와 성별은 당뇨 위험도 계산의 핵심 변수입니다.',
+    type: 'grid',
+    showFor: null,
+    groups: [
+      { label:'성별', options:['남성','여성'] },
+      { label:'연령대', options:['10대','20대','30대','40대','50대','60대 이상'] }
+    ]
+  },
+
+  // ── Step 3: 체형 (슬라이더 + 직접입력) ──
+  {
+    id: 'body',
+    phase: 'PHASE 1', phaseLabel: '기본 분류',
+    title: '체형을 알려주세요',
+    sub: '슬라이더를 움직이거나 파란 숫자를 눌러 직접 입력하세요',
+    why: 'BMI(체질량지수)는 당뇨 위험 예측의 핵심 지표입니다.',
+    type: 'slider',
+    showFor: null,
+    phaseMsg: '기본 프로필 완성! 이제 절반 왔어요 💪'
+  },
+
+  // ── Step 4: 가족력 (간소화) ──
+  {
+    id: 'family-history',
+    phase: 'PHASE 2', phaseLabel: '위험인자',
+    title: '가까운 가족 중\n당뇨가 있나요?',
+    sub: null,
+    why: '직계가족(부모·형제)의 당뇨 이력이 있으면 위험도가 2~3배 높아집니다.',
+    type: 'single',
+    showFor: null,
+    options: [
+      { emoji:'👨‍👩‍👧', label:'가족(부모/형제) 중 있어요' },
+      { emoji:'👥', label:'친척 중 있어요' },
+      { emoji:'', label:'없어요' },
+      { emoji:'', label:'잘 모르겠어요', skip:true },
+    ]
+  },
+
+  // ── Step 5: 동반 상태 ──
+  {
+    id: 'conditions',
+    phase: 'PHASE 2', phaseLabel: '위험인자',
+    title: '해당하는 것을\n모두 골라주세요',
+    sub: null,
+    why: '고혈당 이력은 당뇨 위험 예측에서 가장 높은 점수(5점)를 차지합니다.',
+    type: 'chip',
+    showFor: null,
+    options: ['💊 고혈압 / 혈압약','고지혈증','📋 고혈당 이력','🤰 임신성 당뇨','해당 없음']
+  },
+
+  // ── Step 6: 치료 현황 (A그룹만) ──
+  {
+    id: 'treatment',
+    phase: 'PHASE 2', phaseLabel: '위험인자',
+    title: '현재 어떤 관리를\n하고 계세요?',
+    sub: null,
+    why: '현재 치료 상황에 맞는 대시보드와 챌린지를 제공하기 위해 확인합니다.',
+    type: 'chip',
+    showFor: ['A'],
+    options: ['🥗 식이요법','💊 경구 혈당강하제','💉 인슐린 주사','🏥 기타 약물','관리하지 않고 있어요']
+  },
+
+  // ── Step 7: 검사 수치 (A+B그룹만) ──
+  {
+    id: 'lab-values',
+    phase: 'PHASE 2', phaseLabel: '위험인자',
+    title: '최근 검사 수치를\n알고 있다면 알려주세요',
+    sub: '몰라도 괜찮아요! 나중에 입력할 수 있어요 😊',
+    why: '당화혈색소(HbA1c)는 당뇨 예측 변수 중 단독 1위 예측력을 가집니다.',
+    type: 'grid',
+    showFor: ['A', 'B'],
+    phaseMsg: '거의 다 됐어요! 마지막 생활습관만 남았어요 🏃',
+    groups: [
+      { label:'당화혈색소 (HbA1c)', options:['~5.7%','5.7~6.4%','6.5~7%','7%+','모름'] },
+      { label:'공복혈당', options:['~100','100~125','126+','모름'] }
+    ]
+  },
+
+  // ── Step 8: 운동 빈도 ──
+  {
+    id: 'exercise',
+    phase: 'PHASE 3', phaseLabel: '생활습관',
+    title: '일주일에 운동을\n얼마나 하시나요?',
+    sub: '걷기, 계단 오르기 등 가벼운 활동도 포함',
+    why: '주 4시간 이상 운동하면 당뇨 위험이 크게 줄어듭니다.',
+    type: 'single',
+    showFor: null,
+    options: [
+      { emoji:'🛋️', label:'거의 안 해요' },
+      { emoji:'🚶', label:'주 1~2회' },
+      { emoji:'🏃', label:'주 3~4회' },
+      { emoji:'💪', label:'주 5회 이상' },
+    ]
+  },
+
+  // ── Step 9: 식습관 ──
+  {
+    id: 'diet',
+    phase: 'PHASE 3', phaseLabel: '생활습관',
+    title: '식습관을 골라주세요',
+    sub: '해당하는 것을 모두 선택해주세요',
+    why: '탄수화물·당류 과다 섭취는 당뇨의 직접적 위험인자입니다.',
+    type: 'chip',
+    showFor: null,
+    options: ['🍚 밥·빵·면 위주','🥤 단 음료 자주','🌙 야식 자주','🥗 채소·과일 매일','⏰ 불규칙한 식사','특별히 해당 없음']
+  },
+
+  // ── Step 10: 수면+음주+흡연 (3-in-1) ──
+  {
+    id: 'lifestyle',
+    phase: 'PHASE 3', phaseLabel: '생활습관',
+    title: '생활 패턴을 알려주세요',
+    sub: null,
+    why: '수면 부족은 인슐린 저항성 증가, 흡연과 과음은 당뇨 위험을 직접 높입니다.',
+    type: 'grid',
+    showFor: null,
+    groups: [
+      { label:'💤 평균 수면', options:['~5시간','5~6시간','7~8시간','9시간+'] },
+      { label:'🍺 음주', options:['안 마셔요','가끔','자주','매일'] },
+      { label:'🚬 흡연', options:['안 피워요','과거 흡연','현재 흡연'] }
+    ]
+  },
+
+  // ── Step 11: 목표 설정 ──
+  {
+    id: 'goal',
+    phase: 'PHASE 4', phaseLabel: '개인화',
+    title: '다나아에서 가장\n하고 싶은 것은?',
+    sub: '여러 개 선택할 수 있어요',
+    why: null,
+    type: 'chip',
+    showFor: null,
+    options: ['🎯 위험도 알아보기','📊 건강수치 추적','🥗 식단 개선','🏃 운동 습관','⚖️ 체중 관리','✨ 전체 다 관심 있어요']
+  },
+
+  // ── Step 12: AI 건강질문 동의 (시간 기반) ──
+  {
+    id: 'ai-consent',
+    phase: 'PHASE 4', phaseLabel: '개인화',
+    title: 'AI 채팅 중 건강 질문을\n얼마나 자주 받을까요?',
+    sub: '다나아의 핵심 기능입니다. AI 답변 끝에 건강 질문이 붙습니다.',
+    why: null,
+    type: 'single',
+    showFor: null,
+    options: [
+      { emoji:'⏰', label:'1시간마다' },
+      { emoji:'🕐', label:'1시간 30분마다', recommended:true },
+      { emoji:'🕑', label:'2시간마다' },
+      { emoji:'📝', label:'한번에 입력할래요' },
+      { emoji:'🔕', label:'나중에 설정할게요' },
+    ]
+  },
+
+  // ── 완료 화면 ──
+  {
+    id: 'completion',
+    type: 'completion',
+    showFor: null,
+  }
+];
+
+
+// ══════════════════════════════════════
+// 상태 관리
+// ══════════════════════════════════════
+let currentStep = 0;
+let answers = {};
+let userGroup = null;
+let heightVal = 170;
+let weightVal = 70;
+let selectedGender = null;
+let selectedAge = null;
+let editingSlider = null;
+let riskScore = 12; // 기본값
+
+// 차트 인스턴스
+let chartRiskTrend = null;
+let chartExercise = null;
+let chartSleep = null;
+
+
+// ══════════════════════════════════════
+// 표시 가능한 스텝 계산 (A/B/C 분기)
+// ══════════════════════════════════════
+function getVisibleSteps() {
+  return steps.filter(s => {
+    if (!s.showFor) return true;
+    if (!userGroup) return false;
+    return s.showFor.includes(userGroup);
+  });
+}
+
+function getVisibleIndex() {
+  const visible = getVisibleSteps();
+  const currentId = steps[currentStep].id;
+  return visible.findIndex(v => v.id === currentId);
+}
+
+function getVisibleTotal() {
+  return getVisibleSteps().length - 1;
+}
+
+
+// ══════════════════════════════════════
+// 탭 전환 시스템
+// ══════════════════════════════════════
+function switchTab(tabId) {
+  // 콘텐츠 전환
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const target = document.getElementById('tab-' + tabId);
+  if (target) target.classList.add('active');
+
+  // 사이드바 메뉴 활성화
+  document.querySelectorAll('.sidebar-item[data-tab]').forEach(item => {
+    item.classList.toggle('active', item.dataset.tab === tabId);
+  });
+
+  // 탭별 차트 초기화
+  if (tabId === 'analysis') {
+    setTimeout(() => {
+      const activeSub = document.querySelector('.sub-tab.active');
+      const subId = activeSub ? activeSub.dataset.subtab : 'summary';
+      switchSubTab(subId);
+    }, 100);
+  }
+  if (tabId === 'challenge') {
+    renderChallengeTab();
+  }
+}
+
+
+// ══════════════════════════════════════
+// 화면 전환
+// ══════════════════════════════════════
+function openSurvey() {
+  // 회원가입/로그인 화면 표시
+  document.getElementById('auth-overlay').classList.add('show');
+}
+
+function socialLogin(type) {
+  // 데모: 소셜 로그인 시뮬레이션
+  document.getElementById('auth-overlay').classList.remove('show');
+  document.getElementById('terms-overlay').classList.add('show');
+}
+
+function toggleConsent(el) {
+  el.classList.toggle('checked');
+  updateConsentButtons();
+}
+
+function toggleAllConsent(section) {
+  const allBtn = document.getElementById('consent-all-' + section);
+  const items = document.querySelectorAll('#consent-list-' + section + ' .consent-item');
+  const isChecked = allBtn.classList.contains('checked');
+
+  allBtn.classList.toggle('checked');
+  items.forEach(item => {
+    if (isChecked) item.classList.remove('checked');
+    else item.classList.add('checked');
+  });
+  updateConsentButtons();
+}
+
+function updateConsentButtons() {
+  // 약관 동의 버튼
+  const termsRequired = document.querySelectorAll('#consent-list-terms .consent-item[data-required="true"]');
+  const termsAllChecked = Array.from(termsRequired).every(el => el.classList.contains('checked'));
+  const termsBtn = document.getElementById('terms-next-btn');
+  if (termsBtn) {
+    termsBtn.disabled = !termsAllChecked;
+  }
+
+  // 전체 동의 체크 상태 동기화
+  const termsAll = document.querySelectorAll('#consent-list-terms .consent-item');
+  const termsAllEl = document.getElementById('consent-all-terms');
+  if (termsAllEl) {
+    if (Array.from(termsAll).every(el => el.classList.contains('checked'))) {
+      termsAllEl.classList.add('checked');
+    } else {
+      termsAllEl.classList.remove('checked');
+    }
+  }
+
+  // 건강정보 동의 버튼
+  const healthRequired = document.querySelectorAll('#consent-list-health .consent-item[data-required="true"]');
+  const healthAllChecked = Array.from(healthRequired).every(el => el.classList.contains('checked'));
+  const healthBtn = document.getElementById('health-next-btn');
+  if (healthBtn) {
+    healthBtn.disabled = !healthAllChecked;
+  }
+
+  // 면책조항 버튼
+  const disclaimerItem = document.getElementById('disclaimer-agree');
+  const disclaimerBtn = document.getElementById('disclaimer-start-btn');
+  if (disclaimerItem && disclaimerBtn) {
+    disclaimerBtn.disabled = !disclaimerItem.classList.contains('checked');
+  }
+}
+
+function showHealthConsent() {
+  document.getElementById('terms-overlay').classList.remove('show');
+  document.getElementById('health-consent-overlay').classList.add('show');
+}
+
+function startOnboarding() {
+  document.getElementById('health-consent-overlay').classList.remove('show');
+  // 기존 설문 시작
+  currentStep = 0;
+  answers = {};
+  userGroup = null;
+  document.getElementById('survey-overlay').classList.add('show');
+  renderStep();
+}
+
+function closeSurvey() {
+  document.getElementById('survey-overlay').classList.remove('show');
+}
+
+function surveyNext() {
+  if (currentStep < steps.length - 1) {
+    currentStep++;
+    while (currentStep < steps.length - 1 && steps[currentStep].showFor && !steps[currentStep].showFor.includes(userGroup)) {
+      currentStep++;
+    }
+    renderStep();
+  }
+}
+
+function surveyPrev() {
+  if (currentStep > 0) {
+    currentStep--;
+    while (currentStep > 0 && steps[currentStep].showFor && !steps[currentStep].showFor.includes(userGroup)) {
+      currentStep--;
+    }
+    renderStep();
+  }
+}
+
+function goToMain() {
+  closeSurvey();
+  // 의료 면책조항 화면 표시
+  document.getElementById('disclaimer-overlay').classList.add('show');
+}
+
+function goToMainFromDisclaimer() {
+  document.getElementById('disclaimer-overlay').classList.remove('show');
+  document.getElementById('screen-landing').classList.remove('active');
+  document.getElementById('screen-main').classList.add('active');
+
+  // 위험도 계산
+  riskScore = calculateRiskScore();
+  const risk = getRiskLevel(riskScore);
+  const groupNames = { A:'A. 관리형 (당뇨 진단)', B:'B. 주의형 (전당뇨)', C:'C. 예방형' };
+
+  // 사이드바 프로필 업데이트
+  document.getElementById('main-type').textContent = groupNames[userGroup] || '분류 미정';
+
+  // 대시보드 스트립 업데이트
+  const gaugePct = Math.round((riskScore / 22) * 100);
+  document.getElementById('ds-gauge').style.setProperty('--gauge', gaugePct + '%');
+  document.getElementById('ds-gauge-score').textContent = riskScore;
+  document.getElementById('ds-risk-label').textContent = risk.label;
+  document.getElementById('ds-risk-label').style.color = risk.color;
+  document.getElementById('ds-risk-sub').textContent = '22점 중 ' + riskScore + '점';
+
+  // 설정 탭 업데이트
+  document.getElementById('set-group').textContent = groupNames[userGroup] || '미분류';
+  document.getElementById('set-profile').textContent = (selectedGender || '미선택') + ' / ' + (selectedAge || '미선택');
+  document.getElementById('set-bmi').textContent = (weightVal / ((heightVal/100)**2)).toFixed(1);
+  document.getElementById('set-freq').textContent = answers['ai-consent'] || '미설정';
+
+  // 건강 분석 탭 초기 데이터 반영
+  updateAnalysisData();
+
+  // 챌린지 데이터 반영
+  updateChallengeData();
+
+  // 사이드 패널 건강운세 초기화
+  initSidePanel();
+}
+
+
+// ══════════════════════════════════════
+// 채팅 트리거 카드 시스템
+// ══════════════════════════════════════
+
+
+
+function addBotMessage(text) {
+  const container = document.querySelector('.chat-messages');
+  if (!container) return;
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'chat-msg bot';
+  msgDiv.innerHTML = '<div class="chat-avatar">🤖</div><div class="chat-bubble">' + text + '</div>';
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+
+// ══════════════════════════════════════
+// 사이드 패널 (건강운세 등)
+// ══════════════════════════════════════
+function toggleDashStrip() {
+  const strip = document.getElementById('dash-strip');
+  const btn = document.getElementById('strip-toggle');
+  strip.classList.toggle('collapsed');
+  btn.textContent = strip.classList.contains('collapsed') ? '▼' : '▲';
+}
+
+function toggleFortune() {
+  const wrap = document.getElementById('fortune-widget');
+  wrap.classList.toggle('flipped');
+}
+
+function toggleCategoryList() {
+  const list = document.getElementById('category-list');
+  const toggle = document.getElementById('cat-toggle');
+  list.classList.toggle('expanded');
+  toggle.style.transform = list.classList.contains('expanded') ? 'rotate(180deg)' : '';
+}
+
+function toggleSidePanel() {
+  const panel = document.getElementById('chat-side-panel');
+  const toggleBtn = document.getElementById('side-panel-toggle');
+  const toggleSpan = toggleBtn.querySelector('span');
+  panel.classList.toggle('collapsed');
+  if (panel.classList.contains('collapsed')) {
+    toggleBtn.textContent = '>';
+  } else {
+    toggleBtn.innerHTML = '<span>< 패널 접기</span>';
+  }
+}
+
+function dismissLiveNudge() {
+  const bar = document.getElementById('live-nudge-bar');
+  if (bar) {
+    bar.style.transition = 'opacity .2s, transform .2s';
+    bar.style.opacity = '0';
+    bar.style.transform = 'translateY(8px)';
+    setTimeout(() => { bar.style.display = 'none'; }, 200);
+  }
+}
+
+function initSidePanel() {
+  // 건강운세 랜덤
+  const fortunes = [
+    { icon:'🌿', title:'오늘은 몸이 가벼운 날!', desc:'가벼운 스트레칭이나 산책이 효과적인 날이에요. 15분만 걸어보세요.', tag:'운동 운세 ★★★★☆', tagBg:'#D1FAE5', tagColor:'#059669' },
+    { icon:'💧', title:'수분 보충이 핵심인 날', desc:'오늘은 평소보다 물을 한 잔 더 마셔보세요. 몸이 감사할 거예요.', tag:'수분 운세 ★★★★★', tagBg:'#DBEAFE', tagColor:'#1E40AF' },
+    { icon:'😴', title:'숙면이 보약인 날', desc:'오늘 밤 11시 전에 눕는 걸 목표로! 수면의 질이 내일의 컨디션을 결정해요.', tag:'수면 운세 ★★★☆☆', tagBg:'#EDE9FE', tagColor:'#6D28D9' },
+    { icon:'🥗', title:'균형 잡힌 식사가 빛나는 날', desc:'오늘은 특히 식이섬유가 풍부한 음식이 좋아요. 현미밥이나 샐러드를 추천!', tag:'식단 운세 ★★★★☆', tagBg:'#FEF3C7', tagColor:'#92400E' },
+    { icon:'🧘', title:'마음의 평화가 필요한 날', desc:'5분 명상이나 심호흡으로 하루를 시작해보세요. 혈압 관리에도 도움이 됩니다.', tag:'멘탈 운세 ★★★★★', tagBg:'#FCE7F3', tagColor:'#9D174D' },
+    { icon:'🏃', title:'에너지가 넘치는 날!', desc:'오늘은 운동 효율이 높은 날이에요. 평소보다 5분만 더 움직여보세요!', tag:'활력 운세 ★★★★★', tagBg:'#FEE2E2', tagColor:'#DC2626' },
+  ];
+  const f = fortunes[Math.floor(Math.random() * fortunes.length)];
+  document.getElementById('fortune-icon').textContent = f.icon;
+  document.getElementById('fortune-title').textContent = f.title;
+  document.getElementById('fortune-desc').textContent = f.desc;
+  const tagEl = document.getElementById('fortune-tag');
+  tagEl.textContent = f.tag;
+  tagEl.style.background = f.tagBg;
+  tagEl.style.color = f.tagColor;
+
+}
+
+function resetSurvey() {
+  document.getElementById('screen-main').classList.remove('active');
+  document.getElementById('screen-landing').classList.add('active');
+  switchTab('dashboard');
+}
+
+
+// ══════════════════════════════════════
+// 선택 핸들러
+// ══════════════════════════════════════
+function selectOpt(el, idx) {
+  const parent = el.closest('.opt-list');
+  parent.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+
+  const s = steps[currentStep];
+
+  if (s.id === 'relation' && s.options[idx]) {
+    userGroup = s.options[idx].group;
+    answers.relation = s.options[idx].label;
+  }
+
+  if (s.options && s.options[idx]) {
+    answers[s.id] = s.options[idx].label;
+  }
+}
+
+function selectCategory(el, isActive) {
+  if (!isActive) return;
+  const parent = el.closest('.opt-list');
+  parent.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  answers.category = '당뇨';
+}
+
+function toggleChip(el) {
+  const label = el.textContent.trim();
+  const list = el.closest('.chip-list');
+
+  if (label.includes('해당 없음') || label.includes('관리하지 않고')) {
+    list.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    return;
+  }
+
+  list.querySelectorAll('.chip').forEach(c => {
+    if (c.textContent.trim().includes('해당 없음') || c.textContent.trim().includes('관리하지 않고')) {
+      c.classList.remove('sel');
+    }
+  });
+  el.classList.toggle('sel');
+}
+
+function selectGrid(el) {
+  const row = el.closest('.grid-row');
+  row.querySelectorAll('.g-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+
+  const s = steps[currentStep];
+  if (s.id === 'profile') {
+    const group = el.closest('.grid-group');
+    const label = group.querySelector('.grid-lbl').textContent;
+    if (label === '성별') selectedGender = el.textContent;
+    if (label === '연령대') selectedAge = el.textContent;
+  }
+}
+
+
+// ══════════════════════════════════════
+// 슬라이더 + 직접 입력
+// ══════════════════════════════════════
+function updateBMI() {
+  const h = document.getElementById('slider-h');
+  const w = document.getElementById('slider-w');
+  if (!h || !w) return;
+  heightVal = +h.value;
+  weightVal = +w.value;
+  const hDisp = document.getElementById('h-val');
+  const wDisp = document.getElementById('w-val');
+  if (hDisp && !hDisp.classList.contains('editing')) hDisp.textContent = heightVal + 'cm';
+  if (wDisp && !wDisp.classList.contains('editing')) wDisp.textContent = weightVal + 'kg';
+  updateBMIDisplay();
+}
+
+function updateBMIDisplay() {
+  const bmi = (weightVal / ((heightVal/100)**2)).toFixed(1);
+  const box = document.getElementById('bmi-result');
+  if (!box) return;
+  let label, color, bg;
+  if (bmi < 18.5) { label='저체중'; color='#0284C7'; bg='#E0F2FE'; }
+  else if (bmi < 23) { label='정상'; color='#059669'; bg='#D1FAE5'; }
+  else if (bmi < 25) { label='과체중'; color='#B45309'; bg='#FEF3C7'; }
+  else { label='비만'; color='#DC2626'; bg='#FEE2E2'; }
+  box.style.background = bg;
+  box.style.color = color;
+  box.textContent = 'BMI ' + bmi + ' — ' + label;
+}
+
+function startDirectInput(type) {
+  const el = document.getElementById(type === 'h' ? 'h-val' : 'w-val');
+  if (!el) return;
+  const current = type === 'h' ? heightVal : weightVal;
+  const unit = type === 'h' ? 'cm' : 'kg';
+  const min = type === 'h' ? 140 : 35;
+  const max = type === 'h' ? 200 : 150;
+
+  el.classList.add('editing');
+  el.innerHTML = '<input class="sl-val-input" type="number" value="' + current + '" min="' + min + '" max="' + max + '" id="direct-input-' + type + '">';
+
+  const input = document.getElementById('direct-input-' + type);
+  input.focus();
+  input.select();
+
+  input.addEventListener('blur', function() { finishDirectInput(type); });
+  input.addEventListener('keydown', function(e) { if (e.key === 'Enter') finishDirectInput(type); });
+}
+
+function finishDirectInput(type) {
+  const input = document.getElementById('direct-input-' + type);
+  if (!input) return;
+  let val = parseInt(input.value);
+  const min = type === 'h' ? 140 : 35;
+  const max = type === 'h' ? 200 : 150;
+  val = Math.max(min, Math.min(max, val || (type === 'h' ? 170 : 70)));
+
+  if (type === 'h') {
+    heightVal = val;
+    document.getElementById('slider-h').value = val;
+  } else {
+    weightVal = val;
+    document.getElementById('slider-w').value = val;
+  }
+
+  const el = document.getElementById(type === 'h' ? 'h-val' : 'w-val');
+  el.classList.remove('editing');
+  el.textContent = val + (type === 'h' ? 'cm' : 'kg');
+  updateBMIDisplay();
+}
+
+
+// ══════════════════════════════════════
+// 위험도 점수 산출 (FINDRISC + 한국형 하이브리드)
+// ══════════════════════════════════════
+function calculateRiskScore() {
+  let score = 0;
+
+  if (selectedAge === '40대') score += 2;
+  else if (selectedAge === '50대') score += 3;
+  else if (selectedAge === '60대 이상') score += 4;
+
+  const bmi = weightVal / ((heightVal/100)**2);
+  if (bmi >= 30) score += 3;
+  else if (bmi >= 25) score += 2;
+
+  if (answers['family-history'] && (answers['family-history'].includes('가족') || answers['family-history'].includes('부모'))) score += 1;
+
+  if (answers['exercise'] === '거의 안 해요') score += 2;
+  else if (answers['exercise'] === '주 1~2회') score += 1;
+
+  if (userGroup === 'A') score += 5;
+  else if (userGroup === 'B') score += 3;
+
+  return Math.min(score, 22);
+}
+
+function getRiskLevel(score) {
+  if (score <= 7) return { label:'낮은 위험', color:'#059669', bg:'#D1FAE5' };
+  if (score <= 14) return { label:'보통 위험', color:'#B45309', bg:'#FEF3C7' };
+  if (score <= 18) return { label:'높은 위험', color:'#EA580C', bg:'#FED7AA' };
+  return { label:'매우 높은 위험', color:'#DC2626', bg:'#FEE2E2' };
+}
+
+
+// ══════════════════════════════════════
+// 건강 분석 탭 — 서브탭 시스템
+// ══════════════════════════════════════
+
+function switchSubTab(tabId) {
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.subtab === tabId));
+  document.querySelectorAll('.sub-tab-content').forEach(c => c.classList.remove('active'));
+  const target = document.getElementById('subtab-' + tabId);
+  if (target) target.classList.add('active');
+
+  // 탭별 렌더링
+  if (tabId === 'summary') renderSummaryTab();
+  if (tabId === 'diet') renderDietTab();
+  if (tabId === 'habit') renderHabitTab();
+  if (tabId === 'coach') renderCoachTab();
+}
+
+function updateAnalysisData() {
+  const risk = getRiskLevel(riskScore);
+  const groupNames = { A:'A. 관리형', B:'B. 주의형', C:'C. 예방형' };
+  const groupColors = { A:['#FEE2E2','#DC2626'], B:['#FEF3C7','#92400E'], C:['#D1FAE5','#059669'] };
+  const gc = groupColors[userGroup] || ['#F1F5F9','#64748B'];
+
+  // 게이지 업데이트
+  const badge = document.getElementById('pred-badge');
+  badge.textContent = groupNames[userGroup] || '미분류';
+  badge.style.background = gc[0];
+  badge.style.color = gc[1];
+
+  document.getElementById('pred-score').textContent = riskScore;
+  document.getElementById('pred-risk-label').textContent = risk.label;
+  document.getElementById('pred-risk-label').style.color = risk.color;
+
+  // SVG 게이지 (r=70)
+  const circumference = 2 * Math.PI * 70; // 439.82
+  const offset = circumference - (riskScore / 22) * circumference;
+  const fill = document.getElementById('pred-gauge-fill');
+  fill.style.strokeDashoffset = offset;
+  fill.style.stroke = risk.color;
+
+  // 인사 메시지
+  updateGreeting();
+}
+
+function updateGreeting() {
+  const hour = new Date().getHours();
+  let timeLabel, greeting;
+  if (hour < 12) { timeLabel = '오전'; greeting = '좋은 아침이에요'; }
+  else if (hour < 18) { timeLabel = '오후'; greeting = '좋은 오후예요'; }
+  else { timeLabel = '저녁'; greeting = '수고한 하루, 편안한 저녁 되세요'; }
+
+  const name = selectedGender ? '사용자' : '사용자';
+  const el1 = document.getElementById('greeting-time');
+  const el2 = document.getElementById('greeting-msg');
+  const el3 = document.getElementById('greeting-sub');
+  if (el1) el1.textContent = timeLabel;
+  if (el2) el2.textContent = greeting + ', ' + name + '님 👋';
+
+  const groupMsgs = {
+    A: '오늘도 혈당 관리 잘하고 계시네요. 꾸준함이 최고의 치료입니다.',
+    B: '생활습관 개선이 쌓이고 있어요. 조금씩 좋아지고 있습니다!',
+    C: '예방이 최선의 치료! 오늘의 건강 기록을 확인해보세요.'
+  };
+  if (el3) el3.textContent = groupMsgs[userGroup] || '건강 응답을 쌓으면 더 정확한 분석을 받을 수 있어요.';
+}
+
+// ── 요약 서브탭 ──
+let chartNutritionRadar = null;
+
+function renderSummaryTab() {
+  updateGreeting();
+  renderScoreCards();
+  renderActivityRings();
+  renderWeeklyHeatmap();
+  renderRiskTrendChart();
+  renderNutritionRadar();
+  renderGlucoseMetrics();
+  renderSparkline();
+  renderMealPatternBars();
+}
+
+// ── 3. 건강 스코어카드 (4 미니 링) ──
+function renderScoreCards() {
+  const bmi = weightVal && heightVal ? (weightVal / ((heightVal/100)**2)).toFixed(1) : '24.5';
+  const bmiPct = Math.min(100, Math.round((bmi / 35) * 100));
+  const bmiColor = bmi < 23 ? '#10B981' : bmi < 25 ? '#F59E0B' : '#EF4444';
+  const bmiLabel = bmi < 18.5 ? '저체중' : bmi < 23 ? '정상' : bmi < 25 ? '과체중' : '비만';
+
+  const riskPct = Math.round((riskScore / 22) * 100);
+  const riskColor = riskScore <= 7 ? '#10B981' : riskScore <= 14 ? '#F59E0B' : '#EF4444';
+
+  const habitScore = userGroup === 'A' ? 58 : userGroup === 'B' ? 68 : 82;
+  const habitPct = habitScore;
+  const habitColor = '#0EA5E9';
+
+  const goalDone = 2, goalTotal = 3;
+  const goalPct = Math.round((goalDone / goalTotal) * 100);
+  const goalColor = '#7C3AED';
+
+  const cards = [
+    { label:'BMI', value:bmi, unit:'', pct:bmiPct, color:bmiColor, trend:'↓ 0.3', trendClass:'down-good', sub:bmiLabel },
+    { label:'위험도', value:riskScore, unit:'/22', pct:riskPct, color:riskColor, trend:'↓ 2점', trendClass:'down-good', sub:'' },
+    { label:'습관 점수', value:habitScore, unit:'점', pct:habitPct, color:habitColor, trend:'↑ +5', trendClass:'up-good', sub:'지난주 대비' },
+    { label:'목표 달성', value:goalDone+'/'+goalTotal, unit:'', pct:goalPct, color:goalColor, trend:'진행중', trendClass:'neutral', sub:'' },
+  ];
+
+  const r = 22, c = 2 * Math.PI * r;
+  document.getElementById('score-cards').innerHTML = cards.map(d => {
+    const off = c - (d.pct / 100) * c;
+    return `<div class="score-card">
+      <div class="sc-ring">
+        <svg viewBox="0 0 56 56">
+          <circle class="ring-bg" cx="28" cy="28" r="${r}"/>
+          <circle class="ring-fill" cx="28" cy="28" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="stroke:${d.color};"/>
+        </svg>
+        <div class="ring-val" style="color:${d.color};">${d.pct}%</div>
+      </div>
+      <div class="sc-label">${d.label}</div>
+      <div class="sc-value">${d.value}<span style="font-size:11px;color:var(--g400);font-weight:500;">${d.unit}</span></div>
+      <div class="sc-trend ${d.trendClass}">${d.trend} ${d.sub}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 4. 활동 링 (Apple Health 스타일) ──
+function renderActivityRings() {
+  const rings = [
+    { label:'식사', pct: 66, color:'#10B981', val:'2/3끼', r:58 },
+    { label:'운동', pct: 33, color:'#F59E0B', val:'10/30분', r:46 },
+    { label:'수분', pct: 75, color:'#0EA5E9', val:'6/8잔', r:34 },
+  ];
+
+  const svgRings = rings.map(d => {
+    const c = 2 * Math.PI * d.r;
+    const off = c - (d.pct / 100) * c;
+    return `<circle class="ar-bg" cx="70" cy="70" r="${d.r}" style="stroke:${d.color};"/>
+      <circle class="ar-fill" cx="70" cy="70" r="${d.r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="stroke:${d.color};"/>`;
+  }).join('');
+
+  const avgPct = Math.round(rings.reduce((s,r) => s+r.pct, 0) / rings.length);
+
+  const legendItems = rings.map(d =>
+    `<div class="ar-legend-item">
+      <div class="ar-legend-dot" style="background:${d.color};"></div>
+      <span class="ar-legend-label">${d.label}</span>
+      <span class="ar-legend-val">${d.val}</span>
+      <span class="ar-legend-pct" style="color:${d.color};">${d.pct}%</span>
+    </div>`
+  ).join('');
+
+  document.getElementById('activity-rings').innerHTML = `
+    <div class="activity-ring-wrap">
+      <svg viewBox="0 0 140 140">${svgRings}</svg>
+      <div class="activity-ring-center">
+        <div class="ar-center-val">${avgPct}%</div>
+        <div class="ar-center-label">평균 달성</div>
+      </div>
+    </div>
+    <div class="activity-ring-legend">${legendItems}</div>`;
+}
+
+// ── 5. 주간 활동 히트맵 ──
+function renderWeeklyHeatmap() {
+  const days = ['월','화','수','목','금','토','일'];
+  const rows = [
+    { label:'아침 식사', data:[1,1,0,1,1,0,1] },
+    { label:'점심 식사', data:[1,1,1,1,1,1,0] },
+    { label:'저녁 식사', data:[1,0,1,1,0,1,-1] },
+    { label:'운동',     data:[1,0,0,1,0,0,-1] },
+    { label:'수면 7h+', data:[0,1,1,0,1,0,-1] },
+  ];
+  // 1=done, 0=miss, -1=empty(미래)
+
+  let html = '<div class="hm-header"></div>' + days.map(d => `<div class="hm-header">${d}</div>`).join('');
+  rows.forEach(row => {
+    html += `<div class="hm-label">${row.label}</div>`;
+    row.data.forEach(v => {
+      const cls = v === 1 ? 'done' : v === 0 ? 'miss' : 'empty';
+      const icon = v === 1 ? '✓' : v === 0 ? '✗' : '—';
+      html += `<div class="hm-cell ${cls}">${icon}</div>`;
+    });
+  });
+  document.getElementById('weekly-heatmap').innerHTML = html;
+}
+
+// ── 6a. 위험도 추이 차트 ──
+function renderRiskTrendChart() {
+  if (chartRiskTrend) chartRiskTrend.destroy();
+  const ctx = document.getElementById('chart-risk-trend');
+  if (!ctx) return;
+  const months = ['10월','11월','12월','1월','2월','3월'];
+  const baseScore = riskScore + 3;
+  const riskData = months.map((m, i) => +Math.max(0, Math.min(22, baseScore - i * 0.5 + (Math.random() * 2 - 1))).toFixed(1));
+
+  chartRiskTrend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: '위험도 점수',
+        data: riskData,
+        borderColor: '#F59E0B',
+        backgroundColor: 'rgba(245,158,11,0.1)',
+        fill: true, tension: 0.4,
+        pointBackgroundColor: '#F59E0B', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5,
+      }, {
+        label: '안전 기준선 (7점)',
+        data: Array(6).fill(7),
+        borderColor: '#10B981', borderDash: [5, 5], borderWidth: 2, pointRadius: 0, fill: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'bottom', labels: { font: { family:'Noto Sans KR', size:11 }, usePointStyle:true } },
+        tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + c.parsed.y + '점' } }
+      },
+      scales: {
+        y: { min:0, max:22, grid: { color:'#F1F5F9' }, ticks: { font: { family:'Noto Sans KR', size:11 } } },
+        x: { grid: { display:false }, ticks: { font: { family:'Noto Sans KR', size:11 } } }
+      }
+    }
+  });
+}
+
+// ── 6b. 영양 밸런스 레이더 차트 ──
+function renderNutritionRadar() {
+  if (chartNutritionRadar) chartNutritionRadar.destroy();
+  const ctx = document.getElementById('chart-nutrition-radar');
+  if (!ctx) return;
+
+  const nuData = userGroup === 'A' ? [68,85,42,55,92] : userGroup === 'B' ? [72,60,38,70,80] : [80,75,55,45,88];
+
+  chartNutritionRadar = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['탄수화물','단백질','식이섬유','나트륨(↓)','수분'],
+      datasets: [{
+        label: '나의 균형',
+        data: nuData,
+        borderColor: '#0EA5E9',
+        backgroundColor: 'rgba(14,165,233,0.15)',
+        borderWidth: 2, pointBackgroundColor: '#0EA5E9', pointRadius: 4,
+      }, {
+        label: '권장 균형',
+        data: [65,70,60,50,80],
+        borderColor: '#CBD5E1',
+        backgroundColor: 'rgba(203,213,225,0.08)',
+        borderWidth: 1.5, borderDash: [4,4], pointRadius: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position:'bottom', labels: { font: { family:'Noto Sans KR', size:10 }, usePointStyle:true } },
+      },
+      scales: {
+        r: {
+          min:0, max:100,
+          grid: { color:'#F1F5F9' },
+          angleLines: { color:'#E2E8F0' },
+          ticks: { display:false },
+          pointLabels: { font: { family:'Noto Sans KR', size:10, weight:'600' }, color:'#64748B' }
+        }
+      }
+    }
+  });
+}
+
+// ── 7. 건강 지표 카드 ──
+function renderGlucoseMetrics() {
+  const metrics = [
+    { label:'공복 혈당', val:'102', unit:'mg/dL', bg:'#FEF3C7', color:'#92400E' },
+    { label:'평균 혈압', val:'128/82', unit:'mmHg', bg:'#FEE2E2', color:'#DC2626' },
+    { label:'변동성 지수', val:'28', unit:'%', bg:'#D1FAE5', color:'#059669' },
+  ];
+  document.getElementById('glucose-metrics').innerHTML = metrics.map(m =>
+    `<div class="glu-metric" style="background:${m.bg};">
+      <div><div class="gm-label">${m.label}</div></div>
+      <div><span class="gm-val" style="color:${m.color};">${m.val}</span><span class="gm-unit">${m.unit}</span></div>
+    </div>`
+  ).join('');
+}
+
+// ── 7b. 스파크라인 SVG ──
+function renderSparkline() {
+  const wrap = document.getElementById('sparkline-wrap');
+  if (!wrap) return;
+  // 24시간 mock 혈당 데이터
+  const data = [95,98,110,125,118,105,92,88,95,102,115,128,120,108,95,90,88,92,98,108,118,110,100,95];
+  const w = 600, h = 48, pad = 4;
+  const minV = Math.min(...data), maxV = Math.max(...data);
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const y = pad + ((maxV - v) / (maxV - minV)) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs><linearGradient id="spk-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </linearGradient></defs>
+    <polygon points="${pts[0].split(',')[0]},${h} ${pts.join(' ')} ${pts[pts.length-1].split(',')[0]},${h}" fill="url(#spk-grad)"/>
+    <polyline points="${pts.join(' ')}" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--g400);margin-top:2px;">
+    <span>0시</span><span>6시</span><span>12시</span><span>18시</span><span>24시</span>
+  </div>`;
+}
+
+// ── 8. 식사 패턴 규칙성 바 ──
+function renderMealPatternBars() {
+  const meals = [
+    { icon:'🌅', label:'아침', time:'평균 07:45', pct:85, color:'#10B981' },
+    { icon:'☀️', label:'점심', time:'평균 12:30', pct:65, color:'#F59E0B' },
+    { icon:'🌙', label:'저녁', time:'평균 18:20', pct:90, color:'#10B981' },
+  ];
+  document.getElementById('meal-pattern-bars').innerHTML = meals.map(m =>
+    `<div class="mps-row">
+      <div class="mps-icon">${m.icon}</div>
+      <div class="mps-info"><div class="mps-label">${m.label}</div><div class="mps-time">${m.time}</div></div>
+      <div class="mps-bar"><div class="mps-bar-fill" style="width:${m.pct}%;background:${m.color};"></div></div>
+      <div class="mps-pct" style="color:${m.color};">${m.pct}%</div>
+    </div>`
+  ).join('');
+}
+
+// ── 식단 서브탭 ──
+function renderDietTab() {
+  // 오늘의 식사 타임라인
+  const meals = [
+    { icon:'🌅', label:'아침', status:'done', text:'든든히 먹었어요', detail:'잡곡밥 + 된장찌개 + 나물', badge:'good', badgeText:'좋아요' },
+    { icon:'☀️', label:'점심', status:'done', text:'간단히 먹었어요', detail:'샌드위치 + 커피', badge:'warn', badgeText:'탄수화물 주의' },
+    { icon:'🌙', label:'저녁', status:'pending', text:'아직 기록 없음', detail:'AI 대화 중 물어볼게요', badge:'unknown', badgeText:'대기 중' },
+    { icon:'🍪', label:'간식', status:'none', text:'기록 없음', detail:'간식을 드셨다면 알려주세요', badge:'unknown', badgeText:'—' },
+  ];
+
+  document.getElementById('meal-timeline').innerHTML = meals.map(m => `
+    <div class="meal-slot">
+      <div class="meal-time-col">
+        <div class="meal-time-icon">${m.icon}</div>
+        <div class="meal-time-label">${m.label}</div>
+      </div>
+      <div class="meal-info">
+        <div class="meal-status">${m.text}</div>
+        <div class="meal-detail">${m.detail}</div>
+        <span class="meal-badge ${m.badge}">${m.badgeText}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // 주간 식사 규칙성
+  const days = ['월','화','수','목','금','토','일'];
+  const weekData = [
+    { d:'월', b:true, l:true, d2:true },
+    { d:'화', b:true, l:true, d2:false },
+    { d:'수', b:false, l:true, d2:true },
+    { d:'목', b:true, l:true, d2:true },
+    { d:'금', b:true, l:true, d2:false },
+    { d:'토', b:false, l:false, d2:false },
+    { d:'일', b:false, l:false, d2:false },
+  ];
+
+  document.getElementById('diet-weekly-pattern').innerHTML = `
+    <div style="display:grid;grid-template-columns:60px repeat(7,1fr);gap:6px;font-size:11px;text-align:center;">
+      <div></div>${days.map(d => '<div style="font-weight:700;color:var(--g400);">'+d+'</div>').join('')}
+      <div style="font-weight:600;color:var(--g500);text-align:left;">아침</div>
+      ${weekData.map(w => '<div style="width:28px;height:28px;border-radius:8px;margin:0 auto;display:flex;align-items:center;justify-content:center;background:'+(w.b?'#D1FAE5':'#FEE2E2')+';font-size:12px;">'+(w.b?'✓':'✗')+'</div>').join('')}
+      <div style="font-weight:600;color:var(--g500);text-align:left;">점심</div>
+      ${weekData.map(w => '<div style="width:28px;height:28px;border-radius:8px;margin:0 auto;display:flex;align-items:center;justify-content:center;background:'+(w.l?'#D1FAE5':'#FEE2E2')+';font-size:12px;">'+(w.l?'✓':'✗')+'</div>').join('')}
+      <div style="font-weight:600;color:var(--g500);text-align:left;">저녁</div>
+      ${weekData.map(w => '<div style="width:28px;height:28px;border-radius:8px;margin:0 auto;display:flex;align-items:center;justify-content:center;background:'+(w.d2?'#D1FAE5':'var(--g100)')+';font-size:12px;">'+(w.d2?'✓':'—')+'</div>').join('')}
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--g500);">이번 주 식사 규칙성: <b style="color:var(--accent);">71%</b> (5/7일 3끼 완료)</div>
+  `;
+
+  // 식습관 점수
+  const scores = [
+    { label:'식사 규칙성', val:71, color:'#10B981' },
+    { label:'아침 식사율', val:57, color:'#3B82F6' },
+    { label:'단 음료 절제', val:85, color:'#10B981' },
+    { label:'야식 절제', val:60, color:'#F59E0B' },
+    { label:'채소 섭취', val:40, color:'#EF4444' },
+  ];
+
+  document.getElementById('diet-scores').innerHTML = scores.map(s => `
+    <div class="dp-row">
+      <div class="dp-label">${s.label}</div>
+      <div class="dp-bar-wrap"><div class="dp-bar" style="width:${s.val}%;background:${s.color};"></div></div>
+      <div class="dp-val" style="color:${s.color};">${s.val}%</div>
+    </div>
+  `).join('');
+
+  // 그룹별 팁
+  const tips = {
+    A: '💡 <b>A그룹 팁:</b> 식사 후 30분 내 혈당을 체크하면 어떤 음식이 혈당을 올리는지 파악할 수 있어요.',
+    B: '💡 <b>오늘의 팁:</b> 현미·잡곡 위주의 식사로 바꾸면 식후 혈당 스파이크를 줄일 수 있어요.',
+    C: '💡 <b>오늘의 팁:</b> 식사 시 채소를 먼저 먹으면 식후 혈당 상승을 15~30% 줄일 수 있어요.'
+  };
+  document.getElementById('diet-tip').innerHTML = tips[userGroup] || tips.C;
+}
+
+// ── 습관 서브탭 ──
+function renderHabitTab() {
+  // 4개 핵심 습관 (그룹별 차이)
+  const habits = getHabitsForGroup();
+  const circumference = 2 * Math.PI * 23; // r=23
+
+  document.getElementById('habit-grid').innerHTML = habits.map(h => {
+    const offset = circumference - (h.progress / 100) * circumference;
+    return `
+    <div class="habit-card">
+      <div class="habit-top">
+        <div class="habit-emoji">${h.emoji}</div>
+        <div class="habit-name">${h.name}</div>
+        ${h.streak > 0 ? '<div class="habit-streak-badge">🔥 '+h.streak+'일</div>' : ''}
+      </div>
+      <div class="habit-ring-wrap">
+        <div class="habit-ring">
+          <svg viewBox="0 0 56 56">
+            <circle class="ring-bg" cx="28" cy="28" r="23"/>
+            <circle class="ring-fill" cx="28" cy="28" r="23"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+              style="stroke:${h.color};"/>
+          </svg>
+          <div class="habit-ring-center" style="color:${h.color};">${h.progress}%</div>
+        </div>
+        <div class="habit-detail">
+          <div class="hd-main">${h.current} / ${h.goal}</div>
+          <div class="hd-sub">${h.desc}</div>
+        </div>
+      </div>
+      <button class="habit-check-btn ${h.todayDone ? 'checked' : ''}" onclick="toggleHabitCheck(this)">
+        ${h.todayDone ? '오늘 완료 ✓' : '오늘 달성 체크'}
+      </button>
+    </div>`;
+  }).join('');
+
+  // 주간 캘린더
+  const dayNames = ['월','화','수','목','금','토','일'];
+  const today = new Date().getDay(); // 0=일 ~ 6=토
+  const todayIdx = today === 0 ? 6 : today - 1;
+  const weekStates = ['done','done','done','partial','done','miss',''];
+
+  document.getElementById('wc-grid').innerHTML = dayNames.map((d, i) => {
+    let cls = 'wc-day-cell';
+    if (i === todayIdx) cls += ' today';
+    else if (i > todayIdx) cls += ' future';
+    else cls += ' ' + weekStates[i];
+    const icons = { done:'✓', partial:'△', miss:'✗', today:'·', future:'·', '':'' };
+    let icon = i > todayIdx ? '' : (i === todayIdx ? '·' : (weekStates[i] === 'done' ? '✓' : weekStates[i] === 'partial' ? '△' : '✗'));
+    return `
+      <div class="wc-day">
+        <div class="wc-day-label">${d}</div>
+        <div class="${cls}">${icon}</div>
+      </div>`;
+  }).join('');
+
+  // 운동 차트
+  if (chartExercise) chartExercise.destroy();
+  const ctx = document.getElementById('chart-exercise');
+  if (!ctx) return;
+  chartExercise = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['1주','2주','3주','4주'],
+      datasets: [{
+        label: '운동 횟수', data: [2, 1, 3, 1],
+        backgroundColor: ['#34D399','#34D399','#10B981','#FCA5A5'],
+        borderRadius: 8, barPercentage: 0.6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min:0, max:5, grid: { color:'#F1F5F9' }, ticks: { stepSize:1, font: { family:'Noto Sans KR', size:11 } } },
+        x: { grid: { display:false }, ticks: { font: { family:'Noto Sans KR', size:11 } } }
+      }
+    }
+  });
+}
+
+function getHabitsForGroup() {
+  const base = [
+    { emoji:'🚶', name:'7,000보 걷기', progress:71, current:'4,970보', goal:'7,000보', desc:'오늘 목표까지 2,030보', streak:5, color:'#10B981', todayDone:false },
+    { emoji:'💤', name:'11시 전 취침', progress:43, current:'3일', goal:'7일', desc:'이번 주 달성률', streak:3, color:'#3B82F6', todayDone:false },
+    { emoji:'🍽️', name:'아침 식사 챙기기', progress:71, current:'5일', goal:'7일', desc:'이번 주 아침 식사', streak:2, color:'#F59E0B', todayDone:true },
+  ];
+  if (userGroup === 'A') {
+    base.push({ emoji:'📝', name:'혈당 기록', progress:50, current:'7회', goal:'14회', desc:'하루 2회 공복+식후', streak:1, color:'#8B5CF6', todayDone:false });
+  } else {
+    base.push({ emoji:'🥤', name:'무설탕 음료', progress:85, current:'6일', goal:'7일', desc:'이번 주 단 음료 절제', streak:6, color:'#EC4899', todayDone:true });
+  }
+  return base;
+}
+
+function toggleHabitCheck(btn) {
+  btn.classList.toggle('checked');
+  btn.textContent = btn.classList.contains('checked') ? '오늘 완료 ✓' : '오늘 달성 체크';
+}
+
+// ── 코치 서브탭 ──
+function renderCoachTab() {
+  const cards = getCoachCards();
+  document.getElementById('coach-cards').innerHTML = cards.map(c => `
+    <div class="coach-card">
+      <div class="coach-card-top">
+        <div class="coach-card-icon" style="background:${c.iconBg};">${c.icon}</div>
+        <div class="coach-card-info">
+          <div class="coach-card-title">${c.title}</div>
+          <div class="coach-card-reason">${c.reason}</div>
+        </div>
+      </div>
+      <div class="coach-action">
+        <div class="coach-action-label">💪 추천 액션</div>
+        <div class="coach-action-text">${c.action}</div>
+      </div>
+      <div class="coach-effect" style="background:${c.effectBg};color:${c.effectColor};">
+        ✨ 예상 효과: ${c.effect}
+      </div>
+    </div>
+  `).join('');
+
+  // 주간 리포트
+  document.getElementById('weekly-report').innerHTML = `
+    <h4>📋 이번 주 리포트</h4>
+    <div class="wr-item"><div class="wr-icon">✅</div><div class="wr-text"><b>잘한 점:</b> 아침 식사를 7일 중 5일 챙겼어요. 지난주보다 1일 늘었습니다.</div></div>
+    <div class="wr-item"><div class="wr-icon">✅</div><div class="wr-text"><b>잘한 점:</b> 단 음료를 거의 마시지 않았어요. 훌륭합니다!</div></div>
+    <div class="wr-item"><div class="wr-icon">⚠️</div><div class="wr-text"><b>아쉬운 점:</b> 수면이 평균 5.5시간으로 목표(7시간)에 미달했어요.</div></div>
+    <div class="wr-item"><div class="wr-icon">⚠️</div><div class="wr-text"><b>아쉬운 점:</b> 운동이 1회로 줄었어요. 짧은 산책이라도 추가해보세요.</div></div>
+    <div class="wr-item"><div class="wr-icon">🎯</div><div class="wr-text"><b>다음 주 목표:</b> "3일 연속 7시간 수면" + "주 2회 30분 걷기"를 추천합니다.</div></div>
+    <div style="margin-top:12px;padding:12px;background:var(--g50);border-radius:10px;font-size:12px;color:var(--g500);">
+      위험도 점수 변화: <b style="color:#10B981;">14점 → ${riskScore}점</b> (2점 개선)
+    </div>
+  `;
+
+  // 코치 메시지 업데이트
+  const msgs = {
+    A: '오늘 혈당 기록을 확인했어요. 식후 혈당이 조금 높은 편이니, 저녁 식사량을 줄여보는 건 어떨까요?',
+    B: '오늘 데이터를 분석했어요. 수면과 운동에서 개선할 부분이 보입니다.',
+    C: '예방 관리를 잘하고 계세요! 이번 주 아침 식사 습관이 특히 좋았어요.'
+  };
+  const el = document.getElementById('coach-msg');
+  if (el) el.textContent = msgs[userGroup] || msgs.B;
+}
+
+function getCoachCards() {
+  const allCards = {
+    A: [
+      { icon:'💤', iconBg:'#DBEAFE', title:'오늘 수면이 부족했어요', reason:'어제 5시간 수면 — 수면 부족은 인슐린 저항성을 높여 혈당 조절을 어렵게 합니다.', action:'오늘 밤 11시 전에 취침해보세요. 자기 30분 전 스마트폰을 내려놓으면 수면의 질이 30% 향상됩니다.', effect:'혈당 변동폭 10~15% 감소', effectBg:'#D1FAE5', effectColor:'#059669' },
+      { icon:'🏃', iconBg:'#FEF3C7', title:'식후 가벼운 산책 추천', reason:'오늘 운동 기록이 없어요. 식후 10분 걷기만으로도 혈당 스파이크를 줄일 수 있어요.', action:'점심 식사 후 10분 산책을 해보세요. 계단 오르기도 좋습니다.', effect:'식후 혈당 20~30% 감소', effectBg:'#FEF3C7', effectColor:'#92400E' },
+    ],
+    B: [
+      { icon:'💤', iconBg:'#DBEAFE', title:'수면 패턴 개선이 필요해요', reason:'이번 주 평균 수면 5.5시간 — 7시간 미만 수면은 당뇨 위험을 1.3배 높입니다.', action:'"11시 전 취침 챌린지"에 참여해보세요. 3일만 연속하면 습관이 됩니다.', effect:'위험도 점수 1~2점 개선 가능', effectBg:'#D1FAE5', effectColor:'#059669' },
+      { icon:'🏃', iconBg:'#ECFDF5', title:'운동량을 늘려볼까요?', reason:'이번 주 운동 1회 — 목표 3회에 못 미치고 있어요.', action:'내일 퇴근 후 20분 빠르게 걷기부터 시작해보세요. 엘리베이터 대신 계단도 좋아요.', effect:'주 3회 운동 시 위험도 2점 개선', effectBg:'#DBEAFE', effectColor:'#1E40AF' },
+    ],
+    C: [
+      { icon:'🥗', iconBg:'#ECFDF5', title:'채소 섭취를 늘려보세요', reason:'이번 주 채소 섭취 점수 40% — 식이섬유는 혈당 흡수를 느리게 합니다.', action:'매 식사에 채소 반찬을 1개 이상 추가해보세요. 샐러드나 나물이 좋아요.', effect:'식후 혈당 상승 15% 감소', effectBg:'#D1FAE5', effectColor:'#059669' },
+      { icon:'💤', iconBg:'#DBEAFE', title:'수면 시간을 조금 더 확보하세요', reason:'평균 5.5시간 수면 — 건강한 성인에게도 7시간이 권장됩니다.', action:'취침 30분 전 스마트폰 대신 가벼운 스트레칭을 해보세요.', effect:'전반적인 건강 지표 개선', effectBg:'#EFF6FF', effectColor:'#1E40AF' },
+    ]
+  };
+  return allCards[userGroup] || allCards.B;
+}
+
+
+// ══════════════════════════════════════
+// 챌린지 탭 — 생활습관 챌린지 + 게이미피케이션
+// ══════════════════════════════════════
+
+const allChallenges = [
+  {
+    id: 'walk-7000',
+    emoji: '🚶',
+    name: '매일 7,000보 걷기',
+    desc: '하루 7,000보는 당뇨 예방에 가장 효과적인 최소 활동량입니다. 산책, 출퇴근 걷기 모두 포함됩니다.',
+    difficulty: '쉬움',
+    duration: '2주',
+    forGroups: ['A','B','C'],
+    riskFactor: '운동 부족',
+    reward: 300,
+    progress: 71,
+    daysCompleted: 10,
+    totalDays: 14,
+    streak: 5,
+    active: true,
+  },
+  {
+    id: 'sleep-11pm',
+    emoji: '🌙',
+    name: '11시 전 취침 챌린지',
+    desc: '수면은 혈당 조절의 핵심입니다. 매일 밤 11시 전에 잠자리에 드는 습관을 만들어보세요.',
+    difficulty: '보통',
+    duration: '1주',
+    forGroups: ['A','B','C'],
+    riskFactor: '수면 부족',
+    reward: 200,
+    progress: 43,
+    daysCompleted: 3,
+    totalDays: 7,
+    streak: 3,
+    active: true,
+  },
+  {
+    id: 'no-sugar-drink',
+    emoji: '🥤',
+    name: '일주일 무설탕 음료 챌린지',
+    desc: '당 함유 음료를 물이나 무설탕 음료로 대체하세요. 혈당 스파이크를 30% 줄일 수 있습니다.',
+    difficulty: '보통',
+    duration: '1주',
+    forGroups: ['A','B','C'],
+    riskFactor: '식습관',
+    reward: 250,
+    progress: 100,
+    daysCompleted: 7,
+    totalDays: 7,
+    streak: 7,
+    active: false,
+    completed: true,
+  },
+  {
+    id: 'breakfast-streak',
+    emoji: '🍳',
+    name: '아침밥 5일 연속 도전',
+    desc: '아침 식사를 거르면 점심 때 혈당이 급상승합니다. 간단하게라도 아침을 챙겨보세요.',
+    difficulty: '쉬움',
+    duration: '5일',
+    forGroups: ['B','C'],
+    riskFactor: '식습관',
+    reward: 150,
+  },
+  {
+    id: 'strength-training',
+    emoji: '💪',
+    name: '주 2회 근력 운동',
+    desc: '근력 운동은 인슐린 감수성을 높여 혈당 조절을 돕습니다. 스쿼트, 팔굽혀펴기부터 시작해보세요.',
+    difficulty: '어려움',
+    duration: '4주',
+    forGroups: ['B','C'],
+    riskFactor: '운동 부족',
+    reward: 500,
+  },
+  {
+    id: 'veggie-first',
+    emoji: '🥗',
+    name: '채소 먼저 먹기',
+    desc: '식사할 때 채소를 먼저 먹으면 식후 혈당 상승을 15~30% 줄일 수 있습니다.',
+    difficulty: '쉬움',
+    duration: '2주',
+    forGroups: ['A','B','C'],
+    riskFactor: '식습관',
+    reward: 200,
+  },
+  {
+    id: 'glucose-log',
+    emoji: '📝',
+    name: '혈당 기록 챌린지',
+    desc: '하루 2회(공복, 식후) 혈당을 기록하세요. 패턴을 발견하면 관리가 훨씬 쉬워집니다.',
+    difficulty: '보통',
+    duration: '2주',
+    forGroups: ['A'],
+    riskFactor: '혈당 관리',
+    reward: 400,
+  },
+  {
+    id: 'weight-loss-1kg',
+    emoji: '⚖️',
+    name: '한 달 1kg 감량',
+    desc: '체중의 5~7%만 줄여도 당뇨 위험이 58% 감소합니다. 무리하지 않는 건강한 감량을 목표로 합니다.',
+    difficulty: '어려움',
+    duration: '4주',
+    forGroups: ['B','C'],
+    riskFactor: '체중',
+    reward: 600,
+  },
+];
+
+const allBadges = [
+  { emoji:'🌱', label:'첫 발걸음', earned:true },
+  { emoji:'🔥', label:'3일 연속', earned:true },
+  { emoji:'⭐', label:'첫 챌린지 완료', earned:true },
+  { emoji:'🏃', label:'운동왕', earned:true },
+  { emoji:'💤', label:'수면 마스터', earned:false },
+  { emoji:'🥗', label:'식단 챔피언', earned:false },
+  { emoji:'📊', label:'데이터 수집가', earned:false },
+  { emoji:'💪', label:'7일 연속', earned:false },
+  { emoji:'🏆', label:'챌린지 5개 완료', earned:false },
+  { emoji:'👑', label:'30일 연속', earned:false },
+  { emoji:'🌟', label:'1만 포인트', earned:false },
+  { emoji:'🎯', label:'위험도 개선', earned:false },
+];
+
+function updateChallengeData() {
+  // 설문 데이터 기반으로 챌린지 필터링은 이미 forGroups에 반영
+}
+
+function renderChallengeTab() {
+  // 진행 중 챌린지
+  const activeContainer = document.getElementById('active-challenges');
+  const activeChallenges = allChallenges.filter(c => c.active);
+  const completedChallenges = allChallenges.filter(c => c.completed);
+
+  let activeHtml = '';
+  activeChallenges.forEach(c => {
+    activeHtml += `
+      <div class="ch-card active-challenge">
+        <div class="ch-top">
+          <div class="ch-emoji">${c.emoji}</div>
+          <div class="ch-info">
+            <div class="ch-name">${c.name}</div>
+            <div class="ch-desc">${c.desc}</div>
+            <div class="ch-tags">
+              <span class="ch-tag difficulty">${c.difficulty}</span>
+              <span class="ch-tag duration">${c.duration}</span>
+              <span class="ch-tag group-tag">위험인자: ${c.riskFactor}</span>
+              <span class="ch-tag reward">+${c.reward}P</span>
+            </div>
+          </div>
+        </div>
+        <div class="ch-progress-area">
+          <div class="ch-progress-top">
+            <span class="ch-progress-label">${c.daysCompleted}일 / ${c.totalDays}일 완료</span>
+            <span class="ch-progress-pct">${c.progress}%</span>
+          </div>
+          <div class="ch-progress-bar"><div class="ch-progress-fill" style="width:${c.progress}%;"></div></div>
+        </div>
+        <div class="ch-bottom">
+          <span class="ch-streak">🔥 ${c.streak}일 연속</span>
+          <button class="ch-today-check" onclick="checkToday(this)">오늘 완료 ✓</button>
+        </div>
+      </div>
+    `;
+  });
+
+  // 완료된 챌린지
+  completedChallenges.forEach(c => {
+    activeHtml += `
+      <div class="ch-card completed-challenge">
+        <div class="ch-top">
+          <div class="ch-emoji">${c.emoji}</div>
+          <div class="ch-info">
+            <div class="ch-name">${c.name} <span style="font-size:11px;color:var(--accent);font-weight:600;">✓ 완료</span></div>
+            <div class="ch-desc">${c.desc}</div>
+            <div class="ch-tags">
+              <span class="ch-tag reward">+${c.reward}P 획득</span>
+            </div>
+          </div>
+        </div>
+        <div class="ch-progress-area">
+          <div class="ch-progress-bar"><div class="ch-progress-fill" style="width:100%;background:var(--accent);"></div></div>
+        </div>
+      </div>
+    `;
+  });
+  activeContainer.innerHTML = activeHtml;
+
+  // 추천 챌린지 (아직 활성화되지 않은 것)
+  const recContainer = document.getElementById('recommended-challenges');
+  const recommended = allChallenges.filter(c => !c.active && !c.completed && (!userGroup || c.forGroups.includes(userGroup)));
+
+  recContainer.innerHTML = recommended.slice(0, 4).map(c => `
+    <div class="ch-rec-card">
+      <div class="ch-rec-top">
+        <div class="ch-rec-emoji">${c.emoji}</div>
+        <div class="ch-rec-name">${c.name}</div>
+      </div>
+      <div class="ch-rec-reason">💡 "${c.riskFactor}" 위험인자 개선에 효과적입니다</div>
+      <div class="ch-rec-meta">
+        <span>${c.difficulty}</span> · <span>${c.duration}</span> · <span>+${c.reward}P</span>
+      </div>
+      <button class="ch-rec-btn" onclick="startChallenge(this)">챌린지 시작하기</button>
+    </div>
+  `).join('');
+
+  // 뱃지
+  const badgeContainer = document.getElementById('badge-grid');
+  badgeContainer.innerHTML = allBadges.map(b => `
+    <div class="badge-item ${b.earned ? 'earned' : 'locked'}">
+      <div class="badge-icon">${b.emoji}</div>
+      <div class="badge-label">${b.label}</div>
+    </div>
+  `).join('');
+}
+
+function checkToday(btn) {
+  btn.textContent = '완료됨 ✓';
+  btn.classList.add('done');
+}
+
+function startChallenge(btn) {
+  btn.textContent = '시작됨!';
+  btn.style.background = 'var(--accent)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--accent)';
+}
+
+
+// ══════════════════════════════════════
+// 렌더링 엔진 (설문)
+// ══════════════════════════════════════
+function renderStep() {
+  const s = steps[currentStep];
+  const body = document.getElementById('survey-body');
+  const footer = document.getElementById('survey-footer');
+
+  const visIdx = getVisibleIndex();
+  const visTotal = getVisibleTotal();
+
+  if (s.type !== 'completion') {
+    document.getElementById('sm-phase').textContent = s.phase;
+    document.getElementById('sm-title').textContent = s.phaseLabel;
+    document.getElementById('sm-step').textContent = (visIdx + 1) + '/' + visTotal;
+  }
+
+  const progress = Math.round(((visIdx + 1) / (visTotal + 1)) * 100);
+  document.getElementById('sm-progress').style.width = progress + '%';
+  document.getElementById('sm-back-btn').style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+
+  let html = '';
+
+  if (s.phaseMsg) {
+    html += '<div class="phase-msg">' + s.phaseMsg + '</div>';
+  }
+
+  // ── 카테고리 선택 ──
+  if (s.type === 'category') {
+    html += '<div class="q-title">' + s.title + '</div>';
+    if (s.sub) html += '<div class="q-sub">' + s.sub + '</div>';
+    html += '<div class="opt-list">';
+    s.options.forEach((o, i) => {
+      const cls = o.active ? 'opt-btn' : 'opt-btn disabled-opt';
+      html += '<div class="' + cls + '" onclick="selectCategory(this,' + o.active + ')">';
+      html += '<span class="em">' + o.emoji + '</span>';
+      html += '<div style="flex:1"><div style="font-weight:600;">' + o.label + '</div><div style="font-size:11px;color:var(--g400);margin-top:2px;">' + o.desc + '</div></div>';
+      if (o.active) {
+        html += '<span class="chk">✓</span>';
+      } else {
+        html += '<span class="coming-tag">준비 중</span>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    footer.innerHTML = '<button class="btn-next" onclick="surveyNext()">다음 →</button>';
+  }
+
+  // ── 단일 선택 ──
+  else if (s.type === 'single') {
+    html += '<div class="q-title">' + s.title + '</div>';
+    if (s.sub) html += '<div class="q-sub">' + s.sub + '</div>';
+    if (s.why) html += '<div class="q-why">💡 ' + s.why + '</div>';
+    html += '<div class="opt-list">';
+    s.options.forEach((o, i) => {
+      const cls = o.skip ? 'opt-btn skip' : 'opt-btn';
+      html += '<div class="' + cls + '" onclick="selectOpt(this,' + i + ')">';
+      if (o.emoji) html += '<span class="em">' + o.emoji + '</span> ';
+      html += '<span>' + o.label + '</span>';
+      if (o.recommended) html += '<span style="margin-left:8px;font-size:10px;background:var(--accent-light);color:var(--accent-dark);padding:2px 8px;border-radius:100px;font-weight:600;">추천</span>';
+      html += '<span class="chk">✓</span></div>';
+    });
+    html += '</div>';
+    footer.innerHTML = (currentStep > 0 ? '<button class="btn-prev" onclick="surveyPrev()">이전</button>' : '') +
+      '<button class="btn-next" onclick="surveyNext()">다음 →</button>';
+  }
+
+  // ── 그리드 선택 ──
+  else if (s.type === 'grid') {
+    html += '<div class="q-title">' + s.title + '</div>';
+    if (s.sub) html += '<div class="q-sub">' + s.sub + '</div>';
+    if (s.why) html += '<div class="q-why">💡 ' + s.why + '</div>';
+    s.groups.forEach((g, gi) => {
+      html += '<div class="grid-group"><div class="grid-lbl">' + g.label + '</div><div class="grid-row">';
+      g.options.forEach(o => {
+        html += '<div class="g-btn" onclick="selectGrid(this)">' + o + '</div>';
+      });
+      html += '</div></div>';
+      if (gi < s.groups.length - 1 && s.groups.length >= 3) {
+        html += '<div class="grid-divider"></div>';
+      }
+    });
+    footer.innerHTML = '<button class="btn-prev" onclick="surveyPrev()">이전</button><button class="btn-next" onclick="surveyNext()">다음 →</button>';
+  }
+
+  // ── 슬라이더 ──
+  else if (s.type === 'slider') {
+    html += '<div class="q-title">' + s.title + '</div>';
+    if (s.sub) html += '<div class="q-sub">' + s.sub + '</div>';
+    if (s.why) html += '<div class="q-why">💡 ' + s.why + '</div>';
+
+    html += '<div class="slider-hint">숫자를 클릭하면 직접 입력할 수 있어요</div>';
+
+    html += '<div class="slider-group">';
+    html += '<div class="slider-top"><span class="sl-lbl">키 (cm)</span><span class="sl-val" id="h-val" onclick="startDirectInput(\'h\')">' + heightVal + 'cm</span></div>';
+    html += '<input type="range" id="slider-h" min="140" max="200" value="' + heightVal + '" oninput="updateBMI()">';
+    html += '<div class="slider-range"><span>140</span><span>200</span></div></div>';
+
+    html += '<div class="slider-group">';
+    html += '<div class="slider-top"><span class="sl-lbl">몸무게 (kg)</span><span class="sl-val" id="w-val" onclick="startDirectInput(\'w\')">' + weightVal + 'kg</span></div>';
+    html += '<input type="range" id="slider-w" min="35" max="150" value="' + weightVal + '" oninput="updateBMI()">';
+    html += '<div class="slider-range"><span>35</span><span>150</span></div></div>';
+
+    const bmi = (weightVal / ((heightVal/100)**2)).toFixed(1);
+    let bmiLabel, bmiColor, bmiBg;
+    if (bmi < 18.5) { bmiLabel='저체중'; bmiColor='#0284C7'; bmiBg='#E0F2FE'; }
+    else if (bmi < 23) { bmiLabel='정상'; bmiColor='#059669'; bmiBg='#D1FAE5'; }
+    else if (bmi < 25) { bmiLabel='과체중'; bmiColor='#B45309'; bmiBg='#FEF3C7'; }
+    else { bmiLabel='비만'; bmiColor='#DC2626'; bmiBg='#FEE2E2'; }
+    html += '<div class="bmi-box" id="bmi-result" style="background:' + bmiBg + ';color:' + bmiColor + ';">BMI ' + bmi + ' — ' + bmiLabel + '</div>';
+
+    footer.innerHTML = '<button class="btn-prev" onclick="surveyPrev()">이전</button><button class="btn-next" onclick="surveyNext()">다음 →</button>';
+  }
+
+  // ── 칩 (복수 선택) ──
+  else if (s.type === 'chip') {
+    html += '<div class="q-title">' + s.title + '</div>';
+    if (s.sub) html += '<div class="q-sub">' + s.sub + '</div>';
+    if (s.why) html += '<div class="q-why">💡 ' + s.why + '</div>';
+    html += '<div class="chip-list">';
+    s.options.forEach(o => {
+      html += '<div class="chip" onclick="toggleChip(this)">' + o + '</div>';
+    });
+    html += '</div>';
+    footer.innerHTML = '<button class="btn-prev" onclick="surveyPrev()">이전</button><button class="btn-next" onclick="surveyNext()">다음 →</button>';
+  }
+
+  // ── 완료 화면 ──
+  else if (s.type === 'completion') {
+    document.getElementById('sm-phase').textContent = '완료';
+    document.getElementById('sm-title').textContent = '';
+    document.getElementById('sm-step').textContent = '';
+    document.getElementById('sm-progress').style.width = '100%';
+
+    const score = calculateRiskScore();
+    const risk = getRiskLevel(score);
+    const groupNames = { A:'A. 관리형 (당뇨 진단)', B:'B. 주의형 (전당뇨)', C:'C. 예방형' };
+    const groupClass = { A:'group-a', B:'group-b', C:'group-c' };
+    const bmi = (weightVal / ((heightVal/100)**2)).toFixed(1);
+    const profile = (selectedAge || '미선택') + ' ' + (selectedGender || '');
+
+    html += '<div class="complete-area">';
+    html += '<div class="complete-emoji">🎉</div>';
+    html += '<div class="complete-title">프로필이 완성되었어요!</div>';
+    html += '<div class="complete-sub">수집된 정보로 맞춤 분석을 준비했습니다</div>';
+
+    html += '<div class="group-badge ' + (groupClass[userGroup] || '') + '">' + (groupNames[userGroup] || '미분류') + '</div>';
+
+    html += '<div class="summary-card"><h4>📋 나의 요약</h4>';
+    html += '<div class="s-row"><span class="sl">분류</span><span class="sv">' + (groupNames[userGroup] || '-') + '</span></div>';
+    html += '<div class="s-row"><span class="sl">프로필</span><span class="sv">' + profile + '</span></div>';
+    html += '<div class="s-row"><span class="sl">BMI</span><span class="sv">' + bmi + '</span></div>';
+    html += '<div class="s-row"><span class="sl">AI 건강질문</span><span class="sv">' + (answers['ai-consent'] || '미선택') + '</span></div>';
+    html += '</div>';
+
+    html += '<div class="risk-result" style="background:' + risk.bg + ';color:' + risk.color + ';">';
+    html += '<span class="rg">' + risk.label + '</span>';
+    html += '점수 ' + score + '/22 — ';
+    if (score <= 7) html += '현재 좋은 상태입니다. 꾸준히 유지해주세요!';
+    else if (score <= 14) html += '생활습관 개선이 도움이 됩니다';
+    else html += '전문의 상담을 권장합니다';
+    html += '</div>';
+
+    html += '</div>';
+    footer.innerHTML = '<button class="btn-done" style="flex:1;" onclick="goToMain()">다나아 AI 시작하기 →</button>';
+  }
+
+  body.innerHTML = html;
+  body.scrollTop = 0;
+}
+</script>
+
+</body>
+</html>
