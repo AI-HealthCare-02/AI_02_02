@@ -214,7 +214,7 @@ DB 모델이 바뀌는 경우
   - 챌린지: `challenge_templates`, `user_challenges`, `challenge_checkins`
   - 설정: `user_settings`
   - AI 채팅: `chat_sessions`, `chat_messages`
-- 설계 문서: `docs/collaboration/DANAA_DB명세최종확정안_2026-04-02.md`, `docs/collaboration/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx`
+- 설계 문서: `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md`, `docs/collaboration/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx`
 
 ---
 

@@ -2,6 +2,9 @@
 
 > **이 문서는 뭔가요?** "어떤 파일을 고치면 다른 어떤 파일도 같이 고쳐야 하는지" 알려주는 안내서입니다.
 > 식당 비유: 메뉴판을 바꾸면 → 레시피북도 바꾸고 → 주문서 양식도 바꿔야 손님한테 잘못된 음식이 안 나가는 것과 같아요.
+>
+> **참고**: 이 문서의 "단계"는 기술 문서(`.claude/rules/doc-sync.md`)의 "계층"과 같은 뜻이에요.
+> 전체 문서 목록은 [문서 관리 대장](../DOCUMENT_REGISTRY.md)에서 확인할 수 있어요.
 
 ---
 
@@ -14,20 +17,21 @@
        │
        ▼
 [2단계: 저장소 설계]
-  DANAA_DB명세최종확정안_2026-04-02.md (데이터를 어떻게 저장할지)
-  DANAA_DB명세확정안_엑셀_2026-04-02.xlsx (같은 내용 엑셀 버전)
+  docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md (데이터를 어떻게 저장할지)
+  docs/collaboration/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx (같은 내용 엑셀 버전)
        │
        ▼
 [3단계: 주고받기 규칙]
-  DANAA_API최종확정안_2026-04-02.md (프론트↔백엔드가 데이터 주고받는 형식)
+  docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md (프론트↔백엔드가 데이터 주고받는 형식)
        │
        ▼
 [4단계: 참고 자료]
-  설계가이드V3.html, LLM파트가이드.html, design-context.md 등
+  docs/prototypes/설계가이드V3.html, LLM파트가이드.html, .claude/rules/ 등
        │
        ▼
 [5단계: 실제 코드]
-  app/models/, apps/web/data/diabetes.js 등
+  app/models/, app/dtos/, app/services/, app/apis/ 등
+  app/tests/, scripts/ (테스트)
 ```
 
 **핵심**: 항상 위에서 아래로 수정을 전파해요. 3단계(API)를 먼저 고치고 1단계(질문)를 나중에 고치면 안 돼요.
@@ -38,10 +42,10 @@
 
 | 내가 고친 파일 | 같이 확인해야 하는 파일들 |
 |:---|:---|
-| **매일수집질문_DB설계.md** | DANAA_DB명세최종확정안.md, DB엑셀, DANAA_API최종확정안.md, diabetes.js, 코드(models/dtos), rules/ |
-| **온보딩설문플랜.md** | 매일수집질문.md, DANAA_DB명세최종확정안.md, DB엑셀, DANAA_API최종확정안.md, diabetes.js |
-| **DANAA_DB명세최종확정안.md** | DB엑셀, DANAA_API최종확정안.md, 코드(models/dtos) |
-| **DANAA_API최종확정안.md** | diabetes.js, 코드(apis/dtos) |
+| **매일수집질문_DB설계.md** | DB명세 V2, DB엑셀, API명세 V2, diabetes.js, 코드(models/dtos), rules/ |
+| **온보딩설문플랜.md** | 매일수집질문.md, DB명세 V2, DB엑셀, API명세 V2, diabetes.js |
+| **DB명세 V2** | DB엑셀, API명세 V2, 코드(models/dtos) |
+| **API명세 V2** | diabetes.js, 코드(apis/dtos) |
 
 ---
 

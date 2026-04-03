@@ -289,8 +289,10 @@ uv run pytest app/tests/unit/ -v    # DB 없이 31개
 | 프로젝트 구조 이해 | `docs/ARCHITECTURE.md` |
 | Git/커밋 규칙 | `docs/DEVELOPMENT_WORKFLOWS.md` |
 | 에러 발생 | `docs/TROUBLESHOOTING.md` |
-| API 스펙 확인 | `docs/collaboration/DANAA_API최종확정안_2026-04-02.md` |
-| DB 구조 확인 | `docs/collaboration/DANAA_DB명세최종확정안_2026-04-02.md` |
+| API 스펙 확인 | `docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md` |
+| DB 구조 확인 | `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md` |
+| 문서 동기화 규칙 | `docs/collaboration/doc-sync-map.md` |
+| 문서 목록 대장 | `docs/DOCUMENT_REGISTRY.md` |
 | 전체 인수인계 | `docs/HANDOFF_MEMO.md` |
 | LLM 파트 구현 | `LLM-파트-시작-가이드.md` |
 

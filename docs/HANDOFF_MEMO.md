@@ -430,10 +430,10 @@ HIBERNATING (마지막 응답 > 30일)
   docs/planning/다나아_당뇨_온보딩_설문_플랜.md (UX)
        ↓
 [계층 2: 파생]
-  docs/collaboration/DANAA_DB명세최종확정안_2026-04-02.md
+  docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md
        ↓
 [계층 3: 계약]
-  docs/collaboration/DANAA_API최종확정안_2026-04-02.md
+  docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md
        ↓
 [계층 4: 참조]
   docs/prototypes/다나아_데이터수집_설계가이드V3.html (10탭)
