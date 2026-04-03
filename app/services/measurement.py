@@ -9,19 +9,27 @@ from app.dtos.health import (
 )
 from app.models.health import PeriodicMeasurement
 
+_UNIT_MAP: dict[str, str] = {
+    "weight": "kg",
+    "waist": "cm",
+    "blood_pressure": "mmHg",
+    "hba1c": "%",
+    "fasting_glucose": "mg/dL",
+}
+
 
 class MeasurementService:
     """주기적 측정값 CRUD."""
 
-    async def create(
-        self, user_id: int, data: MeasurementCreateRequest
-    ) -> MeasurementResponse:
+    async def create(self, user_id: int, data: MeasurementCreateRequest) -> MeasurementResponse:
         """측정값 저장."""
+        unit = _UNIT_MAP.get(data.measurement_type, "")
         m = await PeriodicMeasurement.create(
             user_id=user_id,
             measurement_type=data.measurement_type,
             numeric_value=data.numeric_value,
             numeric_value_2=data.numeric_value_2,
+            unit=unit,
             source=data.source,
             measured_at=data.measured_at,
         )

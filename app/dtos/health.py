@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import DataSource, MeasurementSource, MeasurementType
 
@@ -42,15 +43,19 @@ class DailyLogResponse(BaseModel):
 class DailyLogPatchRequest(BaseModel):
     """일일 건강 기록 직접입력 요청."""
 
-    model_config = {"json_schema_extra": {"example": {
-        "source": "direct",
-        "sleep_quality": "good",
-        "breakfast_status": "hearty",
-        "exercise_done": True,
-        "exercise_type": "walking",
-        "exercise_minutes": 30,
-        "water_cups": 5,
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "source": "direct",
+                "sleep_quality": "good",
+                "breakfast_status": "hearty",
+                "exercise_done": True,
+                "exercise_type": "walking",
+                "exercise_minutes": 30,
+                "water_cups": 5,
+            }
+        }
+    }
 
     source: DataSource = DataSource.DIRECT
     # 모든 필드 optional — 보낸 필드만 저장
@@ -99,9 +104,15 @@ class MissingDatesResponse(BaseModel):
 
 
 class BatchEntryRequest(BaseModel):
-    """소급입력 단일 항목."""
+    """소급입력 단일 항목.
 
-    log_date: date
+    원본 API명세: "date" 필드명. 내부: "log_date".
+    """
+
+    model_config = {"populate_by_name": True}
+
+    log_date: date = Field(validation_alias="date")
+    source: str | None = None  # 명세에서 전송 가능, 서버는 항상 backfill로 강제
     sleep_quality: str | None = None
     sleep_duration_bucket: str | None = None
     breakfast_status: str | None = None
@@ -139,20 +150,50 @@ class BatchResponse(BaseModel):
 
 
 class MeasurementCreateRequest(BaseModel):
-    """주기적 측정값 생성 요청."""
+    """주기적 측정값 생성 요청.
 
-    model_config = {"json_schema_extra": {"example": {
-        "measurement_type": "weight",
-        "numeric_value": 78.5,
-        "source": "manual",
-        "measured_at": "2026-04-02T09:00:00+09:00",
-    }}}
+    원본 API명세 필드명(value/systolic/diastolic)과
+    내부 필드명(numeric_value/numeric_value_2) 모두 허용.
+    """
+
+    model_config = {
+        "populate_by_name": True,
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "measurement_type": "weight",
+                    "value": 79.5,
+                    "unit": "kg",
+                    "measured_at": "2026-04-02T08:00:00+09:00",
+                },
+                {
+                    "measurement_type": "blood_pressure",
+                    "systolic": 128,
+                    "diastolic": 82,
+                    "unit": "mmHg",
+                    "measured_at": "2026-04-02T08:00:00+09:00",
+                },
+            ]
+        },
+    }
 
     measurement_type: MeasurementType
-    numeric_value: float
-    numeric_value_2: float | None = None  # 혈압 이완기용
+    numeric_value: float = Field(validation_alias="value")
+    numeric_value_2: float | None = Field(None, validation_alias="diastolic")
+    unit: str | None = None
     source: MeasurementSource = MeasurementSource.MANUAL
     measured_at: datetime
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_bp(cls, data: Any) -> Any:
+        """혈압의 systolic → value 변환, numeric_value 직접 전송도 허용."""
+        if isinstance(data, dict):
+            if "systolic" in data and "value" not in data and "numeric_value" not in data:
+                data["value"] = data.pop("systolic")
+            if "numeric_value" in data and "value" not in data:
+                data["value"] = data.pop("numeric_value")
+        return data
 
 
 class MeasurementResponse(BaseModel):

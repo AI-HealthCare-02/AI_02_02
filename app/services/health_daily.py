@@ -25,12 +25,24 @@ from app.services.health_question import FIELD_TO_SOURCE
 
 # 데이터 필드 목록 (18개)
 DATA_FIELDS: list[str] = [
-    "sleep_quality", "sleep_duration_bucket",
-    "breakfast_status", "lunch_status", "dinner_status",
-    "vegetable_intake_level", "meal_balance_level", "sweetdrink_level",
-    "exercise_done", "exercise_type", "exercise_minutes", "walk_done",
-    "water_cups", "nightsnack_level", "took_medication", "mood_level",
-    "alcohol_today", "alcohol_amount_level",
+    "sleep_quality",
+    "sleep_duration_bucket",
+    "breakfast_status",
+    "lunch_status",
+    "dinner_status",
+    "vegetable_intake_level",
+    "meal_balance_level",
+    "sweetdrink_level",
+    "exercise_done",
+    "exercise_type",
+    "exercise_minutes",
+    "walk_done",
+    "water_cups",
+    "nightsnack_level",
+    "took_medication",
+    "mood_level",
+    "alcohol_today",
+    "alcohol_amount_level",
 ]
 
 
@@ -67,9 +79,7 @@ def _empty_log_response(log_date: date) -> DailyLogResponse:
 class HealthDailyService:
     """일일 건강 데이터 CRUD."""
 
-    async def get_daily_log(
-        self, user_id: int, log_date: date
-    ) -> DailyLogResponse:
+    async def get_daily_log(self, user_id: int, log_date: date) -> DailyLogResponse:
         """특정 날짜 건강 기록 조회."""
         log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=log_date)
         if not log:
@@ -78,9 +88,7 @@ class HealthDailyService:
 
     MAX_BACKFILL_DAYS = 3
 
-    async def patch_daily_log(
-        self, user_id: int, log_date: date, data: DailyLogPatchRequest
-    ) -> DailyLogPatchResponse:
+    async def patch_daily_log(self, user_id: int, log_date: date, data: DailyLogPatchRequest) -> DailyLogPatchResponse:
         """직접입력으로 건강 기록 저장 (First Answer Wins)."""
         today = date.today()
         if log_date > today:
@@ -95,7 +103,8 @@ class HealthDailyService:
             )
 
         log, _created = await DailyHealthLog.get_or_create(
-            user_id=user_id, log_date=log_date,
+            user_id=user_id,
+            log_date=log_date,
         )
 
         # 입력 데이터에서 보내지 않은 필드 제외
@@ -139,9 +148,7 @@ class HealthDailyService:
             challenge_update=None,  # TODO: 챌린지 자동 체크인 연동
         )
 
-    async def get_missing_dates(
-        self, user_id: int, lookback_days: int = 7
-    ) -> MissingDatesResponse:
+    async def get_missing_dates(self, user_id: int, lookback_days: int = 7) -> MissingDatesResponse:
         """미입력 날짜 목록 조회."""
         today = date.today()
         entries: list[MissingDateEntry] = []
@@ -149,56 +156,56 @@ class HealthDailyService:
         for i in range(1, lookback_days + 1):
             target_date = today - timedelta(days=i)
             log = await DailyHealthLog.get_or_none(
-                user_id=user_id, log_date=target_date,
+                user_id=user_id,
+                log_date=target_date,
             )
 
             if not log:
-                entries.append(MissingDateEntry(
-                    date=target_date,
-                    missing_fields=list(DATA_FIELDS),
-                    answered_fields=[],
-                    completion_rate=0.0,
-                ))
+                entries.append(
+                    MissingDateEntry(
+                        date=target_date,
+                        missing_fields=list(DATA_FIELDS),
+                        answered_fields=[],
+                        completion_rate=0.0,
+                    )
+                )
                 continue
 
-            answered = [
-                f for f in DATA_FIELDS if getattr(log, f, None) is not None
-            ]
-            missing = [
-                f for f in DATA_FIELDS if getattr(log, f, None) is None
-            ]
+            answered = [f for f in DATA_FIELDS if getattr(log, f, None) is not None]
+            missing = [f for f in DATA_FIELDS if getattr(log, f, None) is None]
             rate = round(len(answered) / len(DATA_FIELDS), 2)
             if rate < 1.0:
-                entries.append(MissingDateEntry(
-                    date=target_date,
-                    missing_fields=missing,
-                    answered_fields=answered,
-                    completion_rate=rate,
-                ))
+                entries.append(
+                    MissingDateEntry(
+                        date=target_date,
+                        missing_fields=missing,
+                        answered_fields=answered,
+                        completion_rate=rate,
+                    )
+                )
 
         return MissingDatesResponse(missing_dates=entries)
 
-    async def batch_save(
-        self, user_id: int, data: BatchRequest
-    ) -> BatchResponse:
+    async def batch_save(self, user_id: int, data: BatchRequest) -> BatchResponse:
         """소급입력 (여러 날짜 한번에)."""
         results: list[dict] = []
 
         for entry in data.entries:
             patch_data = DailyLogPatchRequest(
                 source=DataSource.BACKFILL,
-                **entry.model_dump(exclude={"log_date"}, exclude_none=True),
+                **entry.model_dump(exclude={"log_date", "source"}, exclude_none=True),
             )
             result = await self.patch_daily_log(
-                user_id=user_id, log_date=entry.log_date, data=patch_data,
+                user_id=user_id,
+                log_date=entry.log_date,
+                data=patch_data,
             )
-            results.append({
-                "log_date": str(entry.log_date),
-                "field_results": result.field_results,
-            })
+            results.append(
+                {
+                    "log_date": str(entry.log_date),
+                    "field_results": result.field_results,
+                }
+            )
 
-        saved_count = sum(
-            1 for r in results
-            if any(v == "accepted" for v in r["field_results"].values())
-        )
+        saved_count = sum(1 for r in results if any(v == "accepted" for v in r["field_results"].values()))
         return BatchResponse(saved_count=saved_count, results=results)
