@@ -1,84 +1,83 @@
-from datetime import datetime
+"""AI 채팅 API 엔드포인트.
+
+1. POST /api/v1/chat/send — 메시지 전송 + AI 응답 (SSE 스트림)
+2. GET /api/v1/chat/history — 대화 기록 조회
+3. POST /api/v1/chat/health-answer — 건강질문 답변 제출
+"""
+
 from typing import Annotated
-from uuid import uuid4
 
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import ORJSONResponse as Response, StreamingResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import JSONResponse as Response
+from fastapi.responses import StreamingResponse
 
-from app.dependencies.security import get_request_token_payload
+from app.dependencies.security import get_request_user
+from app.dtos.chat import HealthAnswerRequest, SendMessageRequest
+from app.middleware.rate_limit import limiter
+from app.models.users import User
+from app.services.chat import ChatService
 
 chat_router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-class ChatSessionCreateResponse(BaseModel):
-    session_id: str
-    created_at: datetime
-
-
-class ChatMessageRequest(BaseModel):
-    session_id: str
-    content: str
-
-
-class ChatMessageItem(BaseModel):
-    role: str
-    content: str
-    sent_at: datetime
-
-
-class ChatMessagesResponse(BaseModel):
-    messages: list[ChatMessageItem]
-    has_more: bool
-
-
-@chat_router.post("/sessions", response_model=ChatSessionCreateResponse, status_code=status.HTTP_201_CREATED)
-async def create_chat_session(_: Annotated[dict, Depends(get_request_token_payload)]) -> Response:
-    response = ChatSessionCreateResponse(
-        session_id=str(uuid4()),
-        created_at=datetime.fromisoformat("2026-04-01T10:00:00+09:00"),
-    )
-    return Response(response.model_dump(mode="json"), status_code=status.HTTP_201_CREATED)
-
-
-@chat_router.post("/messages", status_code=status.HTTP_200_OK)
-async def stream_chat_message(
-    request: ChatMessageRequest,
-    _: Annotated[dict, Depends(get_request_token_payload)],
+@chat_router.post("/send")
+@limiter.limit("20/minute")
+async def send_message(
+    request: Request,
+    body: SendMessageRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    chat_service: Annotated[ChatService, Depends(ChatService)],
 ) -> StreamingResponse:
-    events = [
-        'event: token\ndata: {"text": "잘"}\n\n',
-        'event: token\ndata: {"text": "하셨어요"}\n\n',
-        (
-            'event: health_questions\ndata: {"bundle_key":"bundle_4","questions":'
-            '[{"field":"exercise","question":"어떤 운동을 하셨나요?","options":["걷기","달리기","자전거"]}]}\n\n'
+    """사용자 메시지를 보내고 AI 응답을 SSE 스트리밍으로 받음."""
+    return StreamingResponse(
+        chat_service.send_message_stream(
+            user_id=user.id,
+            message=body.message,
+            session_id=body.session_id,
         ),
-        (
-            'event: done\ndata: {"session_id":"%s","sent_at":"2026-04-01T10:00:05+09:00"}\n\n'
-            % request.session_id
-        ),
-    ]
-    return StreamingResponse(iter(events), media_type="text/event-stream")
-
-
-@chat_router.get("/sessions/{session_id}/messages", response_model=ChatMessagesResponse, status_code=status.HTTP_200_OK)
-async def get_chat_messages(
-    session_id: str,
-    _: Annotated[dict, Depends(get_request_token_payload)],
-) -> Response:
-    response = ChatMessagesResponse(
-        messages=[
-            ChatMessageItem(
-                role="user",
-                content="오늘 아침에 운동했어요",
-                sent_at=datetime.fromisoformat("2026-04-01T10:00:00+09:00"),
-            ),
-            ChatMessageItem(
-                role="assistant",
-                content=f"{session_id} 세션 기준으로 운동 기록을 도와드릴게요.",
-                sent_at=datetime.fromisoformat("2026-04-01T10:00:05+09:00"),
-            ),
-        ],
-        has_more=False,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
-    return Response(response.model_dump(mode="json"), status_code=status.HTTP_200_OK)
+
+
+@chat_router.get("/history")
+async def get_history(
+    user: Annotated[User, Depends(get_request_user)],
+    chat_service: Annotated[ChatService, Depends(ChatService)],
+    session_id: int = Query(...),
+    limit: int = Query(50, ge=1, le=100),
+    before_id: int | None = Query(None),
+) -> Response:
+    """대화 기록 조회 (커서 기반 페이지네이션)."""
+    result = await chat_service.get_history(
+        user_id=user.id,
+        session_id=session_id,
+        limit=limit,
+        before_id=before_id,
+    )
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@chat_router.post("/health-answer")
+async def submit_health_answer(
+    request: HealthAnswerRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    chat_service: Annotated[ChatService, Depends(ChatService)],
+) -> Response:
+    """건강질문 답변 제출."""
+    result = await chat_service.save_health_answer(
+        user_id=user.id,
+        bundle_key=request.bundle_key,
+        answers=request.answers,
+    )
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )

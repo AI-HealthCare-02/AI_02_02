@@ -1,0 +1,4 @@
+# Add Python packages for local scripts here.
+# Example:
+# pandas==2.3.0
+# requests==2.32.0

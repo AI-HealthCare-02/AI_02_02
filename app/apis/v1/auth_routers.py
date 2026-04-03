@@ -1,35 +1,41 @@
-from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse as Response
 
 from app.core import config
 from app.core.config import Env
-from app.dependencies.security import get_request_token_payload
+from app.dependencies.security import get_request_user
 from app.dtos.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
-from app.domains.health.schemas import ConsentRequest, ConsentResponse
+from app.dtos.onboarding import ConsentRequest
+from app.middleware.rate_limit import limiter
+from app.models.users import User
 from app.services.auth import AuthService
 from app.services.jwt import JwtService
+from app.services.onboarding import OnboardingService
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/minute")
 async def signup(
-    request: SignUpRequest,
+    request: Request,
+    body: SignUpRequest,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    await auth_service.signup(request)
+    await auth_service.signup(body)
     return Response(content={"detail": "회원가입이 성공적으로 완료되었습니다."}, status_code=status.HTTP_201_CREATED)
 
 
 @auth_router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
 async def login(
-    request: LoginRequest,
+    request: Request,
+    body: LoginRequest,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    user = await auth_service.authenticate(request)
+    user = await auth_service.authenticate(body)
     tokens = await auth_service.login(user)
     resp = Response(
         content=LoginResponse(access_token=str(tokens["access_token"])).model_dump(), status_code=status.HTTP_200_OK
@@ -39,8 +45,9 @@ async def login(
         value=str(tokens["refresh_token"]),
         httponly=True,
         secure=True if config.ENV == Env.PROD else False,
+        samesite="Lax",
         domain=config.COOKIE_DOMAIN or None,
-        expires=tokens["access_token"].payload["exp"],
+        expires=tokens["refresh_token"].payload["exp"],
     )
     return resp
 
@@ -58,16 +65,15 @@ async def token_refresh(
     )
 
 
-@auth_router.post("/consent", response_model=ConsentResponse, status_code=status.HTTP_201_CREATED)
+@auth_router.post("/consent", status_code=status.HTTP_201_CREATED)
 async def save_consent(
     request: ConsentRequest,
-    _: Annotated[dict, Depends(get_request_token_payload)],
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[OnboardingService, Depends(OnboardingService)],
 ) -> Response:
-    if not all(request.model_dump().values()):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="모든 항목에 동의해야 합니다")
-
-    response = ConsentResponse(
-        detail="동의가 저장되었습니다.",
-        consented_at=datetime.fromisoformat("2026-04-01T10:00:00+09:00"),
+    """이용약관 동의 저장."""
+    result = await service.save_consent(user_id=user.id, data=request)
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_201_CREATED,
     )
-    return Response(content=response.model_dump(mode="json"), status_code=status.HTTP_201_CREATED)

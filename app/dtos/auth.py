@@ -8,6 +8,15 @@ from app.validators.user_validators import validate_birthday, validate_password,
 
 
 class SignUpRequest(BaseModel):
+    model_config = {"json_schema_extra": {"example": {
+        "email": "swagger@danaa.com",
+        "password": "Test1234!@",
+        "name": "홍길동",
+        "gender": "MALE",
+        "birth_date": "1990-01-01",
+        "phone_number": "010-9876-5432",
+    }}}
+
     email: Annotated[
         EmailStr,
         Field(None, max_length=40),
@@ -20,6 +29,11 @@ class SignUpRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
+    model_config = {"json_schema_extra": {"example": {
+        "email": "swagger@danaa.com",
+        "password": "Test1234!@",
+    }}}
+
     email: EmailStr
     password: Annotated[str, Field(min_length=8)]
 

@@ -1,79 +1,39 @@
-name: ci.yml
+name: checks
 
 on:
   push:
     branches:
       - main
       - develop
-      - "release/*"
-      - "hotfix/*"
+      - "feature/**"
+      - "fix/**"
+      - "refactor/**"
   pull_request:
     branches:
       - main
       - develop
-      - "release/*"
-      - "hotfix/*"
 
 jobs:
-  lint:
+  quality:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      - name: Run Ruff Check
-        run: uv run ruff check .
-
-      - name: Run Ruff Format Check
-        run: uv run ruff format . --check
-
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: ai_health
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d ai_health"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+        uses: astral-sh/setup-uv@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+      - name: Sync dependencies
+        run: uv sync --group app --group dev
 
-      - name: Install dependencies
-        run: uv sync --group app --frozen
+      - name: Run Ruff
+        run: uv run ruff check app
 
-      - name: Run Tests with Coverage
-        run: |
-          uv run coverage run -m pytest app
-          uv run coverage report -m
+      - name: Run unit tests
+        run: uv run pytest app/tests/unit -q

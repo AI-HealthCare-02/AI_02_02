@@ -1,0 +1,66 @@
+#!/bin/bash
+# commit-msg hook: 커밋 메시지 컨벤션 검증
+# 형식: <이모지> <타입>: <설명>
+# 예시: ✨ feat: 유저 로그인 기능 구현
+
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+COMMIT_MSG_FILE="$1"
+
+# 주석(#)과 빈 줄을 제거한 첫 번째 유효한 줄
+FIRST_LINE=$(grep -v '^#' "$COMMIT_MSG_FILE" | grep -v '^$' | head -1)
+
+if [ -z "$FIRST_LINE" ]; then
+  echo -e "${RED}[commit-msg] 커밋 메시지가 비어있습니다.${NC}"
+  exit 1
+fi
+
+# Merge 커밋 자동 통과
+if echo "$FIRST_LINE" | grep -qE '^Merge (branch|pull request|remote-tracking)'; then
+  exit 0
+fi
+
+# Revert 커밋 자동 통과
+if echo "$FIRST_LINE" | grep -qE '^Revert "'; then
+  exit 0
+fi
+
+# 허용 타입
+ALLOWED_TYPES="feat|fix|chore|style|docs|build|test|refactor|hotfix"
+
+# 패턴 검증: 이모지 + 타입: 설명
+if echo "$FIRST_LINE" | grep -qE "^.+ (${ALLOWED_TYPES}): .+$"; then
+  exit 0
+fi
+
+# 패턴 검증: 타입: 설명 (이모지 없이)
+if echo "$FIRST_LINE" | grep -qE "^(${ALLOWED_TYPES}): .+$"; then
+  exit 0
+fi
+
+# 검증 실패
+echo ""
+echo -e "${RED}========================================${NC}"
+echo -e "${RED}  커밋 메시지 형식이 올바르지 않습니다  ${NC}"
+echo -e "${RED}========================================${NC}"
+echo ""
+echo -e "${YELLOW}현재 메시지:${NC} $FIRST_LINE"
+echo ""
+echo -e "${YELLOW}올바른 형식:${NC} <이모지> <타입>: <설명>"
+echo ""
+echo -e "${YELLOW}사용 가능한 타입:${NC}"
+echo "  ✨ feat     : 새로운 기능 추가"
+echo "  🐛 fix      : 버그 수정"
+echo "  💡 chore    : 기능 추가 없이 코드 수정"
+echo "  🎨 style    : 코드 포매팅 수정"
+echo "  📝 docs     : 문서 수정"
+echo "  🚚 build    : 빌드 관련 파일 수정"
+echo "  ✅ test     : 테스트 코드 추가/변경"
+echo "  ♻️  refactor : 리팩터링"
+echo "  🚑 hotfix   : 긴급 수정"
+echo ""
+echo -e "${YELLOW}예시:${NC} ✨ feat: 유저 로그인 기능 구현"
+echo ""
+exit 1

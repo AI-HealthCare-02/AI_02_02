@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 — 프로젝트 아키텍처 완전 가이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+:root{
+  --primary:#0EA5E9;--primary-dark:#0284C7;--primary-light:rgba(14,165,233,.15);
+  --accent:#10B981;--accent-light:rgba(16,185,129,.15);
+  --warning:#F59E0B;--warning-light:rgba(245,158,11,.15);
+  --danger:#EF4444;--danger-light:rgba(239,68,68,.15);
+  --purple:#7C3AED;--purple-light:rgba(124,58,237,.15);
+  --orange:#F97316;--orange-light:rgba(249,115,22,.15);
+  --g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;
+  --g400:#94A3B8;--g500:#64748B;--g600:#475569;--g700:#334155;--g800:#1E293B;--g900:#0F172A;
+  --bg:#0F172A;--bg2:#1E293B;--bg3:#334155;
+  --text:#F1F5F9;--text2:#94A3B8;--text3:#64748B;
+  --border:#334155;--border2:#475569;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;word-break:keep-all;}
+.container{max-width:1100px;margin:0 auto;padding:40px 24px 100px;}
+
+/* ── NAV ── */
+.nav-wrap{position:sticky;top:0;z-index:100;background:rgba(15,23,42,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 0;}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;}
+.nav-tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.nav-tab{flex:1;min-width:90px;text-align:center;padding:11px 6px;border-radius:10px;font-size:11.5px;font-weight:700;cursor:pointer;transition:.2s;color:var(--text2);border:none;background:transparent;font-family:inherit;}
+.nav-tab:hover{background:var(--bg3);color:var(--text);}
+.nav-tab.active{background:var(--primary);color:#fff;box-shadow:0 0 16px rgba(14,165,233,.4);}
+
+/* ── SECTIONS ── */
+.section{display:none;}.section.active{display:block;}
+.sec-title{font-size:26px;font-weight:900;margin-bottom:6px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.sec-sub{font-size:13px;color:var(--text3);margin-bottom:28px;}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border-radius:18px;padding:24px;margin-bottom:16px;border:1px solid var(--border);}
+.card h3{font-size:15px;font-weight:800;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:var(--text);}
+.card p{font-size:13px;color:var(--text2);line-height:1.8;}
+.card-glow{box-shadow:0 0 30px rgba(14,165,233,.08);}
+.card-glow:hover{box-shadow:0 0 40px rgba(14,165,233,.18);border-color:var(--primary);transition:.3s;}
+
+/* ── GRID ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#0F172A 0%,#1a2a3a 50%,#0F172A 100%);border-radius:24px;padding:60px 40px;text-align:center;margin-bottom:40px;border:1px solid var(--border);position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 60% 40%,rgba(14,165,233,.07) 0%,transparent 60%);pointer-events:none;}
+.hero-badge{display:inline-block;background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:700;padding:5px 14px;border-radius:100px;margin-bottom:16px;border:1px solid rgba(14,165,233,.3);}
+.hero-title{font-size:38px;font-weight:900;line-height:1.25;margin-bottom:14px;}
+.hero-title span{background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{font-size:15px;color:var(--text2);margin-bottom:32px;line-height:1.8;}
+.hero-learn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:680px;margin:0 auto;}
+.hero-learn-card{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;transition:.2s;}
+.hero-learn-card:hover{background:rgba(14,165,233,.08);border-color:var(--primary);}
+.hero-learn-icon{font-size:24px;margin-bottom:6px;}
+.hero-learn-text{font-size:11.5px;color:var(--text2);font-weight:600;line-height:1.5;}
+
+/* ── WHY CARDS (아코디언) ── */
+.why-card{background:var(--bg2);border-radius:16px;margin-bottom:12px;border:1px solid var(--border);overflow:hidden;transition:.2s;}
+.why-card:hover{border-color:var(--border2);}
+.why-header{display:flex;align-items:center;gap:14px;padding:20px 22px;cursor:pointer;user-select:none;}
+.why-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.why-title-wrap{flex:1;}
+.why-title{font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px;}
+.why-tagline{font-size:11.5px;color:var(--text3);}
+.why-arrow{font-size:18px;color:var(--text3);transition:.3s;}
+.why-card.open .why-arrow{transform:rotate(180deg);}
+.why-body{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+.why-card.open .why-body{max-height:600px;}
+.why-body-inner{padding:0 22px 22px;}
+.analogy-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+.analogy-label{font-size:10px;font-weight:700;color:var(--warning);margin-bottom:4px;}
+.analogy-text{font-size:13px;color:var(--text2);line-height:1.7;}
+.tech-detail{font-size:12.5px;color:var(--text3);line-height:1.8;}
+
+/* ── MINDMAP ── */
+.mindmap-wrap{overflow-x:auto;padding:20px 0;}
+.mindmap{display:flex;flex-direction:column;align-items:center;gap:0;}
+.mm-center{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:18px;padding:18px 28px;font-size:16px;font-weight:900;text-align:center;box-shadow:0 0 30px rgba(14,165,233,.4);animation:mm-pulse 3s ease-in-out infinite;position:relative;z-index:2;min-width:180px;}
+@keyframes mm-pulse{0%,100%{box-shadow:0 0 30px rgba(14,165,233,.4)}50%{box-shadow:0 0 50px rgba(14,165,233,.6)}}
+.mm-center-sub{font-size:11px;font-weight:600;opacity:.8;margin-top:3px;}
+.mm-line-down{width:2px;height:32px;background:linear-gradient(to bottom,var(--primary),var(--accent));margin:0 auto;}
+.mm-branches{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;max-width:900px;position:relative;}
+.mm-branches::before{content:'';position:absolute;top:0;left:50%;width:2px;height:20px;background:linear-gradient(to bottom,var(--accent),transparent);transform:translateX(-50%);}
+.mm-branch{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.mm-node{border-radius:14px;padding:14px 16px;text-align:center;border:2px solid transparent;transition:.3s;cursor:default;width:100%;}
+.mm-node:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.mm-node-icon{font-size:24px;margin-bottom:4px;}
+.mm-node-name{font-size:13px;font-weight:800;}
+.mm-node-role{font-size:10.5px;opacity:.75;margin-top:2px;line-height:1.4;}
+.mm-connector{width:2px;height:16px;margin:0 auto;}
+.mm-children{display:flex;flex-direction:column;gap:6px;width:100%;}
+.mm-child{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:11px;color:var(--text2);text-align:left;}
+.mm-child::before{content:'▸ ';}
+
+/* node colors */
+.mm-n-client{background:rgba(124,58,237,.12);border-color:rgba(124,58,237,.4);}.mm-n-client:hover{border-color:var(--purple);}
+.mm-n-nginx{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.4);}.mm-n-nginx:hover{border-color:var(--orange);}
+.mm-n-fastapi{background:rgba(14,165,233,.12);border-color:rgba(14,165,233,.4);}.mm-n-fastapi:hover{border-color:var(--primary);}
+.mm-n-redis{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);}.mm-n-redis:hover{border-color:var(--danger);}
+.mm-n-ai{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.4);}.mm-n-ai:hover{border-color:var(--accent);}
+.mm-n-db{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);}.mm-n-db:hover{border-color:var(--warning);}
+
+/* ── COMPONENT CARDS (식당 비유) ── */
+.comp-card{background:var(--bg2);border-radius:18px;margin-bottom:14px;border:2px solid var(--border);overflow:hidden;transition:.2s;}
+.comp-header{display:flex;align-items:center;gap:16px;padding:22px 24px;cursor:pointer;}
+.comp-icon-wrap{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.comp-info{flex:1;}
+.comp-name{font-size:16px;font-weight:900;margin-bottom:2px;}
+.comp-role{font-size:12px;color:var(--text3);}
+.comp-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;white-space:nowrap;}
+.comp-expand-btn{font-size:18px;color:var(--text3);transition:.3s;}
+.comp-card.open .comp-expand-btn{transform:rotate(180deg);}
+.comp-body{max-height:0;overflow:hidden;transition:max-height .4s ease;}
+.comp-card.open .comp-body{max-height:1200px;}
+.comp-body-inner{padding:0 24px 24px;display:flex;flex-direction:column;gap:14px;}
+.rest-box{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);border-radius:12px;padding:16px;}
+.rest-label{font-size:10px;font-weight:700;color:var(--warning);margin-bottom:6px;}
+.rest-text{font-size:13px;color:var(--text2);line-height:1.8;}
+.simple-box{background:rgba(255,255,255,.03);border-radius:12px;padding:16px;}
+.simple-label{font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;}
+.simple-text{font-size:13px;color:var(--text2);line-height:1.8;}
+.file-box{background:rgba(14,165,233,.05);border:1px solid rgba(14,165,233,.2);border-radius:12px;padding:14px;}
+.file-label{font-size:10px;font-weight:700;color:var(--primary);margin-bottom:8px;}
+.file-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;font-size:12px;}
+.file-path{background:rgba(14,165,233,.1);color:var(--primary);border-radius:6px;padding:2px 8px;font-family:'Courier New',monospace;font-size:11px;white-space:nowrap;}
+.file-desc{color:var(--text3);}
+
+/* ── DATA FLOW ── */
+.flow-stage-row{display:flex;gap:10px;margin-bottom:32px;overflow-x:auto;padding:10px 0;}
+.flow-stage{flex:1;min-width:140px;background:var(--bg2);border-radius:16px;padding:18px 14px;text-align:center;border:2px solid var(--border);transition:.3s;cursor:pointer;}
+.flow-stage:hover,.flow-stage.active{border-color:var(--primary);background:rgba(14,165,233,.08);}
+.flow-stage.active .flow-num{background:var(--primary);color:#fff;}
+.flow-num{width:32px;height:32px;background:var(--bg3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;margin:0 auto 10px;transition:.3s;}
+.flow-stage-name{font-size:12px;font-weight:800;margin-bottom:4px;}
+.flow-stage-en{font-size:10px;color:var(--text3);}
+.flow-arrow{display:flex;align-items:center;color:var(--text3);font-size:20px;flex-shrink:0;}
+
+/* animated packet track */
+.flow-track-wrap{background:var(--bg2);border-radius:18px;padding:28px;margin-bottom:20px;border:1px solid var(--border);}
+.flow-track-label{font-size:12px;font-weight:700;color:var(--text3);margin-bottom:16px;}
+.flow-track{display:flex;align-items:center;gap:0;position:relative;background:var(--bg3);border-radius:100px;height:6px;margin-bottom:28px;}
+.flow-track-node{width:16px;height:16px;border-radius:50%;background:var(--bg3);border:2px solid var(--border2);position:relative;flex-shrink:0;transition:.3s;z-index:2;}
+.flow-track-seg{flex:1;height:100%;}
+.flow-packet{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--primary);top:50%;transform:translateY(-50%);box-shadow:0 0 12px var(--primary);animation:packet-travel 5s ease-in-out infinite;left:0;}
+.flow-packet.paused{animation-play-state:paused;}
+@keyframes packet-travel{
+  0%{left:0%;opacity:0;}5%{opacity:1;}
+  22%{left:22%;}40%{left:40%;}
+  58%{left:58%;}76%{left:76%;}
+  95%{left:95%;opacity:1;}100%{left:98%;opacity:0;}
+}
+.flow-packet-return{background:var(--accent);box-shadow:0 0 12px var(--accent);animation:packet-return 5s ease-in-out infinite 2.5s;left:98%;}
+@keyframes packet-return{
+  0%{left:98%;opacity:0;}5%{opacity:1;}
+  22%{left:76%;}40%{left:58%;}
+  95%{left:2%;opacity:1;}100%{left:0%;opacity:0;}
+}
+.flow-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);padding:0 0;}
+.flow-ctrl{display:flex;gap:8px;margin-bottom:20px;}
+.flow-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;}
+.flow-btn:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+/* step detail boxes */
+.step-detail{background:var(--bg2);border-radius:14px;padding:20px;margin-bottom:10px;border-left:4px solid var(--primary);}
+.step-detail h4{font-size:14px;font-weight:800;margin-bottom:8px;color:var(--text);}
+.step-detail p{font-size:13px;color:var(--text2);line-height:1.8;}
+.step-detail .step-num-badge{display:inline-block;background:var(--primary);color:#fff;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:900;margin-right:8px;}
+
+/* SSE legend */
+.sse-legend{display:flex;gap:20px;font-size:12px;color:var(--text2);margin-top:12px;}
+.sse-legend-item{display:flex;align-items:center;gap:6px;}
+.sse-dot{width:10px;height:10px;border-radius:50%;}
+
+/* ── DIRECTORY TREE ── */
+.dir-tree{font-family:'Courier New',monospace;font-size:13px;}
+.dir-tree details{margin-left:20px;}
+.dir-tree summary{cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:8px;list-style:none;color:var(--text2);transition:.15s;}
+.dir-tree summary::-webkit-details-marker{display:none;}
+.dir-tree summary:hover{background:rgba(14,165,233,.08);color:var(--text);}
+.dir-tree details[open]>summary{color:var(--text);}
+.dir-tree .dir-name{font-weight:700;}
+.dir-tree .file-name{font-weight:400;}
+.dir-tree .desc-chip{font-family:'Noto Sans KR',sans-serif;font-size:10px;font-weight:600;padding:2px 8px;border-radius:100px;white-space:normal;margin-left:4px;flex-shrink:0;}
+.dir-top-item{padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:8px;color:var(--text2);font-size:13px;}
+
+/* color coding */
+.c-be{color:#60A5FA;}.dc-be{background:rgba(96,165,250,.12);color:#60A5FA;}
+.c-fe{color:#34D399;}.dc-fe{background:rgba(52,211,153,.12);color:#34D399;}
+.c-inf{color:#FB923C;}.dc-inf{background:rgba(251,146,60,.12);color:#FB923C;}
+.c-doc{color:#A78BFA;}.dc-doc{background:rgba(167,139,250,.12);color:#A78BFA;}
+.c-cfg{color:#F472B6;}.dc-cfg{background:rgba(244,114,182,.12);color:#F472B6;}
+.c-ai{color:#4ADE80;}.dc-ai{background:rgba(74,222,128,.12);color:#4ADE80;}
+
+/* ── SETUP TIMELINE ── */
+.timeline{position:relative;padding-left:40px;}
+.timeline::before{content:'';position:absolute;left:16px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--primary),var(--accent),var(--purple));}
+.tl-item{position:relative;margin-bottom:32px;}
+.tl-dot{width:32px;height:32px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;position:absolute;left:-40px;top:0;box-shadow:0 0 12px rgba(14,165,233,.4);}
+.tl-card{background:var(--bg2);border-radius:16px;padding:22px;border:1px solid var(--border);}
+.tl-card h3{font-size:15px;font-weight:900;margin-bottom:6px;color:var(--text);}
+.tl-card .tl-sub{font-size:12px;color:var(--text3);margin-bottom:14px;}
+.code-block{background:#0a0e1a;border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12.5px;color:#a8d8ea;margin:10px 0;border:1px solid var(--border);overflow-x:auto;line-height:1.7;}
+.code-block .comment{color:var(--text3);}
+.code-block .cmd{color:#7ee787;}
+.code-block .flag{color:#ffa657;}
+.code-block .path{color:#79c0ff;}
+.warn-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#fbbf24;margin:10px 0;}
+.warn-box::before{content:'⚠️ ';}
+.tip-box{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#6ee7b7;margin:10px 0;}
+.tip-box::before{content:'💡 ';}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.tool-item{background:var(--bg3);border-radius:10px;padding:12px 14px;}
+.tool-name{font-size:13px;font-weight:800;margin-bottom:2px;}
+.tool-desc{font-size:11.5px;color:var(--text3);}
+
+/* ── TOOLTIPS ── */
+.term{border-bottom:1px dashed var(--primary);cursor:help;position:relative;color:var(--primary);}
+.term::after{content:attr(data-tip);position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:8px;font-size:11.5px;font-family:'Noto Sans KR',sans-serif;white-space:nowrap;z-index:50;pointer-events:none;opacity:0;transition:opacity .2s;}
+.term:hover::after{opacity:1;}
+
+/* ── LABEL BADGES ── */
+.badge{display:inline-block;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;}
+.badge-primary{background:var(--primary-light);color:var(--primary);}
+.badge-accent{background:var(--accent-light);color:var(--accent);}
+.badge-warn{background:var(--warning-light);color:var(--warning);}
+.badge-purple{background:var(--purple-light);color:var(--purple);}
+.badge-danger{background:var(--danger-light);color:var(--danger);}
+
+/* ── DIVIDER ── */
+.div-line{height:1px;background:var(--border);margin:24px 0;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .mm-branches{grid-template-columns:repeat(2,1fr);}
+  .hero-learn-grid{grid-template-columns:repeat(2,1fr);}
+  .hero-title{font-size:28px;}
+}
+@media(max-width:768px){
+  .grid-2,.grid-3{grid-template-columns:1fr;}
+  .mm-branches{grid-template-columns:1fr 1fr;}
+  .tool-grid{grid-template-columns:1fr;}
+  .nav-tab{min-width:70px;font-size:10px;padding:9px 4px;}
+  .hero{padding:40px 20px;}
+  .hero-title{font-size:24px;}
+}
+@media(max-width:480px){
+  .mm-branches{grid-template-columns:1fr;}
+  .hero-learn-grid{grid-template-columns:1fr 1fr;}
+  .flow-stage-row{gap:6px;}
+  .flow-stage{min-width:110px;padding:14px 8px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav-wrap">
+  <div class="nav-inner">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showSection(0)">🏠 소개</button>
+      <button class="nav-tab" onclick="showSection(1)">🤔 왜 필요한가</button>
+      <button class="nav-tab" onclick="showSection(2)">🗺️ 마인드맵</button>
+      <button class="nav-tab" onclick="showSection(3)">🍽️ 식당 비유</button>
+      <button class="nav-tab" onclick="showSection(4)">✈️ 데이터 여행</button>
+      <button class="nav-tab" onclick="showSection(5)">📁 폴더 구조</button>
+      <button class="nav-tab" onclick="showSection(6)">🚀 셋업 가이드</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════ 섹션 0 : 소개 ═══ -->
+<div class="section active" id="sec-0">
+
+  <div class="hero">
+    <div class="hero-badge">DA-NA-A · 다나아 프로젝트 완전 가이드</div>
+    <h1 class="hero-title">
+      코딩을 한 번도 안 해봤어도<br>
+      <span>괜찮아요 🙌</span>
+    </h1>
+    <p class="hero-sub">
+      이 가이드는 <strong>다나아(DA-NA-A)</strong> 프로젝트가 왜 이렇게 만들어졌는지,<br>
+      어떤 부품들이 무슨 역할을 하는지 쉽게 설명해 드립니다.
+    </p>
+    <div class="hero-learn-grid">
+      <div class="hero-learn-card">
+        <div class="hero-learn-icon">🏗️</div>
+        <div class="hero-learn-text">아키텍처가 왜<br>필요한지</div>
+      </div>
+      <div class="hero-learn-card">
+        <div class="hero-learn-icon">🗺️</div>
+        <div class="hero-learn-text">전체 구조를<br>한눈에</div>
+      </div>
+      <div class="hero-learn-card">
+        <div class="hero-learn-icon">🍽️</div>
+        <div class="hero-learn-text">식당 비유로<br>각 역할 이해</div>
+      </div>
+      <div class="hero-learn-card">
+        <div class="hero-learn-icon">✈️</div>
+        <div class="hero-learn-text">데이터가<br>어떻게 흐르는지</div>
+      </div>
+      <div class="hero-learn-card">
+        <div class="hero-learn-icon">📁</div>
+        <div class="hero-learn-text">프로젝트<br>폴더 구조</div>
+      </div>
+      <div class="hero-learn-card">
+        <div class="hero-learn-icon">🚀</div>
+        <div class="hero-learn-text">처음부터 실행하는<br>셋업 방법</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--primary);">
+    <h3>📌 다나아가 뭔가요?</h3>
+    <p>
+      <strong style="color:var(--primary);">다나아(DA-NA-A)</strong>는 당뇨·고혈압 같은 <span class="term" data-tip="오래 지속되는 질병 (당뇨, 고혈압 등)">만성질환</span>을 가진 사람들이<br>
+      자신의 <strong>생활습관을 기록하고, AI로 건강 위험도를 확인하고, 챌린지를 통해 건강해지도록</strong> 돕는 웹 서비스입니다.
+    </p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+      <span class="badge badge-danger">🩸 당뇨 위험도 예측</span>
+      <span class="badge badge-primary">📊 건강 추적 대시보드</span>
+      <span class="badge badge-accent">🏃 생활습관 챌린지</span>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:16px;">
+    <div class="card" style="border-left:4px solid var(--accent);">
+      <h3>🔧 어떤 기술로 만들었나요?</h3>
+      <p style="font-size:13px;line-height:2;">
+        <span class="badge badge-primary">FastAPI</span> 서버 (Python으로 만든 웹 API)<br>
+        <span class="badge badge-accent">Next.js 14</span> 화면 (React 기반 프론트엔드)<br>
+        <span class="badge badge-warn">Docker</span> 실행 환경 묶음<br>
+        <span class="badge badge-danger">MySQL</span> 데이터베이스<br>
+        <span class="badge badge-primary">Redis</span> AI 작업 대기열<br>
+        <span class="badge badge-purple">Nginx</span> 입구 서버
+      </p>
+    </div>
+    <div class="card" style="border-left:4px solid var(--warning);">
+      <h3>📖 이 가이드 읽는 방법</h3>
+      <p style="font-size:13px;line-height:2.1;">
+        1️⃣ <strong>위 탭을 순서대로</strong> 클릭하며 읽으세요<br>
+        2️⃣ 모르는 단어는 <span style="color:var(--primary);border-bottom:1px dashed var(--primary);">파란 밑줄</span> 위에 마우스를 올리세요<br>
+        3️⃣ 카드의 <strong>▼ 화살표</strong>를 클릭하면 더 자세한 설명이 나와요<br>
+        4️⃣ 애니메이션이 있는 곳은 천천히 보면서 이해해요
+      </p>
+    </div>
+  </div>
+
+</div><!-- /sec-0 -->
+
+
+<!-- ═══════════════════════════════════ 섹션 1 : 왜 필요한가 ═══ -->
+<div class="section" id="sec-1">
+  <div class="sec-title">아키텍처 설계, 왜 필요할까요?</div>
+  <div class="sec-sub">단순히 "기능을 만드는 것"을 넘어, 안정적이고 확장 가능한 구조를 설계해야 하는 이유</div>
+
+  <div class="card" style="border-left:4px solid var(--primary);margin-bottom:24px;">
+    <h3>🏗️ 핵심 목표 한 줄 요약</h3>
+    <p style="font-size:15px;font-weight:700;color:var(--text);">
+      "무거운 AI 작업을 안정적으로 처리하면서 <span style="color:var(--accent);">확장 가능한 구조</span>를 만드는 것"
+    </p>
+    <p style="margin-top:10px;">AI 모델이 결과를 내려면 시간이 걸립니다. 그 사이에 서비스가 멈추면 안 되고, 사용자가 많아져도 버틸 수 있어야 합니다.</p>
+  </div>
+
+  <!-- 6가지 이유 -->
+  <div id="why-cards">
+
+    <div class="why-card" id="why0">
+      <div class="why-header" onclick="toggleWhy(0)">
+        <div class="why-icon" style="background:rgba(239,68,68,.12);">🛡️</div>
+        <div class="why-title-wrap">
+          <div class="why-title">시스템 안정성 (High Availability)</div>
+          <div class="why-tagline">하나가 고장 나도 서비스는 계속 돌아가야 한다</div>
+        </div>
+        <div class="why-arrow">▼</div>
+      </div>
+      <div class="why-body"><div class="why-body-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">🌉 비유</div>
+          <div class="analogy-text">
+            한 강을 건너는 다리가 하나뿐이라면? 그 다리가 부서지면 강을 건널 수 없어요.<br>
+            하지만 <strong>다리가 3개</strong>라면, 하나가 공사 중이어도 나머지 두 개로 건널 수 있죠!<br>
+            서버도 똑같습니다. 여러 서버에 나눠 처리(<span class="term" data-tip="여러 서버에 트래픽을 나눠 보내는 기술">로드밸런싱</span>)하면 하나가 죽어도 서비스가 유지돼요.
+          </div>
+        </div>
+        <div class="tech-detail">
+          <strong>실제 적용:</strong> Nginx가 들어오는 요청을 여러 FastAPI 서버에 나눠줍니다.
+          하나의 서버에 장애가 발생해도 다른 서버가 요청을 처리하기 때문에 사용자는 오류를 느끼지 못합니다.
+        </div>
+      </div></div>
+    </div>
+
+    <div class="why-card" id="why1">
+      <div class="why-header" onclick="toggleWhy(1)">
+        <div class="why-icon" style="background:rgba(14,165,233,.12);">📈</div>
+        <div class="why-title-wrap">
+          <div class="why-title">유연한 확장성 (Scalability)</div>
+          <div class="why-tagline">사용자가 10배 늘어도 서버를 유연하게 키울 수 있다</div>
+        </div>
+        <div class="why-arrow">▼</div>
+      </div>
+      <div class="why-body"><div class="why-body-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">🧩 비유</div>
+          <div class="analogy-text">
+            레고 블록처럼 필요할 때 부품을 추가하면 됩니다.<br>
+            AI 분석 요청이 폭발적으로 늘어나면? <strong>AI Worker(주방장)를 한 명 더 고용</strong>하면 돼요.<br>
+            전체 서비스를 다시 만들 필요 없이, 필요한 부분만 늘리면 됩니다.
+          </div>
+        </div>
+        <div class="tech-detail">
+          <strong>수직 확장 (Vertical Scaling):</strong> 서버 하나를 더 강한 것으로 교체 (컴퓨터 RAM, CPU 업그레이드)<br>
+          <strong>수평 확장 (Horizontal Scaling):</strong> 같은 서버를 여러 개 늘리기 (AI Worker를 1개 → 10개로)<br>
+          다나아 프로젝트는 AI Worker를 Docker로 독립 분리해서 수평 확장이 쉽습니다.
+        </div>
+      </div></div>
+    </div>
+
+    <div class="why-card" id="why2">
+      <div class="why-header" onclick="toggleWhy(2)">
+        <div class="why-icon" style="background:rgba(16,185,129,.12);">⚡</div>
+        <div class="why-title-wrap">
+          <div class="why-title">성능 최적화 (Performance)</div>
+          <div class="why-tagline">무거운 작업은 뒤에서, 사용자에겐 빠른 응답을</div>
+        </div>
+        <div class="why-arrow">▼</div>
+      </div>
+      <div class="why-body"><div class="why-body-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">🛣️ 비유</div>
+          <div class="analogy-text">
+            고속도로 톨게이트가 하나뿐이라면 차들이 엄청 막힙니다.<br>
+            하지만 <strong>주문 접수(FastAPI)</strong>와 <strong>요리(AI Worker)</strong>를 분리하면,<br>
+            홀 매니저는 주문만 빠르게 받고, 주방에서 시간이 걸리는 요리를 따로 합니다.
+          </div>
+        </div>
+        <div class="tech-detail">
+          <strong>비동기 처리의 핵심:</strong> AI 모델 학습/추론은 몇 초 ~ 몇 분이 걸릴 수 있습니다.
+          FastAPI가 직접 처리하면 그 시간 동안 다른 요청을 처리할 수 없습니다.
+          Redis Stream을 통해 AI 작업을 큐에 넣고, AI Worker가 따로 처리하면 FastAPI는 계속 다른 요청을 받을 수 있습니다.
+        </div>
+      </div></div>
+    </div>
+
+    <div class="why-card" id="why3">
+      <div class="why-header" onclick="toggleWhy(3)">
+        <div class="why-icon" style="background:rgba(124,58,237,.12);">🔧</div>
+        <div class="why-title-wrap">
+          <div class="why-title">유지보수 용이성 (Maintainability)</div>
+          <div class="why-tagline">하나를 고쳐도 나머지가 망가지지 않는다</div>
+        </div>
+        <div class="why-arrow">▼</div>
+      </div>
+      <div class="why-body"><div class="why-body-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">🗄️ 비유</div>
+          <div class="analogy-text">
+            잘 정리된 서랍장을 생각해보세요.<br>
+            양말 서랍, 셔츠 서랍이 따로 있으면 <strong>양말을 교체할 때 셔츠를 건드릴 필요가 없죠.</strong><br>
+            코드도 역할별로 폴더를 나누면, 인증 코드를 수정해도 AI 코드가 망가지지 않아요.
+          </div>
+        </div>
+        <div class="tech-detail">
+          <strong>계층형 구조(Layered Architecture)</strong>: app/ 폴더를 보면 apis/, services/, repositories/, models/ 등으로
+          완전히 분리되어 있습니다. 데이터베이스 로직(repositories/)을 바꿔도 API 라우터(apis/)에 영향이 없습니다.
+        </div>
+      </div></div>
+    </div>
+
+    <div class="why-card" id="why4">
+      <div class="why-header" onclick="toggleWhy(4)">
+        <div class="why-icon" style="background:rgba(245,158,11,.12);">🔒</div>
+        <div class="why-title-wrap">
+          <div class="why-title">보안 강화 (Security)</div>
+          <div class="why-tagline">건강 데이터는 민감하다 — 여러 겹의 보안이 필요</div>
+        </div>
+        <div class="why-arrow">▼</div>
+      </div>
+      <div class="why-body"><div class="why-body-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">🏨 비유</div>
+          <div class="analogy-text">
+            호텔 카드키 시스템처럼요.<br>
+            로비에서 체크인(Nginx) → 엘리베이터 카드키(FastAPI 인증) → 방 카드키(API 권한) —<br>
+            <strong>각 단계마다 확인하니까</strong> 외부에서 직접 방으로 들어올 수 없어요.
+          </div>
+        </div>
+        <div class="tech-detail">
+          <strong>실제 적용:</strong>
+          Nginx가 외부에서 오는 요청을 먼저 받고, 내부 FastAPI의 실제 IP는 외부에 노출되지 않습니다.
+          FastAPI는 JWT(JSON Web Token) 인증으로 로그인한 사람만 데이터에 접근할 수 있게 합니다.
+          혈당, 혈압 같은 민감한 건강 정보는 최소한만 저장하고 노출합니다.
+        </div>
+      </div></div>
+    </div>
+
+    <div class="why-card" id="why5">
+      <div class="why-header" onclick="toggleWhy(5)">
+        <div class="why-icon" style="background:rgba(16,185,129,.12);">💰</div>
+        <div class="why-title-wrap">
+          <div class="why-title">비용 효율성 (Cost Efficiency)</div>
+          <div class="why-tagline">쓴 만큼만 내는 구조로 운영 비용을 최소화</div>
+        </div>
+        <div class="why-arrow">▼</div>
+      </div>
+      <div class="why-body"><div class="why-body-inner">
+        <div class="analogy-box">
+          <div class="analogy-label">💡 비유</div>
+          <div class="analogy-text">
+            전기 요금처럼요. 24시간 에어컨을 켜놓는 것보다,<br>
+            <strong>필요할 때만 켜는 게 당연히 더 저렴하죠!</strong><br>
+            AI Worker처럼 무거운 서비스는 실제로 필요할 때만 실행하고, 평소엔 끌 수 있어요.
+          </div>
+        </div>
+        <div class="tech-detail">
+          <strong>실제 적용:</strong>
+          무거운 AI Worker 컨테이너는 평소에 꺼두고, 필요할 때만 실행합니다 (CLAUDE.md: "ai-worker는 별도, 무거워서 필요할 때만 실행").
+          AWS S3에 AI 모델 파일을 저장하면 서버 디스크 비용을 줄일 수 있습니다.
+          Docker를 사용하면 클라우드에서 사용한 만큼만 비용이 나옵니다.
+        </div>
+      </div></div>
+    </div>
+
+  </div><!-- /why-cards -->
+
+</div><!-- /sec-1 -->
+
+
+<!-- ═══════════════════════════════════ 섹션 2 : 마인드맵 ═══ -->
+<div class="section" id="sec-2">
+  <div class="sec-title">전체 구조 한눈에 보기</div>
+  <div class="sec-sub">다나아 시스템의 모든 부품과 그 연결 관계를 마인드맵으로 봅니다. 각 항목에 마우스를 올려보세요!</div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <h3>🗺️ 마인드맵 읽는 법</h3>
+    <p>가운데 <strong style="color:var(--primary);">다나아 시스템</strong>에서 바깥으로 뻗어나간 각 블록이 하나의 "부품"입니다. 그 아래 나열된 항목들은 해당 부품이 하는 일입니다.</p>
+  </div>
+
+  <div class="mindmap-wrap">
+    <div class="mindmap">
+
+      <div class="mm-center">
+        🏥 다나아 시스템
+        <div class="mm-center-sub">만성질환 AI 건강관리 서비스</div>
+      </div>
+      <div class="mm-line-down"></div>
+
+      <div class="mm-branches">
+
+        <!-- Client -->
+        <div class="mm-branch">
+          <div class="mm-node mm-n-client">
+            <div class="mm-node-icon">👤</div>
+            <div class="mm-node-name" style="color:#A78BFA;">Client (사용자)</div>
+            <div class="mm-node-role">앱을 쓰는 사람</div>
+          </div>
+          <div class="mm-connector" style="background:rgba(124,58,237,.4);"></div>
+          <div class="mm-children">
+            <div class="mm-child">브라우저로 웹 접속</div>
+            <div class="mm-child">건강 데이터 입력</div>
+            <div class="mm-child">AI 분석 결과 확인</div>
+            <div class="mm-child">챌린지 참여</div>
+          </div>
+        </div>
+
+        <!-- Nginx -->
+        <div class="mm-branch">
+          <div class="mm-node mm-n-nginx">
+            <div class="mm-node-icon">🚪</div>
+            <div class="mm-node-name" style="color:#FB923C;">Nginx (입구)</div>
+            <div class="mm-node-role">reverse proxy · SSL</div>
+          </div>
+          <div class="mm-connector" style="background:rgba(249,115,22,.4);"></div>
+          <div class="mm-children">
+            <div class="mm-child">요청을 FastAPI로 전달</div>
+            <div class="mm-child">HTTPS 암호화 처리</div>
+            <div class="mm-child">내부 서버 IP 숨김</div>
+            <div class="mm-child">실시간 SSE 버퍼링</div>
+          </div>
+        </div>
+
+        <!-- FastAPI -->
+        <div class="mm-branch">
+          <div class="mm-node mm-n-fastapi">
+            <div class="mm-node-icon">⚡</div>
+            <div class="mm-node-name" style="color:#60A5FA;">FastAPI (뇌)</div>
+            <div class="mm-node-role">백엔드 API 서버</div>
+          </div>
+          <div class="mm-connector" style="background:rgba(14,165,233,.4);"></div>
+          <div class="mm-children">
+            <div class="mm-child">회원가입 / 로그인</div>
+            <div class="mm-child">JWT 토큰 인증</div>
+            <div class="mm-child">AI 작업 Redis에 등록</div>
+            <div class="mm-child">결과 실시간 전송(SSE)</div>
+          </div>
+        </div>
+
+        <!-- Redis -->
+        <div class="mm-branch">
+          <div class="mm-node mm-n-redis">
+            <div class="mm-node-icon">📋</div>
+            <div class="mm-node-name" style="color:#F87171;">Redis (대기열)</div>
+            <div class="mm-node-role">메시지 브로커 · 큐</div>
+          </div>
+          <div class="mm-connector" style="background:rgba(239,68,68,.4);"></div>
+          <div class="mm-children">
+            <div class="mm-child">AI 작업 대기표 보관</div>
+            <div class="mm-child">서버 종료시도 작업 유지</div>
+            <div class="mm-child">완료/실패 상태 추적</div>
+            <div class="mm-child">FastAPI ↔ Worker 분리</div>
+          </div>
+        </div>
+
+        <!-- AI Worker -->
+        <div class="mm-branch">
+          <div class="mm-node mm-n-ai">
+            <div class="mm-node-icon">🤖</div>
+            <div class="mm-node-name" style="color:#4ADE80;">AI Worker (두뇌)</div>
+            <div class="mm-node-role">모델 학습 · 추론</div>
+          </div>
+          <div class="mm-connector" style="background:rgba(16,185,129,.4);"></div>
+          <div class="mm-children">
+            <div class="mm-child">당뇨 위험도 예측</div>
+            <div class="mm-child">CPU/GPU 모델 실행</div>
+            <div class="mm-child">Redis에서 작업 가져오기</div>
+            <div class="mm-child">완료 후 결과 저장</div>
+          </div>
+        </div>
+
+        <!-- DB + S3 -->
+        <div class="mm-branch">
+          <div class="mm-node mm-n-db">
+            <div class="mm-node-icon">🗄️</div>
+            <div class="mm-node-name" style="color:#FCD34D;">DB + S3 (창고)</div>
+            <div class="mm-node-role">MySQL · AWS S3</div>
+          </div>
+          <div class="mm-connector" style="background:rgba(245,158,11,.4);"></div>
+          <div class="mm-children">
+            <div class="mm-child">사용자 정보 저장</div>
+            <div class="mm-child">건강 기록 저장</div>
+            <div class="mm-child">AI 모델 파일 저장</div>
+            <div class="mm-child">이미지/미디어 저장</div>
+          </div>
+        </div>
+
+      </div><!-- /mm-branches -->
+    </div><!-- /mindmap -->
+  </div>
+
+  <div class="card" style="margin-top:24px;border-left:4px solid var(--accent);">
+    <h3>🔗 부품들이 연결되는 순서</h3>
+    <p style="font-size:13px;line-height:2.2;">
+      <span style="color:var(--purple);">사용자</span>
+      → <span style="color:var(--orange);">Nginx</span> (입구 통과)
+      → <span style="color:var(--primary);">FastAPI</span> (요청 처리)
+      → <span style="color:var(--danger);">Redis</span> (무거운 AI 작업 등록)
+      → <span style="color:var(--accent);">AI Worker</span> (실제 AI 분석)
+      → <span style="color:var(--warning);">DB/S3</span> (결과 저장)
+      → <span style="color:var(--primary);">FastAPI</span> → <span style="color:var(--orange);">Nginx</span>
+      → <span style="color:var(--purple);">사용자</span> (결과 전달)
+    </p>
+  </div>
+
+</div><!-- /sec-2 -->
+
+
+<!-- ═══════════════════════════════════ 섹션 3 : 식당 비유 ═══ -->
+<div class="section" id="sec-3">
+  <div class="sec-title">컴포넌트별 역할 — 식당으로 이해하기</div>
+  <div class="sec-sub">다나아 시스템 전체를 <strong>유명 식당</strong>이라고 생각해봅시다. 각 부품의 역할이 훨씬 쉽게 이해될 거예요!</div>
+
+  <div class="card" style="border-left:4px solid var(--warning);margin-bottom:24px;">
+    <h3>🍽️ 식당 전체 구조 한눈에 보기</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px;">
+      <div style="background:rgba(249,115,22,.1);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;">🚪</div><div style="font-size:12px;font-weight:700;color:#FB923C;margin:4px 0;">Nginx</div><div style="font-size:11px;color:var(--text3);">안내 데스크</div>
+      </div>
+      <div style="background:rgba(14,165,233,.1);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;">🧑‍💼</div><div style="font-size:12px;font-weight:700;color:#60A5FA;margin:4px 0;">FastAPI</div><div style="font-size:11px;color:var(--text3);">홀 매니저</div>
+      </div>
+      <div style="background:rgba(239,68,68,.1);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;">🎫</div><div style="font-size:12px;font-weight:700;color:#F87171;margin:4px 0;">Redis</div><div style="font-size:11px;color:var(--text3);">주문 대기표</div>
+      </div>
+      <div style="background:rgba(16,185,129,.1);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;">👨‍🍳</div><div style="font-size:12px;font-weight:700;color:#4ADE80;margin:4px 0;">AI Worker</div><div style="font-size:11px;color:var(--text3);">주방장</div>
+      </div>
+      <div style="background:rgba(245,158,11,.1);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;">🗃️</div><div style="font-size:12px;font-weight:700;color:#FCD34D;margin:4px 0;">MySQL</div><div style="font-size:11px;color:var(--text3);">냉장고</div>
+      </div>
+      <div style="background:rgba(124,58,237,.1);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;">🏭</div><div style="font-size:12px;font-weight:700;color:#A78BFA;margin:4px 0;">AWS S3</div><div style="font-size:11px;color:var(--text3);">대형 창고</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nginx -->
+  <div class="comp-card" id="comp-nginx">
+    <div class="comp-header" onclick="toggleComp('nginx')">
+      <div class="comp-icon-wrap" style="background:rgba(249,115,22,.12);">🚪</div>
+      <div class="comp-info">
+        <div class="comp-name" style="color:#FB923C;">Nginx — 안내 데스크</div>
+        <div class="comp-role">Reverse Proxy · SSL 종단점 · SSE 버퍼링</div>
+      </div>
+      <span class="badge badge-warn">인프라</span>
+      <div class="comp-expand-btn">▼</div>
+    </div>
+    <div class="comp-body"><div class="comp-body-inner">
+      <div class="rest-box">
+        <div class="rest-label">🍽️ 식당 비유</div>
+        <div class="rest-text">
+          식당 입구의 <strong>안내 데스크</strong>예요.<br>
+          손님(사용자)이 들어오면 "어디로 가시면 됩니다"라고 안내하죠.<br>
+          안내 데스크는 실제 요리사(FastAPI)가 어디 있는지 손님에게 알려주지 않아요.<br>
+          이게 바로 <strong>보안의 핵심</strong>입니다 — 내부 서버 주소가 외부에 노출되지 않아요.
+        </div>
+      </div>
+      <div class="simple-box">
+        <div class="simple-label">✅ 실제로 하는 일</div>
+        <div class="simple-text">
+          1. <strong>리버스 프록시</strong>: 사용자 → Nginx → FastAPI로 요청을 중계<br>
+          2. <strong>HTTPS 암호화</strong>: 인터넷으로 전송되는 데이터를 암호화 (도청 방지)<br>
+          3. <strong>SSE 버퍼링</strong>: AI 분석 중 실시간으로 "처리 중..." 메시지를 전송할 때 연결을 유지
+        </div>
+      </div>
+      <div class="file-box">
+        <div class="file-label">📂 관련 파일</div>
+        <div class="file-item"><span class="file-path">nginx/default.conf</span><span class="file-desc">— 현재 실행 중인 nginx 설정 (로컬 개발용)</span></div>
+        <div class="file-item"><span class="file-path">nginx/prod_https.conf</span><span class="file-desc">— 운영 배포용 HTTPS 설정 (Let's Encrypt 인증서 포함)</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- FastAPI -->
+  <div class="comp-card" id="comp-fastapi">
+    <div class="comp-header" onclick="toggleComp('fastapi')">
+      <div class="comp-icon-wrap" style="background:rgba(14,165,233,.12);">🧑‍💼</div>
+      <div class="comp-info">
+        <div class="comp-name" style="color:#60A5FA;">FastAPI — 홀 매니저</div>
+        <div class="comp-role">백엔드 API 서버 · 인증 · AI 작업 등록 · SSE</div>
+      </div>
+      <span class="badge badge-primary">백엔드</span>
+      <div class="comp-expand-btn">▼</div>
+    </div>
+    <div class="comp-body"><div class="comp-body-inner">
+      <div class="rest-box">
+        <div class="rest-label">🍽️ 식당 비유</div>
+        <div class="rest-text">
+          <strong>홀 매니저(서빙)</strong>와 같아요.<br>
+          손님(사용자) 주문을 받고, 주방(AI Worker)에 전달하고, 결과가 나오면 손님에게 가져다줍니다.<br>
+          하지만 직접 요리하지는 않아요! AI 분석이 필요하면 <strong>대기표(Redis)에 걸어두고</strong><br>
+          주방장이 완성하면 그때 손님에게 알려줍니다.
+        </div>
+      </div>
+      <div class="simple-box">
+        <div class="simple-label">✅ 실제로 하는 일</div>
+        <div class="simple-text">
+          1. <strong>회원가입 / 로그인</strong>: POST /api/v1/auth/signup, POST /api/v1/auth/login<br>
+          2. <strong>JWT 토큰 인증</strong>: 로그인한 사용자에게만 API 접근 허용<br>
+          3. <strong>AI 작업 등록</strong>: 당뇨 예측 요청 → Redis Stream에 "작업표" 추가<br>
+          4. <strong>실시간 결과 전송 (SSE)</strong>: AI가 완료되면 결과를 실시간으로 클라이언트에 push
+        </div>
+      </div>
+      <div class="file-box">
+        <div class="file-label">📂 관련 파일</div>
+        <div class="file-item"><span class="file-path">app/apis/v1/auth_routers.py</span><span class="file-desc">— 회원가입·로그인 API</span></div>
+        <div class="file-item"><span class="file-path">app/services/auth.py</span><span class="file-desc">— 인증 비즈니스 로직</span></div>
+        <div class="file-item"><span class="file-path">app/utils/jwt/</span><span class="file-desc">— JWT 토큰 발급·검증</span></div>
+        <div class="file-item"><span class="file-path">app/Dockerfile</span><span class="file-desc">— FastAPI 컨테이너 이미지 설정</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Redis -->
+  <div class="comp-card" id="comp-redis">
+    <div class="comp-header" onclick="toggleComp('redis')">
+      <div class="comp-icon-wrap" style="background:rgba(239,68,68,.12);">🎫</div>
+      <div class="comp-info">
+        <div class="comp-name" style="color:#F87171;">Redis — 주문 대기표 시스템</div>
+        <div class="comp-role">메시지 브로커 · 작업 큐 · Redis Stream</div>
+      </div>
+      <span class="badge badge-danger">인프라</span>
+      <div class="comp-expand-btn">▼</div>
+    </div>
+    <div class="comp-body"><div class="comp-body-inner">
+      <div class="rest-box">
+        <div class="rest-label">🍽️ 식당 비유</div>
+        <div class="rest-text">
+          손님이 주문하면 주방에 <strong>대기표(번호표)를 걸어두는 시스템</strong>이에요.<br>
+          홀 매니저(FastAPI)가 주문을 받으면 "37번 대기표"를 걸고, 손님에게 "잠시만요" 하죠.<br>
+          주방장(AI Worker)은 대기표를 순서대로 가져가 요리합니다.<br>
+          <strong>장점:</strong> 식당이 잠깐 닫혀도(서버 재시작) 대기표는 사라지지 않아요!
+        </div>
+      </div>
+      <div class="simple-box">
+        <div class="simple-label">✅ 실제로 하는 일</div>
+        <div class="simple-text">
+          1. <strong>Redis Stream</strong>: 단순 큐가 아닌, 영속적인 메시지 스트림. 서버가 꺼져도 작업이 사라지지 않음<br>
+          2. <strong>디커플링(Decoupling)</strong>: FastAPI와 AI Worker가 서로 몰라도 됨. Redis만 알면 됨<br>
+          3. <strong>상태 관리</strong>: XACK(완료), XCLAIM(재처리) 명령으로 작업이 성공했는지 실패했는지 추적<br>
+          4. <strong>확장성</strong>: AI Worker를 여러 개 띄워도 Redis가 중복 없이 작업을 분배
+        </div>
+      </div>
+      <div class="file-box">
+        <div class="file-label">📂 관련 파일</div>
+        <div class="file-item"><span class="file-path">docker-compose.yml → redis</span><span class="file-desc">— redis:alpine 이미지로 실행</span></div>
+        <div class="file-item"><span class="file-path">.env → REDIS_PORT</span><span class="file-desc">— 포트 설정 (기본 6379)</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- AI Worker -->
+  <div class="comp-card" id="comp-ai">
+    <div class="comp-header" onclick="toggleComp('ai')">
+      <div class="comp-icon-wrap" style="background:rgba(16,185,129,.12);">👨‍🍳</div>
+      <div class="comp-info">
+        <div class="comp-name" style="color:#4ADE80;">AI Worker — 주방장</div>
+        <div class="comp-role">AI 모델 학습 · 추론 · Consumer Group</div>
+      </div>
+      <span class="badge badge-accent">AI</span>
+      <div class="comp-expand-btn">▼</div>
+    </div>
+    <div class="comp-body"><div class="comp-body-inner">
+      <div class="rest-box">
+        <div class="rest-label">🍽️ 식당 비유</div>
+        <div class="rest-text">
+          대기표를 보며 실제로 <strong>요리하는 주방장</strong>이에요.<br>
+          홀 매니저(FastAPI)는 주방에 들어오지 않아요. 오로지 주방장만 요리합니다.<br>
+          주방장이 여러 명이라면(Worker 여러 개) 동시에 여러 요리를 할 수 있어요!
+        </div>
+      </div>
+      <div class="simple-box">
+        <div class="simple-label">✅ 실제로 하는 일</div>
+        <div class="simple-text">
+          1. Redis Stream에서 "당뇨 예측 요청" 작업을 가져옴<br>
+          2. 저장된 AI 모델(PyTorch, scikit-learn)을 로드해서 분석 실행<br>
+          3. 사용자 입력 데이터로 당뇨 위험도 계산<br>
+          4. 결과를 Database에 저장하고 Redis에 "완료!" 신호 전송<br>
+          <br>
+          ⚠️ <em>현재 다나아 프로젝트에서 AI Worker는 구조만 만들어진 상태(stub)입니다. 실제 AI 로직은 구현 예정!</em>
+        </div>
+      </div>
+      <div class="file-box">
+        <div class="file-label">📂 관련 파일</div>
+        <div class="file-item"><span class="file-path">ai_worker/</span><span class="file-desc">— AI Worker 폴더 (현재 skeleton 상태)</span></div>
+        <div class="file-item"><span class="file-path">ai_worker/Dockerfile</span><span class="file-desc">— PyTorch, scikit-learn 설치된 컨테이너</span></div>
+        <div class="file-item"><span class="file-path">docker-compose.yml → ai-worker</span><span class="file-desc">— 메모리 4GB 제한 설정</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- MySQL -->
+  <div class="comp-card" id="comp-mysql">
+    <div class="comp-header" onclick="toggleComp('mysql')">
+      <div class="comp-icon-wrap" style="background:rgba(245,158,11,.12);">🗃️</div>
+      <div class="comp-info">
+        <div class="comp-name" style="color:#FCD34D;">MySQL — 냉장고</div>
+        <div class="comp-role">관계형 데이터베이스 · 사용자·건강 기록 저장</div>
+      </div>
+      <span class="badge badge-warn">데이터</span>
+      <div class="comp-expand-btn">▼</div>
+    </div>
+    <div class="comp-body"><div class="comp-body-inner">
+      <div class="rest-box">
+        <div class="rest-label">🍽️ 식당 비유</div>
+        <div class="rest-text">
+          신선한 재료를 보관하는 <strong>냉장고</strong>예요.<br>
+          손님의 식이 알레르기 정보, 주문 이력 등을 냉장고(MySQL)에 저장해두고<br>
+          필요할 때 꺼내 쓰죠. 전기가 꺼져도(서버 재시작) 내용물은 유지됩니다.
+        </div>
+      </div>
+      <div class="simple-box">
+        <div class="simple-label">✅ 실제로 하는 일</div>
+        <div class="simple-text">
+          사용자 정보 (이메일, 이름, 성별, 생년월일, 전화번호, 비밀번호 해시) 저장<br>
+          건강 기록 (혈당, 혈압 등 일별 데이터) 저장<br>
+          AI 예측 결과 및 챌린지 이력 저장<br>
+          <br>
+          <strong>한국어 지원</strong>: utf8mb4 문자셋으로 한국어 완벽 저장 (이모지도 OK!)
+        </div>
+      </div>
+      <div class="file-box">
+        <div class="file-label">📂 관련 파일</div>
+        <div class="file-item"><span class="file-path">app/models/users.py</span><span class="file-desc">— User 테이블 정의 (Tortoise ORM)</span></div>
+        <div class="file-item"><span class="file-path">app/db/databases.py</span><span class="file-desc">— DB 연결 설정</span></div>
+        <div class="file-item"><span class="file-path">.env → DB_*</span><span class="file-desc">— 데이터베이스 접속 정보</span></div>
+      </div>
+    </div></div>
+  </div>
+
+</div><!-- /sec-3 -->
+
+
+<!-- ═══════════════════════════════════ 섹션 4 : 데이터 여행 ═══ -->
+<div class="section" id="sec-4">
+  <div class="sec-title">데이터의 여행 — AI 예측 요청은 어떻게 처리될까?</div>
+  <div class="sec-sub">사용자가 "당뇨 위험도 분석해줘!"를 눌렀을 때, 데이터가 시스템 안에서 어떻게 움직이는지 봅니다.</div>
+
+  <!-- 애니메이션 트랙 -->
+  <div class="flow-track-wrap">
+    <div class="flow-track-label">📡 데이터 흐름 시뮬레이션 (파란 점 = 요청, 초록 점 = 응답)</div>
+    <div style="position:relative;">
+      <div class="flow-track" id="flow-track">
+        <div class="flow-packet" id="pkt1"></div>
+        <div class="flow-packet flow-packet-return" id="pkt2"></div>
+      </div>
+    </div>
+    <div class="flow-labels">
+      <span>👤 Client</span>
+      <span>🚪 Nginx</span>
+      <span>⚡ FastAPI</span>
+      <span>📋 Redis</span>
+      <span>🤖 AI Worker</span>
+    </div>
+
+    <div class="flow-ctrl" style="margin-top:16px;">
+      <button class="flow-btn" onclick="toggleFlow()">⏸ 일시정지 / ▶ 재생</button>
+    </div>
+
+    <div class="sse-legend">
+      <div class="sse-legend-item"><div class="sse-dot" style="background:var(--primary);"></div> 요청 흐름 (Client → AI Worker)</div>
+      <div class="sse-legend-item"><div class="sse-dot" style="background:var(--accent);"></div> 응답 흐름 (AI Worker → Client, SSE)</div>
+    </div>
+  </div>
+
+  <!-- 5 단계 -->
+  <div class="flow-stage-row">
+    <div class="flow-stage active" onclick="showStep(0)">
+      <div class="flow-num">1</div>
+      <div class="flow-stage-name">요청 접수</div>
+      <div class="flow-stage-en">Request</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" onclick="showStep(1)">
+      <div class="flow-num">2</div>
+      <div class="flow-stage-name">대기열 등록</div>
+      <div class="flow-stage-en">Enqueue</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" onclick="showStep(2)">
+      <div class="flow-num">3</div>
+      <div class="flow-stage-name">AI 처리</div>
+      <div class="flow-stage-en">Processing</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" onclick="showStep(3)">
+      <div class="flow-num">4</div>
+      <div class="flow-stage-name">완료 확인</div>
+      <div class="flow-stage-en">Acknowledge</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-stage" onclick="showStep(4)">
+      <div class="flow-num">5</div>
+      <div class="flow-stage-name">결과 전송</div>
+      <div class="flow-stage-en">Notify (SSE)</div>
+    </div>
+  </div>
+
+  <!-- 단계 상세 -->
+  <div id="step-details">
+    <div class="step-detail" id="step-0">
+      <h4><span class="step-num-badge">1</span>요청 접수 (Request)</h4>
+      <p>
+        <strong>사용자</strong>가 "당뇨 위험도 분석" 버튼을 누릅니다.<br>
+        브라우저 → Nginx → FastAPI 순서로 요청이 전달됩니다.<br>
+        FastAPI는 JWT 토큰으로 <strong>"이 사람이 로그인한 사람이 맞는지"</strong> 확인합니다.<br>
+        확인 완료 → FastAPI가 응답: <em>"요청 접수 완료! 처리 중입니다..."</em>
+      </p>
+    </div>
+    <div class="step-detail" id="step-1" style="display:none;border-left-color:var(--danger);">
+      <h4><span class="step-num-badge" style="background:var(--danger);">2</span>대기열 등록 (Enqueue)</h4>
+      <p>
+        FastAPI가 <strong>Redis Stream</strong>에 "이 사람의 데이터로 AI 분석해줘!" 라는 작업표를 등록합니다.<br>
+        작업 내용은 Redis에 안전하게 저장되고, 사용자에게는 즉시 <em>"처리 시작됨"</em> 응답이 갑니다.<br>
+        이 덕분에 사용자는 AI가 끝날 때까지 <strong>하얀 화면을 보며 기다리지 않아도</strong> 됩니다!
+      </p>
+    </div>
+    <div class="step-detail" id="step-2" style="display:none;border-left-color:var(--accent);">
+      <h4><span class="step-num-badge" style="background:var(--accent);">3</span>AI 처리 (Processing)</h4>
+      <p>
+        항상 대기 중인 <strong>AI Worker</strong>가 Redis Stream을 감시하다가 새 작업표를 발견합니다.<br>
+        작업표를 가져와 S3에 저장된 <strong>당뇨 예측 AI 모델</strong>을 로드합니다.<br>
+        사용자가 입력한 건강 데이터(나이, 체중, 혈당 등)로 모델을 실행합니다.<br>
+        이 과정은 몇 초~몇 분이 걸릴 수 있습니다.
+      </p>
+    </div>
+    <div class="step-detail" id="step-3" style="display:none;border-left-color:var(--warning);">
+      <h4><span class="step-num-badge" style="background:var(--warning);">4</span>완료 확인 (Acknowledge)</h4>
+      <p>
+        AI Worker가 분석을 마치면 결과를 <strong>Database</strong>에 저장합니다.<br>
+        그리고 Redis에 <strong>XACK 명령</strong>을 보내 "이 작업 완료했어요!" 라고 알립니다.<br>
+        이 덕분에 시스템이 재시작되어도 이미 완료된 작업을 중복 처리하지 않아요.<br>
+        FastAPI는 Redis의 Pub/Sub을 구독하고 있다가 완료 신호를 받습니다.
+      </p>
+    </div>
+    <div class="step-detail" id="step-4" style="display:none;border-left-color:var(--accent);">
+      <h4><span class="step-num-badge" style="background:var(--accent);">5</span>결과 전송 (Notify via SSE)</h4>
+      <p>
+        FastAPI가 완료 신호를 받자마자 <strong>SSE(Server-Sent Events)</strong>를 통해 사용자 브라우저에 결과를 전송합니다.<br>
+        사용자가 다른 페이지를 보거나 기다리는 동안에도 결과가 도착하면 <strong>자동으로 알림</strong>이 뜹니다.<br>
+        "당뇨 위험도: 중간 수준 (42점) — 생활습관 개선이 필요합니다." 같은 결과가 화면에 표시됩니다.
+      </p>
+    </div>
+  </div>
+
+</div><!-- /sec-4 -->
+
+
+<!-- ═══════════════════════════════════ 섹션 5 : 폴더 구조 ═══ -->
+<div class="section" id="sec-5">
+  <div class="sec-title">프로젝트 폴더 구조</div>
+  <div class="sec-sub">▶ 화살표를 클릭하면 하위 항목이 펼쳐집니다. 각 폴더가 무슨 역할인지 색상으로 구분됩니다.</div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;">
+      <span><span style="color:#60A5FA;">●</span> 백엔드 (Python/FastAPI)</span>
+      <span><span style="color:#34D399;">●</span> 프론트엔드 (Next.js)</span>
+      <span><span style="color:#FB923C;">●</span> 인프라 (Docker/Nginx)</span>
+      <span><span style="color:#A78BFA;">●</span> 문서/기획</span>
+      <span><span style="color:#F472B6;">●</span> 설정 파일</span>
+      <span><span style="color:#4ADE80;">●</span> AI</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="dir-tree">
+
+      <details open>
+        <summary><span class="c-cfg">📦</span> <span class="dir-name">프로젝트 루트 /</span> <span class="desc-chip dc-cfg">최상위 폴더</span></summary>
+
+        <details>
+          <summary><span class="c-be">📂</span> <span class="dir-name c-be">app/</span> <span class="desc-chip dc-be">FastAPI 백엔드 — 서버의 두뇌</span></summary>
+          <details>
+            <summary><span class="c-be">📂</span> <span class="dir-name c-be">apis/v1/</span> <span class="desc-chip dc-be">API 라우터 — 요청을 받는 창구</span></summary>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">auth_routers.py</span> <span class="desc-chip dc-be">회원가입·로그인·토큰 갱신</span></div>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">user_routers.py</span> <span class="desc-chip dc-be">내 프로필 조회·수정</span></div>
+          </details>
+          <details>
+            <summary><span class="c-be">📂</span> <span class="dir-name c-be">services/</span> <span class="desc-chip dc-be">비즈니스 로직 — 실제 처리 코드</span></summary>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">auth.py</span> <span class="desc-chip dc-be">로그인/회원가입 처리</span></div>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">jwt.py</span> <span class="desc-chip dc-be">JWT 토큰 생성·검증</span></div>
+          </details>
+          <details>
+            <summary><span class="c-be">📂</span> <span class="dir-name c-be">models/</span> <span class="desc-chip dc-be">데이터베이스 테이블 정의</span></summary>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">users.py</span> <span class="desc-chip dc-be">User 테이블 (이메일, 이름, 성별 등)</span></div>
+          </details>
+          <details>
+            <summary><span class="c-be">📂</span> <span class="dir-name c-be">repositories/</span> <span class="desc-chip dc-be">DB CRUD — 데이터 읽기/쓰기</span></summary>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">user_repository.py</span> <span class="desc-chip dc-be">사용자 CRUD 쿼리</span></div>
+          </details>
+          <details>
+            <summary><span class="c-be">📂</span> <span class="dir-name c-be">tests/</span> <span class="desc-chip dc-be">자동화 테스트</span></summary>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">test_signup_api.py</span> <span class="desc-chip dc-be">회원가입 테스트</span></div>
+            <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">test_login_api.py</span> <span class="desc-chip dc-be">로그인 테스트</span></div>
+          </details>
+          <div class="dir-top-item"><span class="c-be">📄</span> <span class="file-name">main.py</span> <span class="desc-chip dc-be">FastAPI 앱 진입점</span></div>
+          <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">Dockerfile</span> <span class="desc-chip dc-inf">FastAPI 컨테이너 이미지</span></div>
+        </details>
+
+        <details>
+          <summary><span class="c-ai">📂</span> <span class="dir-name c-ai">ai_worker/</span> <span class="desc-chip dc-ai">AI Worker — 현재 skeleton 상태</span></summary>
+          <div class="dir-top-item"><span class="c-ai">📄</span> <span class="file-name">main.py</span> <span class="desc-chip dc-ai">AI Worker 진입점 (구현 예정)</span></div>
+          <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">Dockerfile</span> <span class="desc-chip dc-inf">PyTorch·scikit-learn 설치 환경</span></div>
+        </details>
+
+        <details>
+          <summary><span class="c-fe">📂</span> <span class="dir-name c-fe">apps/web/</span> <span class="desc-chip dc-fe">Next.js 14 프론트엔드 — 화면</span></summary>
+          <details>
+            <summary><span class="c-fe">📂</span> <span class="dir-name c-fe">app/</span> <span class="desc-chip dc-fe">Next.js App Router 페이지</span></summary>
+            <div class="dir-top-item"><span class="c-fe">📄</span> <span class="file-name">page.js</span> <span class="desc-chip dc-fe">랜딩 페이지 (질환 선택 화면)</span></div>
+            <div class="dir-top-item"><span class="c-fe">📄</span> <span class="file-name">layout.js</span> <span class="desc-chip dc-fe">공통 레이아웃</span></div>
+            <div class="dir-top-item"><span class="c-fe">📄</span> <span class="file-name">globals.css</span> <span class="desc-chip dc-fe">전체 CSS 스타일</span></div>
+          </details>
+          <details>
+            <summary><span class="c-fe">📂</span> <span class="dir-name c-fe">data/</span> <span class="desc-chip dc-fe">정적 데이터</span></summary>
+            <div class="dir-top-item"><span class="c-fe">📄</span> <span class="file-name">diabetes.js</span> <span class="desc-chip dc-fe">당뇨 온보딩 설문 질문 데이터</span></div>
+          </details>
+          <div class="dir-top-item"><span class="c-cfg">📄</span> <span class="file-name">package.json</span> <span class="desc-chip dc-cfg">npm 패키지 설정 (next 14.2)</span></div>
+        </details>
+
+        <details>
+          <summary><span class="c-inf">📂</span> <span class="dir-name c-inf">nginx/</span> <span class="desc-chip dc-inf">Nginx 역방향 프록시 설정</span></summary>
+          <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">default.conf</span> <span class="desc-chip dc-inf">로컬 개발용 설정</span></div>
+          <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">prod_https.conf</span> <span class="desc-chip dc-inf">운영 HTTPS 설정 (SSL 포함)</span></div>
+        </details>
+
+        <details>
+          <summary><span class="c-cfg">📂</span> <span class="dir-name c-cfg">envs/</span> <span class="desc-chip dc-cfg">환경변수 예시 파일</span></summary>
+          <div class="dir-top-item"><span class="c-cfg">📄</span> <span class="file-name">example.local.env</span> <span class="desc-chip dc-cfg">로컬 개발용 환경변수 템플릿</span></div>
+          <div class="dir-top-item"><span class="c-cfg">📄</span> <span class="file-name">example.prod.env</span> <span class="desc-chip dc-cfg">운영 배포용 환경변수 템플릿</span></div>
+        </details>
+
+        <details>
+          <summary><span class="c-doc">📂</span> <span class="dir-name c-doc">docs/</span> <span class="desc-chip dc-doc">기획 문서 + 프로토타입 (수정 금지)</span></summary>
+          <div class="dir-top-item"><span class="c-doc">📂</span> <span class="file-name c-doc">planning/</span> <span class="desc-chip dc-doc">프로젝트 기획 문서들</span></div>
+          <div class="dir-top-item"><span class="c-doc">📂</span> <span class="file-name c-doc">prototypes/</span> <span class="desc-chip dc-doc">HTML UI 프로토타입 (V1~V7-2)</span></div>
+        </details>
+
+        <details>
+          <summary><span class="c-inf">📂</span> <span class="dir-name c-inf">scripts/</span> <span class="desc-chip dc-inf">배포 자동화 스크립트</span></summary>
+          <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">deployment.sh</span> <span class="desc-chip dc-inf">AWS EC2 자동 배포</span></div>
+          <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">certbot.sh</span> <span class="desc-chip dc-inf">SSL 인증서 자동 발급</span></div>
+        </details>
+
+        <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">docker-compose.yml</span> <span class="desc-chip dc-inf">로컬 개발 Docker 설정 (5개 서비스)</span></div>
+        <div class="dir-top-item"><span class="c-inf">📄</span> <span class="file-name">docker-compose.prod.yml</span> <span class="desc-chip dc-inf">운영 배포 Docker 설정 (+certbot)</span></div>
+        <div class="dir-top-item"><span class="c-cfg">📄</span> <span class="file-name">pyproject.toml</span> <span class="desc-chip dc-cfg">Python 의존성 정의 (uv)</span></div>
+        <div class="dir-top-item"><span class="c-cfg">📄</span> <span class="file-name">.env</span> <span class="desc-chip dc-cfg">Docker 실행용 환경변수 (git에 올리지 말 것!)</span></div>
+
+      </details>
+    </div>
+  </div>
+
+</div><!-- /sec-5 -->
+
+
+<!-- ═══════════════════════════════════ 섹션 6 : 셋업 가이드 ═══ -->
+<div class="section" id="sec-6">
+  <div class="sec-title">처음부터 실행하기 — 셋업 가이드</div>
+  <div class="sec-sub">프로젝트를 처음 받아서 로컬에서 실행하기까지의 전 과정을 단계별로 설명합니다.</div>
+
+  <div class="timeline">
+
+    <!-- STEP 1 -->
+    <div class="tl-item">
+      <div class="tl-dot">1</div>
+      <div class="tl-card">
+        <h3>🛠️ 필요한 도구 설치</h3>
+        <div class="tl-sub">컴퓨터에 아무것도 없다면 이것부터 설치하세요</div>
+        <div class="tool-grid">
+          <div class="tool-item">
+            <div class="tool-name" style="color:#60A5FA;">Python 3.13+</div>
+            <div class="tool-desc">FastAPI 서버를 실행하는 언어. python.org에서 설치</div>
+          </div>
+          <div class="tool-item">
+            <div class="tool-name" style="color:#4ADE80;">Docker Desktop</div>
+            <div class="tool-desc">MySQL, Redis, Nginx를 한 번에 실행하는 컨테이너 도구</div>
+          </div>
+          <div class="tool-item">
+            <div class="tool-name" style="color:#FB923C;">Git</div>
+            <div class="tool-desc">코드 버전 관리 도구. git-scm.com에서 설치</div>
+          </div>
+          <div class="tool-item">
+            <div class="tool-name" style="color:#A78BFA;">UV (Python 패키지 관리)</div>
+            <div class="tool-desc">pip보다 빠른 패키지 설치 도구. <code>pip install uv</code></div>
+          </div>
+          <div class="tool-item">
+            <div class="tool-name" style="color:#FCD34D;">Node.js 18+</div>
+            <div class="tool-desc">Next.js 프론트엔드 실행용. nodejs.org에서 설치</div>
+          </div>
+          <div class="tool-item">
+            <div class="tool-name" style="color:#F472B6;">VS Code / PyCharm</div>
+            <div class="tool-desc">코드 편집기. 아무거나 편한 것 사용</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent);">2</div>
+      <div class="tl-card">
+        <h3>📥 프로젝트 가져오기 (Git Clone)</h3>
+        <div class="tl-sub">GitHub에서 프로젝트 코드를 내 컴퓨터로 복사합니다</div>
+        <div class="code-block">
+<span class="comment"># 1. 프로젝트를 저장할 폴더로 이동</span>
+<span class="cmd">mkdir</span> <span class="path">~/Projects</span>
+<span class="cmd">cd</span> <span class="path">~/Projects</span>
+
+<span class="comment"># 2. 팀 레포지터리에서 코드 가져오기</span>
+<span class="cmd">git clone</span> <span class="path">https://github.com/팀계정/레포이름.git</span>
+<span class="cmd">cd</span> <span class="path">레포이름</span>
+
+<span class="comment"># 3. 파일 목록 확인</span>
+<span class="cmd">ls</span> <span class="flag">-la</span>
+        </div>
+        <div class="tip-box">팀에서 git remote를 따로 설정하라고 했다면? <code>git remote remove origin</code> 후 새 원격 레포지터리 주소로 다시 추가합니다.</div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--warning);">3</div>
+      <div class="tl-card">
+        <h3>⚙️ 환경변수 설정 (ENV 파일)</h3>
+        <div class="tl-sub">서버가 사용할 비밀번호, 포트 번호 등의 설정 파일을 만듭니다</div>
+        <div class="code-block">
+<span class="comment"># envs/example.local.env 파일을 복사해서 .env로 만들기</span>
+<span class="cmd">cp</span> <span class="path">envs/example.local.env</span> <span class="path">.env</span>
+        </div>
+        <div class="card" style="padding:14px 16px;margin-top:10px;font-size:12.5px;">
+          <strong>📝 .env 파일에 있는 중요한 값들:</strong>
+          <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11.5px;color:var(--text2);">
+            <div><code style="color:var(--primary);">DB_USER</code> — 데이터베이스 사용자 이름</div>
+            <div><code style="color:var(--primary);">DB_PASSWORD</code> — 데이터베이스 비밀번호</div>
+            <div><code style="color:var(--primary);">SECRET_KEY</code> — JWT 암호화 키 (랜덤 문자열)</div>
+            <div><code style="color:var(--primary);">REDIS_PORT</code> — Redis 포트 (기본 6379)</div>
+          </div>
+        </div>
+        <div class="warn-box">.env 파일은 비밀번호가 담긴 중요한 파일입니다. GitHub에 절대 올리면 안 됩니다! (.gitignore에 이미 설정되어 있어요)</div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--purple);">4</div>
+      <div class="tl-card">
+        <h3>📦 Python 패키지 설치</h3>
+        <div class="tl-sub">FastAPI 서버가 필요한 Python 라이브러리들을 설치합니다</div>
+        <div class="code-block">
+<span class="comment"># 먼저 uv 설치 (pip의 빠른 버전)</span>
+<span class="cmd">pip install</span> uv
+
+<span class="comment"># pyproject.toml에 정의된 모든 패키지 설치</span>
+<span class="cmd">uv sync</span> <span class="flag">--all-groups --frozen</span>
+        </div>
+        <div class="tip-box">uv sync가 완료되면 루트 폴더에 .venv 폴더가 생깁니다. 이곳에 모든 Python 라이브러리가 저장됩니다.</div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--danger);">5</div>
+      <div class="tl-card">
+        <h3>🐳 Docker로 서버 실행하기</h3>
+        <div class="tl-sub">MySQL, Redis, FastAPI, Nginx를 한 번에 실행합니다</div>
+
+        <div class="warn-box">
+          <strong>Windows에서 경로에 한글이 있다면 반드시 이 우회법을 사용하세요!</strong><br>
+          Docker BuildKit이 한글 경로를 처리하지 못하는 버그가 있습니다.
+        </div>
+
+        <p style="font-size:13px;color:var(--text2);margin:12px 0 8px;font-weight:700;">① Windows PowerShell에서 (한글 경로 우회):</p>
+        <div class="code-block">
+<span class="comment"># X: 드라이브로 임시 경로 매핑 (한글 경로 우회)</span>
+<span class="cmd">subst</span> X: <span class="path">"C:\Users\사용자이름\Desktop\레퍼런스\마지막 웹프로젝트"</span>
+
+<span class="comment"># X: 드라이브로 이동</span>
+<span class="cmd">Set-Location</span> X:\
+
+<span class="comment"># 핵심 4개 서비스만 실행 (ai-worker 제외)</span>
+<span class="cmd">docker compose</span> <span class="flag">-p ai-health-local</span> up <span class="flag">-d</span> mysql redis fastapi nginx
+        </div>
+
+        <p style="font-size:13px;color:var(--text2);margin:12px 0 8px;font-weight:700;">② Mac / Linux 또는 영어 경로라면:</p>
+        <div class="code-block">
+<span class="cmd">docker compose</span> up <span class="flag">-d</span> mysql redis fastapi nginx
+        </div>
+
+        <p style="font-size:13px;color:var(--text2);margin:12px 0 8px;font-weight:700;">③ 실행 상태 확인:</p>
+        <div class="code-block">
+<span class="cmd">docker ps</span>
+<span class="comment"># fastapi, mysql, nginx, redis 4개가 보여야 합니다</span>
+        </div>
+
+        <div class="tip-box">처음 실행할 때는 Docker 이미지를 다운로드하므로 몇 분 걸릴 수 있어요. 기다려주세요!</div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--accent);">6</div>
+      <div class="tl-card">
+        <h3>✅ 실행 확인하기</h3>
+        <div class="tl-sub">서버가 잘 실행되고 있는지 확인합니다</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div class="tool-item" style="border:1px solid rgba(14,165,233,.3);">
+            <div class="tool-name" style="color:var(--primary);">🔗 Swagger UI 접속</div>
+            <div class="tool-desc"><code>http://localhost/api/docs</code><br>API 문서 & 테스트 화면</div>
+          </div>
+          <div class="tool-item" style="border:1px solid rgba(16,185,129,.3);">
+            <div class="tool-name" style="color:var(--accent);">🖥️ 프론트엔드 실행</div>
+            <div class="tool-desc"><code>cd apps/web && npm run dev</code><br>http://localhost:3000 접속</div>
+          </div>
+        </div>
+
+        <div class="tip-box">Swagger UI에서 POST /api/v1/auth/signup → POST /api/v1/auth/login 순으로 테스트해보세요. 회원가입 후 JWT 토큰을 받을 수 있습니다!</div>
+      </div>
+    </div>
+
+    <!-- STEP 7 (Troubleshooting) -->
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--danger);">!</div>
+      <div class="tl-card">
+        <h3>🔧 문제 해결 — 포트 충돌</h3>
+        <div class="tl-sub">MySQL(3306) 또는 Redis(6379) 포트가 이미 사용 중이라면</div>
+
+        <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Docker 컨테이너가 시작되지 않을 때 이미 실행 중인 프로세스를 찾아서 종료합니다.</p>
+
+        <p style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:6px;">Mac / Linux:</p>
+        <div class="code-block">
+<span class="comment"># 3306 포트를 사용 중인 프로세스 찾기</span>
+<span class="cmd">sudo lsof</span> <span class="flag">-i</span> :3306
+
+<span class="comment"># PID(프로세스 번호)로 종료</span>
+<span class="cmd">kill</span> <span class="flag">-9</span> &lt;PID번호&gt;
+        </div>
+
+        <p style="font-size:12px;font-weight:700;color:var(--text3);margin:12px 0 6px;">Windows PowerShell:</p>
+        <div class="code-block">
+<span class="comment"># 3306 포트 사용 프로세스 확인</span>
+<span class="cmd">netstat</span> <span class="flag">-ano</span> | <span class="cmd">findstr</span> :3306
+
+<span class="comment"># PID로 종료</span>
+<span class="cmd">taskkill</span> <span class="flag">/PID</span> &lt;PID번호&gt; <span class="flag">/F</span>
+        </div>
+
+        <div class="warn-box">MySQL이나 Redis가 PC에 직접 설치되어 있다면, 서비스를 잠시 중지하고 Docker를 사용하세요.</div>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+  <div class="card" style="margin-top:24px;border-left:4px solid var(--accent);text-align:center;">
+    <h3>🎉 셋업 완료!</h3>
+    <p>이제 <strong>http://localhost/api/docs</strong>에서 API를 테스트하고, <strong>http://localhost:3000</strong>에서 화면을 볼 수 있습니다.<br>문제가 생기면 <code>docker logs 컨테이너이름</code>으로 로그를 확인하세요.</p>
+  </div>
+
+</div><!-- /sec-6 -->
+
+</div><!-- /container -->
+
+<script>
+function showSection(n){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('sec-'+n).classList.add('active');
+  document.querySelectorAll('.nav-tab')[n].classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleWhy(n){
+  var card=document.getElementById('why'+n);
+  card.classList.toggle('open');
+}
+
+function toggleComp(name){
+  var card=document.getElementById('comp-'+name);
+  card.classList.toggle('open');
+}
+
+function showStep(n){
+  var stages=document.querySelectorAll('.flow-stage');
+  stages.forEach(function(s){s.classList.remove('active');});
+  stages[n*2].classList.add('active');
+
+  var details=['step-0','step-1','step-2','step-3','step-4'];
+  details.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+  var target=document.getElementById('step-'+n);
+  if(target) target.style.display='block';
+}
+
+function toggleFlow(){
+  var pkt1=document.getElementById('pkt1');
+  var pkt2=document.getElementById('pkt2');
+  var paused=(pkt1.style.animationPlayState==='paused');
+  pkt1.style.animationPlayState=paused?'running':'paused';
+  pkt2.style.animationPlayState=paused?'running':'paused';
+}
+
+// 왜 카드 초기 1번 열기
+window.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('why0').classList.add('open');
+});
+</script>
+</body>
+</html>

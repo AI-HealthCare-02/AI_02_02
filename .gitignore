@@ -1,14 +1,45 @@
+# Node / Next.js
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+apps/web/.turbo/
+npm-debug.log*
+
+# Python / uv
+.venv/
+**/.venv/
 __pycache__/
-*.py[oc]
+*.pyc
 build/
 dist/
 wheels/
 *.egg-info
-.venv
-.*.env
-.env
-.idea/
-.vscode
 .coverage
 *.coverage
 .coverage.*
+
+# Environment files
+.env
+.env.*
+envs/.local.env
+envs/.prod.env
+!.env.example
+!.env.local.example
+
+# IDE / OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Archive-only runtime clutter
+archive/
+.tmp_template_check/
+
+# Docker override (개발 전용)
+docker-compose.override.yml
+
+# Local planning artifacts
+task_plan.md
+findings.md
+progress.md

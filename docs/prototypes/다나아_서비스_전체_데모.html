@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아(DA-NA-A) — 서비스 전체 데모</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --primary: #0EA5E9;
+    --primary-dark: #0284C7;
+    --primary-light: #E0F2FE;
+    --accent: #10B981;
+    --accent-light: #D1FAE5;
+    --warning: #F59E0B;
+    --warning-light: #FEF3C7;
+    --danger: #EF4444;
+    --danger-light: #FEE2E2;
+    --gray-50: #F8FAFC;
+    --gray-100: #F1F5F9;
+    --gray-200: #E2E8F0;
+    --gray-300: #CBD5E1;
+    --gray-400: #94A3B8;
+    --gray-500: #64748B;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1E293B;
+    --gray-900: #0F172A;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', -apple-system, sans-serif;
+    background: #0F172A;
+    color: var(--gray-800);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══ 공통: 폰 프레임 ═══ */
+  .phone-container {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  .phone {
+    width: 375px;
+    min-height: 720px;
+    background: #fff;
+    border-radius: 40px;
+    box-shadow: 0 0 0 3px #1E293B, 0 0 0 6px #334155, 0 20px 60px rgba(0,0,0,.5);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .phone-notch {
+    height: 36px;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .phone-notch .notch {
+    width: 120px; height: 28px;
+    background: #000;
+    border-radius: 0 0 18px 18px;
+    position: absolute;
+    top: 0;
+  }
+
+  .phone-notch .time {
+    position: absolute; left: 24px; top: 10px;
+    color: #fff; font-size: 12px; font-weight: 600;
+  }
+
+  .phone-notch .icons {
+    position: absolute; right: 24px; top: 10px;
+    color: #fff; font-size: 11px; display: flex; gap: 6px;
+  }
+
+  .phone-body {
+    height: 684px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+
+  .phone-body::-webkit-scrollbar { width: 0; }
+
+  /* ═══ 섹션 구분 헤더 ═══ */
+  .demo-section-header {
+    text-align: center;
+    padding: 60px 20px 20px;
+  }
+
+  .demo-section-header .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .demo-section-header h2 {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .demo-section-header p {
+    color: var(--gray-400);
+    font-size: 14px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .step-1 .step-badge { background: rgba(14,165,233,.2); color: #38BDF8; }
+  .step-2 .step-badge { background: rgba(139,92,246,.2); color: #A78BFA; }
+  .step-3 .step-badge { background: rgba(16,185,129,.2); color: #34D399; }
+
+  /* 연결 화살표 */
+  .flow-arrow {
+    text-align: center;
+    padding: 20px;
+    color: var(--gray-500);
+    font-size: 24px;
+  }
+
+  .flow-arrow .arrow-line {
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(180deg, var(--gray-700), var(--gray-500));
+    margin: 0 auto 8px;
+  }
+
+  /* ═══════════════════════════════
+     STEP 1: 랜딩 페이지
+     ═══════════════════════════════ */
+
+  .landing-hero {
+    background: linear-gradient(160deg, #0F172A, #1E3A5F 50%, #0EA5E9);
+    padding: 48px 24px 36px;
+    text-align: center;
+  }
+
+  .landing-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 5px 14px;
+    border-radius: 100px;
+    color: #7DD3FC;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    letter-spacing: .5px;
+  }
+
+  .landing-logo .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  .landing-hero h1 {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.35;
+    margin-bottom: 10px;
+  }
+
+  .landing-hero h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #38BDF8, #10B981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .landing-hero .desc {
+    color: #94A3B8;
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .landing-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .landing-stats .stat {
+    text-align: center;
+  }
+
+  .landing-stats .stat .num {
+    color: #fff; font-size: 20px; font-weight: 800;
+  }
+
+  .landing-stats .stat .lbl {
+    color: #64748B; font-size: 10px;
+  }
+
+  /* 카테고리 선택 */
+  .category-area {
+    padding: 24px 20px;
+  }
+
+  .category-area h3 {
+    font-size: 16px; font-weight: 700; margin-bottom: 4px;
+  }
+
+  .category-area .sub {
+    font-size: 12px; color: var(--gray-400); margin-bottom: 16px;
+  }
+
+  .cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cat-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 2px solid var(--gray-200);
+    background: #fff;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .cat-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .cat-card.active {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+
+  .cat-card.disabled {
+    opacity: .45;
+    pointer-events: none;
+  }
+
+  .cat-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+
+  .cat-info h4 { font-size: 14px; font-weight: 700; }
+  .cat-info p { font-size: 11px; color: var(--gray-500); }
+
+  .cat-arrow {
+    margin-left: auto;
+    color: var(--gray-300);
+    font-size: 16px;
+  }
+
+  .cat-card.active .cat-arrow { color: var(--primary); }
+
+  .cat-soon {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 100px;
+    background: var(--gray-100);
+    color: var(--gray-400);
+  }
+
+
+  /* ═══════════════════════════════
+     STEP 2: 온보딩 설문
+     ═══════════════════════════════ */
+
+  /* 설문 헤더 */
+  .survey-top {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .survey-back-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--gray-500); background: #fff;
+  }
+
+  .survey-top-info { flex: 1; }
+  .survey-top-info .st-label { font-size: 10px; color: var(--gray-400); font-weight: 600; }
+  .survey-top-info .st-title { font-size: 13px; font-weight: 700; }
+  .survey-step-num { font-size: 13px; font-weight: 700; color: var(--primary); }
+
+  .progress-track { height: 4px; background: var(--gray-100); }
+  .progress-fill {
+    height: 100%;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width .4s;
+  }
+
+  /* 설문 질문 영역 */
+  .q-area {
+    padding: 28px 20px;
+  }
+
+  .q-title {
+    font-size: 20px; font-weight: 800; line-height: 1.4;
+    margin-bottom: 6px; white-space: pre-line;
+  }
+
+  .q-sub {
+    font-size: 12px; color: var(--gray-400); margin-bottom: 20px;
+  }
+
+  .q-why {
+    display: flex; gap: 6px; padding: 10px 14px;
+    background: var(--primary-light); border-radius: 10px;
+    margin-bottom: 20px; font-size: 11px; color: var(--primary-dark); line-height: 1.6;
+  }
+
+  /* 단일 선택 */
+  .opt-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .opt-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px; border-radius: 14px;
+    border: 2px solid var(--gray-200); background: #fff;
+    font-size: 14px; font-weight: 500; color: var(--gray-700);
+    cursor: pointer; transition: all .2s;
+  }
+
+  .opt-btn:hover { border-color: var(--primary); background: #F0F9FF; }
+
+  .opt-btn.sel {
+    border-color: var(--primary); background: var(--primary-light);
+    color: var(--primary-dark); font-weight: 600;
+  }
+
+  .opt-btn .em { font-size: 18px; }
+
+  .opt-btn .chk {
+    margin-left: auto; width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--gray-300); display: flex; align-items: center;
+    justify-content: center; font-size: 10px; color: transparent;
+  }
+
+  .opt-btn.sel .chk {
+    background: var(--primary); border-color: var(--primary); color: #fff;
+  }
+
+  .opt-btn.skip { border-style: dashed; color: var(--gray-400); }
+
+  /* 그리드 선택 */
+  .grid-group { margin-bottom: 20px; }
+  .grid-group:last-child { margin-bottom: 0; }
+  .grid-lbl { font-size: 12px; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; }
+  .grid-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .g-btn {
+    padding: 9px 16px; border-radius: 10px;
+    border: 2px solid var(--gray-200); background: #fff;
+    font-size: 13px; font-weight: 500; color: var(--gray-600);
+    cursor: pointer; transition: all .2s;
+  }
+
+  .g-btn:hover { border-color: var(--primary); }
+
+  .g-btn.sel {
+    border-color: var(--primary); background: var(--primary);
+    color: #fff; font-weight: 600;
+  }
+
+  /* 칩 (복수선택) */
+  .chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip {
+    padding: 9px 16px; border-radius: 100px;
+    border: 2px solid var(--gray-200); background: #fff;
+    font-size: 13px; font-weight: 500; color: var(--gray-600);
+    cursor: pointer; transition: all .2s;
+  }
+
+  .chip:hover { border-color: var(--primary); }
+
+  .chip.sel {
+    border-color: var(--primary); background: var(--primary-light);
+    color: var(--primary-dark); font-weight: 600;
+  }
+
+  /* 슬라이더 */
+  .slider-group { margin-bottom: 20px; }
+  .slider-top {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+  }
+  .slider-top .sl-lbl { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+  .slider-top .sl-val { font-size: 15px; font-weight: 800; color: var(--primary); }
+
+  .slider-bar {
+    width: 100%; height: 8px; background: var(--gray-200);
+    border-radius: 100px; position: relative;
+  }
+
+  .slider-bar .fill {
+    height: 100%; border-radius: 100px;
+    background: linear-gradient(90deg, var(--primary), #38BDF8);
+  }
+
+  .slider-bar .thumb {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; border: 4px solid var(--primary);
+    position: absolute; top: -8px;
+    box-shadow: 0 2px 6px rgba(14,165,233,.3);
+  }
+
+  .slider-range {
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--gray-400); margin-top: 4px;
+  }
+
+  .bmi-box {
+    text-align: center; margin-top: 16px; padding: 12px;
+    border-radius: 10px; font-size: 14px; font-weight: 700;
+    background: var(--warning-light); color: #B45309;
+  }
+
+  /* 설문 하단 버튼 */
+  .survey-footer {
+    padding: 16px 20px 24px;
+    display: flex; gap: 10px;
+  }
+
+  .btn-prev {
+    padding: 12px 20px; border-radius: 14px;
+    border: 2px solid var(--gray-200); background: #fff;
+    font-size: 14px; font-weight: 600; color: var(--gray-600);
+    cursor: pointer;
+  }
+
+  .btn-next {
+    flex: 1; padding: 12px 20px; border-radius: 14px;
+    border: none; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    font-size: 14px; font-weight: 700; color: #fff;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(14,165,233,.3);
+  }
+
+  .btn-done {
+    flex: 1; padding: 12px 20px; border-radius: 14px;
+    border: none; background: linear-gradient(135deg, var(--accent), #059669);
+    font-size: 14px; font-weight: 700; color: #fff;
+    cursor: pointer;
+  }
+
+  /* Phase 전환 메시지 */
+  .phase-msg {
+    text-align: center; padding: 10px 16px;
+    background: var(--accent-light); border-radius: 100px;
+    font-size: 12px; font-weight: 600; color: #059669;
+    margin-bottom: 20px;
+  }
+
+  /* 완료 화면 */
+  .complete-area {
+    padding: 32px 20px; text-align: center;
+  }
+
+  .complete-emoji { font-size: 48px; margin-bottom: 12px; }
+  .complete-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+  .complete-sub { font-size: 13px; color: var(--gray-500); margin-bottom: 24px; }
+
+  .summary-card {
+    background: var(--gray-50); border-radius: 14px;
+    padding: 20px; text-align: left; margin-bottom: 16px;
+    border: 1px solid var(--gray-200);
+  }
+
+  .summary-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+
+  .s-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0; border-bottom: 1px solid var(--gray-100);
+    font-size: 13px;
+  }
+
+  .s-row:last-child { border: none; }
+  .s-row .sl { color: var(--gray-500); }
+  .s-row .sv { font-weight: 600; }
+
+  .risk-result {
+    padding: 16px; border-radius: 14px;
+    margin-bottom: 20px; font-size: 14px; font-weight: 700;
+    background: var(--warning-light); color: #B45309;
+  }
+
+  .risk-result .risk-grade { font-size: 24px; font-weight: 900; display: block; margin-bottom: 4px; }
+
+
+  /* ═══════════════════════════════
+     STEP 3: AI 채팅 화면
+     ═══════════════════════════════ */
+
+  .chat-page { background: var(--gray-50); height: 100%; display: flex; flex-direction: column; }
+
+  .chat-header {
+    background: #fff; padding: 14px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .chat-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; font-weight: 800;
+  }
+
+  .chat-header-info h4 { font-size: 14px; font-weight: 700; }
+  .chat-header-info p { font-size: 11px; color: var(--accent); font-weight: 600; }
+
+  .chat-menu {
+    margin-left: auto; font-size: 18px; color: var(--gray-400); cursor: pointer;
+  }
+
+  .chat-body {
+    flex: 1; padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* 메시지 버블 */
+  .msg { display: flex; gap: 10px; max-width: 95%; }
+  .msg.user { margin-left: auto; flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0; margin-top: 2px;
+  }
+
+  .msg.ai .msg-avatar {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #fff; font-weight: 800;
+  }
+
+  .msg.user .msg-avatar {
+    background: var(--gray-200); color: var(--gray-600);
+  }
+
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .msg.ai .msg-bubble {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-top-left-radius: 4px;
+    color: var(--gray-800);
+  }
+
+  .msg.user .msg-bubble {
+    background: var(--primary);
+    color: #fff;
+    border-top-right-radius: 4px;
+  }
+
+  /* ── 핵심: 건강 질문 카드 (AI 답변 하단에 붙는 부분) ── */
+  .health-q-card {
+    margin-top: 12px;
+    border-top: 1px dashed var(--gray-200);
+    padding-top: 12px;
+  }
+
+  .health-q-card .hq-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; color: var(--accent);
+    background: var(--accent-light); padding: 3px 10px;
+    border-radius: 100px; margin-bottom: 8px;
+    letter-spacing: .3px;
+  }
+
+  .health-q-card .hq-question {
+    font-size: 13px; font-weight: 600; color: var(--gray-800);
+    margin-bottom: 10px; line-height: 1.5;
+  }
+
+  .health-q-card .hq-options {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+
+  .health-q-card .hq-opt {
+    padding: 7px 14px; border-radius: 100px;
+    border: 1.5px solid var(--gray-200); background: var(--gray-50);
+    font-size: 12px; font-weight: 500; color: var(--gray-600);
+    cursor: pointer; transition: all .2s;
+  }
+
+  .health-q-card .hq-opt:hover {
+    border-color: var(--accent); background: var(--accent-light);
+    color: #059669;
+  }
+
+  .health-q-card .hq-opt.answered {
+    border-color: var(--accent); background: var(--accent-light);
+    color: #059669; font-weight: 600;
+  }
+
+  .health-q-card .hq-skip {
+    font-size: 11px; color: var(--gray-400); cursor: pointer;
+    margin-top: 6px; text-decoration: underline;
+  }
+
+  /* 건강 응답 후 피드백 */
+  .health-feedback {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--accent-light);
+    border-radius: 10px;
+    font-size: 11px;
+    color: #059669;
+    line-height: 1.5;
+  }
+
+  /* 채팅 입력바 */
+  .chat-input-bar {
+    padding: 12px 16px 24px;
+    background: #fff;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .chat-input {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 100px;
+    border: 1.5px solid var(--gray-200);
+    background: var(--gray-50);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    color: var(--gray-800);
+  }
+
+  .chat-send {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border: none; color: #fff; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* 대시보드 미니 위젯 (채팅 내) */
+  .dash-widget {
+    background: #fff; border: 1px solid var(--gray-200);
+    border-radius: 14px; padding: 16px; margin-top: 8px;
+  }
+
+  .dash-widget .dw-title {
+    font-size: 12px; font-weight: 700; color: var(--gray-800);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+
+  .dash-widget .dw-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0; font-size: 12px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .dash-widget .dw-row:last-child { border: none; }
+  .dash-widget .dw-label { color: var(--gray-500); }
+  .dash-widget .dw-val { font-weight: 700; }
+
+  .dw-bar-wrap { margin-top: 8px; }
+  .dw-bar-label { font-size: 11px; color: var(--gray-500); margin-bottom: 4px; }
+  .dw-bar { height: 8px; background: var(--gray-100); border-radius: 100px; overflow: hidden; }
+  .dw-bar-fill { height: 100%; border-radius: 100px; }
+
+  /* 타이핑 인디케이터 */
+  .typing { display: flex; gap: 4px; padding: 4px 0; }
+  .typing .dot-t {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gray-400);
+    animation: typingDot 1.2s ease infinite;
+  }
+  .typing .dot-t:nth-child(2) { animation-delay: .2s; }
+  .typing .dot-t:nth-child(3) { animation-delay: .4s; }
+
+  @keyframes typingDot {
+    0%,100% { opacity: .3; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-3px); }
+  }
+
+  /* ═══ 전체 설명 라벨 ═══ */
+  .explain-banner {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .explain-box {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    padding: 20px;
+    margin-top: 20px;
+  }
+
+  .explain-box h4 {
+    color: #fff; font-size: 14px; font-weight: 700;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+  }
+
+  .explain-box p {
+    color: var(--gray-400); font-size: 12px; line-height: 1.8;
+  }
+
+  .explain-box .highlight {
+    color: #34D399; font-weight: 600;
+  }
+
+  /* Footer */
+  .demo-footer {
+    text-align: center; padding: 60px 20px;
+    color: var(--gray-500); font-size: 12px;
+  }
+
+  .demo-footer strong { color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     STEP 1: 랜딩 페이지 + 카테고리 선택
+     ═══════════════════════════════════════════════════ -->
+
+<div class="demo-section-header step-1">
+  <div class="step-badge">STEP 1</div>
+  <h2>랜딩 페이지</h2>
+  <p>사용자가 처음 접속하면 보는 화면. 건강 카테고리를 선택합니다.</p>
+</div>
+
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">9:41</span>
+      <div class="notch"></div>
+      <span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="landing-hero">
+        <div class="landing-logo"><span class="dot"></span> DA-NA-A</div>
+        <h1>나의 건강,<br><em>다나아</em>에서 시작</h1>
+        <p class="desc">AI 채팅과 함께하는 맞춤형 건강관리.<br>관심 있는 건강 카테고리를 선택해주세요.</p>
+        <div class="landing-stats">
+          <div class="stat"><div class="num">2분</div><div class="lbl">설문 완료</div></div>
+          <div class="stat"><div class="num">0회</div><div class="lbl">타이핑</div></div>
+          <div class="stat"><div class="num">AI</div><div class="lbl">맞춤 분석</div></div>
+        </div>
+      </div>
+
+      <div class="category-area">
+        <h3>건강 카테고리</h3>
+        <p class="sub">현재 당뇨 서비스가 운영 중이며, 나머지는 곧 오픈됩니다.</p>
+        <div class="cat-list">
+          <div class="cat-card active">
+            <div class="cat-icon" style="background:#FEE2E2;">🩸</div>
+            <div class="cat-info"><h4>당뇨</h4><p>혈당 관리, 위험도 예측, 생활습관 추적</p></div>
+            <span class="cat-arrow">→</span>
+          </div>
+          <div class="cat-card disabled">
+            <div class="cat-icon" style="background:#FEF3C7;">💓</div>
+            <div class="cat-info"><h4>고혈압</h4><p>혈압 관리, 심혈관 위험 모니터링</p></div>
+            <span class="cat-soon">준비 중</span>
+          </div>
+          <div class="cat-card disabled">
+            <div class="cat-icon" style="background:#D1FAE5;">⚖️</div>
+            <div class="cat-info"><h4>비만</h4><p>체중 관리, 식단 및 활동량 추적</p></div>
+            <span class="cat-soon">준비 중</span>
+          </div>
+          <div class="cat-card disabled">
+            <div class="cat-icon" style="background:#EDE9FE;">🫀</div>
+            <div class="cat-info"><h4>심혈관질환</h4><p>심장 건강, 종합 위험인자 관리</p></div>
+            <span class="cat-soon">준비 중</span>
+          </div>
+          <div class="cat-card disabled">
+            <div class="cat-icon" style="background:#F1F5F9;">🏥</div>
+            <div class="cat-info"><h4>기타</h4><p>기타 만성질환 및 건강 고민</p></div>
+            <span class="cat-soon">준비 중</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="explain-banner">
+  <div class="explain-box">
+    <h4>💡 이 화면의 역할</h4>
+    <p>사용자가 가장 먼저 보는 화면입니다. <span class="highlight">당뇨를 탭하면 온보딩 설문으로 이동</span>하고, 나머지 카테고리는 "준비 중"으로 표시됩니다. 나중에 고혈압·비만 등을 추가할 때 여기에 활성화하면 됩니다.</p>
+  </div>
+</div>
+
+
+<!-- 연결 화살표 -->
+<div class="flow-arrow">
+  <div class="arrow-line"></div>
+  당뇨 선택 →
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     STEP 2: 온보딩 설문 (주요 화면 5개 시연)
+     ═══════════════════════════════════════════════════ -->
+
+<div class="demo-section-header step-2">
+  <div class="step-badge">STEP 2</div>
+  <h2>콜드스타트 설문</h2>
+  <p>클릭만으로 건강 데이터를 수집합니다. 핵심 5개 화면을 보여드립니다.</p>
+</div>
+
+<!-- ── Screen 1: 당뇨와의 관계 ── -->
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">9:41</span><div class="notch"></div><span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="survey-top">
+        <div class="survey-back-btn">←</div>
+        <div class="survey-top-info">
+          <div class="st-label">PHASE 1</div>
+          <div class="st-title">기본 분류</div>
+        </div>
+        <div class="survey-step-num">1/10</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:10%;"></div></div>
+
+      <div class="q-area">
+        <div class="q-title">당뇨와 어떤 관계인가요?</div>
+        <div class="q-sub">답변에 따라 맞춤 설문이 달라집니다</div>
+        <div class="q-why">💡 불필요한 질문을 건너뛰고, 딱 맞는 설문만 보여드리기 위해 물어봅니다.</div>
+        <div class="opt-list">
+          <div class="opt-btn"><span class="em">🏥</span> 당뇨 진단을 받았어요 <span class="chk">✓</span></div>
+          <div class="opt-btn sel"><span class="em">⚠️</span> 전당뇨(경계)라고 들었어요 <span class="chk">✓</span></div>
+          <div class="opt-btn"><span class="em">👨‍👩‍👧</span> 가족 중에 당뇨가 있어요 <span class="chk">✓</span></div>
+          <div class="opt-btn"><span class="em">🤔</span> 그냥 궁금해서요 <span class="chk">✓</span></div>
+          <div class="opt-btn"><span class="em">💪</span> 건강관리 차원에서 <span class="chk">✓</span></div>
+        </div>
+      </div>
+
+      <div class="survey-footer">
+        <button class="btn-next">다음 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="arrow-line"></div>다음 →</div>
+
+<!-- ── Screen 2: 기본 프로필 ── -->
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">9:41</span><div class="notch"></div><span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="survey-top">
+        <div class="survey-back-btn">←</div>
+        <div class="survey-top-info">
+          <div class="st-label">PHASE 1</div>
+          <div class="st-title">기본 분류</div>
+        </div>
+        <div class="survey-step-num">2/10</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:20%;"></div></div>
+
+      <div class="q-area">
+        <div class="q-title">기본 정보를 알려주세요</div>
+        <div class="q-why">💡 나이와 성별은 당뇨 위험도 계산의 핵심 변수입니다.</div>
+
+        <div class="grid-group">
+          <div class="grid-lbl">성별</div>
+          <div class="grid-row">
+            <div class="g-btn sel">👨 남성</div>
+            <div class="g-btn">👩 여성</div>
+          </div>
+        </div>
+        <div class="grid-group">
+          <div class="grid-lbl">연령대</div>
+          <div class="grid-row">
+            <div class="g-btn">20대</div>
+            <div class="g-btn">30대</div>
+            <div class="g-btn sel">40대</div>
+            <div class="g-btn">50대</div>
+            <div class="g-btn">60+</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="survey-footer">
+        <button class="btn-prev">이전</button>
+        <button class="btn-next">다음 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="arrow-line"></div>다음 →</div>
+
+<!-- ── Screen 3: 체형 (슬라이더) ── -->
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">9:42</span><div class="notch"></div><span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="survey-top">
+        <div class="survey-back-btn">←</div>
+        <div class="survey-top-info">
+          <div class="st-label">PHASE 1</div>
+          <div class="st-title">기본 분류</div>
+        </div>
+        <div class="survey-step-num">3/10</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:30%;"></div></div>
+
+      <div class="q-area">
+        <div class="q-title">체형을 알려주세요</div>
+        <div class="q-sub">슬라이더를 움직여주세요. BMI가 자동 계산됩니다.</div>
+        <div class="q-why">💡 BMI(체질량지수)는 당뇨 위험 예측의 핵심 지표입니다.</div>
+
+        <div class="slider-group">
+          <div class="slider-top">
+            <span class="sl-lbl">키 (cm)</span>
+            <span class="sl-val">172cm</span>
+          </div>
+          <div class="slider-bar">
+            <div class="fill" style="width:53%;"></div>
+            <div class="thumb" style="left:calc(53% - 12px);"></div>
+          </div>
+          <div class="slider-range"><span>140</span><span>200</span></div>
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-top">
+            <span class="sl-lbl">몸무게 (kg)</span>
+            <span class="sl-val">78kg</span>
+          </div>
+          <div class="slider-bar">
+            <div class="fill" style="width:37%;"></div>
+            <div class="thumb" style="left:calc(37% - 12px);"></div>
+          </div>
+          <div class="slider-range"><span>35</span><span>150</span></div>
+        </div>
+
+        <div class="bmi-box">BMI 26.4 — 과체중</div>
+      </div>
+
+      <div class="survey-footer">
+        <button class="btn-prev">이전</button>
+        <button class="btn-next">다음 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="arrow-line"></div>Screen 4~9 진행 후...</div>
+
+<!-- ── Screen 10-11: 목표 + AI 동의 ── -->
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">9:43</span><div class="notch"></div><span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="survey-top">
+        <div class="survey-back-btn">←</div>
+        <div class="survey-top-info">
+          <div class="st-label">PHASE 4</div>
+          <div class="st-title">개인화 설정</div>
+        </div>
+        <div class="survey-step-num">10/10</div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:95%;"></div></div>
+
+      <div class="q-area">
+        <div class="q-title">AI 채팅 중 짧은 건강 질문을
+받아도 괜찮을까요?</div>
+        <div class="q-sub">다나아의 핵심 기능입니다. AI 답변 끝에 건강 질문 1~2개가 붙습니다.</div>
+
+        <div class="opt-list">
+          <div class="opt-btn sel"><span class="em">👍</span> 좋아요, 계속 받을게요 <span class="chk">✓</span></div>
+          <div class="opt-btn"><span class="em">👌</span> 가끔만 받을게요 <span class="chk">✓</span></div>
+          <div class="opt-btn"><span class="em">⏰</span> 나중에 할게요 <span class="chk">✓</span></div>
+        </div>
+      </div>
+
+      <div class="survey-footer">
+        <button class="btn-prev">이전</button>
+        <button class="btn-done">baseline 완료 ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow"><div class="arrow-line"></div>완료 →</div>
+
+<!-- ── 완료 화면 ── -->
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">9:43</span><div class="notch"></div><span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="progress-track"><div class="progress-fill" style="width:100%;"></div></div>
+
+      <div class="complete-area">
+        <div class="complete-emoji">🎉</div>
+        <div class="complete-title">프로필이 완성되었어요!</div>
+        <div class="complete-sub">수집된 정보로 맞춤 분석을 준비했습니다</div>
+
+        <div class="summary-card">
+          <h4>📋 나의 요약</h4>
+          <div class="s-row"><span class="sl">분류</span><span class="sv">B. 주의형 (전당뇨)</span></div>
+          <div class="s-row"><span class="sl">프로필</span><span class="sv">40대 남성</span></div>
+          <div class="s-row"><span class="sl">BMI</span><span class="sv">26.4 (과체중)</span></div>
+          <div class="s-row"><span class="sl">가족력</span><span class="sv">부모님 중 있음</span></div>
+          <div class="s-row"><span class="sl">관심 목표</span><span class="sv">위험도, 수치 추적</span></div>
+          <div class="s-row"><span class="sl">AI 건강질문</span><span class="sv">수락</span></div>
+        </div>
+
+        <div class="risk-result">
+          <span class="risk-grade">보통 위험</span>
+          점수 12/22 — 생활습관 개선이 도움이 됩니다
+        </div>
+
+        <button class="btn-done" style="width:100%; border-radius:14px;">내 대시보드 보러가기 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="explain-banner">
+  <div class="explain-box">
+    <h4>💡 설문 완료 후 흐름</h4>
+    <p>설문이 끝나면 <span class="highlight">즉시 위험도 점수와 요약</span>을 보여줍니다. "데이터를 줬더니 바로 결과를 받았다"는 경험이 서비스 신뢰도를 높입니다. 여기서 "대시보드 보러가기"를 누르면 AI 채팅 화면으로 이동합니다.</p>
+  </div>
+</div>
+
+
+<!-- 연결 화살표 -->
+<div class="flow-arrow">
+  <div class="arrow-line"></div>
+  대시보드 (AI 채팅) →
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     STEP 3: AI 채팅 화면 (핵심 기능 시연)
+     ═══════════════════════════════════════════════════ -->
+
+<div class="demo-section-header step-3">
+  <div class="step-badge">STEP 3</div>
+  <h2>AI 채팅 (핵심 기능)</h2>
+  <p>평소처럼 AI와 대화하면, 답변 끝에 건강 질문이 자연스럽게 붙습니다.</p>
+</div>
+
+<!-- ── 채팅 화면 1: 일반 대화 + 건강질문 ── -->
+<div class="phone-container">
+  <div class="phone">
+    <div class="phone-notch">
+      <span class="time">10:15</span><div class="notch"></div><span class="icons">📶 🔋</span>
+    </div>
+    <div class="phone-body">
+      <div class="chat-page">
+        <div class="chat-header">
+          <div class="chat-avatar">D</div>
+          <div class="chat-header-info">
+            <h4>다나아 AI</h4>
+            <p>● 온라인</p>
+          </div>
+          <div class="chat-menu">⋯</div>
+        </div>
+
+        <div class="chat-body">
+
+          <!-- 사용자 첫 메시지 -->
+          <div class="msg user">
+            <div class="msg-avatar">나</div>
+            <div class="msg-bubble">프로젝트 마감이 다음주인데 효율적으로 일정 관리하는 방법 알려줘</div>
+          </div>
+
+          <!-- AI 답변 + 건강 질문 -->
+          <div class="msg ai">
+            <div class="msg-avatar">D</div>
+            <div>
+              <div class="msg-bubble">
+                프로젝트 마감이 다음주라면, 이렇게 관리해보세요:
+
+                <br><br><b>1. 작업 분해</b> — 남은 할 일을 30분~1시간 단위로 쪼개세요.
+                <br><b>2. 우선순위 매트릭스</b> — 긴급+중요한 것부터 처리하세요.
+                <br><b>3. 타임블록</b> — 하루를 2~3시간 블록으로 나누고 각 블록에 작업을 배정하세요.
+                <br><b>4. 버퍼 시간</b> — 예상 시간의 1.3배를 잡아두면 돌발 상황에 대응할 수 있습니다.
+
+                <!-- ★ 여기가 핵심: 건강 질문 카드 ★ -->
+                <div class="health-q-card">
+                  <div class="hq-badge">💚 다나아 건강 질문</div>
+                  <div class="hq-question">바쁜 시기인데, 어제 수면은 충분하셨나요?</div>
+                  <div class="hq-options">
+                    <span class="hq-opt">5시간 미만</span>
+                    <span class="hq-opt answered">5~6시간</span>
+                    <span class="hq-opt">7~8시간</span>
+                    <span class="hq-opt">9시간+</span>
+                  </div>
+                  <div class="health-feedback">
+                    ✅ 기록했어요! 수면 부족이 3일 연속이네요. 혈당 변동에 영향을 줄 수 있으니 오늘은 일찍 쉬어보세요.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 사용자 두번째 메시지 -->
+          <div class="msg user">
+            <div class="msg-avatar">나</div>
+            <div class="msg-bubble">고마워! 그리고 점심 추천도 해줘</div>
+          </div>
+
+          <!-- AI 답변 2 + 건강 질문 2 -->
+          <div class="msg ai">
+            <div class="msg-avatar">D</div>
+            <div>
+              <div class="msg-bubble">
+                점심은 에너지를 유지하면서 오후 졸음을 줄이는 게 중요해요:
+
+                <br><br>🥗 <b>추천:</b> 닭가슴살 샐러드 + 현미밥
+                <br>🍱 <b>대안:</b> 제육볶음 + 잡곡밥 (소스 적게)
+                <br>🚫 <b>피하기:</b> 짜장면, 라면 등 고탄수 + 고나트륨
+
+                <div class="health-q-card">
+                  <div class="hq-badge">💚 다나아 건강 질문</div>
+                  <div class="hq-question">오늘 아침은 드셨나요?</div>
+                  <div class="hq-options">
+                    <span class="hq-opt">안 먹었어요</span>
+                    <span class="hq-opt">간단히 먹었어요</span>
+                    <span class="hq-opt answered">든든히 먹었어요</span>
+                  </div>
+                  <div class="health-feedback">
+                    ✅ 좋아요! 아침 식사는 혈당 안정에 도움이 됩니다. 규칙적인 식사를 유지해주세요!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 사용자 세번째 메시지 -->
+          <div class="msg user">
+            <div class="msg-avatar">나</div>
+            <div class="msg-bubble">요즘 내 건강 데이터 어때?</div>
+          </div>
+
+          <!-- AI 답변 3: 대시보드 위젯 -->
+          <div class="msg ai">
+            <div class="msg-avatar">D</div>
+            <div>
+              <div class="msg-bubble">
+                지금까지 쌓인 데이터를 분석해봤어요. 이번 주 요약입니다:
+
+                <div class="dash-widget">
+                  <div class="dw-title">📊 이번 주 건강 리포트</div>
+                  <div class="dw-row"><span class="dw-label">응답한 건강 질문</span><span class="dw-val" style="color:var(--accent);">12개</span></div>
+                  <div class="dw-row"><span class="dw-label">평균 수면</span><span class="dw-val" style="color:var(--warning);">5.5시간 ⚠️</span></div>
+                  <div class="dw-row"><span class="dw-label">아침 식사 비율</span><span class="dw-val" style="color:var(--accent);">5/7일 ✓</span></div>
+                  <div class="dw-row"><span class="dw-label">운동</span><span class="dw-val" style="color:var(--danger);">1회 (목표: 3회)</span></div>
+
+                  <div class="dw-bar-wrap">
+                    <div class="dw-bar-label">주간 건강 점수</div>
+                    <div class="dw-bar">
+                      <div class="dw-bar-fill" style="width:62%; background: linear-gradient(90deg, var(--warning), var(--accent));"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                      <span style="font-size:10px; color:var(--gray-400);">0</span>
+                      <span style="font-size:12px; font-weight:800; color:var(--warning);">62점</span>
+                      <span style="font-size:10px; color:var(--gray-400);">100</span>
+                    </div>
+                  </div>
+                </div>
+
+                <br>수면이 좀 부족한 한 주였어요. 운동도 1회로 줄었구요.
+                <br><b>이번 주 미니 챌린지:</b> "오늘 포함 3일 연속 11시 전 취침" 도전해볼까요? 🌙
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="chat-input-bar">
+          <input class="chat-input" placeholder="메시지를 입력하세요..." value="" readonly>
+          <button class="chat-send">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="explain-banner">
+  <div class="explain-box">
+    <h4>⭐ 이 화면이 다나아의 핵심입니다</h4>
+    <p>사용자가 <span class="highlight">평소처럼 AI에게 질문</span>하면, AI는 <span class="highlight">원래 답변을 먼저 정상적으로 제공</span>하고, 답변 끝에 <span class="highlight">초록색 건강 질문 카드 1개</span>가 자연스럽게 붙습니다.
+    <br><br>
+    사용자는 버튼 하나만 탭하면 건강 데이터가 쌓이고, 이 데이터가 모이면 <span class="highlight">주간 리포트, 위험도 변화 추적, 맞춤 챌린지</span>가 점점 정확해집니다.
+    <br><br>
+    기존 건강 앱처럼 "일부러 앱을 켜서 기록"할 필요가 없는 것이 핵심 차별점입니다.</p>
+  </div>
+</div>
+
+
+<!-- Footer -->
+<div class="demo-footer">
+  <strong>DA-NA-A</strong> · 서비스 전체 데모 v1.0
+  <br>랜딩 → 온보딩 설문 → AI 채팅 (건강질문) 전체 흐름 시연용
+</div>
+
+</body>
+</html>

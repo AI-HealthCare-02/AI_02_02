@@ -1,137 +1,208 @@
-# DANAA Backend
+# 다나아 (DA-NA-A) -- AI 건강 생활습관 코칭 웹 서비스
 
-당뇨/생활습관 관리 서비스 `DANAA`의 백엔드 저장소입니다.
+만성질환(당뇨/고혈압) 예방을 위한 AI 건강관리 웹 서비스입니다.
+**당뇨 위험도 예측** + **건강 추적 대시보드** + **생활습관 챌린지** 3가지 핵심 기능을 제공합니다.
 
-현재 이 저장소는 아래 목표에 맞춰 정리되어 있습니다.
+---
 
-- 최종 확정 DB/API 문서를 기준으로 협업 가능한 골격 유지
-- FastAPI + PostgreSQL + Redis 기반 개발 환경 통일
-- 도메인별 작업 위치와 책임 분리
-- 실제 구현 전에도 팀원이 같은 기준으로 문서, 코드, 마이그레이션을 볼 수 있게 정리
+## 처음이라면 여기부터
 
-## 기준 문서
+| 문서 | 내용 |
+|------|------|
+| **[QUICK_START.md](docs/QUICK_START.md)** | 내 컴퓨터에서 서버 켜기 (처음 15~20분) |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | 프로젝트 구조 이해하기 |
+| **[DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md)** | Git 사용법, 커밋 규칙 |
+| **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** | 에러 해결 모음 |
+| **[MEDICAL_COMPLIANCE.md](docs/MEDICAL_COMPLIANCE.md)** | 의료 데이터 준수 가이드 |
 
-- DB 기준: [DANAA_DB명세최종확정안_2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/DANAA_DB%EB%AA%85%EC%84%B8%EC%B5%9C%EC%A2%85%ED%99%95%EC%A0%95%EC%95%88_2026-04-02.md)
-- API 기준: [DANAA_API최종확정안_2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/DANAA_API%EC%B5%9C%EC%A2%85%ED%99%95%EC%A0%95%EC%95%88_2026-04-02.md)
-- 엑셀 기준: [DANAA_DB명세확정안_엑셀_2026-04-02.xlsx](/C:/PycharmProjects/DANAA_project/docs/DANAA_DB%EB%AA%85%EC%84%B8%ED%99%95%EC%A0%95%EC%95%88_%EC%97%91%EC%85%80_2026-04-02.xlsx)
-- 구조/스택 근거: [backend-baseline-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-baseline-2026-04-02.md)
-- 구조 변경 요약: [backend-restructure-summary-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-restructure-summary-2026-04-02.md)
-- 입문 가이드: [backend-start-guide-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-start-guide-2026-04-02.md)
+---
 
-## 현재 스택
+## 주요 특징
 
-- Python 3.13
-- FastAPI
-- Pydantic v2
-- Tortoise ORM
-- Aerich
-- PostgreSQL
-- Redis
-- Docker Compose
-- uv
-- pytest / Ruff
+- **FastAPI Framework**: 고성능 비동기 API 서버 (Python 3.13)
+- **AI Worker**: 모델 추론 작업을 API 서버와 분리하여 처리
+- **Tortoise ORM + PostgreSQL 16**: 비동기 DB 모델링 + asyncpg
+- **Redis**: 캐시, 분산 락, 세션 관리
+- **Docker Compose**: PostgreSQL, Redis, Nginx 포함 전체 스택 실행
+- **OpenAI GPT-4o-mini**: SSE 스트리밍 AI 채팅
+- **검증 도구**: Ruff, Pytest, Mypy, Aerich 기반 점검 스크립트 사용
 
-## 왜 지금은 이 스택을 유지하나
+---
 
-현재 코드, 테스트, 마이그레이션이 이미 `FastAPI + Tortoise + Aerich`를 기준으로 움직이고 있습니다.  
-지금 단계에서 ORM까지 교체하면 협업 골격을 만드는 대신 마이그레이션 자체가 프로젝트가 됩니다.
-
-그래서 이번 정리는 아래 원칙으로 갔습니다.
-
-- 앱 실행 스택은 유지
-- 대신 도메인 경계와 작업 위치를 명확하게 재정리
-- 리포지토리/서비스 레이어를 추가할 수 있는 골격부터 먼저 고정
-- 추후 ORM 전환이 필요하면 그때 도메인 레이어를 기준으로 교체
-
-## 프로젝트 구조
+## 📂 프로젝트 구조
 
 ```text
-app/
-  api/                  # 현재 기준 API 진입점
-  apis/v1/              # 실제 FastAPI 라우터
-  core/                 # 설정, 로깅
-  db/                   # DB 연결, 모델 레지스트리, migrations, seeds
-  dependencies/         # FastAPI dependency
-  domains/
-    common/             # 공용 base model
-    health/             # 건강 데이터 도메인
-    challenges/         # 챌린지 도메인
-    onboarding/         # 온보딩 서비스/리포지토리 작업 위치
-    reports/            # 위험도/리포트 서비스 작업 위치
-    settings/           # 설정 서비스 작업 위치
-  dtos/                 # 기존 auth/user DTO
-  models/               # 기존 공용 User 모델
-  repositories/         # 기존 auth/user repository
-  services/             # 기존 auth/user service
-  tests/                # 테스트
-  bootstrap.py          # 앱 팩토리
-  main.py               # uvicorn 진입점
-docs/
-  DANAA_DB명세최종확정안_2026-04-02.md
-  DANAA_API최종확정안_2026-04-02.md
-  DANAA_DB명세확정안_엑셀_2026-04-02.xlsx
-  backend-baseline-2026-04-02.md
-  handoff.md
-  collaboration-standards.md
-  migration-seed-guide.md
+.
+├── ai_worker/          # AI 모델 추론 및 학습 관련 코드 (Worker)
+│   ├── core/           # 워커 설정 및 로거
+│   ├── models/         # AI 모델 파일 보관 (PyTorch 등)
+│   ├── tasks/          # 실제 처리할 작업 정의
+│   └── main.py         # 워커 진입점
+├── app/                # FastAPI 서버 코드
+│   ├── apis/           # API 라우터 (v1 버전 관리)
+│   ├── core/           # 서버 설정 (pydantic-settings)
+│   ├── db/             # 데이터베이스 초기화 및 마이그레이션 (Tortoise ORM)
+│   ├── dtos/           # 데이터 전송 객체 (Pydantic models)
+│   ├── models/         # DB 테이블 정의
+│   ├── services/       # 비즈니스 로직
+│   └── main.py         # FastAPI 애플리케이션 진입점
+├── envs/               # 환경 변수 설정 파일 (.env)
+├── nginx/              # Nginx 설정 파일 (리버스 프록시)
+├── scripts/            # 배포 및 CI용 쉘 스크립트
+├── docker-compose.yml  # 전체 서비스 실행 설정
+└── pyproject.toml      # uv 기반 의존성 관리 설정
 ```
 
-## 빠른 시작
+---
 
-### 1. 의존성 설치
+## 사전 준비 사항
+
+| 프로그램 | 필요 버전 | 설치 링크 |
+|---------|----------|----------|
+| Python | 3.13 이상 | https://python.org |
+| uv | 최신 | https://github.com/astral-sh/uv |
+| Docker Desktop | 4.x 이상 (WSL2 필수) | https://docker.com |
+| Node.js | 18 이상 | https://nodejs.org |
+| Git | 2.x 이상 | https://git-scm.com |
+
+> **Windows 한글 경로 사용자**: Docker 빌드 시 `subst X:` 우회가 필요합니다.
+> 자세한 방법은 [QUICK_START.md](docs/QUICK_START.md#2-한글-경로-우회-windows-필수)를 참고하세요.
+
+---
+
+## 🛠️ 설치 및 설정
+
+### 1. 가상환경 구축 및 의존성 설치
+
+`uv`를 사용하여 프로젝트에 필요한 패키지를 설치합니다.
 
 ```bash
-uv sync --group app --group dev --frozen
+# 의존성 설치 (가상환경 자동 생성)
+uv sync
+
+# 특정 그룹의 의존성만 설치하려는 경우
+uv sync --group app  # API 서버용
+uv sync --group ai   # AI 워커용
 ```
 
-### 2. 인프라 실행
+### 2. 환경 변수 설정
+
+`envs/` 디렉토리에 있는 예시 파일을 복사하여 `.env` 파일을 생성합니다.
+- 로컬용 
+    ```bash
+    cp envs/example.local.env envs/.local.env
+    ```
+- 배포용 
+    ```bash
+    cp envs/example.prod.env envs/.prod.env
+    ```
+
+생성된 `env` 파일 내의 환경변수들은 프로젝트 상황에 맞게 수정하세요.
+
+---
+
+## 🏃 실행 방법
+
+### 1. 로컬 및 개발 환경
+
+#### Docker Compose로 전체 스택 실행
+
+모든 서비스(API, Worker, DB, Redis, Nginx)를 한 번에 실행합니다.
 
 ```bash
-docker compose up -d postgres redis
+docker compose up -d --build
 ```
 
-### 3. 마이그레이션 적용
+실행 후 다음 주소로 접속 가능합니다:
+- **Swagger UI (Nginx 경유)**: [http://localhost/api/docs](http://localhost/api/docs)
+- **Swagger UI (FastAPI 직접)**: [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+- **Nginx**: 80 포트를 통해 API 서버로 요청을 전달합니다.
 
-```bash
-uv run aerich upgrade
-```
+#### 로컬에서 개별 실행 (개발용)
 
-### 4. 시드 입력
-
-```bash
-uv run python -m app.db.seeds.challenge_templates
-```
-
-### 5. 테스트
-
-```bash
-uv run pytest app/tests -q
-```
-
-### 6. 앱 실행
-
+**FastAPI 서버 실행:**
 ```bash
 uv run uvicorn app.main:app --reload
+# or
+docker compose up -d --build fastapi
 ```
 
-접속:
+**AI Worker 실행:**
+```bash
+uv run python -m ai_worker.main
+# or
+docker compose up -d --build ai-worker
+```
 
-- Swagger: `http://localhost:8000/api/docs`
-- OpenAPI: `http://localhost:8000/api/openapi.json`
+### 2. EC2 배포 환경 (Production)
 
-## 협업 시작 전에 읽을 문서
+제공된 쉘 스크립트를 사용하여 AWS EC2 환경에 이미지를 빌드, 푸시 및 배포할 수 있습니다.
 
-1. [docs/collaboration-standards.md](/C:/PycharmProjects/DANAA_project/docs/collaboration-standards.md)
-2. [docs/migration-seed-guide.md](/C:/PycharmProjects/DANAA_project/docs/migration-seed-guide.md)
-3. [docs/handoff.md](/C:/PycharmProjects/DANAA_project/docs/handoff.md)
-4. [docs/backend-baseline-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-baseline-2026-04-02.md)
-5. [docs/backend-restructure-summary-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-restructure-summary-2026-04-02.md)
-6. [docs/backend-start-guide-2026-04-02.md](/C:/PycharmProjects/DANAA_project/docs/backend-start-guide-2026-04-02.md)
+#### 사전 준비
+- EC2 인스턴스 (Ubuntu 권장)
+- SSH 키 페어 (`~/.ssh/` 경로에 위치)
+- 도커 허브(Docker Hub) 계정 및 Personal Access Token
+- 배포용 환경 변수 설정 (`envs/.prod.env`)
+- 도메인 구매 (Gabia, GoDaddy, AWS Route53 등)
 
-## 다음 구현 우선순위
+#### 자동 배포 스크립트 실행
+`scripts/deployment.sh`는 도커 이미지 빌드, 레포지토리 푸시, EC2 접속 및 컨테이너 실행 과정을 자동화합니다.
 
-1. 온보딩 저장 로직을 실제 DB에 연결
-2. `daily_health_logs` patch/batch 검증 규칙 구현
-3. 챌린지 overview/join/checkin/calendar 서비스 구현
-4. risk / analysis / settings / internal cron 서비스 구현
-5. 문서 기준값과 모델/스키마 동기화
+```bash
+chmod +x scripts/deployment.sh
+./scripts/deployment.sh
+```
+스크립트 실행 시 다음 정보를 입력해야 합니다:
+1. 도커 허브 계정 정보 (Username, PAT)
+2. 이미지를 업로드할 레포지토리 이름
+3. 배포할 서비스 선택 (FastAPI, AI-Worker) 및 버전(Tag)
+4. SSH 키 파일명 및 EC2 IP 주소
+5. https 사용여부
+   - 5-1. https인 경우 도메인 추가 입력  
+
+#### SSL(HTTPS) 설정 (Certbot)
+도메인을 연결하고 HTTPS를 적용하려면 `scripts/certbot.sh`를 사용합니다.
+
+```bash
+chmod +x scripts/certbot.sh
+./scripts/certbot.sh
+```
+1. 도메인 주소 및 이메일 입력
+2. SSH 키 파일명 및 EC2 IP 주소 입력
+3. Let's Encrypt를 통한 인증서 발급 및 Nginx 설정 자동 갱신 적용
+
+---
+
+## 🧪 테스트 및 품질 관리
+
+제공된 스크립트를 사용하여 코드의 품질을 검증할 수 있습니다.
+
+```bash
+# 테스트 실행
+./scripts/ci/run_test.sh
+
+# 코드 포맷팅 확인 (Ruff)
+./scripts/ci/code_fommatting.sh
+
+# 정적 타입 검사 (Mypy)
+./scripts/ci/check_mypy.sh
+```
+
+---
+
+## 개발 가이드
+
+- **API 추가**: `app/apis/v1/` 아래에 새로운 라우터 파일을 생성하고 `app/apis/v1/__init__.py`에 등록하세요.
+- **DB 모델 추가**: `app/models/`에 Tortoise 모델을 정의하고 `app/db/databases.py`의 `TORTOISE_APP_MODELS`에 등록하세요.
+- **AI 로직 추가**: `ai_worker/tasks/`에 새로운 처리 로직을 작성하고 `ai_worker/main.py`에서 호출하도록 구성하세요.
+
+---
+
+## 상세 문서
+
+| 문서 | 내용 |
+|------|------|
+| [CLAUDE.md](CLAUDE.md) | AI 페어 프로그래밍 규칙 |
+| [docs/HANDOFF_MEMO.md](docs/HANDOFF_MEMO.md) | 프로젝트 전체 인수인계 메모 |
+| [docs/collaboration/](docs/collaboration/) | API/DB 명세 확정안 |
+| [LLM-파트-시작-가이드.md](LLM-파트-시작-가이드.md) | LLM 파트 구현 순서 가이드 |

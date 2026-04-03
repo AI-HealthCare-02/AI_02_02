@@ -14,5 +14,6 @@ RUN uv sync --group ai --no-dev --frozen
 # 4. 로컬 소스 코드를 컨테이너 내부로 복사합니다.
 COPY ./ai_worker ./app
 
-# 5. 현재는 워커 뼈대만 유지하고, 태스크 통합 전까지는 장기 실행 상태를 유지합니다.
-CMD ["python", "-m", "app.main"]
+# 5. 해당 이미지를 활용하여 도커컨테이너 실행시 실행되는 명령어입니다.
+# 아래 커맨드를 수정한 뒤에 사용합니다.
+CMD ["echo", "'hello world'"]

@@ -3,9 +3,17 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 
 from app.core import config
-from app.db.model_registry import MODEL_MODULES
 
-TORTOISE_APP_MODELS = MODEL_MODULES
+TORTOISE_APP_MODELS = [
+    "aerich.models",
+    "app.models.users",
+    "app.models.consents",
+    "app.models.health",
+    "app.models.assessments",
+    "app.models.challenges",
+    "app.models.settings",
+    "app.models.chat",
+]
 
 TORTOISE_ORM = {
     "connections": {
@@ -17,6 +25,7 @@ TORTOISE_ORM = {
                 "user": config.DB_USER,
                 "password": config.DB_PASSWORD,
                 "database": config.DB_NAME,
+                "minsize": config.DB_CONNECTION_POOL_MINSIZE,
                 "maxsize": config.DB_CONNECTION_POOL_MAXSIZE,
             },
         },

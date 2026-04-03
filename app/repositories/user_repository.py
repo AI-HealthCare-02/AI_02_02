@@ -44,10 +44,10 @@ class UserRepository:
         )
 
     async def get_user_by_email(self, email: str) -> User | None:
-        return await self._model.get_or_none(email=email)
+        return await self._model.get_or_none(email__iexact=email)
 
     async def exists_by_email(self, email: str) -> bool:
-        return await self._model.filter(email=email).exists()
+        return await self._model.filter(email__iexact=email).exists()
 
     async def exists_by_phone_number(self, phone_number: str) -> bool:
         return await self._model.filter(phone_number=phone_number).exists()

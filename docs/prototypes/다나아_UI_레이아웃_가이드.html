@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 UI 레이아웃 가이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:#1a1a2e;color:#fff;padding:40px;}
+h1{font-size:28px;font-weight:900;text-align:center;margin-bottom:8px;}
+.subtitle{text-align:center;color:#94a3b8;font-size:14px;margin-bottom:40px;}
+
+/* 전체 레이아웃 다이어그램 */
+.layout-diagram{
+  max-width:1100px;margin:0 auto 60px;
+  border:2px solid #334155;border-radius:20px;
+  overflow:hidden;background:#0f172a;
+  position:relative;
+}
+.layout-row{display:flex;min-height:600px;}
+
+/* 사이드바 */
+.l-sidebar{
+  width:180px;background:#1e293b;border-right:2px dashed #f59e0b;
+  padding:16px;display:flex;flex-direction:column;gap:8px;
+  position:relative;
+}
+.l-sidebar::after{
+  content:'① 사이드바 (Sidebar)';
+  position:absolute;top:-30px;left:0;
+  background:#f59e0b;color:#000;padding:4px 12px;border-radius:8px;
+  font-size:11px;font-weight:800;white-space:nowrap;
+}
+
+/* 메인 영역 */
+.l-main{flex:1;display:flex;flex-direction:column;position:relative;}
+
+/* 탑 스트립 */
+.l-topstrip{
+  height:70px;background:#1e293b;border-bottom:2px dashed #10b981;
+  display:flex;align-items:center;justify-content:center;gap:20px;
+  padding:0 20px;position:relative;
+}
+.l-topstrip::after{
+  content:'② 대시보드 스트립 (Dashboard Strip / Top Bar)';
+  position:absolute;top:-30px;left:50%;transform:translateX(-50%);
+  background:#10b981;color:#000;padding:4px 12px;border-radius:8px;
+  font-size:11px;font-weight:800;white-space:nowrap;
+}
+
+/* 콘텐츠 영역 */
+.l-content{flex:1;display:flex;position:relative;}
+
+/* 채팅 메인 */
+.l-chat-main{
+  flex:1;display:flex;flex-direction:column;
+  border-right:2px dashed #7c3aed;position:relative;
+}
+.l-chat-main::before{
+  content:'③ 메인 콘텐츠 영역 (Main Content)';
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:#7c3aed;color:#fff;padding:4px 12px;border-radius:8px;
+  font-size:11px;font-weight:800;white-space:nowrap;z-index:5;
+}
+
+/* 채팅 메시지 */
+.l-chat-messages{
+  flex:1;padding:40px 16px 16px;display:flex;flex-direction:column;gap:12px;
+  overflow:hidden;position:relative;
+}
+
+/* 메시지 버블 */
+.l-msg{display:flex;gap:8px;align-items:flex-start;}
+.l-msg.bot{justify-content:flex-start;}
+.l-msg.user{justify-content:flex-end;}
+.l-avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,#0ea5e9,#10b981);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:#fff;flex-shrink:0;
+}
+.l-bubble{
+  padding:10px 14px;border-radius:14px;font-size:12px;line-height:1.6;
+  max-width:70%;position:relative;
+}
+.l-msg.bot .l-bubble{background:#334155;border:1px solid #475569;}
+.l-msg.user .l-bubble{background:#0ea5e9;color:#fff;}
+
+/* 위젯 카드 (채팅 내) */
+.l-widget{
+  background:#1e293b;border:1px dashed #38bdf8;border-radius:12px;
+  padding:10px;margin-top:8px;font-size:11px;
+  position:relative;
+}
+.l-widget::after{
+  content:'⑥ 위젯 카드 (Inline Widget)';
+  position:absolute;top:-20px;right:0;
+  background:#38bdf8;color:#000;padding:2px 8px;border-radius:6px;
+  font-size:9px;font-weight:800;white-space:nowrap;
+}
+
+/* 건강 질문 카드 */
+.l-hq{
+  border:1px dashed #10b981;border-radius:12px;
+  padding:10px;margin-top:8px;font-size:11px;
+  position:relative;
+}
+.l-hq::after{
+  content:'⑦ 건강 질문 카드 (Health Question Card)';
+  position:absolute;top:-20px;right:0;
+  background:#10b981;color:#000;padding:2px 8px;border-radius:6px;
+  font-size:9px;font-weight:800;white-space:nowrap;
+}
+
+/* 트리거 카드 영역 */
+.l-trigger-area{
+  padding:8px 16px;position:relative;
+}
+.l-trigger-area::before{
+  content:'⑧ 트리거 카드 (Trigger Card / Quick Action)';
+  position:absolute;top:-20px;left:16px;
+  background:#f43f5e;color:#fff;padding:3px 10px;border-radius:8px;
+  font-size:10px;font-weight:800;white-space:nowrap;z-index:5;
+}
+.l-trigger{
+  background:#1e293b;border:2px dashed #f43f5e;border-radius:12px;
+  padding:12px;max-width:300px;
+}
+
+/* 인풋 바 */
+.l-input-area{
+  padding:12px 16px;position:relative;
+}
+.l-input-area::before{
+  content:'⑨ 메시지 입력란 (Input Bar / Message Composer)';
+  position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  background:#06b6d4;color:#000;padding:3px 10px;border-radius:8px;
+  font-size:10px;font-weight:800;white-space:nowrap;z-index:5;
+}
+.l-input{
+  display:flex;gap:8px;align-items:center;
+  background:#1e293b;border:2px dashed #06b6d4;border-radius:20px;
+  padding:10px 14px;
+}
+.l-input-field{flex:1;height:16px;background:#334155;border-radius:10px;}
+.l-input-btn{
+  width:28px;height:28px;border-radius:50%;
+  background:linear-gradient(135deg,#0ea5e9,#06b6d4);
+}
+
+/* 사이드 패널 */
+.l-side-panel{
+  width:240px;background:#1e293b;padding:16px;
+  display:flex;flex-direction:column;gap:12px;
+  position:relative;
+}
+.l-side-panel::after{
+  content:'④ 사이드 패널 (Side Panel / Widget Panel)';
+  position:absolute;top:-30px;right:0;
+  background:#ec4899;color:#fff;padding:4px 12px;border-radius:8px;
+  font-size:11px;font-weight:800;white-space:nowrap;
+}
+
+/* 사이드 위젯 */
+.l-sw{
+  background:#0f172a;border:1px solid #334155;border-radius:12px;
+  padding:12px;font-size:11px;
+}
+.l-sw-title{font-size:10px;font-weight:800;color:#94a3b8;margin-bottom:6px;}
+
+/* 사이드바 내부 */
+.l-sb-logo{font-size:14px;font-weight:900;color:#0ea5e9;margin-bottom:16px;}
+.l-sb-section{font-size:9px;color:#64748b;font-weight:700;margin:8px 0 4px;letter-spacing:1px;}
+.l-sb-item{
+  padding:8px 10px;border-radius:10px;font-size:11px;font-weight:600;
+  color:#94a3b8;margin-bottom:2px;
+}
+.l-sb-item.active{background:#0ea5e9;color:#fff;}
+
+/* 프로필 */
+.l-profile{
+  margin-top:auto;padding-top:12px;border-top:1px solid #334155;
+  display:flex;align-items:center;gap:8px;
+  position:relative;
+}
+.l-profile::after{
+  content:'⑤ 유저 프로필 (User Profile)';
+  position:absolute;bottom:-24px;left:0;
+  background:#a78bfa;color:#000;padding:2px 8px;border-radius:6px;
+  font-size:9px;font-weight:800;white-space:nowrap;
+}
+.l-profile-avatar{
+  width:28px;height:28px;border-radius:50%;background:#10b981;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;
+}
+
+/* 번호 뱃지 */
+.num-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:900;
+  margin-right:4px;
+}
+
+/* ===== 설명 섹션 ===== */
+.explain-section{
+  max-width:1100px;margin:0 auto 60px;
+}
+.explain-section h2{
+  font-size:22px;font-weight:900;margin-bottom:24px;
+  padding-bottom:12px;border-bottom:2px solid #334155;
+}
+.term-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:16px;
+}
+.term-card{
+  background:#1e293b;border-radius:16px;padding:20px;
+  border-left:4px solid;
+}
+.term-card .tc-num{font-size:12px;font-weight:800;opacity:.7;margin-bottom:4px;}
+.term-card .tc-kr{font-size:16px;font-weight:900;margin-bottom:2px;}
+.term-card .tc-en{font-size:12px;color:#94a3b8;margin-bottom:10px;}
+.term-card .tc-desc{font-size:13px;color:#cbd5e1;line-height:1.8;}
+.term-card .tc-aka{
+  margin-top:10px;padding:8px 12px;background:#0f172a;border-radius:10px;
+  font-size:11px;color:#94a3b8;
+}
+.term-card .tc-aka strong{color:#fff;}
+
+/* 구조도 */
+.structure-box{
+  max-width:1100px;margin:0 auto 60px;
+  background:#1e293b;border-radius:20px;padding:32px;
+}
+.structure-box h2{
+  font-size:22px;font-weight:900;margin-bottom:24px;
+}
+.tree{font-family:monospace;font-size:13px;line-height:2;color:#e2e8f0;}
+.tree .hl-yellow{color:#f59e0b;}
+.tree .hl-green{color:#10b981;}
+.tree .hl-purple{color:#a78bfa;}
+.tree .hl-pink{color:#ec4899;}
+.tree .hl-cyan{color:#06b6d4;}
+.tree .hl-red{color:#f43f5e;}
+.tree .hl-blue{color:#38bdf8;}
+
+@media(max-width:768px){
+  .term-grid{grid-template-columns:1fr;}
+  .layout-row{flex-direction:column;}
+  .l-sidebar,.l-side-panel{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<h1>다나아 UI 레이아웃 가이드</h1>
+<p class="subtitle">현재 화면의 각 영역 명칭과 역할 설명</p>
+
+<!-- ===== 레이아웃 다이어그램 ===== -->
+<div class="layout-diagram" style="margin-top:40px;">
+  <div class="layout-row">
+
+    <!-- ① 사이드바 -->
+    <div class="l-sidebar">
+      <div class="l-sb-logo">🏥 다나아</div>
+      <div class="l-sb-section">카테고리</div>
+      <div class="l-sb-item active">🔴 당뇨</div>
+      <div class="l-sb-item">💜 고혈압</div>
+      <div class="l-sb-item">🦴 비만</div>
+      <div class="l-sb-section">메뉴</div>
+      <div class="l-sb-item active">💬 다나아 AI</div>
+      <div class="l-sb-item">📈 AI 건강 리포트</div>
+      <div class="l-sb-item">🎯 챌린지</div>
+      <div class="l-sb-item">⚙️ 설정</div>
+      <div class="l-profile">
+        <div class="l-profile-avatar">홍</div>
+        <div style="font-size:11px;"><div style="font-weight:700;">사용자</div><div style="font-size:9px;color:#64748b;">분류 미정</div></div>
+      </div>
+    </div>
+
+    <!-- 메인 -->
+    <div class="l-main">
+
+      <!-- ② 대시보드 스트립 -->
+      <div class="l-topstrip">
+        <div style="background:#334155;padding:8px 20px;border-radius:12px;font-size:11px;">
+          <span style="color:#10b981;font-weight:800;">0</span> 낮은 위험
+        </div>
+        <div style="background:#334155;padding:8px 20px;border-radius:12px;font-size:11px;">
+          건강 응답 <span style="color:#0ea5e9;font-weight:800;">12</span>/21개
+        </div>
+        <div style="background:#334155;padding:8px 20px;border-radius:12px;font-size:11px;">
+          수면 <span style="color:#f59e0b;font-weight:800;">5.5</span>시간
+        </div>
+      </div>
+
+      <!-- 콘텐츠: 채팅 + 사이드패널 -->
+      <div class="l-content">
+
+        <!-- ③ 채팅 메인 -->
+        <div class="l-chat-main">
+          <div class="l-chat-messages">
+
+            <!-- 봇 메시지 -->
+            <div class="l-msg bot">
+              <div class="l-avatar">D</div>
+              <div>
+                <div class="l-bubble">
+                  안녕하세요! 다나아 AI입니다 😊
+                  <!-- 건강 질문 카드 -->
+                  <div class="l-hq">
+                    💚 다나아 건강 질문<br>
+                    <div style="margin-top:6px;">
+                      <span style="padding:3px 10px;border:1px solid #475569;border-radius:20px;font-size:10px;margin-right:4px;">5시간 미만</span>
+                      <span style="padding:3px 10px;border:1px solid #0ea5e9;border-radius:20px;font-size:10px;color:#0ea5e9;">5-6시간</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 유저 메시지 -->
+            <div class="l-msg user">
+              <div class="l-bubble">고마워! 점심 메뉴 추천해줘</div>
+            </div>
+
+            <!-- 봇 + 위젯 -->
+            <div class="l-msg bot">
+              <div class="l-avatar">D</div>
+              <div>
+                <div class="l-bubble">
+                  이번 주 데이터를 분석해봤어요:
+                  <div class="l-widget">
+                    📊 이번 주 건강 리포트<br>
+                    <div style="margin-top:4px;display:flex;justify-content:space-between;"><span style="color:#64748b;">응답 건강 질문</span><span style="color:#10b981;font-weight:800;">12개</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#64748b;">평균 수면</span><span style="color:#f59e0b;font-weight:800;">5.5h ⚠</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ⑧ 트리거 카드 -->
+          <div class="l-trigger-area">
+            <div class="l-trigger">
+              <div style="font-weight:700;font-size:12px;margin-bottom:8px;">점심 드셨어요?</div>
+              <div style="display:flex;gap:6px;">
+                <span style="padding:4px 12px;border:1px solid #475569;border-radius:20px;font-size:10px;">먹었어요</span>
+                <span style="padding:4px 12px;border:1px solid #475569;border-radius:20px;font-size:10px;">아직</span>
+                <span style="padding:4px 12px;border:1px solid #475569;border-radius:20px;font-size:10px;">패스</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ⑨ 인풋 바 -->
+          <div class="l-input-area">
+            <div class="l-input">
+              <div class="l-input-field"></div>
+              <div style="font-size:10px;color:#10b981;font-weight:700;">● 체크인</div>
+              <div class="l-input-btn"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ④ 사이드 패널 -->
+        <div class="l-side-panel">
+          <div class="l-sw">
+            <div class="l-sw-title">🔮 오늘의 건강운세</div>
+            <div style="font-size:20px;margin-bottom:4px;">🌿</div>
+            <div style="font-weight:700;font-size:12px;">오늘은 몸이 가벼운 날!</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px;">가벼운 스트레칭이나 산책이...</div>
+          </div>
+          <div class="l-sw">
+            <div class="l-sw-title">💬 오늘의 한마디</div>
+            <div style="font-size:11px;font-style:italic;color:#cbd5e1;">"걷는 것은 최고의 약이다."</div>
+          </div>
+          <div class="l-sw">
+            <div class="l-sw-title">🌤️ 건강 날씨</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:20px;">☀️</span>
+              <span style="font-weight:800;">18°</span>
+            </div>
+          </div>
+          <div class="l-sw">
+            <div class="l-sw-title">📊 오늘 한눈에</div>
+            <div style="font-size:10px;color:#94a3b8;">식사 2/3 · 수분 5/8 ...</div>
+          </div>
+          <div class="l-sw">
+            <div class="l-sw-title">⚡ 빠른 바로가기</div>
+            <div style="font-size:10px;color:#94a3b8;">AI 건강 리포트 · 챌린지</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ===== 구조 트리 ===== -->
+<div class="structure-box">
+  <h2>📐 HTML 구조도 (Component Tree)</h2>
+  <div class="tree">
+    <span class="hl-yellow">screen-main</span> — 전체 메인 화면<br>
+    ├── <span class="hl-yellow">sidebar</span> (aside) — ① 사이드바<br>
+    │&nbsp;&nbsp;&nbsp;├── 로고<br>
+    │&nbsp;&nbsp;&nbsp;├── <span class="hl-yellow">sidebar-section</span> "카테고리" — 질환 분류 메뉴<br>
+    │&nbsp;&nbsp;&nbsp;├── <span class="hl-yellow">sidebar-section</span> "메뉴" — 기능 네비게이션<br>
+    │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── sidebar-item "다나아 AI" (💬)<br>
+    │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── sidebar-item "AI 건강 리포트" (📈)<br>
+    │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── sidebar-item "챌린지" (🎯)<br>
+    │&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── sidebar-item "설정" (⚙️)<br>
+    │&nbsp;&nbsp;&nbsp;└── <span class="hl-purple">sidebar-profile</span> — ⑤ 유저 프로필<br>
+    │<br>
+    ├── <span class="hl-green">tab-content "dashboard"</span> — 다나아 AI 탭<br>
+    │&nbsp;&nbsp;&nbsp;├── <span class="hl-green">dash-strip</span> — ② 대시보드 스트립 (3개 카드)<br>
+    │&nbsp;&nbsp;&nbsp;└── <span class="hl-purple">chat-area</span> — 채팅 전체 (flex-row)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="hl-purple">chat-main</span> — ③ 채팅 메인 (flex-column)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="hl-blue">chat-messages</span> — 메시지 스크롤 영역<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── msg.ai — 봇 메시지 (⑥ 위젯 / ⑦ 건강질문 포함 가능)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── msg.user — 유저 메시지<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="hl-red">chat-bottom-area</span><br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── <span class="hl-red">trigger-card</span> — ⑧ 트리거 카드 (체크인/퀵액션)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── <span class="hl-cyan">chat-input-area</span> — ⑨ 입력란<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── chat-input (텍스트 필드)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── chat-checkin (체크인 버튼)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── chat-send (전송 버튼)<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="hl-pink">chat-side-panel</span> — ④ 사이드 패널<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── side-widget "건강운세"<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── side-widget "오늘의 한마디"<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── side-widget "건강 날씨"<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── side-widget "오늘 한눈에"<br>
+    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── side-widget "빠른 바로가기"<br>
+    │<br>
+    ├── <span class="hl-green">tab-content "analysis"</span> — AI 건강 리포트 탭<br>
+    │&nbsp;&nbsp;&nbsp;├── sub-tab-bar (요약/식단/습관/코치)<br>
+    │&nbsp;&nbsp;&nbsp;└── sub-tab-content × 4<br>
+    │<br>
+    ├── <span class="hl-green">tab-content "challenge"</span> — 챌린지 탭<br>
+    └── <span class="hl-green">tab-content "settings"</span> — 설정 탭
+  </div>
+</div>
+
+
+<!-- ===== 용어 설명 ===== -->
+<div class="explain-section">
+  <h2>📖 각 영역 명칭 & 설명</h2>
+  <div class="term-grid">
+
+    <div class="term-card" style="border-color:#f59e0b;">
+      <div class="tc-num">①</div>
+      <div class="tc-kr">사이드바</div>
+      <div class="tc-en">Sidebar / Navigation Bar / Side Nav</div>
+      <div class="tc-desc">
+        화면 왼쪽에 고정된 세로 메뉴 영역입니다. 앱의 주요 페이지(탭)를 이동하는 <b>내비게이션</b> 역할을 합니다.
+        위쪽에 질환 카테고리, 아래쪽에 기능 메뉴가 배치됩니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 좌측 네비게이션, 드로어(Drawer), 사이드 네비(Side Nav), 앱 쉘(App Shell)의 일부
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#10b981;">
+      <div class="tc-num">②</div>
+      <div class="tc-kr">대시보드 스트립</div>
+      <div class="tc-en">Dashboard Strip / Top Bar / Stats Bar / KPI Strip</div>
+      <div class="tc-desc">
+        메인 화면 최상단에 위치하는 얇은 가로 띠 영역입니다. 핵심 건강 지표(위험도, 건강 응답 수, 수면 시간)를 <b>한눈에</b> 보여주는 역할입니다.
+        어떤 탭을 보든 항상 보이는 <b>글로벌 상태 요약</b>입니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 톱 바(Top Bar), 상단 통계 바, 헤더 스트립, KPI 대시보드
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#7c3aed;">
+      <div class="tc-num">③</div>
+      <div class="tc-kr">메인 콘텐츠 영역</div>
+      <div class="tc-en">Main Content Area / Chat Area</div>
+      <div class="tc-desc">
+        화면의 가장 큰 중앙 부분으로, 현재 탭의 주요 콘텐츠가 표시되는 곳입니다.
+        "다나아 AI" 탭에서는 <b>AI 채팅 인터페이스</b>가, "AI 건강 리포트" 탭에서는 <b>건강 분석 서브탭</b>이 표시됩니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 콘텐츠 에어리어, 메인 패널, 바디(Body), 워크스페이스(Workspace)
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#ec4899;">
+      <div class="tc-num">④</div>
+      <div class="tc-kr">사이드 패널</div>
+      <div class="tc-en">Side Panel / Widget Panel / Right Sidebar / Aside</div>
+      <div class="tc-desc">
+        메인 콘텐츠 오른쪽에 위치하는 보조 정보 영역입니다.
+        채팅의 핵심 흐름을 방해하지 않으면서 <b>부가 정보</b>(건강운세, 날씨, 오늘 통계, 바로가기 등)를 제공합니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 위젯 패널, 우측 사이드바, 디테일 패널(Detail Panel), 인포 패널(Info Panel)
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#a78bfa;">
+      <div class="tc-num">⑤</div>
+      <div class="tc-kr">유저 프로필</div>
+      <div class="tc-en">User Profile / Account Badge</div>
+      <div class="tc-desc">
+        사이드바 하단에 위치하는 현재 로그인한 사용자의 정보 표시 영역입니다.
+        아바타(프로필 이미지), 이름, 분류 그룹 등을 표시합니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 어카운트 뱃지, 프로필 카드, 유저 아바타
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#38bdf8;">
+      <div class="tc-num">⑥</div>
+      <div class="tc-kr">인라인 위젯 카드</div>
+      <div class="tc-en">Inline Widget / Rich Card / Embedded Card</div>
+      <div class="tc-desc">
+        AI 봇 메시지 <b>안에 포함되는</b> 구조화된 정보 카드입니다.
+        "이번 주 건강 리포트" 같은 표(테이블)형 데이터를 채팅 버블 내에서 깔끔하게 보여줍니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 리치 메시지(Rich Message), 카드 메시지, 구조화된 응답(Structured Response)
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#10b981;">
+      <div class="tc-num">⑦</div>
+      <div class="tc-kr">건강 질문 카드</div>
+      <div class="tc-en">Health Question Card / Interactive Card / Survey Card</div>
+      <div class="tc-desc">
+        AI가 사용자에게 건강 관련 질문을 던지고 <b>버튼으로 답변</b>을 받는 인터랙티브 카드입니다.
+        "수면 충분하셨나요?", "아침 드셨나요?" 같은 질문 + 선택지 버튼 구성입니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 인터랙티브 카드, 설문 카드, 퀵 리플라이(Quick Reply), 선택형 응답
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#f43f5e;">
+      <div class="tc-num">⑧</div>
+      <div class="tc-kr">트리거 카드</div>
+      <div class="tc-en">Trigger Card / Quick Action / Floating Prompt / Contextual Card</div>
+      <div class="tc-desc">
+        입력란 바로 위에 뜨는 <b>컨텍스트 기반 액션 카드</b>입니다.
+        시간대에 따라 "점심 드셨어요?" 같은 체크인 프롬프트가 나타나고, 물 기록·스트레칭 같은 퀵 액션 버튼을 제공합니다.
+        ChatGPT의 입력창 위 제안 카드와 유사한 패턴입니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 플로팅 프롬프트, 컨텍스트 카드, 액션 시트(Action Sheet), 서제스천 칩(Suggestion Chip)
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#06b6d4;">
+      <div class="tc-num">⑨</div>
+      <div class="tc-kr">메시지 입력란</div>
+      <div class="tc-en">Input Bar / Message Composer / Chat Input / Prompt Bar</div>
+      <div class="tc-desc">
+        화면 최하단에 고정된 텍스트 입력 영역입니다. 사용자가 AI에게 메시지를 보내는 곳으로,
+        체크인 버튼과 전송 버튼이 함께 있습니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 프롬프트 바, 컴포저(Composer), 인풋 필드, 채팅 바(Chat Bar)
+      </div>
+    </div>
+
+    <div class="term-card" style="border-color:#64748b;">
+      <div class="tc-num">+</div>
+      <div class="tc-kr">채팅 버블</div>
+      <div class="tc-en">Chat Bubble / Message Bubble</div>
+      <div class="tc-desc">
+        각 메시지의 둥근 말풍선 모양 컨테이너입니다. AI(왼쪽)와 사용자(오른쪽)의 메시지가 서로 다른 스타일로 표시됩니다.
+        AI 버블 안에 위젯 카드나 건강 질문 카드가 포함될 수 있습니다.
+      </div>
+      <div class="tc-aka">
+        <strong>다른 이름:</strong> 말풍선, 메시지 카드, 메시지 컨테이너
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ===== 레이아웃 비율 설명 ===== -->
+<div class="structure-box">
+  <h2>📏 현재 레이아웃 비율</h2>
+  <div style="display:flex;gap:4px;height:50px;margin-bottom:20px;border-radius:12px;overflow:hidden;">
+    <div style="width:180px;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#000;">사이드바 180px</div>
+    <div style="flex:1;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">채팅 메인 (flex:1)</div>
+    <div style="width:280px;background:#ec4899;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">사이드 패널 280px</div>
+  </div>
+  <div style="font-size:13px;color:#cbd5e1;line-height:2;">
+    • <b style="color:#f59e0b;">사이드바 (180px)</b> — 고정 너비. 네비게이션 메뉴<br>
+    • <b style="color:#7c3aed;">채팅 메인 (flex:1)</b> — 남은 공간을 모두 차지. 채팅 메시지 + 트리거 카드 + 입력란<br>
+    • <b style="color:#ec4899;">사이드 패널 (280px)</b> — 고정 너비. 건강운세/날씨/통계 등 위젯<br>
+    <br>
+    예시: 화면 너비가 1400px일 때 → 사이드바 180 + 채팅 940 + 사이드패널 280 = 1400px
+  </div>
+</div>
+
+
+</body>
+</html>

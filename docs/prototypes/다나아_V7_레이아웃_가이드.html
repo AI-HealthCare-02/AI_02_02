@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 V7 — 레이아웃 가이드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+:root{--primary:#0EA5E9;--accent:#10B981;--g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;--g400:#94A3B8;--g500:#64748B;--g600:#475569;--g700:#334155;--g800:#1E293B;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:#F8FAFC;color:var(--g800);line-height:1.6;}
+
+.guide-header{
+  background:linear-gradient(135deg,#0EA5E9,#10B981);
+  color:#fff;padding:48px 40px;
+}
+.guide-header h1{font-size:28px;font-weight:900;margin-bottom:8px;}
+.guide-header p{font-size:14px;opacity:.85;max-width:600px;}
+
+.guide-nav{
+  background:#fff;border-bottom:1px solid var(--g200);
+  padding:16px 40px;display:flex;gap:24px;flex-wrap:wrap;
+  position:sticky;top:0;z-index:10;
+}
+.guide-nav a{
+  font-size:13px;font-weight:600;color:var(--g500);
+  padding:6px 14px;border-radius:8px;transition:.2s;
+}
+.guide-nav a:hover{background:var(--g50);color:var(--primary);text-decoration:none;}
+
+.section{padding:48px 40px;border-bottom:1px solid var(--g100);}
+.section:last-child{border-bottom:none;}
+.section h2{font-size:20px;font-weight:800;margin-bottom:6px;color:var(--g800);}
+.section .desc{font-size:13px;color:var(--g500);margin-bottom:28px;max-width:700px;}
+
+/* 전체 레이아웃 도식 */
+.layout-diagram{
+  display:flex;border:2px solid var(--g300);border-radius:16px;overflow:hidden;
+  height:600px;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.06);
+}
+
+/* 공통 영역 박스 */
+.area{
+  border:2px dashed;border-radius:10px;padding:12px;position:relative;
+  display:flex;flex-direction:column;
+}
+.area-label{
+  position:absolute;top:-10px;left:12px;
+  background:#fff;padding:0 8px;
+  font-size:11px;font-weight:800;letter-spacing:.5px;
+  border-radius:4px;white-space:nowrap;
+}
+.area-class{
+  font-size:10px;font-weight:500;color:var(--g400);
+  font-family:'Courier New',monospace;margin-top:2px;
+}
+.area-desc{
+  font-size:11px;color:var(--g500);margin-top:auto;line-height:1.5;
+}
+
+/* 색상 코드 */
+.c-sidebar{border-color:#7C3AED;background:rgba(124,58,237,.04);}
+.c-sidebar .area-label{color:#7C3AED;}
+.c-main{border-color:#0EA5E9;background:rgba(14,165,233,.03);}
+.c-main .area-label{color:#0EA5E9;}
+.c-strip{border-color:#F59E0B;background:rgba(245,158,11,.04);}
+.c-strip .area-label{color:#F59E0B;}
+.c-chat{border-color:#10B981;background:rgba(16,185,129,.04);}
+.c-chat .area-label{color:#10B981;}
+.c-side{border-color:#EF4444;background:rgba(239,68,68,.04);}
+.c-side .area-label{color:#EF4444;}
+.c-input{border-color:#06B6D4;background:rgba(6,182,212,.04);}
+.c-input .area-label{color:#06B6D4;}
+.c-nudge{border-color:#F43F5E;background:rgba(244,63,94,.06);}
+.c-nudge .area-label{color:#F43F5E;}
+.c-history{border-color:#8B5CF6;background:rgba(139,92,246,.04);}
+.c-history .area-label{color:#8B5CF6;}
+.c-mission{border-color:#EC4899;background:rgba(236,72,153,.04);}
+.c-mission .area-label{color:#EC4899;}
+.c-fortune{border-color:#F97316;background:rgba(249,115,22,.04);}
+.c-fortune .area-label{color:#F97316;}
+.c-stats{border-color:#14B8A6;background:rgba(20,184,166,.04);}
+.c-stats .area-label{color:#14B8A6;}
+
+/* 도식 내부 */
+.dia-sidebar{
+  width:220px;flex-shrink:0;border-right:1px solid var(--g200);
+  padding:12px;display:flex;flex-direction:column;gap:8px;
+}
+.dia-content{
+  flex:1;display:flex;flex-direction:column;padding:8px;gap:8px;
+}
+.dia-chat-row{flex:1;display:flex;gap:8px;}
+.dia-chat-main{flex:1;display:flex;flex-direction:column;gap:6px;}
+.dia-side-panel{width:200px;flex-shrink:0;}
+
+/* 컴포넌트 카탈로그 */
+.comp-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:20px;
+}
+.comp-card{
+  background:#fff;border:1px solid var(--g200);border-radius:14px;
+  padding:20px;box-shadow:0 1px 8px rgba(0,0,0,.03);
+}
+.comp-card h4{font-size:14px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.comp-card .tag{
+  font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.comp-card .class-name{
+  font-size:11px;font-family:'Courier New',monospace;
+  color:var(--g400);background:var(--g50);padding:4px 8px;
+  border-radius:6px;margin:8px 0;display:inline-block;
+}
+.comp-card p{font-size:12px;color:var(--g500);line-height:1.7;}
+.comp-card .sub{font-size:11px;color:var(--g400);margin-top:8px;line-height:1.6;}
+
+/* 상태 표 */
+.state-table{width:100%;border-collapse:collapse;font-size:12px;}
+.state-table th{
+  background:var(--g50);padding:10px 14px;text-align:left;
+  font-weight:700;color:var(--g600);border-bottom:2px solid var(--g200);
+}
+.state-table td{
+  padding:10px 14px;border-bottom:1px solid var(--g100);color:var(--g600);
+}
+.state-table code{
+  font-size:11px;background:var(--g50);padding:2px 6px;
+  border-radius:4px;font-family:'Courier New',monospace;
+}
+
+/* 파일 구조 */
+.file-map{
+  background:var(--g800);color:#E2E8F0;border-radius:12px;
+  padding:24px;font-family:'Courier New',monospace;font-size:12px;
+  line-height:2;overflow-x:auto;
+}
+.file-map .comment{color:#94A3B8;}
+.file-map .section-name{color:#7DD3FC;}
+.file-map .line-range{color:#FDE68A;}
+</style>
+</head>
+<body>
+
+<div class="guide-header">
+  <h1>다나아 V7 — UI 레이아웃 가이드</h1>
+  <p>팀원이 각 영역의 역할과 구조를 이해하고, 후속 작업을 수월하게 진행할 수 있도록 정리한 레이아웃 맵입니다.</p>
+</div>
+
+<div class="guide-nav">
+  <a href="#overview">전체 구조</a>
+  <a href="#components">컴포넌트 카탈로그</a>
+  <a href="#states">상태 & 인터랙션</a>
+  <a href="#filemap">파일 구조</a>
+  <a href="#tabs">탭 구성</a>
+  <a href="#css-vars">CSS 변수</a>
+</div>
+
+<!-- ═══ 1. 전체 구조 도식 ═══ -->
+<div class="section" id="overview">
+  <h2>1. 전체 레이아웃 구조</h2>
+  <div class="desc">화면은 크게 좌측 사이드바 + 우측 메인 콘텐츠로 구성됩니다. 메인 콘텐츠는 탭별로 전환되며, 기본 탭(다나아 AI)은 채팅 영역 + 사이드 패널의 2컬럼 구조입니다.</div>
+
+  <div class="layout-diagram">
+    <!-- 사이드바 -->
+    <div class="dia-sidebar">
+      <div class="area c-sidebar" style="padding:8px;margin-bottom:4px;">
+        <div class="area-label">① 사이드바</div>
+        <div class="area-class">.sidebar (260px)</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:8px;">
+          로고<br>카테고리 섹션<br>메뉴 섹션
+        </div>
+      </div>
+      <div class="area c-history" style="flex:1;">
+        <div class="area-label">② 대화 히스토리</div>
+        <div class="area-class">.sidebar-history</div>
+        <div style="font-size:10px;color:var(--g400);margin-top:8px;">
+          + 새 대화 버튼<br>오늘/어제 대화 목록
+        </div>
+      </div>
+      <div class="area c-mission" style="padding:6px 8px;">
+        <div class="area-label">③ 오늘의 미션</div>
+        <div class="area-class">.sidebar-mission</div>
+      </div>
+      <div style="font-size:10px;color:var(--g400);padding:4px 8px;">
+        👤 사용자 프로필
+      </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="dia-content">
+      <!-- 대시보드 스트립 -->
+      <div class="area c-strip" style="height:50px;flex-shrink:0;">
+        <div class="area-label">④ 대시보드 스트립</div>
+        <div class="area-class">.dash-strip-wrap (접기/펼치기 토글)</div>
+      </div>
+
+      <!-- 채팅 + 사이드패널 -->
+      <div class="dia-chat-row">
+        <div class="dia-chat-main">
+          <div class="area c-chat" style="flex:1;">
+            <div class="area-label">⑤ 채팅 메시지 영역</div>
+            <div class="area-class">.chat-messages</div>
+            <div style="font-size:10px;color:var(--g400);margin-top:8px;">
+              AI 대화 버블 + 건강 질문 위젯<br>
+              스크롤바 오른쪽 끝 고정
+            </div>
+          </div>
+          <div class="area c-nudge" style="height:36px;flex-shrink:0;">
+            <div class="area-label">⑥ LIVE 넛지 바</div>
+            <div class="area-class">.live-nudge-bar</div>
+          </div>
+          <div class="area c-input" style="height:46px;flex-shrink:0;">
+            <div class="area-label">⑦ 채팅 입력란</div>
+            <div class="area-class">.chat-input-area (max-w:720px 중앙)</div>
+          </div>
+        </div>
+
+        <!-- 사이드패널 -->
+        <div class="dia-side-panel">
+          <div class="area c-side" style="height:100%;display:flex;flex-direction:column;gap:6px;">
+            <div class="area-label">⑧ 사이드 패널</div>
+            <div class="area-class">.chat-side-panel (280px, 접기/펼치기)</div>
+            <div style="font-size:10px;color:var(--g400);margin-top:4px;">
+              [&lt; 패널 접기] 토글 버튼
+            </div>
+            <div class="area c-stats" style="flex-shrink:0;height:100px;">
+              <div class="area-label">⑨ 오늘 한눈에</div>
+              <div class="area-class">.side-widget (mini-stats)</div>
+              <div style="font-size:9px;color:var(--g400);margin-top:4px;">식사·수분·운동·수면</div>
+            </div>
+            <div class="area c-fortune" style="flex-shrink:0;height:80px;">
+              <div class="area-label">⑩ 건강운세 (플립카드)</div>
+              <div class="area-class">.fortune-flip-wrap</div>
+              <div style="font-size:9px;color:var(--g400);margin-top:4px;">클릭 → 3D 플립</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 2. 컴포넌트 카탈로그 ═══ -->
+<div class="section" id="components">
+  <h2>2. 컴포넌트 카탈로그</h2>
+  <div class="desc">V7에서 사용되는 주요 UI 컴포넌트별 클래스명, 역할, 참고사항입니다.</div>
+
+  <div class="comp-grid">
+    <div class="comp-card">
+      <h4>① 사이드바 <span class="tag" style="background:#EDE9FE;color:#7C3AED;">Layout</span></h4>
+      <div class="class-name">.sidebar</div>
+      <p>왼쪽 고정 네비게이션. 카테고리(당뇨/고혈압 등) + 메뉴(다나아AI/건강리포트/챌린지/설정) + 대화 히스토리 + 미션 + 프로필로 구성.</p>
+      <div class="sub">너비: 260px / margin-right: 8px (메인과 간격)</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>② 대화 히스토리 <span class="tag" style="background:#F3E8FF;color:#8B5CF6;">Widget</span></h4>
+      <div class="class-name">.sidebar-history</div>
+      <p>이전 대화 세션 목록. "새 대화" 버튼 + 날짜별 그룹(오늘/어제) + 대화 항목. 클로드AI 사이드바 참고.</p>
+      <div class="sub">위치: .sidebar 내 메뉴 섹션 아래, .sidebar-bottom 위</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>③ 오늘의 미션 <span class="tag" style="background:#FCE7F3;color:#EC4899;">Widget</span></h4>
+      <div class="class-name">.sidebar-mission</div>
+      <p>오늘 목표 진행률 표시. 프로그레스 바 + 퍼센트 텍스트. 그라데이션 바(primary→accent).</p>
+      <div class="sub">위치: .sidebar-bottom 내부, 프로필 위</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>④ 대시보드 스트립 <span class="tag" style="background:#FEF3C7;color:#92400E;">Interactive</span></h4>
+      <div class="class-name">.dash-strip-wrap → .dash-strip</div>
+      <p>상단 요약 카드 3장(혈당/BMI/FINDRISC). ▲▼ 토글로 접기/펼치기. CSS transition 애니메이션.</p>
+      <div class="sub">JS: toggleDashStrip() / 접힌 상태: .dash-strip.collapsed</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>⑤ 채팅 메시지 영역 <span class="tag" style="background:#D1FAE5;color:#065F46;">Core</span></h4>
+      <div class="class-name">.chat-messages</div>
+      <p>AI 대화 인터페이스. 사용자/AI 버블 + 인라인 건강 질문 위젯(.chat-widget). 스크롤바 오른쪽 끝 고정.</p>
+      <div class="sub">padding: 24px 24px / 스크롤바: 5px 너비, 투명 트랙</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>⑥ LIVE 넛지 바 <span class="tag" style="background:#FFE4E6;color:#BE123C;">New in V7</span></h4>
+      <div class="class-name">.live-nudge-bar</div>
+      <p>입력란 위 실시간 알림. LIVE 빨간 배지 + 2개 메시지 + 닫기(✕). 슬라이드업 애니메이션.</p>
+      <div class="sub">JS: dismissLiveNudge() / max-width: 720px 중앙 정렬</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>⑦ 채팅 입력란 <span class="tag" style="background:#CFFAFE;color:#0E7490;">Core</span></h4>
+      <div class="class-name">.chat-input-area → .chat-input-wrap</div>
+      <p>메시지 입력 + 전송(↑) 버튼. 둥근 pill 형태(border-radius:24px). V7에서 체크인 버튼 제거.</p>
+      <div class="sub">.chat-input-wrap: max-width:720px, margin:0 auto</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>⑧ 사이드 패널 <span class="tag" style="background:#FEE2E2;color:#DC2626;">Interactive</span></h4>
+      <div class="class-name">.chat-side-panel</div>
+      <p>오른쪽 정보 패널. 접기/펼치기 가능. 펼침: 280px(위젯 표시). 접힘: 48px(아이콘만).</p>
+      <div class="sub">JS: toggleSidePanel() / 접힌 상태: .chat-side-panel.collapsed<br>토글버튼: .side-panel-toggle / 아이콘: .side-panel-collapsed-icons</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>⑨ 오늘 한눈에 <span class="tag" style="background:#CCFBF1;color:#0D9488;">Widget</span></h4>
+      <div class="class-name">.side-widget → .mini-stats</div>
+      <p>식사(2/3끼), 수분(5/8잔), 운동(10/30분), 수면(5.5h) 프로그레스바 4줄. 컬러별 구분.</p>
+      <div class="sub">위치: 사이드패널 내 첫 번째 위젯</div>
+    </div>
+
+    <div class="comp-card">
+      <h4>⑩ 건강운세 플립카드 <span class="tag" style="background:#FFF7ED;color:#C2410C;">Interactive</span></h4>
+      <div class="class-name">.fortune-flip-wrap → .fortune-flip-inner</div>
+      <p>3D CSS 플립 카드. 뒷면(그라데이션+🍀), 앞면(운세+이번주 7일 그리드). 클릭 토글.</p>
+      <div class="sub">JS: toggleFortune() / perspective: 800px / rotateY(180deg)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 3. 상태 & 인터랙션 ═══ -->
+<div class="section" id="states">
+  <h2>3. 상태 & 인터랙션 맵</h2>
+  <div class="desc">토글 가능한 영역과 상태 클래스, 관련 JS 함수 정리.</div>
+
+  <table class="state-table">
+    <thead>
+      <tr><th>영역</th><th>기본 상태</th><th>토글 상태</th><th>CSS 클래스</th><th>JS 함수</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>④ 대시보드 스트립</td>
+        <td>펼침 (카드 3장 표시)</td>
+        <td>접힘 (높이 0, 투명)</td>
+        <td><code>.dash-strip.collapsed</code></td>
+        <td><code>toggleDashStrip()</code></td>
+      </tr>
+      <tr>
+        <td>⑧ 사이드 패널</td>
+        <td>펼침 (280px, 위젯 표시)</td>
+        <td>접힘 (48px, 아이콘만)</td>
+        <td><code>.chat-side-panel.collapsed</code></td>
+        <td><code>toggleSidePanel()</code></td>
+      </tr>
+      <tr>
+        <td>⑩ 건강운세</td>
+        <td>뒷면 (그라데이션)</td>
+        <td>앞면 (운세 내용)</td>
+        <td><code>.fortune-flip-wrap.flipped</code></td>
+        <td><code>toggleFortune()</code></td>
+      </tr>
+      <tr>
+        <td>⑥ LIVE 넛지 바</td>
+        <td>표시</td>
+        <td>숨김 (✕ 클릭)</td>
+        <td>인라인 style 변경</td>
+        <td><code>dismissLiveNudge()</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ 4. 파일 구조 맵 ═══ -->
+<div class="section" id="filemap">
+  <h2>4. 파일 구조 (줄 번호 가이드)</h2>
+  <div class="desc">단일 HTML 파일(~3,600줄) 내 주요 섹션의 위치입니다.</div>
+
+  <div class="file-map">
+<span class="comment">/* ─── CSS 영역 ─── */</span><br>
+<span class="line-range">  8</span>  &lt;style&gt; 시작<br>
+<span class="line-range"> 11-25</span>  <span class="section-name">CSS 변수 (:root)</span><br>
+<span class="line-range"> 31-345</span>  <span class="section-name">랜딩 페이지 + 온보딩 CSS</span><br>
+<span class="line-range">349-400</span>  <span class="section-name">사이드바 CSS (.sidebar, .sidebar-item 등)</span><br>
+<span class="line-range">401-440</span>  <span class="section-name">대화 히스토리 + 미션 CSS (V7 신규)</span><br>
+<span class="line-range">445-500</span>  <span class="section-name">대시보드 스트립 CSS</span><br>
+<span class="line-range">500-570</span>  <span class="section-name">채팅 영역 + 사이드패널 + 건강운세 CSS</span><br>
+<span class="line-range">570-620</span>  <span class="section-name">채팅 메시지 + 버블 CSS</span><br>
+<span class="line-range">690-730</span>  <span class="section-name">채팅 입력란 CSS</span><br>
+<span class="line-range">730-870</span>  <span class="section-name">AI 건강 리포트 탭 CSS</span><br>
+<span class="line-range">815-855</span>  <span class="section-name">LIVE 넛지 바 CSS (V7 신규)</span><br>
+<span class="line-range">870-1050</span>  <span class="section-name">챌린지 + 설정 탭 CSS</span><br>
+<span class="line-range">1050-1100</span>  <span class="section-name">반응형 (@media ≤768px)</span><br>
+<br>
+<span class="comment">/* ─── HTML 영역 ─── */</span><br>
+<span class="line-range">1110-1250</span>  <span class="section-name">랜딩 페이지 HTML</span><br>
+<span class="line-range">1250-1400</span>  <span class="section-name">온보딩 설문 HTML</span><br>
+<span class="line-range">1400-1480</span>  <span class="section-name">사이드바 HTML (카테고리+메뉴+히스토리+미션+프로필)</span><br>
+<span class="line-range">1480-1640</span>  <span class="section-name">TAB 1: 다나아 AI (대시보드) — 스트립+채팅+사이드패널</span><br>
+<span class="line-range">1640-1740</span>  <span class="section-name">사이드 패널 HTML (토글+오늘한눈에+건강운세)</span><br>
+<span class="line-range">1740-1970</span>  <span class="section-name">TAB 2: AI 건강 리포트 (서브탭 4개)</span><br>
+<span class="line-range">1970-2050</span>  <span class="section-name">TAB 3: 챌린지</span><br>
+<span class="line-range">2050-2130</span>  <span class="section-name">TAB 4: 설정</span><br>
+<br>
+<span class="comment">/* ─── JavaScript 영역 ─── */</span><br>
+<span class="line-range">2150-2400</span>  <span class="section-name">온보딩 설문 로직 (steps, goToMain 등)</span><br>
+<span class="line-range">2400-2450</span>  <span class="section-name">탭 전환 (switchTab, switchSubTab)</span><br>
+<span class="line-range">2450-2530</span>  <span class="section-name">요약 탭 렌더링 (renderSummaryTab 등)</span><br>
+<span class="line-range">2530-2570</span>  <span class="section-name">토글 함수 (toggleDashStrip, toggleFortune, toggleSidePanel)</span><br>
+<span class="line-range">2570-2600</span>  <span class="section-name">LIVE 넛지 + 유틸리티 함수</span><br>
+  </div>
+</div>
+
+<!-- ═══ 5. 탭 구성 ═══ -->
+<div class="section" id="tabs">
+  <h2>5. 탭 구성</h2>
+  <div class="desc">메인 영역의 탭 전환 구조입니다. switchTab() 함수로 전환합니다.</div>
+
+  <table class="state-table">
+    <thead>
+      <tr><th>탭 이름</th><th>ID</th><th>사이드바 메뉴</th><th>주요 내용</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>다나아 AI</strong></td>
+        <td><code>#tab-dashboard</code></td>
+        <td>💬 다나아 AI</td>
+        <td>대시보드 스트립 + AI 채팅 + 사이드패널</td>
+      </tr>
+      <tr>
+        <td><strong>AI 건강 리포트</strong></td>
+        <td><code>#tab-analysis</code></td>
+        <td>📈 AI 건강 리포트</td>
+        <td>서브탭 4개: 요약 / 예측 / 건강지표 / 생활습관</td>
+      </tr>
+      <tr>
+        <td><strong>챌린지</strong></td>
+        <td><code>#tab-challenge</code></td>
+        <td>🎯 챌린지</td>
+        <td>목표 달성 현황 + 추천 챌린지</td>
+      </tr>
+      <tr>
+        <td><strong>설정</strong></td>
+        <td><code>#tab-settings</code></td>
+        <td>⚙️ 설정</td>
+        <td>프로필 편집 + 알림 + 데이터 관리</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:28px;font-size:15px;font-weight:700;">AI 건강 리포트 서브탭</h3>
+  <table class="state-table" style="margin-top:12px;">
+    <thead>
+      <tr><th>서브탭</th><th>ID</th><th>주요 시각화</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>📊 요약</td><td><code>#subtab-summary</code></td><td>위험도 게이지, 활동 링, 주간 히트맵, 추세 차트, 영양 레이더</td></tr>
+      <tr><td>🔮 예측</td><td><code>#subtab-prediction</code></td><td>FINDRISC 점수, 위험 요인 분석</td></tr>
+      <tr><td>❤️ 건강지표</td><td><code>#subtab-indicators</code></td><td>BMI, 혈압, 혈당, 콜레스테롤 카드</td></tr>
+      <tr><td>🌙 생활습관</td><td><code>#subtab-lifestyle</code></td><td>수면, 운동, 식습관, 스트레스 분석</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ 6. CSS 변수 ═══ -->
+<div class="section" id="css-vars">
+  <h2>6. CSS 변수 레퍼런스</h2>
+  <div class="desc">전체 디자인 시스템의 색상 토큰입니다. :root에 정의되어 있습니다.</div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#0EA5E9;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--primary</div><div style="font-size:10px;color:var(--g400);">#0EA5E9</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#0284C7;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--primary-dark</div><div style="font-size:10px;color:var(--g400);">#0284C7</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#E0F2FE;flex-shrink:0;border:1px solid #ccc;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--primary-light</div><div style="font-size:10px;color:var(--g400);">#E0F2FE</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#10B981;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--accent</div><div style="font-size:10px;color:var(--g400);">#10B981</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#F59E0B;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--warning</div><div style="font-size:10px;color:var(--g400);">#F59E0B</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#EF4444;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--danger</div><div style="font-size:10px;color:var(--g400);">#EF4444</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#1E293B;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--g800</div><div style="font-size:10px;color:var(--g400);">#1E293B (본문)</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#64748B;flex-shrink:0;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--g500</div><div style="font-size:10px;color:var(--g400);">#64748B (보조)</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:10px;border:1px solid var(--g200);">
+      <div style="width:32px;height:32px;border-radius:8px;background:#E2E8F0;flex-shrink:0;border:1px solid #ccc;"></div>
+      <div><div style="font-size:12px;font-weight:700;">--g200</div><div style="font-size:10px;color:var(--g400);">#E2E8F0 (보더)</div></div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:32px;color:var(--g400);font-size:12px;">
+  다나아(DA-NA-A) V7 레이아웃 가이드 · 2026.03.27 작성
+</div>
+
+</body>
+</html>

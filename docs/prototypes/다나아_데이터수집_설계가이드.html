@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다나아 — 데이터 수집 설계 가이드 (당뇨)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+:root{
+  --primary:#0EA5E9;--primary-dark:#0284C7;--primary-light:#E0F2FE;
+  --accent:#10B981;--accent-light:#D1FAE5;
+  --warning:#F59E0B;--warning-light:#FEF3C7;
+  --danger:#EF4444;--danger-light:#FEE2E2;
+  --purple:#7C3AED;--purple-light:#EDE9FE;
+  --orange:#EA580C;--orange-light:#FFF7ED;
+  --g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;
+  --g400:#94A3B8;--g500:#64748B;--g600:#475569;--g700:#334155;--g800:#1E293B;--g900:#0F172A;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',sans-serif;background:#F8FAFC;color:var(--g800);line-height:1.7;}
+.container{max-width:1100px;margin:0 auto;padding:40px 24px;}
+.nav-tabs{display:flex;gap:4px;background:#fff;border-radius:16px;padding:6px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:40px;position:sticky;top:16px;z-index:100;flex-wrap:wrap;}
+.nav-tab{flex:1;min-width:120px;text-align:center;padding:14px 8px;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;transition:.2s;color:var(--g500);border:none;background:transparent;font-family:inherit;}
+.nav-tab:hover{background:var(--g100);}
+.nav-tab.active{background:var(--g900);color:#fff;}
+.section{display:none;}.section.active{display:block;}
+.section-title{font-size:28px;font-weight:900;margin-bottom:8px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.section-sub{font-size:14px;color:var(--g500);margin-bottom:32px;}
+.card{background:#fff;border-radius:20px;padding:28px;margin-bottom:20px;border:1px solid var(--g200);box-shadow:0 2px 8px rgba(0,0,0,.03);}
+.card h3{font-size:17px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card p{font-size:13px;color:var(--g600);line-height:1.8;}
+.tag{display:inline-flex;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;margin:2px;}
+.tag-critical{background:#FEE2E2;color:#DC2626;}
+.tag-important{background:#FEF3C7;color:#92400E;}
+.tag-nice{background:var(--g100);color:var(--g500);}
+.tag-model{background:#DBEAFE;color:#1E40AF;}
+.tag-dash{background:#D1FAE5;color:#065F46;}
+.tag-challenge{background:#EDE9FE;color:#6D28D9;}
+.tooltip{position:relative;cursor:help;border-bottom:1.5px dashed var(--primary);color:var(--primary-dark);font-weight:600;}
+.tooltip .tip-text{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--g900);color:#fff;padding:10px 14px;border-radius:10px;font-size:11px;font-weight:400;width:280px;z-index:200;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,.2);}
+.tooltip:hover .tip-text{display:block;}
+.priority-bar{display:flex;gap:2px;margin:4px 0;}
+.priority-bar .seg{height:8px;border-radius:4px;flex:1;}
+table.data-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin-top:12px;}
+table.data-table th{background:var(--g900);color:#fff;padding:10px 12px;font-weight:700;text-align:left;white-space:nowrap;}
+table.data-table th:first-child{border-radius:12px 0 0 0;}
+table.data-table th:last-child{border-radius:0 12px 0 0;}
+table.data-table td{padding:10px 12px;border-bottom:1px solid var(--g100);vertical-align:top;}
+table.data-table tr:hover td{background:var(--g50);}
+table.data-table tr:last-child td:first-child{border-radius:0 0 0 12px;}
+table.data-table tr:last-child td:last-child{border-radius:0 0 12px 0;}
+.flow-box{display:flex;flex-direction:column;align-items:center;gap:0;}
+.flow-node{width:100%;background:#fff;border-radius:16px;padding:20px 24px;border:2px solid var(--g200);position:relative;}
+.flow-node.highlight{border-color:var(--primary);background:var(--primary-light);}
+.flow-arrow{width:2px;height:32px;background:var(--g300);position:relative;}
+.flow-arrow::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);border-left:7px solid transparent;border-right:7px solid transparent;border-top:9px solid var(--g300);}
+.rank-card{display:flex;align-items:flex-start;gap:16px;padding:16px;border-radius:14px;margin-bottom:10px;border:1px solid var(--g200);background:#fff;transition:.15s;}
+.rank-card:hover{border-color:var(--primary);box-shadow:0 2px 12px rgba(14,165,233,.08);}
+.rank-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0;color:#fff;}
+.rank-content{flex:1;}
+.rank-title{font-size:14px;font-weight:800;margin-bottom:4px;}
+.rank-desc{font-size:12px;color:var(--g500);line-height:1.6;}
+.rank-effect{display:inline-flex;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;margin-top:6px;}
+.term-card{background:var(--g50);border-radius:12px;padding:14px 18px;margin-bottom:8px;border-left:4px solid var(--primary);}
+.term-card .term{font-size:14px;font-weight:800;color:var(--g900);margin-bottom:4px;}
+.term-card .def{font-size:12px;color:var(--g600);line-height:1.7;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.stat-card{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--g200);text-align:center;}
+.stat-num{font-size:32px;font-weight:900;margin-bottom:4px;}
+.stat-label{font-size:11px;color:var(--g500);}
+@media(max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr;}.nav-tab{min-width:80px;font-size:11px;padding:10px 6px;}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div style="text-align:center;margin-bottom:32px;">
+  <div style="font-size:14px;font-weight:700;color:var(--primary);margin-bottom:8px;">DA-NA-A 데이터 수집 설계 가이드</div>
+  <h1 style="font-size:32px;font-weight:900;line-height:1.3;">
+    필수 3기능을 위해<br>
+    <span style="background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">어떤 데이터를 수집해야 하는가?</span>
+  </h1>
+  <p style="font-size:14px;color:var(--g500);margin-top:12px;">당뇨 도메인 | 논문 근거 기반 | 팀원 이해용</p>
+</div>
+
+<!-- Navigation -->
+<div class="nav-tabs" id="nav">
+  <button class="nav-tab active" onclick="showSection(0)">개요</button>
+  <button class="nav-tab" onclick="showSection(1)">용어 사전</button>
+  <button class="nav-tab" onclick="showSection(2)">예측 모델</button>
+  <button class="nav-tab" onclick="showSection(3)">대시보드</button>
+  <button class="nav-tab" onclick="showSection(4)">챌린지</button>
+  <button class="nav-tab" onclick="showSection(5)">수집 매트릭스</button>
+  <button class="nav-tab" onclick="showSection(6)">우선순위</button>
+  <button class="nav-tab" onclick="showSection(7)">논문 근거</button>
+</div>
+
+<!-- ═══ 섹션 0: 개요 ═══ -->
+<div class="section active" id="sec-0">
+  <div class="section-title">왜 이 문서가 필요한가?</div>
+  <div class="section-sub">필수 구현 3가지를 정확하게 만들려면, "어떤 데이터가 필요한지"부터 확정해야 합니다.</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#FEF3C7,#FFF7ED);border-color:#FDE68A;">
+    <h3>필수 구현 3가지</h3>
+    <div class="grid-3" style="margin-top:12px;">
+      <div class="stat-card" style="border-color:var(--primary);">
+        <div style="font-size:28px;margin-bottom:8px;">1</div>
+        <div style="font-size:14px;font-weight:800;color:var(--primary-dark);">만성질환 예측 모델링</div>
+        <div class="stat-label" style="margin-top:8px;">사용자 건강 데이터로<br>당뇨 발병 가능성을 예측</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--accent);">
+        <div style="font-size:28px;margin-bottom:8px;">2</div>
+        <div style="font-size:14px;font-weight:800;color:#065F46;">만성질환 추적 대시보드</div>
+        <div class="stat-label" style="margin-top:8px;">건강 데이터 변화 추이를<br>그래프/차트로 시각화</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--purple);">
+        <div style="font-size:28px;margin-bottom:8px;">3</div>
+        <div style="font-size:14px;font-weight:800;color:var(--purple);">생활습관 챌린지</div>
+        <div class="stat-label" style="margin-top:8px;">당뇨 예방에 효과적인<br>행동 챌린지 제공</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>핵심 원리: 데이터 하나가 여러 기능에 동시에 쓰인다</h3>
+    <p>예를 들어 <strong>"오늘 운동하셨나요?"</strong> 한 질문의 답변은:</p>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+      <span class="tag tag-model">예측 모델: FINDRISC 운동 점수 2점에 반영</span>
+      <span class="tag tag-dash">대시보드: 운동 점수, 주간 히트맵에 표시</span>
+      <span class="tag tag-challenge">챌린지: "주 150분 운동" 달성 여부 판정</span>
+    </div>
+    <p style="margin-top:12px;">그래서 <strong>데이터 수집을 먼저 확정</strong>하면, 3기능 모두 자동으로 설계가 확정됩니다.</p>
+  </div>
+
+  <div class="card">
+    <h3>데이터 수집 구조 — 큰 그림</h3>
+    <div class="flow-box" style="margin-top:12px;">
+      <div class="flow-node highlight">
+        <div style="font-size:14px;font-weight:800;">1단계: 온보딩 설문 (가입 시 1회)</div>
+        <div style="font-size:12px;color:var(--g600);margin-top:4px;">나이, 성별, 키, 체중, 가족력, 질환 이력 등 13항목<br><strong>→ 베이스라인(기준선) 확보</strong></div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div style="font-size:14px;font-weight:800;">2단계: 매일 수집 (AI 채팅에 자연 삽입)</div>
+        <div style="font-size:12px;color:var(--g600);margin-top:4px;">수면, 식사, 운동, 야식 등 10-11문항<br>3번 터치포인트로 분산 (아침 3 + 점심 3 + 저녁 4)<br><strong>→ 기준선의 "변화"를 추적</strong></div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div style="font-size:14px;font-weight:800;">3단계: 주기별 수집 (2-3일 / 주간 / 15일 / 월간)</div>
+        <div style="font-size:12px;color:var(--g600);margin-top:4px;">스트레스(2-3일), 체중(주간), 허리둘레(15일), 흡연(월간)<br><strong>→ 느리게 변하는 지표 추적</strong></div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node">
+        <div style="font-size:14px;font-weight:800;">4단계: 검사 결과 입력 (3-6개월, 있을 때만)</div>
+        <div style="font-size:12px;color:var(--g600);margin-top:4px;">HbA1c, 공복혈당, 콜레스테롤 등 건강검진 결과<br><strong>→ 예측 정확도 대폭 향상</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--primary);">10-11</div>
+      <div class="stat-label">매일 수집 문항 수<br>(B/C그룹 10 / A그룹 11)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent);">2-3초</div>
+      <div class="stat-label">문항당 응답 시간<br>(범주 선택 방식)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--warning);">3-4</div>
+      <div class="stat-label">한 번에 묻는 최대 문항<br>(3 터치포인트 분산)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 섹션 1: 용어 사전 ═══ -->
+<div class="section" id="sec-1">
+  <div class="section-title">용어 사전</div>
+  <div class="section-sub">이 문서에 나오는 어려운 용어들을 쉽게 설명합니다.</div>
+
+  <div class="card"><h3>예측 모델 관련</h3>
+    <div class="term-card"><div class="term">FINDRISC (핀드리스크)</div><div class="def">핀란드에서 만든 당뇨 위험 점수 도구. 8개 질문(나이, BMI, 허리둘레, 운동, 채소, 고혈압약, 고혈당이력, 가족력)만으로 10년 내 당뇨 발병 확률을 예측. 전 세계에서 가장 많이 사용되는 비검사 도구.</div></div>
+    <div class="term-card"><div class="term">KDRS (한국 당뇨 위험 점수)</div><div class="def">한국인 데이터(국민건강보험)로 만든 당뇨 위험 점수. FINDRISC에 없는 흡연, 음주를 포함. 한국인 체형에 맞는 기준(BMI 25 = 비만)을 사용.</div></div>
+    <div class="term-card"><div class="term">AUC (Area Under Curve)</div><div class="def">예측 모델의 정확도를 0~1로 나타낸 숫자. <strong>0.5 = 동전 던지기 수준, 0.7 = 괜찮음, 0.8 = 좋음, 0.9 = 매우 좋음</strong>. 예: FINDRISC는 AUC 0.73 = "괜찮은 수준의 예측력".</div></div>
+    <div class="term-card"><div class="term">베이스라인 (Baseline)</div><div class="def">처음 측정한 기준값. "체중 82kg에서 시작"하면 82kg이 베이스라인. 이후 모든 변화는 이 기준과 비교해서 "개선/악화"를 판단.</div></div>
+    <div class="term-card"><div class="term">종단 데이터 (Longitudinal Data)</div><div class="def">시간이 지남에 따라 반복 수집한 데이터. "매일 운동 기록을 30일 모으면" 종단 데이터가 됨. 1회 설문보다 예측 정확도를 크게 높여줌.</div></div>
+  </div>
+
+  <div class="card"><h3>건강 지표 관련</h3>
+    <div class="term-card"><div class="term">HbA1c (당화혈색소)</div><div class="def">최근 2-3개월간 평균 혈당을 보여주는 혈액검사 수치. <strong>5.7% 미만 = 정상, 5.7-6.4% = 전당뇨, 6.5% 이상 = 당뇨</strong>. 한국은 6.5% 미만을 목표로 함 (미국은 7% 미만).</div></div>
+    <div class="term-card"><div class="term">공복혈당 (Fasting Blood Glucose)</div><div class="def">8시간 이상 금식 후 측정한 혈당. <strong>100 미만 = 정상, 100-125 = 전당뇨, 126 이상 = 당뇨</strong>. 한국 건강검진에 포함되어 있어 많은 사용자가 이미 가지고 있는 데이터.</div></div>
+    <div class="term-card"><div class="term">BMI (체질량지수)</div><div class="def">키와 체중으로 계산하는 비만 지표. <strong>체중(kg) / 키(m)의 제곱</strong>. 한국 기준: 18.5-22.9 정상, 23-24.9 과체중, <strong>25 이상 비만</strong> (서양 기준 30 이상보다 낮음).</div></div>
+    <div class="term-card"><div class="term">허리둘레 (Waist Circumference)</div><div class="def">배꼽 높이에서 잰 허리 둘레. 내장지방(장기 사이 지방)의 간접 지표. <strong>한국 기준: 남성 90cm, 여성 85cm 이상이면 복부비만</strong>. BMI보다 한국인 당뇨 예측력이 높음.</div></div>
+    <div class="term-card"><div class="term">인슐린 저항성 (Insulin Resistance)</div><div class="def">세포가 인슐린에 잘 반응하지 않는 상태. 쉽게 말해 "몸이 혈당을 잘 못 낮추는 상태". 당뇨의 핵심 원인. 운동, 체중감량, 수면 개선으로 좋아질 수 있음.</div></div>
+  </div>
+
+  <div class="card"><h3>챌린지/생활습관 관련</h3>
+    <div class="term-card"><div class="term">DPP (당뇨예방프로그램)</div><div class="def">미국에서 3,234명을 대상으로 한 대규모 임상시험 (2002). <strong>체중 7% 감량 + 주 150분 운동 → 당뇨 위험 58% 감소</strong>. 22년 후에도 25% 효과 유지. 전 세계 당뇨 예방의 "황금 표준".</div></div>
+    <div class="term-card"><div class="term">GI 지수 (Glycemic Index)</div><div class="def">음식이 혈당을 얼마나 빨리 올리는지 나타내는 수치. <strong>흰쌀밥 = 높은 GI (빨리 올림), 잡곡밥/현미 = 낮은 GI (천천히 올림)</strong>. 당뇨 예방에는 낮은 GI 식품이 좋음.</div></div>
+    <div class="term-card"><div class="term">SSB (Sugar-Sweetened Beverage)</div><div class="def">설탕이 들어간 음료. 콜라, 사이다, 과일주스 등. <strong>하루 1잔만 마셔도 당뇨 위험 26% 증가</strong> (Malik 2010). 가장 쉽게 줄일 수 있는 위험인자.</div></div>
+    <div class="term-card"><div class="term">코르티솔 (Cortisol)</div><div class="def">스트레스 호르몬. 스트레스를 받으면 코르티솔이 올라가고, 코르티솔이 높으면 간에서 포도당을 더 많이 만들어내서 혈당이 올라감. <strong>스트레스 → 코르티솔↑ → 혈당↑ → 인슐린 저항성↑</strong>.</div></div>
+    <div class="term-card"><div class="term">스트릭 (Streak)</div><div class="def">연속 달성 일수. 예: "7일 연속 아침식사 성공 = 7일 스트릭". Duolingo의 연속 학습과 같은 원리. "끊기면 아깝다"는 심리로 지속성을 높이는 게이미피케이션 기법.</div></div>
+  </div>
+</div>
+
+<!-- ═══ 섹션 2: 예측 모델 ═══ -->
+<div class="section" id="sec-2">
+  <div class="section-title">기능 1: 만성질환 예측 모델링</div>
+  <div class="section-sub">"당뇨 발병 가능성을 정확하게 예측하려면, 어떤 데이터가 필요한가?"</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#DBEAFE,#EDE9FE);border-color:#93C5FD;">
+    <h3>핵심 발견: 7개 국제 도구 크로스체크 결과</h3>
+    <p>전 세계 7개 검증된 당뇨 예측 도구(FINDRISC, KDRS, ADA, QDiabetes, CANRISK, AUSDRISK, IDRS)를 비교했을 때, <strong>공통으로 사용하는 변수</strong>가 곧 "정확한 예측에 반드시 필요한 데이터"입니다.</p>
+    <div style="margin-top:16px;" class="grid-3">
+      <div class="stat-card"><div class="stat-num" style="color:var(--danger);font-size:24px;">7/7</div><div class="stat-label"><strong>나이, 가족력, 운동량</strong><br>모든 도구가 사용</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--warning);font-size:24px;">6/7</div><div class="stat-label"><strong>BMI, 허리둘레, 고혈압</strong><br>거의 모든 도구가 사용</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--accent);font-size:24px;">3-5/7</div><div class="stat-label"><strong>흡연, 식습관, 고혈당이력</strong><br>다수 도구가 사용</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>예측 정확도 비교 — 어디까지 가능한가?</h3>
+    <table class="data-table">
+      <tr><th>수집 수준</th><th>사용 데이터</th><th>정확도 (AUC)</th><th>의미</th></tr>
+      <tr>
+        <td><strong>Tier 1: 질문만</strong></td>
+        <td>나이, 성별, BMI, 가족력, 운동, 식습관, 흡연, 음주 등 13개</td>
+        <td><strong style="color:var(--warning);">0.80</strong></td>
+        <td>혈액검사 없이도 꽤 정확한 예측 가능</td>
+      </tr>
+      <tr>
+        <td><strong>Tier 2: +검사값</strong></td>
+        <td>Tier 1 + HbA1c, 공복혈당, 혈압, 콜레스테롤</td>
+        <td><strong style="color:var(--accent);">0.88</strong></td>
+        <td>건강검진 결과 입력하면 크게 향상</td>
+      </tr>
+      <tr>
+        <td><strong>Tier 3: +행동 30일+</strong></td>
+        <td>Tier 2 + 매일 운동/식사/수면 데이터 누적</td>
+        <td><strong style="color:var(--primary);">0.90</strong></td>
+        <td>시간이 지날수록 더 정확해짐</td>
+      </tr>
+    </table>
+    <div style="margin-top:12px;padding:12px;background:var(--accent-light);border-radius:10px;font-size:12px;color:#065F46;">
+      <strong>근거:</strong> Allesoe 2023 (설문만 AUC 0.917), UK Biobank XGBoost (10변수 AUC 0.88), Oura Ring 연구 (4개월 데이터 AUC 0.808→0.880)
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>예측 모델에 필요한 변수 — 전체 목록</h3>
+    <table class="data-table">
+      <tr><th>#</th><th>변수</th><th>수집 방법</th><th>수집 시점</th><th>우선순위</th><th>근거</th></tr>
+      <tr><td>1</td><td><strong>나이</strong></td><td>직접 입력</td><td>가입 시 1회</td><td><span class="tag tag-critical">필수</span></td><td>7/7 도구 공통</td></tr>
+      <tr><td>2</td><td><strong>성별</strong></td><td>선택</td><td>1회</td><td><span class="tag tag-critical">필수</span></td><td>4/7 도구, ML</td></tr>
+      <tr><td>3</td><td><strong>키</strong></td><td>숫자 입력</td><td>1회</td><td><span class="tag tag-critical">필수</span></td><td>BMI 계산용</td></tr>
+      <tr><td>4</td><td><strong>체중</strong></td><td>숫자 입력</td><td>1회 + 주간 갱신</td><td><span class="tag tag-critical">필수</span></td><td>DPP: 1kg당 16%↓</td></tr>
+      <tr><td>5</td><td><strong>허리둘레</strong></td><td>자가 측정 (줄자)</td><td>1회 + 15일 갱신</td><td><span class="tag tag-critical">필수</span></td><td>6/7 도구. 한국인 BMI보다 예측력↑</td></tr>
+      <tr><td>6</td><td><strong>가족력 (1촌)</strong></td><td>예/아니오</td><td>1회</td><td><span class="tag tag-critical">필수</span></td><td>7/7 도구 공통</td></tr>
+      <tr><td>7</td><td><strong>고혈압/혈압약</strong></td><td>예/아니오</td><td>1회 + 변경 시</td><td><span class="tag tag-critical">필수</span></td><td>6/7 도구</td></tr>
+      <tr><td>8</td><td><strong>고혈당 이력</strong></td><td>예/아니오</td><td>1회</td><td><span class="tag tag-critical">필수</span></td><td>FINDRISC 최고 5점</td></tr>
+      <tr><td>9</td><td><strong>운동량</strong></td><td>범주 선택</td><td>1회 + 매일 갱신</td><td><span class="tag tag-critical">필수</span></td><td>7/7 도구. DPP 핵심</td></tr>
+      <tr><td>10</td><td><strong>채소/과일 섭취</strong></td><td>예/아니오</td><td>1회 + 매일 갱신</td><td><span class="tag tag-important">중요</span></td><td>FINDRISC 1점</td></tr>
+      <tr><td>11</td><td><strong>흡연</strong></td><td>선택</td><td>1회 + 월간 갱신</td><td><span class="tag tag-important">중요</span></td><td>KDRS. 37% 위험↑</td></tr>
+      <tr><td>12</td><td><strong>음주</strong></td><td>범주 선택</td><td>1회 + 2-3일 갱신</td><td><span class="tag tag-important">중요</span></td><td>KDRS. 50g+/일 유해</td></tr>
+      <tr><td>13</td><td><strong>임신성 당뇨</strong></td><td>예/아니오</td><td>1회 (여성)</td><td><span class="tag tag-important">중요</span></td><td>ADA, 3/7 도구</td></tr>
+      <tr><td>14</td><td><strong>HbA1c</strong></td><td>검사 결과 입력</td><td>3-6개월</td><td><span class="tag tag-critical">필수(있을때)</span></td><td>ML 1위 예측변수</td></tr>
+      <tr><td>15</td><td><strong>공복혈당</strong></td><td>검사 결과 입력</td><td>3-6개월</td><td><span class="tag tag-critical">필수(있을때)</span></td><td>한국 AI AUC 0.791</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ 섹션 3: 대시보드 ═══ -->
+<div class="section" id="sec-3">
+  <div class="section-title">기능 2: 만성질환 추적 대시보드</div>
+  <div class="section-sub">"사용자에게 무엇을 보여줘야 하고, 그걸 보여주려면 어떤 데이터가 필요한가?"</div>
+
+  <div class="card">
+    <h3>대시보드에 표시할 지표 — 4단계 분류</h3>
+    <div style="margin-top:16px;">
+      <div style="padding:16px;border-radius:14px;background:#FEE2E2;border-left:4px solid var(--danger);margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:800;color:#DC2626;">1단계: 핵심 지표 — 반드시 보여줘야 함</div>
+        <div style="font-size:12px;color:#991B1B;margin-top:4px;line-height:1.8;">
+          <strong>위험도 게이지</strong> (FINDRISC 점수 0-22) · <strong>위험도 추이</strong> (월별 라인 차트) · <strong>체중/BMI 변화</strong> (주간 추이) · <strong>운동 달성률</strong> (150분/주 대비 %)
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:14px;background:#FEF3C7;border-left:4px solid var(--warning);margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:800;color:#92400E;">2단계: 생활습관 점수 — 일상 행동 추적</div>
+        <div style="font-size:12px;color:#78350F;margin-top:4px;line-height:1.8;">
+          <strong>운동 점수</strong> (D7+D8로 계산) · <strong>식단 점수</strong> (D3+D4+D5+D6+D9로 계산) · <strong>수면 점수</strong> (D1+D2로 계산) · <strong>스트레스 점수</strong> (E1+E2로 계산)
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:14px;background:#D1FAE5;border-left:4px solid var(--accent);margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:800;color:#065F46;">3단계: 패턴 시각화 — 습관 한눈에 보기</div>
+        <div style="font-size:12px;color:#065F46;margin-top:4px;line-height:1.8;">
+          <strong>주간 히트맵</strong> (아침식사/운동/수면7h+/채소 달성 여부 7일 그리드) · <strong>챌린지 진행률 바</strong>
+        </div>
+      </div>
+      <div style="padding:16px;border-radius:14px;background:var(--g100);border-left:4px solid var(--g400);">
+        <div style="font-size:14px;font-weight:800;color:var(--g700);">4단계: 임상 마커 — 검사 결과 있을 때만</div>
+        <div style="font-size:12px;color:var(--g600);margin-top:4px;line-height:1.8;">
+          <strong>HbA1c 추이</strong> (3-6개월 점 마커) · <strong>공복혈당 추이</strong> · <strong>혈압 추이</strong> (해당자)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>대시보드 지표별 필요 데이터와 수집 주기</h3>
+    <table class="data-table">
+      <tr><th>대시보드 카드</th><th>필요 데이터</th><th>수집 주기</th><th>최소 데이터량</th></tr>
+      <tr><td><strong>위험도 게이지</strong></td><td>FINDRISC 입력값 (온보딩+갱신)</td><td>월간 재계산</td><td>온보딩 완료 시 표시 가능</td></tr>
+      <tr><td><strong>체중 추이 차트</strong></td><td>체중 (W1)</td><td>주간</td><td>4주 = 4점 (최소 추이 가능)</td></tr>
+      <tr><td><strong>운동 달성률</strong></td><td>운동 여부+시간 (D7)</td><td>매일 → 주간 합산</td><td>주 5일+ 기록</td></tr>
+      <tr><td><strong>식단 점수</strong></td><td>아침(D3)+채소(D4)+단음료(D5)+식사유형(D6)+야식(D9)</td><td>매일</td><td>주 5일+ 기록</td></tr>
+      <tr><td><strong>수면 점수</strong></td><td>수면시간(D1)+수면질(D2)</td><td>매일</td><td>주 5일+ 기록</td></tr>
+      <tr><td><strong>주간 히트맵</strong></td><td>아침식사/운동/수면7h+/채소 (D1,D3,D4,D7)</td><td>매일</td><td>해당 주 기록</td></tr>
+      <tr><td><strong>HbA1c 마커</strong></td><td>검사 결과 (Q1)</td><td>3-6개월</td><td>2개 데이터 (추이 가능)</td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="background:linear-gradient(135deg,#D1FAE5,#ECFDF5);border-color:#A7F3D0;">
+    <h3>Omada Health에서 배우는 핵심 교훈</h3>
+    <p>미국 DPP 기반 디지털 당뇨 예방 프로그램 Omada Health의 연구 결과:</p>
+    <div class="grid-2" style="margin-top:12px;">
+      <div style="padding:14px;background:rgba(255,255,255,.8);border-radius:12px;text-align:center;">
+        <div style="font-size:24px;font-weight:900;color:var(--accent);">4가지</div>
+        <div style="font-size:12px;color:#065F46;margin-top:4px;">지속 가능한 일일 행동 수<br><strong>로그인 + 체중 + 식사기록 + 운동기록</strong></div>
+      </div>
+      <div style="padding:14px;background:rgba(255,255,255,.8);border-radius:12px;text-align:center;">
+        <div style="font-size:24px;font-weight:900;color:var(--accent);">-5.5%</div>
+        <div style="font-size:12px;color:#065F46;margin-top:4px;">12개월 체중 감량 결과<br><strong>매일 체중 측정자가 최고 성과</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 섹션 4: 챌린지 ═══ -->
+<div class="section" id="sec-4">
+  <div class="section-title">기능 3: 생활습관 챌린지</div>
+  <div class="section-sub">"어떤 행동 변화가 당뇨 예방에 가장 효과적인가?" — 6개 대규모 임상시험 근거</div>
+
+  <div class="card" style="background:linear-gradient(135deg,#EDE9FE,#F5F3FF);border-color:#C4B5FD;">
+    <h3>6대 임상시험 요약 — "뭘 하면 당뇨를 막을 수 있나?"</h3>
+    <table class="data-table">
+      <tr><th>연구</th><th>국가</th><th>핵심 개입</th><th>위험 감소</th><th>추적</th></tr>
+      <tr><td><strong>DPP</strong></td><td>미국</td><td>7% 체중감량 + 주150분 운동</td><td style="color:var(--accent);font-weight:800;">58%</td><td>22년 후 25% 유지</td></tr>
+      <tr><td><strong>Finnish DPS</strong></td><td>핀란드</td><td>5개 목표 (체중+지방+섬유질+운동)</td><td style="color:var(--accent);font-weight:800;">58%</td><td>5목표 전달성 → 발병 0%</td></tr>
+      <tr><td><strong>Da Qing</strong></td><td>중국</td><td>운동 그룹</td><td style="color:var(--accent);font-weight:800;">46%</td><td>30년 후 기대수명 +1.44년</td></tr>
+      <tr><td><strong>DiRECT</strong></td><td>영국</td><td>저칼로리 → 15kg+ 감량</td><td style="color:var(--primary);font-weight:800;">86% 관해</td><td>5년 참여 유지자 34% 관해</td></tr>
+      <tr><td><strong>Look AHEAD</strong></td><td>미국</td><td>집중 생활습관</td><td>CVD 종점 실패</td><td>단, 입원↓ 의료비↓</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>행동별 효과 크기 순위 — 뭘 먼저 해야 하나?</h3>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--danger);">1</div>
+      <div class="rank-content">
+        <div class="rank-title">체중 감량 (5-7%)</div>
+        <div class="rank-desc">가장 강력한 단일 인자. DPP에서 1kg 감량당 당뇨 위험 16% 감소. 5% 감량 → 58% 위험 감소.</div>
+        <span class="rank-effect" style="background:#FEE2E2;color:#DC2626;">1kg당 16% 위험↓ | DPP 2002</span>
+        <div style="margin-top:4px;"><span class="tag tag-dash">대시보드: 체중 추이</span> <span class="tag tag-challenge">챌린지: 체중감량</span> <span class="tag tag-model">모델: BMI 재계산</span></div>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--danger);">2</div>
+      <div class="rank-content">
+        <div class="rank-title">유산소 운동 주 150분+</div>
+        <div class="rank-desc">DPP의 두 번째 핵심 목표. 빠르게 걷기 같은 중강도 운동. 체중감량과 함께 했을 때 58% 감소.</div>
+        <span class="rank-effect" style="background:#FEE2E2;color:#DC2626;">58% 위험↓ | DPP, ADA, Da Qing</span>
+        <div style="margin-top:4px;"><span class="tag tag-dash">대시보드: 운동 달성률</span> <span class="tag tag-challenge">챌린지: 150분 운동</span> <span class="tag tag-model">모델: FINDRISC 2점</span></div>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--warning);">3</div>
+      <div class="rank-content">
+        <div class="rank-title">유산소 + 근력운동 병행</div>
+        <div class="rank-desc">유산소만 하는 것보다 근력운동을 추가하면 HbA1c 감소 효과 30-40% 더 큼. ADA/ACSM 공동 권장: 주 2-3회 근력운동.</div>
+        <span class="rank-effect" style="background:#FEF3C7;color:#92400E;">유산소+근력 > 단독 | ACSM/ADA 2016</span>
+        <div style="margin-top:4px;"><span class="tag tag-dash">대시보드: 운동유형 분포</span> <span class="tag tag-challenge">챌린지: 근력추가</span></div>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--warning);">4</div>
+      <div class="rank-content">
+        <div class="rank-title">단음료 제거</div>
+        <div class="rank-desc">가장 쉽게 줄일 수 있으면서 임팩트 큰 변화. 하루 1잔만으로도 당뇨 위험 26% 증가.</div>
+        <span class="rank-effect" style="background:#FEF3C7;color:#92400E;">1잔/일 → 26% 위험↑ | Malik 2010</span>
+        <div style="margin-top:4px;"><span class="tag tag-dash">대시보드: 식단점수 감점</span> <span class="tag tag-challenge">챌린지: 단음료 끊기</span></div>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--accent);">5</div>
+      <div class="rank-content">
+        <div class="rank-title">잡곡밥 전환 (한국인 특화)</div>
+        <div class="rank-desc">백미(흰쌀밥) = 칼로리의 ~30%. 최고 섭취군(아시아)은 55% 위험 증가. 현미/잡곡으로 바꾸면 13% 감소.</div>
+        <span class="rank-effect" style="background:#D1FAE5;color:#065F46;">백미 최고섭취 55%↑ | Hu 2012</span>
+        <div style="margin-top:4px;"><span class="tag tag-dash">대시보드: 식단질 추적</span> <span class="tag tag-challenge">챌린지: 잡곡전환</span></div>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--accent);">6</div>
+      <div class="rank-content">
+        <div class="rank-title">식후 15분 산책</div>
+        <div class="rank-desc">식사 후 30분 이내에 10-15분만 걸어도 혈당 스파이크를 유의미하게 줄임. 식전 운동보다 효과적.</div>
+        <span class="rank-effect" style="background:#D1FAE5;color:#065F46;">혈당 스파이크↓ | Reynolds 2022</span>
+        <div style="margin-top:4px;"><span class="tag tag-challenge">챌린지: 식후산책</span></div>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--primary);">7</div>
+      <div class="rank-content">
+        <div class="rank-title">걷기 7,000보+/일</div>
+        <div class="rank-desc">2,000보 대비 7,000보 = 14% 위험 감소. 빠르게 걷기(강도 높은 걸음)가 추가 효과.</div>
+        <span class="rank-effect" style="background:#DBEAFE;color:#1E40AF;">7,000보 = 14%↓ | Lancet 2023</span>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--primary);">8</div>
+      <div class="rank-content">
+        <div class="rank-title">수면 7-8시간</div>
+        <div class="rank-desc">U자형 위험: 7-8시간이 최적. 5시간 이하면 시간당 9-18% 위험 증가.</div>
+        <span class="rank-effect" style="background:#DBEAFE;color:#1E40AF;"><=5시간: 시간당 9-18%↑ | Shan 2015</span>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--purple);">9</div>
+      <div class="rank-content">
+        <div class="rank-title">채소/과일 매일 섭취</div>
+        <div class="rank-desc">FINDRISC 검증 항목. 식이섬유 25-35g/일 섭취 시 7g 증가당 6% 위험 감소.</div>
+        <span class="rank-effect" style="background:#EDE9FE;color:#6D28D9;">FINDRISC 1점 | 섬유질 7g당 6%↓</span>
+      </div>
+    </div>
+
+    <div class="rank-card">
+      <div class="rank-num" style="background:var(--g500);">10+</div>
+      <div class="rank-content">
+        <div class="rank-title">기타: 금연(37%↑), 절주, 스트레스관리, 아침식사, 야식 줄이기</div>
+        <div class="rank-desc">금연=37%위험↑ 해소. 식사 시간 매시간 늦을수록 인슐린 저항 3%↑. 스트레스→코르티솔→인슐린 저항성.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 섹션 5: 수집 매트릭스 ═══ -->
+<div class="section" id="sec-5">
+  <div class="section-title">전체 수집 매트릭스</div>
+  <div class="section-sub">온보딩 이후 수집하는 모든 데이터. 언제 · 무엇을 · 왜 수집하는지.</div>
+
+  <div class="card">
+    <h3>매일 수집 (Daily) — AI 채팅에 삽입</h3>
+    <table class="data-table">
+      <tr><th>#</th><th>데이터</th><th>질문 예시</th><th>기능 연결</th><th>근거</th></tr>
+      <tr><td>D1</td><td><strong>수면 시간</strong></td><td>"어젯밤 몇 시간 주무셨나요?" (5단계)</td>
+        <td><span class="tag tag-dash">수면점수</span><span class="tag tag-dash">히트맵</span><span class="tag tag-challenge">수면챌린지</span></td>
+        <td><=5hr: 9-18%↑/hr</td></tr>
+      <tr><td>D2</td><td><strong>수면 질</strong></td><td>"잠은 잘 주무셨나요?" (3단계)</td>
+        <td><span class="tag tag-dash">수면점수 보정</span></td>
+        <td>불면증-대사장애 연관</td></tr>
+      <tr><td>D3</td><td><strong>아침식사</strong></td><td>"오늘 아침 드셨나요?" (3단계)</td>
+        <td><span class="tag tag-dash">식단점수</span><span class="tag tag-dash">히트맵</span><span class="tag tag-challenge">아침챌린지</span></td>
+        <td>아침 거르면 인슐린 반응 하루종일↓</td></tr>
+      <tr><td>D4</td><td><strong>채소/과일</strong></td><td>"오늘 채소나 과일 드셨나요?" (3단계)</td>
+        <td><span class="tag tag-model">FINDRISC 1점</span><span class="tag tag-dash">식단점수</span><span class="tag tag-dash">히트맵</span><span class="tag tag-challenge">채소챌린지</span></td>
+        <td>FINDRISC 검증 항목</td></tr>
+      <tr><td>D5</td><td><strong>단 음료/간식</strong></td><td>"단 음료나 달콤한 간식 드셨나요?" (3단계)</td>
+        <td><span class="tag tag-dash">식단점수 감점</span><span class="tag tag-challenge">단음료 챌린지</span></td>
+        <td>1잔/일 → 26%↑ (Malik)</td></tr>
+      <tr><td>D6</td><td><strong>식사 구성</strong></td><td>"오늘 주요 식사는?" (밥면 위주/단백채소/균형)</td>
+        <td><span class="tag tag-dash">식단질 추적</span><span class="tag tag-challenge">잡곡/저GI 챌린지</span><span class="tag tag-model">종단향상</span></td>
+        <td>백미 최고섭취 55%↑ (Hu)</td></tr>
+      <tr><td>D7</td><td><strong>운동 여부+시간</strong></td><td>"오늘 운동하셨나요?" (4단계: 안함/산책/30분+/60분+)</td>
+        <td><span class="tag tag-model">FINDRISC 2점</span><span class="tag tag-dash">운동점수</span><span class="tag tag-dash">히트맵</span><span class="tag tag-challenge">150분 챌린지</span></td>
+        <td>DPP 58%↓ 핵심</td></tr>
+      <tr><td>D8</td><td><strong>운동 종류</strong></td><td>"어떤 운동이었나요?" (걷기/달리기/근력/기타)</td>
+        <td><span class="tag tag-dash">운동유형 분포</span><span class="tag tag-challenge">근력추가 챌린지</span><span class="tag tag-model">종단향상</span></td>
+        <td>유산소+근력 > 단독 (ACSM)</td></tr>
+      <tr><td>D9</td><td><strong>야식</strong></td><td>"저녁 9시 이후 야식 드셨나요?" (3단계)</td>
+        <td><span class="tag tag-dash">식단점수 감점</span><span class="tag tag-challenge">야식끊기 챌린지</span></td>
+        <td>야간식사 → 혈당 18%↑</td></tr>
+      <tr><td>D10</td><td><strong>식후 산책</strong></td><td>"식후에 산책하셨나요?" (예/아니오)</td>
+        <td><span class="tag tag-challenge">식후산책 챌린지</span></td>
+        <td>식후 15분 → 혈당스파이크↓ (Reynolds)</td></tr>
+      <tr><td>D11</td><td><strong>복약 여부</strong><br>(A그룹만)</td><td>"오늘 약 드셨나요?" (예/아니오)</td>
+        <td><span class="tag tag-dash">복약순응도</span><span class="tag tag-challenge">복약 챌린지</span></td>
+        <td>비순응 35-65% 환자 영향</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>2-3일마다 수집</h3>
+    <table class="data-table">
+      <tr><th>#</th><th>데이터</th><th>질문 예시</th><th>기능 연결</th><th>왜 2-3일?</th></tr>
+      <tr><td>E1</td><td><strong>스트레스</strong></td><td>"요즘 스트레스 수준은?" (5단계)</td>
+        <td><span class="tag tag-dash">스트레스 추이</span><span class="tag tag-challenge">스트레스관리</span></td>
+        <td>매일 변동 크고, 매일 묻으면 피로도↑</td></tr>
+      <tr><td>E2</td><td><strong>기분</strong></td><td>"오늘 기분은 어떠세요?" (3단계)</td>
+        <td><span class="tag tag-dash">정서 보정</span></td>
+        <td>스트레스 점수 보정용</td></tr>
+      <tr><td>E3</td><td><strong>음주</strong></td><td>"최근 이틀간 술 드셨나요?" (4단계)</td>
+        <td><span class="tag tag-model">KDRS</span><span class="tag tag-dash">음주 추이</span><span class="tag tag-challenge">절주 챌린지</span></td>
+        <td>매일은 과도. 2-3일이면 주간 패턴 파악 충분</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>주간 · 15일 · 월간 · 분기 수집</h3>
+    <table class="data-table">
+      <tr><th>주기</th><th>#</th><th>데이터</th><th>기능 연결</th><th>근거</th></tr>
+      <tr><td rowspan="2"><strong>주간</strong></td><td>W1</td><td><strong>체중</strong> (kg)</td>
+        <td><span class="tag tag-model">BMI→FINDRISC 3점</span><span class="tag tag-dash">체중추이</span><span class="tag tag-challenge">감량 챌린지</span></td>
+        <td>DPP: 1kg당 16%↓. 주간 평균이 신뢰도 높음</td></tr>
+      <tr><td>W3</td><td><strong>혈압</strong> (해당자)</td>
+        <td><span class="tag tag-model">KDRS</span><span class="tag tag-dash">혈압추이</span></td>
+        <td>당뇨+고혈압 동반율 60-70%</td></tr>
+      <tr><td><strong>15일</strong></td><td>B1</td><td><strong>허리둘레</strong> (cm)</td>
+        <td><span class="tag tag-model">FINDRISC/KDRS 핵심</span><span class="tag tag-dash">체형변화</span></td>
+        <td>한국인 BMI보다 예측력↑. 남90/여85cm 기준</td></tr>
+      <tr><td rowspan="2"><strong>월간</strong></td><td>M1</td><td><strong>흡연 상태</strong></td>
+        <td><span class="tag tag-model">KDRS 1점</span></td>
+        <td>흡연자 37%↑. 변화 느림 → 월간 충분</td></tr>
+      <tr><td>M2</td><td><strong>투약 변경</strong></td>
+        <td><span class="tag tag-model">KDRS Extended</span></td>
+        <td>스타틴 등 당뇨 위험 영향</td></tr>
+      <tr><td><strong>3-6개월</strong></td><td>Q1-2</td><td><strong>HbA1c, 공복혈당</strong> (검사결과)</td>
+        <td><span class="tag tag-model">ML 1-2위 예측변수</span><span class="tag tag-dash">임상마커 차트</span></td>
+        <td>AUC +0.05-0.10 향상. ADA 최소 연 2회</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ 섹션 6: 우선순위 ═══ -->
+<div class="section" id="sec-6">
+  <div class="section-title">구현 우선순위</div>
+  <div class="section-sub">모든 데이터가 동등하지 않습니다. "이거 없으면 기능이 안 돌아가는 것"부터 구현합니다.</div>
+
+  <div class="card">
+    <h3>P1: 없으면 안 되는 것 (Critical)</h3>
+    <p style="margin-bottom:12px;">이 데이터 없이는 <strong>예측 모델이 계산 불가</strong>이거나, <strong>대시보드가 비어 있음</strong>.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="padding:10px 16px;background:#FEE2E2;border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:#DC2626;width:100px;">온보딩</span>
+        <span>나이 · 성별 · 키 · 체중(BMI) · 가족력 · 고혈압이력 · 고혈당이력 · 운동빈도 · 채소섭취</span>
+      </div>
+      <div style="padding:10px 16px;background:#FEE2E2;border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:#DC2626;width:100px;">매일</span>
+        <span>D4 채소 · D7 운동여부 (→ FINDRISC 점수에 직접 영향)</span>
+      </div>
+      <div style="padding:10px 16px;background:#FEE2E2;border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:#DC2626;width:100px;">주간</span>
+        <span>W1 체중 (→ BMI → FINDRISC + 체중 추이 차트)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>P2: 있으면 훨씬 좋은 것 (Important)</h3>
+    <p style="margin-bottom:12px;">대시보드 생활습관 점수, 챌린지 달성 추적에 필요.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="padding:10px 16px;background:#FEF3C7;border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:#92400E;width:100px;">매일</span>
+        <span>D1 수면 · D3 아침 · D5 단음료 · D6 식사구성 · D8 운동종류 · D9 야식 · D10 식후산책</span>
+      </div>
+      <div style="padding:10px 16px;background:#FEF3C7;border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:#92400E;width:100px;">2-3일</span>
+        <span>E1 스트레스 · E3 음주 (→ KDRS 점수 + 음주 추이)</span>
+      </div>
+      <div style="padding:10px 16px;background:#FEF3C7;border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:#92400E;width:100px;">15일</span>
+        <span>B1 허리둘레 (→ FINDRISC/KDRS 핵심 변수)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>P3: 있으면 좋지만 없어도 돌아가는 것 (Nice-to-have)</h3>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="padding:10px 16px;background:var(--g100);border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:var(--g600);width:100px;">매일</span>
+        <span>D2 수면질 · D11 복약(A그룹)</span>
+      </div>
+      <div style="padding:10px 16px;background:var(--g100);border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:var(--g600);width:100px;">2-3일</span>
+        <span>E2 기분</span>
+      </div>
+      <div style="padding:10px 16px;background:var(--g100);border-radius:10px;font-size:13px;display:flex;gap:8px;align-items:center;">
+        <span style="font-weight:800;color:var(--g600);width:100px;">월간+</span>
+        <span>M1 흡연변화 · M2 투약변경 · Q1-2 HbA1c/공복혈당</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:linear-gradient(135deg,#D1FAE5,#ECFDF5);border-color:#A7F3D0;">
+    <h3>구현 순서 권장</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;font-size:13px;">
+      <div><strong style="color:var(--danger);">Phase 1 (MVP):</strong> 온보딩 설문 + P1 데이터(채소, 운동, 체중) → 예측 모델 돌아감 + 대시보드 핵심 3카드 표시</div>
+      <div><strong style="color:var(--warning);">Phase 2:</strong> P2 데이터 전체 → 대시보드 4영역 점수 + 히트맵 + 챌린지 추적 가능</div>
+      <div><strong style="color:var(--accent);">Phase 3:</strong> P3 데이터 + 검사값 입력 → 예측 정확도 향상 + 임상 마커 차트</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 섹션 7: 논문 근거 ═══ -->
+<div class="section" id="sec-7">
+  <div class="section-title">논문 & 가이드라인 근거</div>
+  <div class="section-sub">이 문서의 모든 수치와 권장사항의 출처입니다.</div>
+
+  <div class="card">
+    <h3>예측 모델 근거</h3>
+    <table class="data-table">
+      <tr><th>출처</th><th>연도</th><th>핵심 내용</th><th>적용</th></tr>
+      <tr><td>Lindstrom & Tuomilehto</td><td>2003</td><td>FINDRISC 8항목, AUC 0.73</td><td>위험 점수 프레임워크</td></tr>
+      <tr><td>Lee et al. (Diabetes Care)</td><td>2012</td><td>KDRS 6항목, 한국 특화</td><td>한국인 보정 점수</td></tr>
+      <tr><td>Hippisley-Cox et al.</td><td>2017</td><td>QDiabetes 16항목, AUC 0.85</td><td>비검사 최고 성능 참고</td></tr>
+      <tr><td>Allesoe et al. (eClinicalMedicine)</td><td>2023</td><td>설문만 AUC 0.855-0.917</td><td>설문만으로 충분한 근거</td></tr>
+      <tr><td>UK Biobank XGBoost</td><td>-</td><td>10변수 AUC 0.88</td><td>ML 변수 우선순위</td></tr>
+      <tr><td>한국 NHID AI 연구</td><td>2022</td><td>공복혈당+HbA1c 최고 예측력</td><td>검사값 추가 근거</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>대시보드 근거</h3>
+    <table class="data-table">
+      <tr><th>출처</th><th>연도</th><th>핵심 내용</th><th>적용</th></tr>
+      <tr><td>ADA Standards of Care</td><td>2025</td><td>HbA1c <7%, 모니터링 주기</td><td>대시보드 수집 주기</td></tr>
+      <tr><td>KDA Guidelines</td><td>2025</td><td>HbA1c <6.5%, BMI>=25 비만</td><td>한국 기준 적용</td></tr>
+      <tr><td>Omada Health 연구</td><td>-</td><td>4가지 일일 행동 지속가능</td><td>일일 수집량 가이드</td></tr>
+      <tr><td>Livongo 연구</td><td>-</td><td>자동 데이터 전송 → 참여↑</td><td>패시브 수집 우선</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>챌린지 근거</h3>
+    <table class="data-table">
+      <tr><th>출처</th><th>연도</th><th>핵심 내용</th><th>적용</th></tr>
+      <tr><td>Knowler et al. (DPP, NEJM)</td><td>2002</td><td>7%감량+150분/주 = 58%↓</td><td>챌린지 핵심 목표</td></tr>
+      <tr><td>Hamman et al.</td><td>2006</td><td>1kg당 16% 위험↓</td><td>체중 챌린지 동기 메시지</td></tr>
+      <tr><td>DPP 22년 추적</td><td>2024</td><td>22년 후 25% 유지</td><td>장기 효과 메시지</td></tr>
+      <tr><td>Da Qing 30년</td><td>2019</td><td>기대수명 +1.44년</td><td>운동 챌린지 근거</td></tr>
+      <tr><td>Finnish DPS</td><td>2001</td><td>5목표 전달성 → 발병 0%</td><td>목표 설정 참고</td></tr>
+      <tr><td>DiRECT (UK)</td><td>2017-2024</td><td>15kg+ 감량 → 86% 관해</td><td>체중 감량 효과</td></tr>
+      <tr><td>ACSM/ADA 합의</td><td>2016</td><td>유산소+근력 주2-3회</td><td>운동 종류 근거</td></tr>
+      <tr><td>Malik et al.</td><td>2010</td><td>SSB 1잔/일 → 26%↑</td><td>단음료 챌린지</td></tr>
+      <tr><td>Hu et al.</td><td>2012</td><td>백미 최고섭취 55%↑</td><td>잡곡전환 챌린지</td></tr>
+      <tr><td>Reynolds et al.</td><td>2022</td><td>식후 15분 산책 → 혈당↓</td><td>식후산책 챌린지</td></tr>
+      <tr><td>Shan et al.</td><td>2015</td><td>수면 <=5h: 9-18%↑/hr</td><td>수면 챌린지</td></tr>
+      <tr><td>Lally et al.</td><td>2010</td><td>습관 형성 평균 66일</td><td>챌린지 기간 설계</td></tr>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<script>
+function showSection(idx){
+  document.querySelectorAll('.section').forEach((s,i)=>{s.classList.toggle('active',i===idx);});
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',i===idx);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

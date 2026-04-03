@@ -1,4 +1,4 @@
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -10,15 +10,13 @@ from app.services.jwt import JwtService
 security = HTTPBearer()
 
 
-def get_request_token_payload(credential: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> dict[str, Any]:
+async def get_request_user(credential: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> User:
     token = credential.credentials
     verified = JwtService().verify_jwt(token=token, token_type="access")
-    return verified.payload
-
-
-async def get_request_user(payload: Annotated[dict[str, Any], Depends(get_request_token_payload)]) -> User:
-    user_id = payload["user_id"]
+    user_id = verified.payload["user_id"]
     user = await UserRepository().get_user(user_id)
     if not user:
         raise HTTPException(detail="Authenticate Failed.", status_code=status.HTTP_401_UNAUTHORIZED)
+    if not user.is_active:
+        raise HTTPException(detail="비활성화된 계정입니다.", status_code=status.HTTP_403_FORBIDDEN)
     return user
