@@ -50,3 +50,8 @@ class Config(BaseSettings):
 
     # Sentry
     SENTRY_DSN: str = ""
+
+    # 콘텐츠 필터 (욕설/위기/의료안전)
+    CONTENT_FILTER_ENABLED: bool = True
+    CONTENT_FILTER_BLOCK_ENABLED: bool = True
+    CONTENT_FILTER_SHADOW_MODERATION_ENABLED: bool = False

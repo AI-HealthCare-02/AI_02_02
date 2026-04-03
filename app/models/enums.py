@@ -354,6 +354,27 @@ class SelectionSource(StrEnum):
 
 
 # ──────────────────────────────────────────────
+# 콘텐츠 필터 (욕설/위기/의료안전)
+# ──────────────────────────────────────────────
+
+
+class FilterExpressionVerdict(StrEnum):
+    """표현축 판정 — 욕설/혐오 수준"""
+
+    ALLOW = "allow"
+    WARN = "warn"
+    BLOCK = "block"
+
+
+class FilterMedicalAction(StrEnum):
+    """의료안전축 판정 — 위기/복약거부 수준"""
+
+    NONE = "none"
+    MEDICAL_NOTE = "medical_note"
+    CRISIS_ESCALATE = "crisis_escalate"
+
+
+# ──────────────────────────────────────────────
 # 도메인 매핑 상수
 # ──────────────────────────────────────────────
 

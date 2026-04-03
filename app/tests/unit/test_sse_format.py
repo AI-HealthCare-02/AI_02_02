@@ -49,3 +49,11 @@ class TestSseFormat:
         data_line = result.split("\n")[1]
         parsed = json.loads(data_line[6:])
         assert "type" not in parsed
+
+    def test_error_with_code_field(self):
+        """error 이벤트에 code 필드 포함 — 콘텐츠 필터 차단용."""
+        result = _sse_event("error", {"code": "content_blocked", "message": "부적절한 표현"})
+        data_line = result.split("\n")[1]
+        parsed = json.loads(data_line[6:])
+        assert parsed["code"] == "content_blocked"
+        assert "message" in parsed

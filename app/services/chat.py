@@ -1,11 +1,11 @@
 """AI 채팅 서비스 — 메시지 전송, 스트리밍, 건강질문 삽입 오케스트레이션.
 
-흐름: 사용자 메시지 → DB 저장 → 건강질문 판단 → OpenAI 스트리밍 → 응답 저장 → SSE
+흐름: 사용자 메시지 → 콘텐츠 필터 → 분기(CRISIS/BLOCK/WARN/ALLOW) → DB 저장 → OpenAI 스트리밍 → 응답 저장 → SSE
 """
 
 import json
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
 
@@ -13,7 +13,9 @@ from app.core import config
 from app.core.logger import setup_logger
 from app.dtos.chat import ChatHistoryResponse, ChatMessageDTO, HealthAnswerResponse
 from app.models.chat import ChatMessage, ChatSession, MessageRole
+from app.models.enums import AiConsent, FilterExpressionVerdict, FilterMedicalAction
 from app.models.health import HealthProfile
+from app.services.content_filter import ContentFilterService, FilterResult
 from app.services.health_question import (
     BUNDLE_CHECK_FIELDS,
     HEALTH_QUESTION_BUNDLES,
@@ -22,6 +24,9 @@ from app.services.health_question import (
 )
 
 logger = setup_logger(__name__)
+
+# 위기 후 건강질문 삽입 금지 기간 (24시간)
+CRISIS_COOLDOWN_HOURS = 24
 
 # 대화 기록 최대 로드 수 (OpenAI 컨텍스트 윈도우 관리)
 MAX_HISTORY_MESSAGES = 10
@@ -69,6 +74,9 @@ class ChatService:
 
     def __init__(self):
         self.health_question_service = HealthQuestionService()
+        self.content_filter = ContentFilterService()
+        # 위기 발생 시각 기록 (세션 레벨 메모리 — DB 저장 아님)
+        self._last_crisis_at: dict[int, datetime] = {}
 
     async def send_message_stream(
         self,
@@ -77,13 +85,49 @@ class ChatService:
         session_id: int | None = None,
     ) -> AsyncGenerator[str, None]:
         """사용자 메시지를 받아 AI 응답을 SSE 스트리밍으로 반환."""
-        # 사전 검증
+        # [1] 사전 검증 (API key + 일일 제한)
         error = await self._validate_request(user_id, session_id)
         if error:
             yield _sse_event("error", {"message": error})
             return
 
-        # 세션 준비 + 메시지 저장
+        # [2] 채팅 접근 검증 (ai_consent + HealthProfile 반환)
+        profile, consent_error = await self._validate_chat_access(user_id)
+
+        # [3] 콘텐츠 필터 — ai_consent 무관하게 항상 실행 (위기 감지 의무)
+        filter_result = self.content_filter.check_message(message)
+
+        # verdict/action 로깅 (원문은 절대 기록하지 않음)
+        logger.info(
+            "content_filter",
+            user_id=user_id,
+            verdict=filter_result.expression_verdict.value,
+            action=filter_result.medical_action.value,
+        )
+
+        # [분기: CRISIS_ESCALATE] — 동의 여부와 무관
+        if filter_result.medical_action == FilterMedicalAction.CRISIS_ESCALATE:
+            async for event in self._handle_crisis(user_id, message, session_id):
+                yield event
+            return
+
+        # [분기: BLOCK]
+        if filter_result.expression_verdict == FilterExpressionVerdict.BLOCK:
+            yield _sse_event(
+                "error",
+                {
+                    "code": "content_blocked",
+                    "message": filter_result.user_facing_message or "부적절한 표현이 포함되어 있어요.",
+                },
+            )
+            return
+
+        # [분기: ai_consent=declined] — 위기가 아니면 동의 필요
+        if consent_error:
+            yield _sse_event("error", {"code": "ai_consent_required", "message": consent_error})
+            return
+
+        # [통과: ALLOW 또는 WARN]
         session = await self._prepare_session(user_id, message, session_id)
         if not session:
             yield _sse_event("error", {"message": "대화를 찾을 수 없어요."})
@@ -91,10 +135,19 @@ class ChatService:
 
         await ChatMessage.create(session=session, role=MessageRole.USER, content=message)
 
-        # 컨텍스트 구성
+        # 건강질문 — 위기 후 24시간 쿨링오프 적용
+        eligible_bundles: list[str] = []
+        if not self._is_in_crisis_cooldown(user_id):
+            eligible_bundles = await self.health_question_service.get_eligible_bundles(user_id)
+
+        # 컨텍스트 구성 (WARN/MEDICAL_NOTE 시 추가 지시문 포함)
         history = await ChatMessage.filter(session=session).order_by("created_at").limit(MAX_HISTORY_MESSAGES).all()
-        eligible_bundles = await self.health_question_service.get_eligible_bundles(user_id)
-        openai_messages = await self._build_openai_messages(user_id, history, eligible_bundles)
+        openai_messages = await self._build_openai_messages(
+            user_id,
+            history,
+            eligible_bundles,
+            filter_result,
+        )
 
         # OpenAI 스트리밍 + 응답 저장
         full_response = ""
@@ -110,44 +163,92 @@ class ChatService:
         yield _sse_event("done", self._build_done_data(session.id, eligible_bundles))
 
     async def _validate_request(self, user_id: int, session_id: int | None) -> str | None:
-        """사전 검증 — 에러 메시지 반환 (None이면 통과)."""
+        """사전 검증 — API key + 일일 제한. 에러 메시지 반환 (None이면 통과)."""
         if not config.OPENAI_API_KEY:
             return "AI 서비스가 아직 설정되지 않았어요."
 
         today_count = await ChatMessage.filter(
             session__user_id=user_id,
             role=MessageRole.USER,
-            created_at__gte=datetime.now(tz=config.TIMEZONE).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            ),
+            created_at__gte=datetime.now(tz=config.TIMEZONE).replace(hour=0, minute=0, second=0, microsecond=0),
         ).count()
         if today_count >= MAX_DAILY_CHATS:
             return "오늘 대화 횟수를 초과했어요. 내일 다시 대화해요! 😊"
 
         return None
 
-    async def _prepare_session(
-        self, user_id: int, message: str, session_id: int | None
-    ) -> ChatSession | None:
+    async def _validate_chat_access(self, user_id: int) -> tuple[HealthProfile | None, str | None]:
+        """ai_consent 확인 — HealthProfile + 에러 메시지 반환."""
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        if profile and profile.ai_consent == AiConsent.DECLINED:
+            return profile, "AI 채팅 이용에 동의가 필요해요. 설정에서 AI 이용 동의를 확인해주세요."
+        return profile, None
+
+    async def _handle_crisis(self, user_id: int, message: str, session_id: int | None) -> AsyncGenerator[str, None]:
+        """위기 경로 — 세션+메시지 저장, 고정 응답 스트리밍, OpenAI 미호출."""
+        from app.services.content_filter import CRISIS_RESPONSE
+
+        # 세션 생성/조회
+        if session_id:
+            session = await ChatSession.get_or_none(id=session_id, user_id=user_id)
+        else:
+            session = None
+        if not session:
+            session = await ChatSession.create(user_id=user_id, title=message[:50])
+
+        # 사용자 메시지 저장
+        await ChatMessage.create(session=session, role=MessageRole.USER, content=message)
+
+        # 고정 응답을 80자 청크로 스트리밍
+        for i in range(0, len(CRISIS_RESPONSE), 80):
+            yield _sse_event("token", {"content": CRISIS_RESPONSE[i : i + 80]})
+
+        # 고정 응답 DB 저장
+        await ChatMessage.create(
+            session=session,
+            role=MessageRole.ASSISTANT,
+            content=CRISIS_RESPONSE,
+            has_health_questions=False,
+        )
+
+        # 쿨링오프 시각 기록
+        self._last_crisis_at[user_id] = datetime.now(tz=config.TIMEZONE)
+
+        # done 이벤트 — health_questions 미포함
+        yield _sse_event("done", {"session_id": session.id})
+
+    def _is_in_crisis_cooldown(self, user_id: int) -> bool:
+        """위기 후 24시간 쿨링오프 확인."""
+        last = self._last_crisis_at.get(user_id)
+        if last is None:
+            return False
+        now = datetime.now(tz=config.TIMEZONE)
+        return (now - last) < timedelta(hours=CRISIS_COOLDOWN_HOURS)
+
+    async def _prepare_session(self, user_id: int, message: str, session_id: int | None) -> ChatSession | None:
         """세션 get_or_create."""
         if session_id:
             return await ChatSession.get_or_none(id=session_id, user_id=user_id)
         return await ChatSession.create(user_id=user_id, title=message[:50])
 
     async def _build_openai_messages(
-        self, user_id: int, history: list, eligible_bundles: list[str]
+        self,
+        user_id: int,
+        history: list,
+        eligible_bundles: list[str],
+        filter_result: FilterResult | None = None,
     ) -> list[dict[str, str]]:
-        """OpenAI 메시지 리스트 구성."""
+        """OpenAI 메시지 리스트 구성. WARN/MEDICAL_NOTE 시 추가 지시문 포함."""
         system_prompt = await self._build_system_prompt(user_id, eligible_bundles)
+        if filter_result and filter_result.prompt_instruction:
+            system_prompt += filter_result.prompt_instruction
         messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
         for msg in history:
             if msg.role != MessageRole.SYSTEM:
                 messages.append({"role": msg.role, "content": msg.content})
         return messages
 
-    async def _stream_openai(
-        self, messages: list[dict[str, str]]
-    ) -> AsyncGenerator[str | None, None]:
+    async def _stream_openai(self, messages: list[dict[str, str]]) -> AsyncGenerator[str | None, None]:
         """OpenAI 스트리밍 호출. 에러 시 None yield."""
         try:
             from openai import AsyncOpenAI
@@ -167,9 +268,7 @@ class ChatService:
             logger.exception("OpenAI API 호출 실패")
             yield None
 
-    async def _save_response(
-        self, session: ChatSession, content: str, eligible_bundles: list[str]
-    ) -> None:
+    async def _save_response(self, session: ChatSession, content: str, eligible_bundles: list[str]) -> None:
         """AI 응답을 DB에 저장."""
         has_hq = len(eligible_bundles) > 0
         await ChatMessage.create(
@@ -276,9 +375,7 @@ class ChatService:
                         question_texts.append(f"- {q['text']}")
 
             if question_texts:
-                health_instruction = HEALTH_QUESTION_INSTRUCTION.format(
-                    questions="\n".join(question_texts)
-                )
+                health_instruction = HEALTH_QUESTION_INSTRUCTION.format(questions="\n".join(question_texts))
 
         return SYSTEM_PROMPT_TEMPLATE.format(
             user_group=user_group,
@@ -291,20 +388,22 @@ class ChatService:
         for bk in eligible_bundles:
             bundle = HEALTH_QUESTION_BUNDLES.get(bk)
             if bundle:
-                result.append({
-                    "bundle_key": bk,
-                    "name": bundle["name"],
-                    "questions": [
-                        {
-                            "field": q["field"],
-                            "text": q["text"],
-                            "options": q.get("options"),
-                            "input_type": q.get("input_type", "select"),
-                            "condition": q.get("condition"),
-                        }
-                        for q in bundle["questions"]
-                    ],
-                })
+                result.append(
+                    {
+                        "bundle_key": bk,
+                        "name": bundle["name"],
+                        "questions": [
+                            {
+                                "field": q["field"],
+                                "text": q["text"],
+                                "options": q.get("options"),
+                                "input_type": q.get("input_type", "select"),
+                                "condition": q.get("condition"),
+                            }
+                            for q in bundle["questions"]
+                        ],
+                    }
+                )
         return result
 
 
