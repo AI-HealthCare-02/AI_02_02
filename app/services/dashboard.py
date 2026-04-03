@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from app.core.cache import get_cached, set_cached
 from app.dtos.dashboard import (
     ChallengeSummaryItem,
     DashboardInitResponse,
@@ -67,7 +68,12 @@ class DashboardService:
 
     @staticmethod
     async def _get_risk_summary(user_id: int) -> RiskSummaryResponse | None:
-        """최신 위험도 요약."""
+        """최신 위험도 요약 (캐시 TTL: 60분)."""
+        cache_key = f"dash:risk:{user_id}"
+        cached = await get_cached(cache_key)
+        if cached is not None:
+            return RiskSummaryResponse(**cached)
+
         assessment = await RiskAssessment.filter(
             user_id=user_id,
         ).order_by("-assessed_at").first()
@@ -75,7 +81,7 @@ class DashboardService:
         if not assessment:
             return None
 
-        return RiskSummaryResponse(
+        result = RiskSummaryResponse(
             findrisc_score=assessment.findrisc_score,
             risk_level=assessment.risk_level,
             sleep_score=assessment.sleep_score,
@@ -84,17 +90,24 @@ class DashboardService:
             lifestyle_score=assessment.lifestyle_score,
             assessed_at=assessment.assessed_at,
         )
+        await set_cached(cache_key, result.model_dump(mode="json"), ttl_seconds=3600)
+        return result
 
     @staticmethod
     async def _get_challenge_summary(
         user_id: int,
     ) -> list[ChallengeSummaryItem]:
-        """활성 챌린지 요약."""
+        """활성 챌린지 요약 (캐시 TTL: 5분)."""
+        cache_key = f"dash:challenge:{user_id}"
+        cached = await get_cached(cache_key)
+        if cached is not None:
+            return [ChallengeSummaryItem(**item) for item in cached]
+
         active = await UserChallenge.filter(
             user_id=user_id, status=ChallengeStatus.ACTIVE,
         ).prefetch_related("template")
 
-        return [
+        result = [
             ChallengeSummaryItem(
                 user_challenge_id=uc.id,
                 name=uc.template.name,
@@ -105,16 +118,29 @@ class DashboardService:
             )
             for uc in active
         ]
+        await set_cached(
+            cache_key,
+            [item.model_dump(mode="json") for item in result],
+            ttl_seconds=300,
+        )
+        return result
 
     @staticmethod
     async def _get_engagement(user_id: int) -> EngagementResponse | None:
-        """참여 상태."""
+        """참여 상태 (캐시 TTL: 60분)."""
+        cache_key = f"dash:engagement:{user_id}"
+        cached = await get_cached(cache_key)
+        if cached is not None:
+            return EngagementResponse(**cached)
+
         eng = await UserEngagement.get_or_none(user_id=user_id)
         if not eng:
             return None
 
-        return EngagementResponse(
+        result = EngagementResponse(
             state=eng.state,
             seven_day_response_rate=float(eng.seven_day_response_rate),
             cooldown_until=eng.cooldown_until,
         )
+        await set_cached(cache_key, result.model_dump(mode="json"), ttl_seconds=3600)
+        return result

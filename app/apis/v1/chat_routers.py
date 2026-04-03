@@ -7,12 +7,13 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from fastapi.responses import JSONResponse as Response
 from fastapi.responses import StreamingResponse
 
 from app.dependencies.security import get_request_user
 from app.dtos.chat import HealthAnswerRequest, SendMessageRequest
+from app.middleware.rate_limit import limiter
 from app.models.users import User
 from app.services.chat import ChatService
 
@@ -20,8 +21,10 @@ chat_router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @chat_router.post("/send")
+@limiter.limit("20/minute")
 async def send_message(
-    request: SendMessageRequest,
+    request: Request,
+    body: SendMessageRequest,
     user: Annotated[User, Depends(get_request_user)],
     chat_service: Annotated[ChatService, Depends(ChatService)],
 ) -> StreamingResponse:
@@ -29,8 +32,8 @@ async def send_message(
     return StreamingResponse(
         chat_service.send_message_stream(
             user_id=user.id,
-            message=request.message,
-            session_id=request.session_id,
+            message=body.message,
+            session_id=body.session_id,
         ),
         media_type="text/event-stream",
         headers={

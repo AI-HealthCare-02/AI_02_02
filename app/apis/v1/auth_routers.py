@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse as Response
 
 from app.core import config
@@ -8,6 +8,7 @@ from app.core.config import Env
 from app.dependencies.security import get_request_user
 from app.dtos.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
 from app.dtos.onboarding import ConsentRequest
+from app.middleware.rate_limit import limiter
 from app.models.users import User
 from app.services.auth import AuthService
 from app.services.jwt import JwtService
@@ -17,20 +18,24 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/minute")
 async def signup(
-    request: SignUpRequest,
+    request: Request,
+    body: SignUpRequest,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    await auth_service.signup(request)
+    await auth_service.signup(body)
     return Response(content={"detail": "회원가입이 성공적으로 완료되었습니다."}, status_code=status.HTTP_201_CREATED)
 
 
 @auth_router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
 async def login(
-    request: LoginRequest,
+    request: Request,
+    body: LoginRequest,
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
-    user = await auth_service.authenticate(request)
+    user = await auth_service.authenticate(body)
     tokens = await auth_service.login(user)
     resp = Response(
         content=LoginResponse(access_token=str(tokens["access_token"])).model_dump(), status_code=status.HTTP_200_OK

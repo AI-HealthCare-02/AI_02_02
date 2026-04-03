@@ -10,15 +10,20 @@ from app.apis.v1 import v1_routers
 from app.core import config
 from app.core.config import Env
 from app.core.logger import setup_logger
+from app.core.sentry import init_sentry
 from app.db.databases import TORTOISE_APP_MODELS, TORTOISE_ORM
+from app.middleware.rate_limit import setup_rate_limit
 
 logger = setup_logger("app.main")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """FastAPI 생명주기: Tortoise → Redis → Scheduler 순서로 시작, 역순 종료."""
+    """FastAPI 생명주기: Sentry → Tortoise → Redis → Scheduler 순서로 시작, 역순 종료."""
     # ── Startup ──────────────────────────────────────────────
+    # 0) Sentry (에러 추적 — DSN 비어있으면 건너뜀)
+    init_sentry()
+
     # 1) Tortoise ORM
     Tortoise.init_models(TORTOISE_APP_MODELS, "models")
     await Tortoise.init(config=TORTOISE_ORM)
@@ -79,5 +84,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+setup_rate_limit(app)
 
 app.include_router(v1_routers)
