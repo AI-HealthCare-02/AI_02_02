@@ -40,6 +40,7 @@ async def login(
         value=str(tokens["refresh_token"]),
         httponly=True,
         secure=True if config.ENV == Env.PROD else False,
+        samesite="Lax",
         domain=config.COOKIE_DOMAIN or None,
         expires=tokens["refresh_token"].payload["exp"],
     )

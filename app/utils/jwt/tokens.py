@@ -76,9 +76,11 @@ class Token:
         self.payload["jti"] = uuid4().hex
 
     @classmethod
-    def for_user(cls, user: User) -> Self:
+    def for_user(cls, user: User, **extra_claims: Any) -> Self:
         token = cls()
         token["user_id"] = user.id
+        for key, value in extra_claims.items():
+            token[key] = value
         return token
 
 

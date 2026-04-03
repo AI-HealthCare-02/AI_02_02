@@ -2,10 +2,13 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from tortoise import Tortoise
 
 from app.apis.v1 import v1_routers
+from app.core import config
+from app.core.config import Env
 from app.core.logger import setup_logger
 from app.db.databases import TORTOISE_APP_MODELS, TORTOISE_ORM
 
@@ -56,12 +59,25 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("모든 연결 종료 완료")
 
 
+_is_prod = config.ENV == Env.PROD
+
 app = FastAPI(
     lifespan=lifespan,
     default_response_class=ORJSONResponse,
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    docs_url=None if _is_prod else "/api/docs",
+    redoc_url=None if _is_prod else "/api/redoc",
+    openapi_url=None if _is_prod else "/api/openapi.json",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(v1_routers)

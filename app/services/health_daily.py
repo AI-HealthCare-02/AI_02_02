@@ -76,6 +76,8 @@ class HealthDailyService:
             return _empty_log_response(log_date)
         return _log_to_response(log)
 
+    MAX_BACKFILL_DAYS = 3
+
     async def patch_daily_log(
         self, user_id: int, log_date: date, data: DailyLogPatchRequest
     ) -> DailyLogPatchResponse:
@@ -83,8 +85,13 @@ class HealthDailyService:
         today = date.today()
         if log_date > today:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="미래 날짜에는 기록할 수 없습니다.",
+            )
+        if (today - log_date).days > self.MAX_BACKFILL_DAYS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{self.MAX_BACKFILL_DAYS}일 이전의 기록은 수정할 수 없습니다.",
             )
 
         log, _created = await DailyHealthLog.get_or_create(

@@ -3,7 +3,7 @@
 실행 시점: 매일 00:00 KST (APScheduler CronTrigger)
 처리 내용:
   1. 전체 활성 사용자 FINDRISC 위험도 재계산 (BATCH_SIZE=100, 순차 처리)
-  2. 전체 사용자 참여 상태(EngagementState) 갱신 — Raw SQL 1회 조회 + 배치 업데이트
+  2. 전체 사용자 참여 상태(EngagementState) 갱신 — ORM 2회 조회 + 배치 업데이트
 
 분산 락으로 다중 인스턴스 환경에서 중복 실행을 방지한다.
 """
@@ -11,15 +11,16 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
-from tortoise import connections
+from tortoise.functions import Count, Max
 
 from app.core import config
 from app.core.logger import setup_logger
 from app.models.assessments import UserEngagement
 from app.models.enums import EngagementState
+from app.models.health import DailyHealthLog
 from app.models.users import User
 from app.services.risk_analysis import RiskAnalysisService
 from app.tasks.scheduler import distributed_lock
@@ -101,18 +102,6 @@ async def _recalculate_all_risks() -> tuple[int, int]:
 #  2) 참여 상태(Engagement) 갱신
 # ──────────────────────────────────────────────
 
-_ENGAGEMENT_QUERY = """
-SELECT ue.user_id, ue.state, ue.state_since,
-       COUNT(DISTINCT dhl.log_date) as responded_days,
-       DATEDIFF(CURDATE(), COALESCE(MAX(dhl.log_date), DATE_SUB(CURDATE(), INTERVAL 31 DAY))) as last_gap
-FROM user_engagements ue
-LEFT JOIN daily_health_logs dhl
-  ON ue.user_id = dhl.user_id
-  AND dhl.log_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-GROUP BY ue.user_id, ue.state, ue.state_since
-"""
-
-
 def _determine_state(responded_days: int, last_gap: int) -> EngagementState:
     """7일 응답률과 마지막 응답 격차로 참여 상태를 결정한다.
 
@@ -144,27 +133,44 @@ def _determine_state(responded_days: int, last_gap: int) -> EngagementState:
 
 
 async def _update_all_engagements() -> tuple[int, int]:
-    """Raw SQL로 전체 참여 데이터를 조회하고 상태를 갱신한다.
+    """전체 참여 데이터를 ORM으로 조회하고 상태를 갱신한다.
 
-    N+1 문제를 방지하기 위해 단일 쿼리로 모든 사용자의
-    7일 응답 일수와 마지막 응답 격차를 한 번에 가져온다.
+    N+1 방지: 2개 쿼리로 분리 (참여 데이터 + 7일 응답 통계).
 
     Returns:
         (성공 건수, 실패 건수) 튜플
     """
-    conn = connections.get("default")
-    rows = await conn.execute_query_dict(_ENGAGEMENT_QUERY)
-
+    today = date.today()
+    week_ago = today - timedelta(days=7)
     now = datetime.now(tz=config.TIMEZONE)
+
+    # 쿼리 1: 전체 참여 레코드
+    engagements = await UserEngagement.all().values("user_id", "state", "state_since")
+
+    # 쿼리 2: 최근 7일 응답 통계 (user_id별 응답 일수 + 마지막 기록일)
+    stats_rows = await (
+        DailyHealthLog.filter(log_date__gte=week_ago)
+        .values("user_id")
+        .annotate(responded_days=Count("log_date", distinct=True), last_log_date=Max("log_date"))
+    )
+    response_stats: dict[int, dict] = {}
+    for row in stats_rows:
+        last_log = row["last_log_date"]
+        response_stats[row["user_id"]] = {
+            "responded_days": row["responded_days"],
+            "last_gap": (today - last_log).days if last_log else 31,
+        }
+
     ok_count = 0
     fail_count = 0
 
-    for row in rows:
+    for eng in engagements:
         try:
-            user_id: int = row["user_id"]
-            old_state: str = row["state"]
-            responded_days: int = row["responded_days"] or 0
-            last_gap: int = row["last_gap"] or 0
+            user_id: int = eng["user_id"]
+            old_state: str = eng["state"]
+            stats = response_stats.get(user_id, {"responded_days": 0, "last_gap": 31})
+            responded_days: int = stats["responded_days"]
+            last_gap: int = stats["last_gap"]
 
             new_state = _determine_state(responded_days, last_gap)
             rate = responded_days / 7.0
@@ -193,7 +199,7 @@ async def _update_all_engagements() -> tuple[int, int]:
 
         except Exception:
             fail_count += 1
-            logger.exception("참여 상태 갱신 실패 — user_id=%d", row.get("user_id", -1))
+            logger.exception("참여 상태 갱신 실패 — user_id=%d", eng.get("user_id", -1))
 
     logger.info("참여 상태 갱신 완료 — ok=%d, fail=%d", ok_count, fail_count)
     return ok_count, fail_count

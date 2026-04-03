@@ -4,13 +4,13 @@
 """
 
 import json
-import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
 from fastapi import HTTPException, status
 
 from app.core import config
+from app.core.logger import setup_logger
 from app.dtos.chat import ChatHistoryResponse, ChatMessageDTO, HealthAnswerResponse
 from app.models.chat import ChatMessage, ChatSession, MessageRole
 from app.models.health import HealthProfile
@@ -21,10 +21,10 @@ from app.services.health_question import (
     HealthQuestionService,
 )
 
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 # 대화 기록 최대 로드 수 (OpenAI 컨텍스트 윈도우 관리)
-MAX_HISTORY_MESSAGES = 20
+MAX_HISTORY_MESSAGES = 10
 
 # ai_worker의 시스템 프롬프트를 직접 정의
 # (Docker 컨테이너 격리로 ai_worker/ 직접 import 불가)
@@ -309,6 +309,5 @@ class ChatService:
 
 
 def _sse_event(event_type: str, data: dict) -> str:
-    """SSE 이벤트 포맷."""
-    payload = {"type": event_type, **data}
-    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+    """SSE 이벤트 포맷 — W3C 권장: event: type\\ndata: JSON\\n\\n."""
+    return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
