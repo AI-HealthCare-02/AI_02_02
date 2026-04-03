@@ -15,7 +15,7 @@ paths:
 ## Docker 실행
 
 ### 핵심 서비스 4개
-- `mysql`, `redis`, `fastapi`, `nginx`
+- `postgres`, `redis`, `fastapi`, `nginx`
 - `ai-worker`는 별도 (무거워서 필요할 때만 실행)
 
 ### 한글 경로 우회 필수 (Windows)
@@ -25,7 +25,7 @@ paths:
 ```powershell
 subst X: "C:\Users\mal03\Desktop\레퍼런스\마지막 웹프로젝트"
 Set-Location X:\
-docker compose -p ai-health-local up -d mysql redis fastapi nginx
+docker compose -p ai-health-local up -d postgres redis fastapi nginx
 ```
 
 ### 확인 주소

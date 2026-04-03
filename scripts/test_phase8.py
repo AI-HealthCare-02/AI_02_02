@@ -1,7 +1,7 @@
 """Phase 8 통합 테스트 — 3대 시나리오 + 보안/성능 검증.
 
 사용법: python scripts/test_phase8.py
-Docker 환경 필요 (mysql + redis + fastapi + nginx)
+Docker 환경 필요 (postgres + redis + fastapi + nginx)
 
 시나리오 1: Happy Path (B그룹, 10단계)
 시나리오 2: 엣지 케이스 (8단계)

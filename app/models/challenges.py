@@ -39,7 +39,7 @@ class UserChallenge(models.Model):
     """사용자가 참여 중인 챌린지 상태.
 
     NOTE: 동시 active 최대 2개, 같은 template active 중복 금지
-          → 서비스 레이어에서 검증 (MySQL partial unique index 미지원)
+          → 서비스 레이어에서 검증 (ORM 호환성 유지)
     """
 
     id = fields.BigIntField(primary_key=True)

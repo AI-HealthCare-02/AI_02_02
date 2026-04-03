@@ -20,7 +20,7 @@
 |------|------|
 | 백엔드 프레임워크 | FastAPI (Python 3.13, async) |
 | ORM | Tortoise ORM (async-first) + Aerich 마이그레이션 |
-| DB | MySQL 8.0 |
+| DB | PostgreSQL 16 |
 | 캐시/잠금 | Redis (분산 락, 세션) |
 | AI | OpenAI GPT-4o-mini (SSE 스트리밍) |
 | 스케줄러 | APScheduler 3.x (크론 작업) |
@@ -93,7 +93,7 @@
 ├── ai_worker/                    ← AI Worker (미실행)
 ├── nginx/                        ← Nginx 설정 (HTTP/HTTPS)
 ├── envs/                         ← 환경변수 예시 파일
-├── docker-compose.yml            ← 개발용 (mysql, redis, fastapi, nginx)
+├── docker-compose.yml            ← 개발용 (postgres, redis, fastapi, nginx)
 ├── docker-compose.prod.yml       ← 프로덕션용
 ├── docs/                         ← 설계 문서 + 프로토타입 HTML
 └── pyproject.toml                ← 의존성 + 도구 설정
@@ -472,7 +472,7 @@ f767d9c feat: 다나아 프로젝트 초기 커밋 — 전체 구조 + Phase 5/6
 - 크론 작업 2개 (분산 락)
 - 테스트 54개
 - 보안 강화 6건
-- Docker Compose 풀스택 (MySQL + Redis + FastAPI + Nginx)
+- Docker Compose 풀스택 (PostgreSQL + Redis + FastAPI + Nginx)
 
 ### 미구현 ⚠️
 | 항목 | 상태 | 비고 |
@@ -526,7 +526,7 @@ subst X: "C:\Users\mal03\Desktop\레퍼런스\마지막 웹프로젝트"
 cd X:\
 
 # Docker 실행
-docker compose -p ai-health-local up -d mysql redis fastapi nginx
+docker compose -p ai-health-local up -d postgres redis fastapi nginx
 
 # Swagger UI 확인
 # http://localhost/api/docs

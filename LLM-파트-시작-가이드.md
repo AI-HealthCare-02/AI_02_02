@@ -48,10 +48,10 @@
 - 사용법: API에 `Depends(get_request_user)` 한 줄 추가하면 자동으로 로그인 확인
 - JWT 토큰: 로그인하면 "신분증"(토큰)을 발급, 매 요청마다 이걸 보여줌
 
-#### 3. 데이터베이스(MySQL) = 모든 데이터가 저장되는 곳
+#### 3. 데이터베이스(PostgreSQL) = 모든 데이터가 저장되는 곳
 ```
 비유: 공용 냉장고
-백엔드, AI Worker 모두 같은 냉장고(MySQL)를 사용.
+백엔드, AI Worker 모두 같은 냉장고(PostgreSQL)를 사용.
 새 칸(테이블)을 만들면 모두가 접근 가능.
 ```
 - 설정: `app/db/databases.py`의 TORTOISE_ORM
@@ -86,8 +86,8 @@ DB 비밀번호, API 키 등이 여기에 저장됨.
 #### 6. Docker 네트워크 = 건물 내부 통로
 ```
 비유: 같은 건물 안에서 각 방(서비스)이 서로 통신하는 복도
-fastapi, mysql, redis, ai-worker, nginx가 같은 네트워크에 있어서
-서로 이름으로 접근 가능 (예: "mysql:3306"으로 DB 접속)
+fastapi, postgres, redis, ai-worker, nginx가 같은 네트워크에 있어서
+서로 이름으로 접근 가능 (예: "postgres:5432"로 DB 접속)
 ```
 
 ---
@@ -833,7 +833,7 @@ subst X: "C:\Users\mal03\Desktop\레퍼런스\마지막 웹프로젝트"
 Set-Location X:\
 
 # 그 다음 Docker 실행
-docker compose -p ai-health-local up -d mysql redis fastapi nginx
+docker compose -p ai-health-local up -d postgres redis fastapi nginx
 ```
 
 왜? → Windows에서 한글 경로를 Docker BuildKit이 처리 못 해서 임시 드라이브(X:)로 우회하는 것.
