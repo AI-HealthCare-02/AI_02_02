@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>다나아 — Phase 0-8 백엔드 구현 발표자료</title>
+<title>다나아 — Phase 0-9 백엔드 구현 발표자료</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -198,7 +198,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <div class="hero">
   <div class="hero-badge">DA-NA-A Health AI Platform &mdash; Backend</div>
   <h1>다나아 &mdash; 만성질환 생활습관 AI 코칭 서비스</h1>
-  <p>당뇨&middot;고혈압 예방을 위한 맞춤형 건강관리 백엔드(서버 쪽 두뇌) 시스템 (Phase 0-8 완료 + API 명세 동기화)</p>
+  <p>당뇨&middot;고혈압 예방을 위한 맞춤형 건강관리 백엔드(서버 쪽 두뇌) 시스템 (Phase 0-9 완료 + 콘텐츠 필터 + API 명세 동기화)</p>
   <div class="stack-badges">
     <span class="stack-badge">FastAPI</span>
     <span class="stack-badge">MySQL 8.0</span>
@@ -212,16 +212,16 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 </div>
 
 <h2 class="sec-title">핵심 수치</h2>
-<p class="sec-sub">Phase 0~8에서 구현한 백엔드 전체 규모</p>
+<p class="sec-sub">Phase 0~9에서 구현한 백엔드 전체 규모</p>
 <div class="grid-4">
   <div class="stat-card"><span class="stat-num">25</span><span class="stat-label">API 엔드포인트<br><small style="font-weight:400;color:var(--g400)">(프로그램 간 대화 창구)</small></span></div>
   <div class="stat-card"><span class="stat-num">13</span><span class="stat-label">DB 테이블<br><small style="font-weight:400;color:var(--g400)">(데이터 저장 구조)</small></span></div>
-  <div class="stat-card"><span class="stat-num">31</span><span class="stat-label">Enum 정의<br><small style="font-weight:400;color:var(--g400)">(정해진 선택지 목록)</small></span></div>
-  <div class="stat-card"><span class="stat-num" style="font-size:22px">~6,700</span><span class="stat-label">Python 코드 줄</span></div>
-  <div class="stat-card"><span class="stat-num">11</span><span class="stat-label">Service 클래스<br><small style="font-weight:400;color:var(--g400)">(기능별 업무 담당자)</small></span></div>
+  <div class="stat-card"><span class="stat-num">33</span><span class="stat-label">Enum 정의<br><small style="font-weight:400;color:var(--g400)">(정해진 선택지 목록)</small></span></div>
+  <div class="stat-card"><span class="stat-num" style="font-size:22px">~7,800</span><span class="stat-label">Python 코드 줄</span></div>
+  <div class="stat-card"><span class="stat-num">12</span><span class="stat-label">Service 클래스<br><small style="font-weight:400;color:var(--g400)">(기능별 업무 담당자)</small></span></div>
   <div class="stat-card"><span class="stat-num">9</span><span class="stat-label">Router 파일<br><small style="font-weight:400;color:var(--g400)">(요청 경로 안내판)</small></span></div>
   <div class="stat-card"><span class="stat-num">2</span><span class="stat-label">Cron 작업<br><small style="font-weight:400;color:var(--g400)">(매일 자동 실행)</small></span></div>
-  <div class="stat-card"><span class="stat-num">54</span><span class="stat-label">테스트 케이스<br><small style="font-weight:400;color:var(--g400)">(자동 품질 검사)</small></span></div>
+  <div class="stat-card"><span class="stat-num">76</span><span class="stat-label">테스트 케이스<br><small style="font-weight:400;color:var(--g400)">(자동 품질 검사)</small></span></div>
 </div>
 
 <h2 class="sec-title">시스템 아키텍처</h2>
@@ -243,7 +243,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <p style="font-size:11px;color:var(--g400);text-align:center;margin-top:6px">&uarr; FastAPI가 이 두 서비스와도 연결됩니다</p>
 
 <div class="env-ctx">
-  <h3>현재 환경 상태 (2026-04-03 기준)</h3>
+  <h3>현재 환경 상태 (2026-04-04 기준)</h3>
   <p style="font-size:13px;color:var(--g600)">프론트엔드(Next.js)는 별도 팀원 담당으로 아직 미완성입니다. 현재는 <strong>백엔드 API만 완성</strong>된 상태이며, Swagger UI로 모든 기능을 테스트할 수 있습니다.</p>
   <div class="status-row">
     <div class="status-col">
@@ -254,8 +254,9 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
         <li>Docker Compose 풀스택</li>
         <li>DB 스키마 + 마이그레이션</li>
         <li>AI 채팅 SSE(실시간 글자 전송) 스트리밍</li>
+        <li>콘텐츠 필터 (욕설 + 위기감지 + 의료안전)</li>
         <li>자동 크론 (위험도 재계산)</li>
-        <li>Pytest 단위 테스트</li>
+        <li>Pytest 단위 테스트 76건</li>
         <li>API 명세↔코드 필드명 동기화 완료</li>
       </ul>
     </div>
@@ -266,7 +267,6 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
         <li>React 컴포넌트</li>
         <li>AWS EC2 프로덕션 배포</li>
         <li>RAG (AI가 문서를 검색해서 답하는 기술)</li>
-        <li>비속어 필터</li>
         <li>자체 ML(기계학습) 예측 모델</li>
       </ul>
     </div>
@@ -279,7 +279,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <!-- ════════════════════════════════════════════ -->
 <div class="section" id="sec-1">
 <h2 class="sec-title">Phase별 구현 내용</h2>
-<p class="sec-sub">8개 Phase + API 명세 동기화 수정까지 백엔드 전체를 순차적으로 구현했습니다</p>
+<p class="sec-sub">9개 Phase + API 명세 동기화 수정까지 백엔드 전체를 순차적으로 구현했습니다</p>
 
 <div class="tl">
 
@@ -359,6 +359,24 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 </div></div>
 
 <div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-red">
+  <h3><span class="phase-badge" style="background:var(--danger-light);color:var(--danger)">Phase 9</span> 콘텐츠 필터 (욕설 + 위기감지 + 의료안전)</h3>
+  <p>한국어 문맥 기반 콘텐츠 필터 — 2축 판정 모델(표현축 + 의료안전축)으로 욕설 차단, 위기 감지, 복약거부 대응</p>
+  <ul>
+    <li><strong>korcen(한국어 욕설 감지 라이브러리)</strong> + regex fallback(비상용 대체 수단) — 로컬 전용, 외부 전송 없음</li>
+    <li><strong>2축 판정</strong>: 표현축(ALLOW/WARN/BLOCK) + 의료안전축(NONE/MEDICAL_NOTE/CRISIS_ESCALATE)</li>
+    <li><strong>관용구 오탐 방지</strong>: "배고파 죽겠다" "힘들어 죽겠다" 등 일상 표현을 위기로 잘못 잡지 않음 (7개 예외 패턴)</li>
+    <li><strong>진짜 위기 감지</strong>: "죽고 싶다" "자살하고 싶다" 등 → 고정 응답 + 1393/109/119 위기 상담전화 안내</li>
+    <li><strong>질문 vs 선언 구분</strong>: "약 끊으면 어떻게 되나요?"(질문=정상) vs "약 끊을 거예요"(선언=의료안전 경고)</li>
+    <li><strong>위기 감지는 AI 동의(ai_consent) 거부와 무관</strong>하게 항상 실행 (duty of care = 안전 의무)</li>
+    <li><strong>위기 후 24시간 쿨링오프</strong>: 건강질문 삽입 금지 (민감한 상황에서 질문 폭탄 방지)</li>
+    <li><strong>Feature Flag(기능 스위치)</strong>: <code>CONTENT_FILTER_ENABLED=false</code>로 즉시 비활성화 가능</li>
+    <li><strong>Sentry(에러 추적 도구) 강화</strong>: 채팅 메시지 원문이 에러 보고서에 포함되지 않도록 필터링</li>
+    <li><strong>테스트 44건</strong>: 관용구 오탐 10건 + 위기 감지 8건 + 질문/선언 9건 + 좌절감/긍정 6건 + 화이트리스트 4건 + 기타 7건</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
 <div class="card card-orange">
   <h3><span class="phase-badge" style="background:var(--warning-light);color:#92400E">Post-8</span> API 명세 동기화 수정</h3>
   <p>팀원 간 공유된 원본 API/DB 명세서와 코드가 불일치하던 문제를 전면 수정</p>
@@ -379,46 +397,60 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <!-- ════════════════════════════════════════════ -->
 <div class="section" id="sec-2">
 <h2 class="sec-title">LLM(AI 대화 엔진) 채팅 파이프라인</h2>
-<p class="sec-sub">사용자가 메시지를 보내면 AI가 실시간으로 답하기까지의 9단계 처리 과정</p>
+<p class="sec-sub">사용자가 메시지를 보내면 AI가 실시간으로 답하기까지의 12단계 처리 과정</p>
 
 <div class="card card-blue" style="margin-bottom:24px">
   <h3>한 줄 요약</h3>
-  <p style="font-size:14px;font-weight:600;color:var(--g700);margin-bottom:10px">사용자가 "안녕" → 서버가 검증 → 대화 이력 불러오기 → 건강질문 넣을지 판단 → AI한테 보내기 → 실시간으로 글자 전송 → 저장</p>
+  <p style="font-size:14px;font-weight:600;color:var(--g700);margin-bottom:10px">사용자가 "안녕" → 서버가 검증 → <strong style="color:var(--danger)">콘텐츠 필터(욕설/위기 검사)</strong> → 분기(위기→안전응답 / 차단→에러 / 통과→AI 호출) → 실시간 글자 전송 → 저장</p>
   <h3 style="margin-top:14px">파이프라인 흐름도 (체인 구조 = 순차 실행)</h3>
-  <p>각 단계가 완료된 후 다음 단계로 넘어가는 <strong>체인(Chain)</strong> 패턴입니다. 공장 컨베이어 벨트처럼 1번부터 9번까지 순서대로 처리됩니다. 모든 함수는 <code>app/services/chat.py</code>에 정의되어 있습니다.</p>
+  <p>각 단계가 완료된 후 다음 단계로 넘어가는 <strong>체인(Chain)</strong> 패턴입니다. 공장 컨베이어 벨트처럼 1번부터 12번까지 순서대로 처리됩니다. <strong style="color:var(--danger)">2~4단계(콘텐츠 필터)는 Phase 9에서 추가</strong>되었습니다. 핵심 함수는 <code>app/services/chat.py</code> + <code>app/services/content_filter.py</code>에 정의되어 있습니다.</p>
 </div>
 
 <div class="pipeline">
   <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>사전 검증 — "보내도 되는지 확인"</strong><br><code>_validate_request(user_id, session_id)</code><p>받는 것: 사용자 번호, 대화방 번호 &rarr; 돌려주는 것: 에러 메시지 or 통과<br>AI 서비스 연결 확인 + 오늘 50회 넘었는지 체크</p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>대화방 준비 — "어느 대화방에서 할지 정하기"</strong><br><code>_prepare_session(user_id, message, session_id)</code><p>받는 것: 사용자 번호, 메시지 내용, 대화방 번호 &rarr; 돌려주는 것: 대화방 정보<br>기존 대화방 불러오기 or 새로 만들기 + 사용자 메시지 저장</p></div></div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--warning)">2</div><div class="pipe-body"><strong>AI 동의 확인 — "AI 채팅에 동의했는지 확인" <span class="tag tag-orange">Phase 9 NEW</span></strong><br><code>_validate_chat_access(user_id)</code><p>받는 것: 사용자 번호 &rarr; 돌려주는 것: 건강 프로필 + 에러 메시지<br>AI 이용 동의(ai_consent) 여부 확인. 단, 위기 감지는 동의와 무관하게 항상 실행</p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>이전 대화 불러오기 — "뭘 얘기했었는지 기억하기"</strong><br><code>ChatMessage.filter(session=session).limit(10)</code><p>받는 것: 대화방 정보 &rarr; 돌려주는 것: 최근 메시지 10개 목록<br>AI가 맥락을 이해하도록 최근 대화를 함께 전달</p></div></div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--danger)">3</div><div class="pipe-body"><strong>콘텐츠 필터 — "위험한 내용이 있는지 검사" <span class="tag tag-orange">Phase 9 NEW</span></strong><br><code>content_filter.check_message(message)</code><p>받는 것: 메시지 텍스트 &rarr; 돌려주는 것: 2축 판정 결과(표현축 + 의료안전축)<br>욕설 감지(korcen) + 위기 의도 패턴 + 관용구 예외 + 복약거부 감지 + 좌절감 패턴</p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num" style="background:var(--accent)">4</div><div class="pipe-body"><strong>건강질문 넣을지 판단 — "지금 물어봐도 될까?" (라우터 = 갈림길)</strong><br><code>get_eligible_bundles(user_id)</code><p>받는 것: 사용자 번호 &rarr; 돌려주는 것: 질문 묶음 이름들 (예: "수면", "운동")<br>4가지 조건(90분 경과? 시간대 맞나? 아직 안 물었나? 밤이 아닌가?) 모두 만족하면 질문 삽입</p></div></div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--danger)">4</div><div class="pipe-body"><strong>분기 처리 — "검사 결과에 따라 갈림길" <span class="tag tag-orange">Phase 9 NEW</span></strong><br><p>CRISIS(위기) → 고정 안전 응답 + 위기 상담전화 안내 (AI 미호출)<br>BLOCK(차단) → 에러 메시지 반환 (세션 미생성)<br>WARN(경고) → AI 호출 + 공감 지시문 추가<br>ALLOW(허용) → 정상 진행</p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num" style="background:var(--purple)">5</div><div class="pipe-body"><strong>AI 역할 지시서 작성 — "이렇게 대답해!" 지시문 만들기</strong><br><code>_build_system_prompt(user_id, eligible_bundles)</code><p>받는 것: 사용자 번호, 질문 묶음 &rarr; 돌려주는 것: 지시문 텍스트<br>사용자 그룹(A/B/C)에 맞게 + 건강질문 삽입 지시를 동적으로 조합</p></div></div>
+  <div class="pipe-step"><div class="pipe-num">5</div><div class="pipe-body"><strong>대화방 준비 — "어느 대화방에서 할지 정하기"</strong><br><code>_prepare_session(user_id, message, session_id)</code><p>받는 것: 사용자 번호, 메시지 내용, 대화방 번호 &rarr; 돌려주는 것: 대화방 정보<br>기존 대화방 불러오기 or 새로 만들기 + 사용자 메시지 저장</p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num">6</div><div class="pipe-body"><strong>AI한테 보낼 대화 묶기 — "전체 맥락을 한 봉투에 담기"</strong><br><code>_build_openai_messages(user_id, history, bundles)</code><p>받는 것: 사용자 번호, 대화이력, 질문묶음 &rarr; 돌려주는 것: 대화 목록<br>역할 지시서 + 이전 대화 + 현재 메시지를 하나로 조립</p></div></div>
+  <div class="pipe-step"><div class="pipe-num">6</div><div class="pipe-body"><strong>이전 대화 불러오기 — "뭘 얘기했었는지 기억하기"</strong><br><code>ChatMessage.filter(session=session).limit(10)</code><p>받는 것: 대화방 정보 &rarr; 돌려주는 것: 최근 메시지 10개 목록<br>AI가 맥락을 이해하도록 최근 대화를 함께 전달</p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num" style="background:var(--danger)">7</div><div class="pipe-body"><strong>AI에게 질문하기 — "글자가 하나씩 실시간으로 돌아옴"</strong><br><code>_stream_openai(messages)</code><p>받는 것: 대화 목록 &rarr; 돌려주는 것: 글자 조각들 (실시간 스트리밍)<br>GPT-4o-mini 모델, 최대 1024 토큰(약 500자), 창의성 0.7</p></div></div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--accent)">7</div><div class="pipe-body"><strong>건강질문 넣을지 판단 — "지금 물어봐도 될까?" (라우터 = 갈림길)</strong><br><code>get_eligible_bundles(user_id)</code><p>받는 것: 사용자 번호 &rarr; 돌려주는 것: 질문 묶음 이름들 (예: "수면", "운동")<br>4가지 조건(90분 경과? 시간대 맞나? 아직 안 물었나? 밤이 아닌가?) + <strong>위기 후 24시간 쿨링오프</strong></p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num">8</div><div class="pipe-body"><strong>AI 답변 저장 — "나중에 다시 볼 수 있도록 기록"</strong><br><code>_save_response(session, full_response, bundles)</code><p>받는 것: 대화방, 전체답변, 질문묶음 &rarr; 돌려주는 것: 없음 (저장만)<br>AI 응답 전체를 DB에 저장 + 어떤 건강질문을 물었는지 기록</p></div></div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--purple)">8</div><div class="pipe-body"><strong>AI 역할 지시서 작성 — "이렇게 대답해!" 지시문 만들기</strong><br><code>_build_system_prompt(user_id, eligible_bundles)</code><p>받는 것: 사용자 번호, 질문 묶음 &rarr; 돌려주는 것: 지시문 텍스트<br>사용자 그룹(A/B/C)에 맞게 + 건강질문 삽입 지시 + <strong>WARN/MEDICAL_NOTE 추가 지시문</strong></p></div></div>
   <div class="pipe-arrow">&darr;</div>
-  <div class="pipe-step"><div class="pipe-num" style="background:var(--accent)">9</div><div class="pipe-body"><strong>"다 끝났어!" 신호 보내기 — 프론트에 결과 전달</strong><br><code>_build_done_data(session_id, bundles)</code><p>받는 것: 대화방 번호, 질문묶음 &rarr; 돌려주는 것: 완료 데이터<br>화면에 건강질문 UI를 띄울 수 있도록 데이터를 함께 전달</p></div></div>
+  <div class="pipe-step"><div class="pipe-num">9</div><div class="pipe-body"><strong>AI한테 보낼 대화 묶기 — "전체 맥락을 한 봉투에 담기"</strong><br><code>_build_openai_messages(user_id, history, bundles, filter_result)</code><p>받는 것: 사용자 번호, 대화이력, 질문묶음, 필터 결과 &rarr; 돌려주는 것: 대화 목록<br>역할 지시서 + 이전 대화 + 현재 메시지를 하나로 조립</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--danger)">10</div><div class="pipe-body"><strong>AI에게 질문하기 — "글자가 하나씩 실시간으로 돌아옴"</strong><br><code>_stream_openai(messages)</code><p>받는 것: 대화 목록 &rarr; 돌려주는 것: 글자 조각들 (실시간 스트리밍)<br>GPT-4o-mini 모델, 최대 1024 토큰(약 500자), 창의성 0.7</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num">11</div><div class="pipe-body"><strong>AI 답변 저장 — "나중에 다시 볼 수 있도록 기록"</strong><br><code>_save_response(session, full_response, bundles)</code><p>받는 것: 대화방, 전체답변, 질문묶음 &rarr; 돌려주는 것: 없음 (저장만)<br>AI 응답 전체를 DB에 저장 + 어떤 건강질문을 물었는지 기록</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--accent)">12</div><div class="pipe-body"><strong>"다 끝났어!" 신호 보내기 — 프론트에 결과 전달</strong><br><code>_build_done_data(session_id, bundles)</code><p>받는 것: 대화방 번호, 질문묶음 &rarr; 돌려주는 것: 완료 데이터<br>화면에 건강질문 UI를 띄울 수 있도록 데이터를 함께 전달</p></div></div>
 </div>
 
-<h2 class="sec-title" style="margin-top:32px">3가지 파이프라인 분기</h2>
-<p class="sec-sub">같은 처리 과정이지만, 건강질문을 넣을지 말지에 따라 3가지 갈림길로 동작합니다 (라우터 = 교차로에서 방향을 정해주는 신호등)</p>
+<h2 class="sec-title" style="margin-top:32px">5가지 파이프라인 분기</h2>
+<p class="sec-sub">콘텐츠 필터 결과 + 건강질문 조건에 따라 5가지 갈림길로 동작합니다 (라우터 = 교차로에서 방향을 정해주는 신호등)</p>
 
-<div class="branch-wrap">
+<div class="branch-wrap" style="grid-template-columns:repeat(5,1fr)">
+  <div class="branch-card" style="border-color:var(--danger);background:var(--danger-light)">
+    <h4 style="color:var(--danger)">위기 감지</h4>
+    <p><strong>CRISIS_ESCALATE</strong><br><br>"죽고 싶다" 등 의도 감지<br>&darr;<br>AI 호출 안 함<br>&darr;<br>고정 안전 응답<br>1393/109/119 안내<br>24h 쿨링오프</p>
+  </div>
+  <div class="branch-card" style="border-color:#DC2626;background:#FEF2F2">
+    <h4 style="color:#DC2626">차단</h4>
+    <p><strong>BLOCK</strong><br><br>심한 욕설/혐오<br>&darr;<br>AI 호출 안 함<br>세션 미생성<br>&darr;<br>에러 메시지 반환<br><code>content_blocked</code></p>
+  </div>
   <div class="branch-card b1">
     <h4>일반 질문</h4>
-    <p><strong>LLM + 가드레일</strong><br><br>건강질문 조건 미충족 시<br>시스템 프롬프트(코치 역할)<br>&darr;<br>OpenAI 호출<br>&darr;<br>의료 면책조항 포함 응답</p>
+    <p><strong>ALLOW + LLM</strong><br><br>건강질문 조건 미충족 시<br>시스템 프롬프트(코치 역할)<br>&darr;<br>OpenAI 호출<br>&darr;<br>의료 면책조항 포함 응답</p>
   </div>
   <div class="branch-card b2">
     <h4>건강 질문 삽입</h4>
-    <p><strong>LLM + 프롬프트 엔지니어링</strong><br><br>4대 조건 충족 시<br>시스템 프롬프트 + 질문 지시문<br>&darr;<br>OpenAI가 자연스럽게 질문<br>&darr;<br>응답 + 건강질문 UI 데이터</p>
+    <p><strong>ALLOW/WARN + LLM</strong><br><br>4대 조건 충족 시<br>프롬프트 + 질문 지시문<br>(+ WARN이면 공감 지시 추가)<br>&darr;<br>OpenAI 호출<br>&darr;<br>응답 + 건강질문 UI</p>
   </div>
   <div class="branch-card b3">
     <h4>건강 답변 저장</h4>
@@ -460,25 +492,36 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <span class="kw">event:</span> done
 <span class="kw">data:</span> {<span class="str">"session_id"</span>: 42, <span class="str">"health_questions"</span>: [...]}
 
-<span class="cmt">// 3. 에러 이벤트</span>
+<span class="cmt">// 3. 에러 이벤트 (일반)</span>
 <span class="kw">event:</span> error
-<span class="kw">data:</span> {<span class="str">"message"</span>: <span class="str">"대화를 찾을 수 없어요."</span>}</div>
+<span class="kw">data:</span> {<span class="str">"message"</span>: <span class="str">"대화를 찾을 수 없어요."</span>}
+
+<span class="cmt">// 4. 에러 이벤트 (콘텐츠 차단 — Phase 9 추가)</span>
+<span class="kw">event:</span> error
+<span class="kw">data:</span> {<span class="str">"code"</span>: <span class="str">"content_blocked"</span>, <span class="str">"message"</span>: <span class="str">"부적절한 표현이 포함되어 있어요."</span>}
+
+<span class="cmt">// 5. 에러 이벤트 (AI 동의 필요 — Phase 9 추가)</span>
+<span class="kw">event:</span> error
+<span class="kw">data:</span> {<span class="str">"code"</span>: <span class="str">"ai_consent_required"</span>, <span class="str">"message"</span>: <span class="str">"AI 채팅 이용에 동의가 필요해요."</span>}</div>
 
 <h2 class="sec-title" style="margin-top:28px">함수 시그니처 테이블</h2>
-<p class="sec-sub">파이프라인 핵심 함수(기능 단위) 9개의 입출력 정의 — 멘토 요구: "함수명, Input/Output, 실행 순서 구조화"</p>
-<p style="font-size:11px;color:var(--g400);margin-bottom:4px">표 읽는 법: str=텍스트, int=숫자, list[]=~의 목록, dict=키-값 쌍, None=반환값 없음, |(또는)</p>
+<p class="sec-sub">파이프라인 핵심 함수(기능 단위) 12개의 입출력 정의 — 멘토 요구: "함수명, Input/Output, 실행 순서 구조화"</p>
+<p style="font-size:11px;color:var(--g400);margin-bottom:4px">표 읽는 법: str=텍스트, int=숫자, list[]=~의 목록, dict=키-값 쌍, None=반환값 없음, |(또는). <span class="tag tag-orange">NEW</span> = Phase 9 추가</p>
 <table class="dt">
 <thead><tr><th>#</th><th>함수명</th><th>Input (받는 것)</th><th>Output (돌려주는 것)</th><th>역할</th></tr></thead>
 <tbody>
 <tr><td>1</td><td><code>_validate_request</code></td><td>user_id, session_id</td><td>str | None</td><td>API키 + 일 제한 체크</td></tr>
-<tr><td>2</td><td><code>_prepare_session</code></td><td>user_id, message, session_id</td><td>ChatSession</td><td>세션 생성/조회 + 메시지 저장</td></tr>
-<tr><td>3</td><td><code>ChatMessage.filter</code></td><td>session</td><td>list[ChatMessage]</td><td>최근 10개 대화 이력 로드</td></tr>
-<tr><td>4</td><td><code>get_eligible_bundles</code></td><td>user_id</td><td>list[str]</td><td>건강질문 삽입 판단 (라우터)</td></tr>
-<tr><td>5</td><td><code>_build_system_prompt</code></td><td>user_id, bundles</td><td>str</td><td>동적 시스템 프롬프트 구성</td></tr>
-<tr><td>6</td><td><code>_build_openai_messages</code></td><td>user_id, history, bundles</td><td>list[dict]</td><td>OpenAI 메시지 배열 조립</td></tr>
-<tr><td>7</td><td><code>_stream_openai</code></td><td>messages[]</td><td>AsyncGenerator[str]</td><td>GPT-4o-mini 스트리밍 호출</td></tr>
-<tr><td>8</td><td><code>_save_response</code></td><td>session, response, bundles</td><td>None</td><td>AI 응답 DB 저장</td></tr>
-<tr><td>9</td><td><code>_build_done_data</code></td><td>session_id, bundles</td><td>dict</td><td>SSE 완료 이벤트 구성</td></tr>
+<tr style="background:var(--warning-light)"><td>2</td><td><code>_validate_chat_access</code> <span class="tag tag-orange">NEW</span></td><td>user_id</td><td>(HealthProfile, str | None)</td><td>AI 동의 확인 + 프로필 반환</td></tr>
+<tr style="background:var(--warning-light)"><td>3</td><td><code>check_message</code> <span class="tag tag-orange">NEW</span></td><td>message</td><td>FilterResult</td><td>2축 판정 (표현+의료안전)</td></tr>
+<tr style="background:var(--warning-light)"><td>4</td><td><code>_handle_crisis</code> <span class="tag tag-orange">NEW</span></td><td>user_id, message, session_id</td><td>AsyncGenerator[str]</td><td>위기 경로 (고정 응답 스트리밍)</td></tr>
+<tr><td>5</td><td><code>_prepare_session</code></td><td>user_id, message, session_id</td><td>ChatSession</td><td>세션 생성/조회 + 메시지 저장</td></tr>
+<tr><td>6</td><td><code>ChatMessage.filter</code></td><td>session</td><td>list[ChatMessage]</td><td>최근 10개 대화 이력 로드</td></tr>
+<tr><td>7</td><td><code>get_eligible_bundles</code></td><td>user_id</td><td>list[str]</td><td>건강질문 삽입 판단 (라우터)</td></tr>
+<tr><td>8</td><td><code>_build_system_prompt</code></td><td>user_id, bundles</td><td>str</td><td>동적 시스템 프롬프트 구성</td></tr>
+<tr><td>9</td><td><code>_build_openai_messages</code></td><td>user_id, history, bundles, filter_result</td><td>list[dict]</td><td>OpenAI 메시지 배열 조립</td></tr>
+<tr><td>10</td><td><code>_stream_openai</code></td><td>messages[]</td><td>AsyncGenerator[str]</td><td>GPT-4o-mini 스트리밍 호출</td></tr>
+<tr><td>11</td><td><code>_save_response</code></td><td>session, response, bundles</td><td>None</td><td>AI 응답 DB 저장</td></tr>
+<tr><td>12</td><td><code>_build_done_data</code></td><td>session_id, bundles</td><td>dict</td><td>SSE 완료 이벤트 구성</td></tr>
 </tbody>
 </table>
 </div>
@@ -500,7 +543,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <tr><td><strong>건강 추적 대시보드</strong></td><td><span class="tag tag-done">DONE</span></td><td><code>dashboard/init</code> API (5개 컴포넌트 한 번에)</td></tr>
 <tr><td><strong>생활습관 챌린지</strong></td><td><span class="tag tag-done">DONE</span></td><td>Template/UserChallenge/Checkin 3테이블 시스템</td></tr>
 <tr><td><strong>라우터 (질문 유형별 갈림길)</strong><br><small style="color:var(--g400)">질문 종류에 따라 다른 경로로 처리</small></td><td><span class="tag tag-partial">PARTIAL</span></td><td>그룹별(A/B/C) 분기 구현. 질문 유형 자동 분류기는 미구현</td></tr>
-<tr><td><strong>일반질문: AI + 안전장치 + 욕설필터</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>안전장치(면책조항 + 의료표현 금지) 구현. 욕설 필터 미구현</td></tr>
+<tr><td><strong>일반질문: AI + 안전장치 + 욕설필터</strong></td><td><span class="tag tag-done">DONE</span></td><td>안전장치(면책조항 + 의료표현 금지) + 콘텐츠 필터(korcen 욕설 감지 + 위기 감지 + 의료안전) 구현 완료</td></tr>
 <tr><td><strong>건강질문: AI + RAG(문서검색) + 프롬프트 설계</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>프롬프트 설계(동적 지시문) 완성. RAG(문서검색 기반 답변) 미구현</td></tr>
 <tr><td><strong>건강데이터: AI + RAG + ML(기계학습) 예측</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>FINDRISC 규칙기반 점수 완성. ML 학습 모델/RAG 미구현</td></tr>
 <tr><td><strong>사용자 상태별 맞춤 답변</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>그룹별 다른 지시문 + 질문 분기 구현. 문서 기반 맞춤 답변은 미구현</td></tr>
@@ -510,14 +553,10 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <div class="card card-red" style="margin-top:24px">
   <h3>아직 구현되지 않은 항목</h3>
   <p>아래 항목들은 설계에는 포함되어 있으나, 현재 Phase에서는 미구현 상태입니다.</p>
-  <div class="grid-3" style="margin-top:14px">
+  <div class="grid-2" style="margin-top:14px">
     <div class="card" style="padding:16px">
       <strong style="color:var(--danger)">RAG (AI가 문서를 검색해서 답하는 기술)</strong>
       <p style="font-size:12px;margin-top:6px">AI가 자체 지식 외에 우리가 준비한 건강 문서도 찾아보고 답하는 기능. 현재는 지시문에 지식을 직접 넣는 방식으로 대체</p>
-    </div>
-    <div class="card" style="padding:16px">
-      <strong style="color:var(--danger)">욕설 필터</strong>
-      <p style="font-size:12px;margin-top:6px">파이프라인 설계에는 포함되어 있으나 구현 코드 없음. 향후 OpenAI Moderation API 또는 키워드 필터 추가 필요</p>
     </div>
     <div class="card" style="padding:16px">
       <strong style="color:var(--danger)">자체 ML(기계학습) 예측 모델</strong>
@@ -603,8 +642,8 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 </div>
 </div>
 
-<h2 class="sec-title" style="margin-top:28px">보안 조치 (Phase 8 + Post-8)</h2>
-<p class="sec-sub">코드 리뷰 기반 보안 강화 6건 + API 명세 동기화 1건</p>
+<h2 class="sec-title" style="margin-top:28px">보안 조치 (Phase 8 + 9 + Post-8)</h2>
+<p class="sec-sub">코드 리뷰 기반 보안 강화 6건 + 콘텐츠 필터 보안 3건 + API 명세 동기화 1건</p>
 
 <table class="dt">
 <thead><tr><th>조치</th><th>파일</th><th>효과</th></tr></thead>
@@ -615,14 +654,22 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <tr><td>비활성 계정 차단</td><td><code>security.py</code></td><td>탈퇴·정지된 계정의 신분증(JWT)을 사용 불가 처리</td></tr>
 <tr><td>로그 기록 통일</td><td><code>chat.py</code></td><td>모든 파일에서 같은 형식으로 기록하도록 통일</td></tr>
 <tr><td>직접 SQL 제거</td><td><code>daily_cron.py</code></td><td>안전한 ORM(코드로 DB 조작) 방식으로 변환, SQL 주입 공격 방지</td></tr>
+<tr style="background:var(--warning-light)"><td>콘텐츠 필터 <span class="tag tag-orange">P9</span></td><td><code>content_filter.py</code>, <code>chat.py</code></td><td>욕설 차단 + 위기 감지(1393/109/119 안내) + 의료안전 경고 — 2축 판정 모델</td></tr>
+<tr style="background:var(--warning-light)"><td>Sentry 채팅 scrub <span class="tag tag-orange">P9</span></td><td><code>sentry.py</code></td><td>채팅 메시지 원문이 에러 보고서에 포함되지 않도록 <code>message</code>/<code>content</code> 필드 필터링 + exception frames 변수 제거</td></tr>
+<tr style="background:var(--warning-light)"><td>Feature Flag(기능 스위치) <span class="tag tag-orange">P9</span></td><td><code>config.py</code></td><td><code>CONTENT_FILTER_ENABLED=false</code>로 즉시 비활성화 가능 — 문제 발생 시 코드 배포 없이 롤백</td></tr>
 <tr><td>API 명세 동기화</td><td><code>dtos/health.py</code>, <code>services/</code></td><td>원본 API 명세와 코드 필드명 일치 — Pydantic alias로 양방향 호환 + unit 자동매핑</td></tr>
 </tbody>
 </table>
 
 <h2 class="sec-title" style="margin-top:28px">테스트 커버리지</h2>
-<p class="sec-sub">단위 테스트 5파일 + API 통합 테스트 4파일 = 총 54 테스트 케이스</p>
+<p class="sec-sub">단위 테스트 6파일 + API 통합 테스트 4파일 = 총 76 테스트 케이스</p>
 
 <div class="grid-3">
+<div class="card" style="padding:16px;text-align:center;border:2px solid var(--warning)">
+  <strong style="color:var(--warning)">콘텐츠 필터 <span class="tag tag-orange">NEW</span></strong>
+  <div style="font-size:24px;font-weight:900;color:var(--warning);margin:6px 0">44</div>
+  <span style="font-size:11px;color:var(--g500)">관용구 오탐·위기 감지·질문/선언·좌절감·화이트리스트</span>
+</div>
 <div class="card" style="padding:16px;text-align:center">
   <strong style="color:var(--primary)">FINDRISC</strong>
   <div style="font-size:24px;font-weight:900;color:var(--primary);margin:6px 0">15</div>
@@ -634,19 +681,14 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
   <span style="font-size:11px;color:var(--g500)">5단계 상태 전환 + 경계값</span>
 </div>
 <div class="card" style="padding:16px;text-align:center">
-  <strong style="color:var(--warning)">온보딩</strong>
-  <div style="font-size:24px;font-weight:900;color:var(--warning);margin:6px 0">8</div>
-  <span style="font-size:11px;color:var(--g500)">전체 흐름 + JWT + 그룹분류</span>
-</div>
-<div class="card" style="padding:16px;text-align:center">
   <strong style="color:var(--danger)">건강 데이터</strong>
   <div style="font-size:24px;font-weight:900;color:var(--danger);margin:6px 0">6</div>
   <span style="font-size:11px;color:var(--g500)">날짜 제한, First Answer Wins</span>
 </div>
 <div class="card" style="padding:16px;text-align:center">
   <strong style="color:var(--purple)">SSE 포맷</strong>
-  <div style="font-size:24px;font-weight:900;color:var(--purple);margin:6px 0">5</div>
-  <span style="font-size:11px;color:var(--g500)">W3C 표준 준수 + 한글</span>
+  <div style="font-size:24px;font-weight:900;color:var(--purple);margin:6px 0">6</div>
+  <span style="font-size:11px;color:var(--g500)">W3C 표준 준수 + 한글 + error.code</span>
 </div>
 <div class="card" style="padding:16px;text-align:center">
   <strong style="color:var(--g600)">API 통합 테스트</strong>
@@ -656,7 +698,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 </div>
 
 <div class="card" style="margin-top:24px;text-align:center;padding:20px">
-  <p style="font-size:13px;color:var(--g500)">이 문서는 <strong>다나아 프로젝트 Phase 0-8 백엔드 구현</strong>의 팀 발표자료입니다.<br>2026-04-03 기준 (API 명세 동기화 수정 반영) &mdash; 프론트엔드 연동 및 프로덕션 배포는 다음 단계에서 진행됩니다.</p>
+  <p style="font-size:13px;color:var(--g500)">이 문서는 <strong>다나아 프로젝트 Phase 0-9 백엔드 구현</strong>의 팀 발표자료입니다.<br>2026-04-04 기준 (콘텐츠 필터 + API 명세 동기화 수정 반영) &mdash; 프론트엔드 연동 및 프로덕션 배포는 다음 단계에서 진행됩니다.</p>
 </div>
 </div>
 
