@@ -2,9 +2,9 @@ from typing import Any, Literal, overload
 
 from fastapi import HTTPException
 
+from app.core.jwt.exceptions import ExpiredTokenError, TokenError
+from app.core.jwt.tokens import AccessToken, RefreshToken
 from app.models.users import User
-from app.utils.jwt.exceptions import ExpiredTokenError, TokenError
-from app.utils.jwt.tokens import AccessToken, RefreshToken
 
 
 class JwtService:

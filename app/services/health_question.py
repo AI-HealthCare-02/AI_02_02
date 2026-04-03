@@ -17,7 +17,7 @@ from datetime import date, datetime, timedelta
 
 from app.core import config
 from app.models.assessments import UserEngagement
-from app.models.enums import DataSource, EngagementState, UserGroup
+from app.models.enums import FIELD_TO_SOURCE, DataSource, EngagementState, UserGroup
 from app.models.health import DailyHealthLog, HealthProfile
 
 # ai_worker의 묶음 정의를 직접 참조하지 않고 여기서 매핑 정의
@@ -32,28 +32,6 @@ BUNDLE_CHECK_FIELDS: dict[str, list[str]] = {
     "bundle_5": ["vegetable_intake_level"],
     "bundle_6": ["took_medication"],
     "bundle_7": ["mood_level"],
-}
-
-# ── 묶음별 저장 필드 → _source 필드 매핑 ──
-FIELD_TO_SOURCE: dict[str, str] = {
-    "sleep_quality": "sleep_quality_source",
-    "sleep_duration_bucket": "sleep_quality_source",
-    "breakfast_status": "breakfast_status_source",
-    "lunch_status": "lunch_status_source",
-    "dinner_status": "dinner_status_source",
-    "vegetable_intake_level": "vegetable_intake_level_source",
-    "meal_balance_level": "meal_balance_level_source",
-    "sweetdrink_level": "sweetdrink_level_source",
-    "exercise_done": "exercise_done_source",
-    "exercise_type": "exercise_done_source",
-    "exercise_minutes": "exercise_done_source",
-    "walk_done": "walk_done_source",
-    "water_cups": "water_cups_source",
-    "nightsnack_level": "nightsnack_level_source",
-    "took_medication": "took_medication_source",
-    "mood_level": "mood_level_source",
-    "alcohol_today": "alcohol_today_source",
-    "alcohol_amount_level": "alcohol_today_source",
 }
 
 # ── 시간 윈도우 정의 (시, 분, 시, 분) ──

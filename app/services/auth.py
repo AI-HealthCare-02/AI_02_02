@@ -3,12 +3,12 @@ from pydantic import EmailStr
 from starlette import status
 from tortoise.transactions import in_transaction
 
+from app.core.jwt.tokens import AccessToken, RefreshToken
 from app.dtos.auth import LoginRequest, SignUpRequest
 from app.models.users import User
 from app.repositories.user_repository import UserRepository
 from app.services.jwt import JwtService
 from app.utils.common import normalize_phone_number
-from app.utils.jwt.tokens import AccessToken, RefreshToken
 from app.utils.security import hash_password, verify_password
 
 

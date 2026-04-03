@@ -19,9 +19,8 @@ from app.dtos.health import (
     MissingDateEntry,
     MissingDatesResponse,
 )
-from app.models.enums import DataSource
+from app.models.enums import FIELD_TO_SOURCE, DataSource
 from app.models.health import DailyHealthLog
-from app.services.health_question import FIELD_TO_SOURCE
 
 # 데이터 필드 목록 (18개)
 DATA_FIELDS: list[str] = [
