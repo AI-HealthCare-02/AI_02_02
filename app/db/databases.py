@@ -25,6 +25,7 @@ TORTOISE_ORM = {
                 "user": config.DB_USER,
                 "password": config.DB_PASSWORD,
                 "database": config.DB_NAME,
+                "minsize": config.DB_CONNECTION_POOL_MINSIZE,
                 "maxsize": config.DB_CONNECTION_POOL_MAXSIZE,
             },
         },

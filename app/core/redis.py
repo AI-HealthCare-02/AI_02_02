@@ -1,8 +1,7 @@
-"""
-Redis 비동기 싱글턴 클라이언트.
+"""Redis 비동기 클라이언트 — ConnectionPool 기반.
 
-애플리케이션 전체에서 하나의 Redis 커넥션을 공유한다.
-첫 호출 시 연결을 생성하고, 이후에는 캐싱된 인스턴스를 반환한다.
+단일 연결 대신 풀을 사용하여 동시 요청 처리 성능을 확보한다.
+dev=20, prod=50 커넥션 (REDIS_MAX_CONNECTIONS 환경변수로 조정).
 """
 
 from __future__ import annotations
@@ -16,50 +15,49 @@ logger = setup_logger("core.redis")
 
 _config = Config()
 
-# 모듈 레벨 싱글턴 — get_redis()로만 접근
+_pool: aioredis.ConnectionPool | None = None
 _redis_client: aioredis.Redis | None = None
 
 
 def get_redis() -> aioredis.Redis:
-    """Redis 비동기 클라이언트 싱글턴을 반환한다.
-
-    첫 호출 시 커넥션을 생성하고, 이후에는 동일 인스턴스를 재사용한다.
-    decode_responses=True 이므로 모든 응답이 str로 디코딩된다.
+    """Redis 비동기 클라이언트를 반환한다 (ConnectionPool 사용).
 
     Returns:
         redis.asyncio.Redis: 비동기 Redis 클라이언트
     """
-    global _redis_client  # noqa: PLW0603
+    global _pool, _redis_client  # noqa: PLW0603
 
     if _redis_client is None:
-        _redis_client = aioredis.Redis(
+        _pool = aioredis.ConnectionPool(
             host=_config.REDIS_HOST,
             port=_config.REDIS_PORT,
             db=_config.REDIS_DB,
+            max_connections=_config.REDIS_MAX_CONNECTIONS,
             decode_responses=True,
             socket_connect_timeout=5,
             socket_timeout=5,
             retry_on_timeout=True,
         )
+        _redis_client = aioredis.Redis(connection_pool=_pool)
         logger.info(
-            "Redis 클라이언트 생성 완료 — host=%s, port=%d, db=%d",
+            "Redis ConnectionPool 생성 — host=%s, port=%d, max_connections=%d",
             _config.REDIS_HOST,
             _config.REDIS_PORT,
-            _config.REDIS_DB,
+            _config.REDIS_MAX_CONNECTIONS,
         )
 
     return _redis_client
 
 
 async def close_redis() -> None:
-    """Redis 연결을 안전하게 종료한다.
-
-    애플리케이션 shutdown 이벤트에서 호출해야 한다.
-    이미 닫혀 있거나 생성되지 않은 경우 아무 동작도 하지 않는다.
-    """
-    global _redis_client  # noqa: PLW0603
+    """Redis 연결 풀을 안전하게 종료한다."""
+    global _pool, _redis_client  # noqa: PLW0603
 
     if _redis_client is not None:
         await _redis_client.aclose()
         _redis_client = None
-        logger.info("Redis 연결 종료 완료")
+
+    if _pool is not None:
+        await _pool.disconnect()
+        _pool = None
+        logger.info("Redis ConnectionPool 종료 완료")
