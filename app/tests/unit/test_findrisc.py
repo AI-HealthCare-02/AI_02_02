@@ -4,8 +4,6 @@
 8변수 개별 점수 + 경계값 + Null 보수적 처리 검증.
 """
 
-from tortoise.contrib.test import TestCase
-
 from app.models.enums import RiskLevel
 from app.services.prediction import (
     FindriscResult,
@@ -14,12 +12,12 @@ from app.services.prediction import (
 )
 
 
-class TestFindrisc(TestCase):
+class TestFindrisc:
     """FINDRISC 계산 함수 테스트."""
 
     # ── 전체 점수 범위 ──
 
-    async def test_all_zero_inputs(self):
+    def test_all_zero_inputs(self):
         """모든 입력이 최소값일 때 → LOW."""
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
@@ -30,7 +28,7 @@ class TestFindrisc(TestCase):
         assert result.total_score == 0
         assert result.risk_level == RiskLevel.LOW
 
-    async def test_maximum_score(self):
+    def test_maximum_score(self):
         """모든 입력이 최대값일 때 → 26점 VERY_HIGH."""
         result = calculate_findrisc(
             age=70, bmi=35.0, waist_cm=110.0, is_male=True,
@@ -44,7 +42,7 @@ class TestFindrisc(TestCase):
 
     # ── 경계값 테스트 ──
 
-    async def test_boundary_low_slight(self):
+    def test_boundary_low_slight(self):
         """3점→LOW, 4점→SLIGHT 경계."""
         r3 = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
@@ -66,7 +64,7 @@ class TestFindrisc(TestCase):
         assert r4.total_score == 5
         assert r4.risk_level == RiskLevel.SLIGHT
 
-    async def test_boundary_slight_moderate(self):
+    def test_boundary_slight_moderate(self):
         """8점→SLIGHT, 9점→MODERATE 경계."""
         r8 = calculate_findrisc(
             age=55, bmi=26.0, waist_cm=None, is_male=True,
@@ -77,7 +75,7 @@ class TestFindrisc(TestCase):
         # age=3 + bmi=1 + activity=2 + veg=1 = 7 → SLIGHT
         assert r8.risk_level == RiskLevel.SLIGHT
 
-    async def test_boundary_moderate_high(self):
+    def test_boundary_moderate_high(self):
         """12점→MODERATE, 13점→HIGH 경계."""
         r12 = calculate_findrisc(
             age=55, bmi=26.0, waist_cm=None, is_male=True,
@@ -89,7 +87,7 @@ class TestFindrisc(TestCase):
         assert r12.total_score == 12
         assert r12.risk_level == RiskLevel.MODERATE
 
-    async def test_boundary_high_very_high(self):
+    def test_boundary_high_very_high(self):
         """20점→HIGH, 21점→VERY_HIGH 경계."""
         r21 = calculate_findrisc(
             age=65, bmi=35.0, waist_cm=None, is_male=True,
@@ -102,7 +100,7 @@ class TestFindrisc(TestCase):
 
     # ── Null 보수적 처리 ──
 
-    async def test_null_activity_conservative(self):
+    def test_null_activity_conservative(self):
         """activity=None → 2점 (보수적)."""
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
@@ -112,7 +110,7 @@ class TestFindrisc(TestCase):
         )
         assert result.score_breakdown["activity"] == 2
 
-    async def test_null_vegetable_conservative(self):
+    def test_null_vegetable_conservative(self):
         """vegetable=None → 1점 (보수적)."""
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
@@ -122,7 +120,7 @@ class TestFindrisc(TestCase):
         )
         assert result.score_breakdown["vegetable"] == 1
 
-    async def test_null_hypertension_zero(self):
+    def test_null_hypertension_zero(self):
         """hypertension=None → 0점 (절대 가정 안 함)."""
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
@@ -134,7 +132,7 @@ class TestFindrisc(TestCase):
 
     # ── 가족력 ──
 
-    async def test_family_parents(self):
+    def test_family_parents(self):
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
             is_physically_active=True, eats_vegetables_daily=True,
@@ -143,7 +141,7 @@ class TestFindrisc(TestCase):
         )
         assert result.score_breakdown["family"] == 5
 
-    async def test_family_unknown_zero(self):
+    def test_family_unknown_zero(self):
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
             is_physically_active=True, eats_vegetables_daily=True,
@@ -154,7 +152,7 @@ class TestFindrisc(TestCase):
 
     # ── 허리둘레 성별 차이 ──
 
-    async def test_waist_male_thresholds(self):
+    def test_waist_male_thresholds(self):
         r_low = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=90.0, is_male=True,
             is_physically_active=True, eats_vegetables_daily=True,
@@ -181,7 +179,7 @@ class TestFindrisc(TestCase):
 
     # ── 온보딩 초기 FINDRISC ──
 
-    async def test_initial_findrisc_exercise_mapping(self):
+    def test_initial_findrisc_exercise_mapping(self):
         """exercise_frequency 매핑 테스트."""
         active = calculate_initial_findrisc(
             age=50, bmi=28.0, is_male=True,
@@ -201,7 +199,7 @@ class TestFindrisc(TestCase):
         )
         assert inactive.score_breakdown["activity"] == 2
 
-    async def test_initial_findrisc_no_waist(self):
+    def test_initial_findrisc_no_waist(self):
         """온보딩에서는 waist=0점."""
         result = calculate_initial_findrisc(
             age=50, bmi=28.0, is_male=True,
@@ -212,7 +210,7 @@ class TestFindrisc(TestCase):
         )
         assert result.score_breakdown["waist"] == 0
 
-    async def test_result_is_findrisc_result(self):
+    def test_result_is_findrisc_result(self):
         """반환 타입 확인."""
         result = calculate_findrisc(
             age=30, bmi=22.0, waist_cm=None, is_male=True,
