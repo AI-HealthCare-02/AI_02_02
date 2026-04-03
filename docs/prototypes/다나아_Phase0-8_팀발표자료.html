@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>다나아 — Phase 0-8 백엔드 구현 발표자료</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary:#0EA5E9;--primary-dark:#0284C7;--primary-light:#E0F2FE;
+  --accent:#10B981;--accent-dark:#059669;--accent-light:#D1FAE5;--accent-dark-text:#065F46;
+  --warning:#F59E0B;--warning-light:#FEF3C7;
+  --danger:#EF4444;--danger-light:#FEE2E2;
+  --purple:#7C3AED;--purple-light:#EDE9FE;
+  --g50:#F8FAFC;--g100:#F1F5F9;--g200:#E2E8F0;--g300:#CBD5E1;
+  --g400:#94A3B8;--g500:#64748B;--g600:#475569;--g700:#334155;--g800:#1E293B;--g900:#0F172A;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--g50);color:var(--g700);line-height:1.7;font-size:14px}
+.container{max-width:1140px;margin:0 auto;padding:18px 20px 60px}
+
+/* ── Nav ── */
+.nav-wrap{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--g200);box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.nav-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:0 20px;overflow-x:auto}
+.nav-brand{font-weight:900;font-size:15px;color:var(--primary);white-space:nowrap;padding:12px 0}
+.nav-tabs{display:flex;gap:4px;flex:1}
+.nav-tab{background:none;border:none;padding:12px 16px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--g500);cursor:pointer;border-radius:8px 8px 0 0;white-space:nowrap;transition:.15s}
+.nav-tab:hover{background:var(--g100);color:var(--g700)}
+.nav-tab.active{background:var(--primary);color:#fff;border-radius:8px}
+
+/* ── Section ── */
+.section{display:none}
+.section.active{display:block}
+.sec-title{font-size:26px;font-weight:900;margin:28px 0 6px;background:linear-gradient(135deg,var(--primary),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sec-sub{color:var(--g500);font-size:13px;margin-bottom:22px}
+
+/* ── Cards ── */
+.card{background:#fff;border-radius:18px;padding:24px;border:1px solid var(--g200);margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.card-blue{border-left:4px solid var(--primary)}
+.card-green{border-left:4px solid var(--accent)}
+.card-orange{border-left:4px solid var(--warning)}
+.card-red{border-left:4px solid var(--danger)}
+.card-purple{border-left:4px solid var(--purple)}
+.card h3{font-size:16px;font-weight:800;margin-bottom:10px;color:var(--g800)}
+.card p,.card li{font-size:13px;color:var(--g600)}
+.card ul{padding-left:18px;margin:6px 0}
+
+/* ── Grid ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* ── Tags ── */
+.tag{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;margin:2px 3px}
+.tag-done{background:var(--accent-light);color:#065F46}
+.tag-partial{background:var(--warning-light);color:#92400E}
+.tag-notdone{background:var(--danger-light);color:#DC2626}
+.tag-blue{background:var(--primary-light);color:var(--primary-dark)}
+.tag-green{background:var(--accent-light);color:var(--accent-dark)}
+.tag-purple{background:var(--purple-light);color:var(--purple)}
+.tag-orange{background:var(--warning-light);color:#B45309}
+.tag-gray{background:var(--g100);color:var(--g600)}
+
+/* ── Hero ── */
+.hero{text-align:center;padding:48px 20px 36px;background:linear-gradient(180deg,var(--g50),var(--primary-light),var(--accent-light));border-radius:24px;margin-bottom:28px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(14,165,233,.08),transparent 70%);top:-80px;right:-60px}
+.hero-badge{display:inline-block;background:var(--g900);color:#fff;font-size:11px;font-weight:700;padding:6px 18px;border-radius:100px;margin-bottom:14px;letter-spacing:.5px}
+.hero h1{font-size:32px;font-weight:900;color:var(--g900);margin-bottom:8px}
+.hero p{font-size:15px;color:var(--g500);margin-bottom:18px}
+.stack-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.stack-badge{background:#fff;border:1px solid var(--g200);padding:5px 14px;border-radius:100px;font-size:11.5px;font-weight:600;color:var(--g700)}
+
+/* ── Stat Cards ── */
+.stat-card{background:#fff;border-radius:16px;padding:20px 14px;text-align:center;border:1px solid var(--g200)}
+.stat-num{font-size:28px;font-weight:900;color:var(--primary);display:block}
+.stat-label{font-size:11.5px;font-weight:600;color:var(--g500);margin-top:4px}
+
+/* ── Architecture Flow ── */
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;padding:24px 0}
+.arch-node{background:#fff;border:2px solid var(--g200);border-radius:14px;padding:14px 20px;text-align:center;min-width:110px;position:relative}
+.arch-node.hl{border-color:var(--primary);background:var(--primary-light)}
+.arch-node strong{display:block;font-size:13px;font-weight:800;color:var(--g800)}
+.arch-node small{font-size:10.5px;color:var(--g500)}
+.arch-arrow{font-size:20px;color:var(--g400);margin:0 6px;font-weight:300}
+
+/* ── Timeline Phase Cards ── */
+.tl{position:relative;padding-left:36px}
+.tl::before{content:'';position:absolute;left:14px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--primary),var(--accent),var(--warning),var(--purple))}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-dot{position:absolute;left:-30px;top:6px;width:18px;height:18px;border-radius:50%;border:3px solid var(--primary);background:#fff}
+.tl-item:nth-child(2) .tl-dot{border-color:var(--accent)}
+.tl-item:nth-child(3) .tl-dot{border-color:var(--warning)}
+.tl-item:nth-child(4) .tl-dot{border-color:var(--danger)}
+.tl-item:nth-child(5) .tl-dot{border-color:var(--purple)}
+.tl-item:nth-child(6) .tl-dot{border-color:var(--primary-dark)}
+.tl-item:nth-child(7) .tl-dot{border-color:var(--accent-dark)}
+.phase-badge{display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:6px;margin-right:8px}
+
+/* ── Pipeline (Vertical Flow) ── */
+.pipeline{display:flex;flex-direction:column;align-items:center;gap:0}
+.pipe-step{width:100%;max-width:600px;display:flex;align-items:flex-start;gap:14px;padding:14px 0}
+.pipe-num{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pipe-body{flex:1}
+.pipe-body strong{font-size:13.5px;font-weight:800;color:var(--g800)}
+.pipe-body code{background:var(--g100);padding:2px 7px;border-radius:4px;font-size:12px;font-family:'Fira Code',monospace;color:var(--primary-dark)}
+.pipe-body p{font-size:12.5px;color:var(--g500);margin-top:2px}
+.pipe-arrow{text-align:center;color:var(--g300);font-size:16px;margin:-4px 0}
+
+/* ── Branch Diagram ── */
+.branch-wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}
+.branch-card{border-radius:16px;padding:20px;text-align:center;border:2px solid}
+.branch-card h4{font-size:14px;font-weight:800;margin-bottom:8px}
+.branch-card p{font-size:12px;line-height:1.6}
+.branch-card.b1{border-color:var(--primary);background:var(--primary-light)}
+.branch-card.b2{border-color:var(--accent);background:var(--accent-light)}
+.branch-card.b3{border-color:var(--warning);background:var(--warning-light)}
+
+/* ── Table ── */
+table.dt{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;font-size:12.5px;margin:14px 0}
+table.dt thead{background:var(--g900);color:#fff}
+table.dt th{padding:10px 14px;text-align:left;font-weight:700;font-size:11.5px}
+table.dt td{padding:10px 14px;border-bottom:1px solid var(--g100)}
+table.dt tbody tr:hover{background:var(--g50)}
+table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size:11.5px;color:var(--primary-dark)}
+
+/* ── Code Block ── */
+.code-block{background:var(--g900);border-radius:12px;padding:18px 22px;margin:12px 0;overflow-x:auto;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.7;color:var(--g300);border-left:4px solid var(--accent)}
+.code-block .kw{color:#7DD3FC}.code-block .str{color:#6EE7B7}.code-block .cmt{color:var(--g500)}.code-block .fn{color:#C4B5FD}
+
+/* ── Env Context ── */
+.env-ctx{background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:2px solid var(--warning);border-radius:18px;padding:24px;margin:20px 0}
+.env-ctx h3{color:#92400E;font-size:16px;font-weight:800;margin-bottom:10px}
+.env-ctx .status-row{display:flex;gap:16px;margin-top:12px}
+.env-ctx .status-col{flex:1}
+.env-ctx .status-col h4{font-size:12px;font-weight:700;margin-bottom:6px}
+.env-ctx .status-col li{font-size:12px;list-style:none;padding:2px 0}
+.env-ctx .status-col li::before{margin-right:6px}
+.env-ctx .done-list li::before{content:'';color:var(--accent)}
+.env-ctx .pending-list li::before{content:'';color:var(--danger)}
+
+/* ── Checklist ── */
+.check-item{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-radius:10px;border:1px solid var(--g200);margin:6px 0}
+.check-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0}
+.check-icon.ok{background:var(--accent-light);color:var(--accent-dark)}
+.check-icon.warn{background:var(--warning-light);color:#B45309}
+.check-icon.no{background:var(--danger-light);color:var(--danger)}
+
+/* ── Responsive ── */
+@media(max-width:1024px) and (min-width:769px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+  .container{padding:18px 16px 60px}
+}
+@media(max-width:768px){
+  .grid-2,.grid-3,.grid-4,.branch-wrap{grid-template-columns:1fr}
+  .arch-flow{flex-direction:column}.arch-arrow{transform:rotate(90deg)}
+  .hero h1{font-size:22px}.nav-tab{font-size:11px;padding:10px 10px}
+  .pipe-step{flex-direction:column;gap:8px}.pipe-num{align-self:flex-start}
+  table.dt{font-size:11px}table.dt th,table.dt td{padding:8px 10px}
+}
+@media print{
+  .section{display:block!important;page-break-before:always}
+  .nav-wrap{display:none}.hero{padding:20px;background:#fff}
+  body{background:#fff;font-size:11px;color:#000}.container{padding:0 10px}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+  .sec-title{-webkit-text-fill-color:#0F172A;color:#0F172A;background:none}
+  .code-block{background:#f5f5f5;color:#333;border-color:#999}
+  .code-block .kw,.code-block .str,.code-block .cmt,.code-block .fn{color:#333!important}
+  .stat-num{color:#0284C7}
+  .hero{background:#f8f8f8!important}
+  .hero h1{color:#000!important;-webkit-text-fill-color:#000!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ════ NAV ════ -->
+<div class="nav-wrap">
+<div class="nav-inner">
+  <div class="nav-brand">DA-NA-A</div>
+  <div class="nav-tabs" id="nav">
+    <button class="nav-tab active" onclick="showTab(0)">프로젝트 개요</button>
+    <button class="nav-tab" onclick="showTab(1)">Phase별 구현</button>
+    <button class="nav-tab" onclick="showTab(2)">LLM 파이프라인</button>
+    <button class="nav-tab" onclick="showTab(3)">요구사항 체크</button>
+    <button class="nav-tab" onclick="showTab(4)">기술 결정 & 보안</button>
+  </div>
+</div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 0: 프로젝트 개요                         -->
+<!-- ════════════════════════════════════════════ -->
+<div class="section active" id="sec-0">
+
+<div class="hero">
+  <div class="hero-badge">DA-NA-A Health AI Platform &mdash; Backend</div>
+  <h1>다나아 &mdash; 만성질환 생활습관 AI 코칭 서비스</h1>
+  <p>당뇨&middot;고혈압 예방을 위한 맞춤형 건강관리 백엔드(서버 쪽 두뇌) 시스템 (Phase 0-8 완료)</p>
+  <div class="stack-badges">
+    <span class="stack-badge">FastAPI</span>
+    <span class="stack-badge">MySQL 8.0</span>
+    <span class="stack-badge">Redis</span>
+    <span class="stack-badge">OpenAI GPT-4o-mini</span>
+    <span class="stack-badge">Docker Compose</span>
+    <span class="stack-badge">Tortoise ORM</span>
+    <span class="stack-badge">APScheduler</span>
+    <span class="stack-badge">Nginx</span>
+  </div>
+</div>
+
+<h2 class="sec-title">핵심 수치</h2>
+<p class="sec-sub">Phase 0~8에서 구현한 백엔드 전체 규모</p>
+<div class="grid-4">
+  <div class="stat-card"><span class="stat-num">25</span><span class="stat-label">API 엔드포인트<br><small style="font-weight:400;color:var(--g400)">(프로그램 간 대화 창구)</small></span></div>
+  <div class="stat-card"><span class="stat-num">13</span><span class="stat-label">DB 테이블<br><small style="font-weight:400;color:var(--g400)">(데이터 저장 구조)</small></span></div>
+  <div class="stat-card"><span class="stat-num">31</span><span class="stat-label">Enum 정의<br><small style="font-weight:400;color:var(--g400)">(정해진 선택지 목록)</small></span></div>
+  <div class="stat-card"><span class="stat-num" style="font-size:22px">~6,600</span><span class="stat-label">Python 코드 줄</span></div>
+  <div class="stat-card"><span class="stat-num">11</span><span class="stat-label">Service 클래스<br><small style="font-weight:400;color:var(--g400)">(기능별 업무 담당자)</small></span></div>
+  <div class="stat-card"><span class="stat-num">9</span><span class="stat-label">Router 파일<br><small style="font-weight:400;color:var(--g400)">(요청 경로 안내판)</small></span></div>
+  <div class="stat-card"><span class="stat-num">2</span><span class="stat-label">Cron 작업<br><small style="font-weight:400;color:var(--g400)">(매일 자동 실행)</small></span></div>
+  <div class="stat-card"><span class="stat-num">54</span><span class="stat-label">테스트 케이스<br><small style="font-weight:400;color:var(--g400)">(자동 품질 검사)</small></span></div>
+</div>
+
+<h2 class="sec-title">시스템 아키텍처</h2>
+<p class="sec-sub">4개 핵심 서비스 + 외부 AI API 연동</p>
+<p style="font-size:12px;color:var(--g500);text-align:center;margin-bottom:6px">비유: 식당에서 주문 → 웨이터(Nginx) → 주방(FastAPI) → 냉장고(MySQL) / 메모판(Redis) / AI 셰프(OpenAI)</p>
+<div class="arch-flow">
+  <div class="arch-node"><strong>사용자</strong><small>브라우저 / Swagger</small></div>
+  <span class="arch-arrow">&rarr;</span>
+  <div class="arch-node"><strong>Nginx</strong><small>교통정리 (프록시)</small></div>
+  <span class="arch-arrow">&rarr;</span>
+  <div class="arch-node hl"><strong>FastAPI</strong><small>핵심 두뇌 (백엔드)</small></div>
+  <span class="arch-arrow">&rarr;</span>
+  <div class="arch-node"><strong>MySQL</strong><small>데이터 저장소</small></div>
+</div>
+<div class="grid-2" style="max-width:400px;margin:8px auto 0">
+  <div class="arch-node" style="text-align:center"><strong>Redis</strong><small>임시 메모 + 잠금</small></div>
+  <div class="arch-node" style="text-align:center;border-color:var(--purple)"><strong>OpenAI</strong><small>AI 채팅 (GPT-4o-mini)</small></div>
+</div>
+<p style="font-size:11px;color:var(--g400);text-align:center;margin-top:6px">&uarr; FastAPI가 이 두 서비스와도 연결됩니다</p>
+
+<div class="env-ctx">
+  <h3>현재 환경 상태 (2026-04-03 기준)</h3>
+  <p style="font-size:13px;color:var(--g600)">프론트엔드(Next.js)는 별도 팀원 담당으로 아직 미완성입니다. 현재는 <strong>백엔드 API만 완성</strong>된 상태이며, Swagger UI로 모든 기능을 테스트할 수 있습니다.</p>
+  <div class="status-row">
+    <div class="status-col">
+      <h4 style="color:var(--accent-dark)">동작하는 것</h4>
+      <ul class="done-list">
+        <li>백엔드 API 25개 전체</li>
+        <li>Swagger UI (localhost/api/docs)</li>
+        <li>Docker Compose 풀스택</li>
+        <li>DB 스키마 + 마이그레이션</li>
+        <li>AI 채팅 SSE(실시간 글자 전송) 스트리밍</li>
+        <li>자동 크론 (위험도 재계산)</li>
+        <li>Pytest 단위 테스트</li>
+      </ul>
+    </div>
+    <div class="status-col">
+      <h4 style="color:var(--danger)">아직 안 된 것</h4>
+      <ul class="pending-list">
+        <li>Next.js 프론트엔드 페이지</li>
+        <li>React 컴포넌트</li>
+        <li>AWS EC2 프로덕션 배포</li>
+        <li>RAG (AI가 문서를 검색해서 답하는 기술)</li>
+        <li>비속어 필터</li>
+        <li>자체 ML(기계학습) 예측 모델</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 1: Phase별 구현                          -->
+<!-- ════════════════════════════════════════════ -->
+<div class="section" id="sec-1">
+<h2 class="sec-title">Phase별 구현 내용</h2>
+<p class="sec-sub">8개 Phase에 걸쳐 백엔드 전체를 순차적으로 구현했습니다</p>
+
+<div class="tl">
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-blue">
+  <h3><span class="phase-badge" style="background:var(--primary-light);color:var(--primary-dark)">Phase 0-1</span> 인증 + JWT + DB 기초</h3>
+  <p>회원가입(이메일 중복 체크, bcrypt 비밀번호 암호화), 로그인(JWT(디지털 신분증) 발급), 토큰 갱신(리프레시 쿠키), 사용자 정보 관리</p>
+  <ul>
+    <li><strong>API 6개</strong>: 회원가입, 로그인, 토큰갱신, 동의, 내정보 조회, 내정보 수정</li>
+    <li><strong>핵심</strong>: Tortoise ORM(코드로 DB 조작), HTTPBearer 인증, Aerich DB 버전관리</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-green">
+  <h3><span class="phase-badge" style="background:var(--accent-light);color:var(--accent-dark)">Phase 2</span> 온보딩 + FINDRISC 위험도</h3>
+  <p>14개 설문 항목으로 사용자 건강 프로필 수집, 자동 BMI(체질량지수) 계산, FINDRISC(당뇨 위험도를 측정하는 국제 의학 공식) 초기 점수 산출</p>
+  <ul>
+    <li><strong>API 3개</strong>: 동의, 설문제출(+새 신분증 발급), 진행상태 확인</li>
+    <li><strong>핵심</strong>: 당뇨 관계에 따라 그룹 자동 분류 (진단받음&rarr;A, 위험군&rarr;B, 일반&rarr;C)</li>
+    <li><strong>FINDRISC 8변수</strong>: 나이+BMI+허리둘레+운동+채소+고혈압+고혈당+가족력 = 0~26점</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-orange">
+  <h3><span class="phase-badge" style="background:var(--warning-light);color:#92400E">Phase 3-4</span> 건강 데이터 수집 (듀얼 채널)</h3>
+  <p>매일 18개 건강 항목을 AI 채팅 + 직접입력 두 가지 경로로 수집. "먼저 답한 쪽이 이기는(First Answer Wins)" 규칙 적용</p>
+  <ul>
+    <li><strong>API 6개</strong>: 오늘기록 조회/수정, 일괄입력, 미입력항목, 측정값 등록/조회</li>
+    <li><strong>핵심</strong>: 14개 출처 추적 필드(AI 채팅인지 직접입력인지 기록), 소급입력 3일 제한</li>
+    <li><strong>측정값</strong>: 체중, 허리둘레, 혈압, HbA1c, 공복혈당</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-red">
+  <h3><span class="phase-badge" style="background:var(--danger-light);color:var(--danger)">Phase 5</span> AI 채팅 (LLM + SSE 스트리밍)</h3>
+  <p>OpenAI GPT-4o-mini로 실시간 스트리밍 응답. 대화 중 건강질문을 자연스럽게 삽입하는 AI 코칭 채팅</p>
+  <ul>
+    <li><strong>API 3개</strong>: 메시지 전송(SSE 실시간 전송), 대화기록, 건강답변 저장</li>
+    <li><strong>핵심</strong>: 9단계 처리 과정(→ LLM 파이프라인 탭에서 상세 설명), 7개 질문 묶음, 90분 간격 제한</li>
+    <li><strong>안전장치</strong>: 의료 진단/처방 표현 금지, "전문가 상담 추천" 면책조항 자동 삽입</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-purple">
+  <h3><span class="phase-badge" style="background:var(--purple-light);color:var(--purple)">Phase 6</span> 챌린지 + 대시보드 + 위험도</h3>
+  <p>생활습관 챌린지(6카테고리, 스트릭), 앱 첫 화면 대시보드, 생활습관 점수 기반 위험도 분석</p>
+  <ul>
+    <li><strong>API 8개</strong>: overview, join, checkin, calendar, dashboard/init, risk/latest, recalculate, analysis/summary</li>
+    <li><strong>핵심</strong>: 최대 2개 동시 챌린지, 생활습관 점수(수면25%+식단30%+운동30%+음주15%)</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-blue">
+  <h3><span class="phase-badge" style="background:var(--primary-light);color:var(--primary-dark)">Phase 7</span> 스케줄러 + 크론 작업</h3>
+  <p>매일 자정에 자동으로 FINDRISC 위험도 재계산 + 사용자 참여 상태 갱신. 여러 서버가 동시 실행되지 않도록 잠금 장치 적용</p>
+  <ul>
+    <li><strong>자동 작업 2개</strong>: 매일 자정(00:00) + 매주 월요일(01:00)</li>
+    <li><strong>핵심</strong>: Redis 분산 잠금으로 중복 실행 방지, 5단계 참여 상태(활발→보통→낮음→휴면→동면)</li>
+    <li><strong>안전장치</strong>: 자동 작업이 실패해도 API는 정상 동작 (독립적)</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-green">
+  <h3><span class="phase-badge" style="background:var(--accent-light);color:var(--accent-dark)">Phase 8</span> 테스트 + 버그 수정 + 보안 강화</h3>
+  <p>코드 전체 점검으로 버그 7개 수정, 보안 강화 6건, 자동 테스트 총 46개 작성</p>
+  <ul>
+    <li><strong>보안</strong>: 쿠키 위조방지(SameSite), HTTPS 강제(HSTS), 운영환경 API문서 숨김, 비활성 계정 차단</li>
+    <li><strong>테스트</strong>: FINDRISC 점수 경계값, 실시간 전송(SSE) 포맷, 온보딩 전체 흐름, 참여 상태 전환</li>
+  </ul>
+</div></div>
+
+</div><!-- /tl -->
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 2: LLM 파이프라인 (멘토 핵심)             -->
+<!-- ════════════════════════════════════════════ -->
+<div class="section" id="sec-2">
+<h2 class="sec-title">LLM(AI 대화 엔진) 채팅 파이프라인</h2>
+<p class="sec-sub">사용자가 메시지를 보내면 AI가 실시간으로 답하기까지의 9단계 처리 과정</p>
+
+<div class="card card-blue" style="margin-bottom:24px">
+  <h3>한 줄 요약</h3>
+  <p style="font-size:14px;font-weight:600;color:var(--g700);margin-bottom:10px">사용자가 "안녕" → 서버가 검증 → 대화 이력 불러오기 → 건강질문 넣을지 판단 → AI한테 보내기 → 실시간으로 글자 전송 → 저장</p>
+  <h3 style="margin-top:14px">파이프라인 흐름도 (체인 구조 = 순차 실행)</h3>
+  <p>각 단계가 완료된 후 다음 단계로 넘어가는 <strong>체인(Chain)</strong> 패턴입니다. 공장 컨베이어 벨트처럼 1번부터 9번까지 순서대로 처리됩니다. 모든 함수는 <code>app/services/chat.py</code>에 정의되어 있습니다.</p>
+</div>
+
+<div class="pipeline">
+  <div class="pipe-step"><div class="pipe-num">1</div><div class="pipe-body"><strong>사전 검증 — "보내도 되는지 확인"</strong><br><code>_validate_request(user_id, session_id)</code><p>받는 것: 사용자 번호, 대화방 번호 &rarr; 돌려주는 것: 에러 메시지 or 통과<br>AI 서비스 연결 확인 + 오늘 50회 넘었는지 체크</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num">2</div><div class="pipe-body"><strong>대화방 준비 — "어느 대화방에서 할지 정하기"</strong><br><code>_prepare_session(user_id, message, session_id)</code><p>받는 것: 사용자 번호, 메시지 내용, 대화방 번호 &rarr; 돌려주는 것: 대화방 정보<br>기존 대화방 불러오기 or 새로 만들기 + 사용자 메시지 저장</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num">3</div><div class="pipe-body"><strong>이전 대화 불러오기 — "뭘 얘기했었는지 기억하기"</strong><br><code>ChatMessage.filter(session=session).limit(10)</code><p>받는 것: 대화방 정보 &rarr; 돌려주는 것: 최근 메시지 10개 목록<br>AI가 맥락을 이해하도록 최근 대화를 함께 전달</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--accent)">4</div><div class="pipe-body"><strong>건강질문 넣을지 판단 — "지금 물어봐도 될까?" (라우터 = 갈림길)</strong><br><code>get_eligible_bundles(user_id)</code><p>받는 것: 사용자 번호 &rarr; 돌려주는 것: 질문 묶음 이름들 (예: "수면", "운동")<br>4가지 조건(90분 경과? 시간대 맞나? 아직 안 물었나? 밤이 아닌가?) 모두 만족하면 질문 삽입</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--purple)">5</div><div class="pipe-body"><strong>AI 역할 지시서 작성 — "이렇게 대답해!" 지시문 만들기</strong><br><code>_build_system_prompt(user_id, eligible_bundles)</code><p>받는 것: 사용자 번호, 질문 묶음 &rarr; 돌려주는 것: 지시문 텍스트<br>사용자 그룹(A/B/C)에 맞게 + 건강질문 삽입 지시를 동적으로 조합</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num">6</div><div class="pipe-body"><strong>AI한테 보낼 대화 묶기 — "전체 맥락을 한 봉투에 담기"</strong><br><code>_build_openai_messages(user_id, history, bundles)</code><p>받는 것: 사용자 번호, 대화이력, 질문묶음 &rarr; 돌려주는 것: 대화 목록<br>역할 지시서 + 이전 대화 + 현재 메시지를 하나로 조립</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--danger)">7</div><div class="pipe-body"><strong>AI에게 질문하기 — "글자가 하나씩 실시간으로 돌아옴"</strong><br><code>_stream_openai(messages)</code><p>받는 것: 대화 목록 &rarr; 돌려주는 것: 글자 조각들 (실시간 스트리밍)<br>GPT-4o-mini 모델, 최대 1024 토큰(약 500자), 창의성 0.7</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num">8</div><div class="pipe-body"><strong>AI 답변 저장 — "나중에 다시 볼 수 있도록 기록"</strong><br><code>_save_response(session, full_response, bundles)</code><p>받는 것: 대화방, 전체답변, 질문묶음 &rarr; 돌려주는 것: 없음 (저장만)<br>AI 응답 전체를 DB에 저장 + 어떤 건강질문을 물었는지 기록</p></div></div>
+  <div class="pipe-arrow">&darr;</div>
+  <div class="pipe-step"><div class="pipe-num" style="background:var(--accent)">9</div><div class="pipe-body"><strong>"다 끝났어!" 신호 보내기 — 프론트에 결과 전달</strong><br><code>_build_done_data(session_id, bundles)</code><p>받는 것: 대화방 번호, 질문묶음 &rarr; 돌려주는 것: 완료 데이터<br>화면에 건강질문 UI를 띄울 수 있도록 데이터를 함께 전달</p></div></div>
+</div>
+
+<h2 class="sec-title" style="margin-top:32px">3가지 파이프라인 분기</h2>
+<p class="sec-sub">같은 처리 과정이지만, 건강질문을 넣을지 말지에 따라 3가지 갈림길로 동작합니다 (라우터 = 교차로에서 방향을 정해주는 신호등)</p>
+
+<div class="branch-wrap">
+  <div class="branch-card b1">
+    <h4>일반 질문</h4>
+    <p><strong>LLM + 가드레일</strong><br><br>건강질문 조건 미충족 시<br>시스템 프롬프트(코치 역할)<br>&darr;<br>OpenAI 호출<br>&darr;<br>의료 면책조항 포함 응답</p>
+  </div>
+  <div class="branch-card b2">
+    <h4>건강 질문 삽입</h4>
+    <p><strong>LLM + 프롬프트 엔지니어링</strong><br><br>4대 조건 충족 시<br>시스템 프롬프트 + 질문 지시문<br>&darr;<br>OpenAI가 자연스럽게 질문<br>&darr;<br>응답 + 건강질문 UI 데이터</p>
+  </div>
+  <div class="branch-card b3">
+    <h4>건강 답변 저장</h4>
+    <p><strong>POST /health-answer</strong><br><br>프론트에서 답변 전송<br>&darr;<br>DailyHealthLog에 저장<br>(First Answer Wins)<br>&darr;<br>90분 쿨다운 설정</p>
+  </div>
+</div>
+
+<h2 class="sec-title">건강질문 4대 삽입 조건</h2>
+<p class="sec-sub">4개 조건이 모두 충족되어야 AI가 건강질문을 삽입합니다</p>
+<div class="grid-2">
+  <div class="check-item"><div class="check-icon ok">1</div><div><strong>90분 쿨다운 경과</strong><br><span style="font-size:12px;color:var(--g500)">마지막 건강질문 응답으로부터 90분 이상 경과</span></div></div>
+  <div class="check-item"><div class="check-icon ok">2</div><div><strong>시간 윈도우 안</strong><br><span style="font-size:12px;color:var(--g500)">아침(07-09), 점심(11:30-13:30), 저녁(17-20)</span></div></div>
+  <div class="check-item"><div class="check-icon ok">3</div><div><strong>해당 묶음 미응답</strong><br><span style="font-size:12px;color:var(--g500)">오늘 해당 질문에 아직 답하지 않은 경우</span></div></div>
+  <div class="check-item"><div class="check-icon ok">4</div><div><strong>야간 아님</strong><br><span style="font-size:12px;color:var(--g500)">22:00~07:00에는 건강질문 삽입 안 함</span></div></div>
+</div>
+
+<h2 class="sec-title" style="margin-top:28px">건강질문 묶음 매트릭스</h2>
+<p class="sec-sub">7개 묶음이 시간대별로 배분됩니다. 1회 최대 2묶음까지 삽입</p>
+<table class="dt">
+<thead><tr><th>묶음</th><th>이름</th><th>시간대</th><th>질문 필드</th><th>그룹 조건</th></tr></thead>
+<tbody>
+<tr><td><span class="tag tag-blue">bundle_1</span></td><td>수면</td><td>07:00-09:00</td><td><code>sleep_quality</code>, <code>sleep_duration</code></td><td>전체</td></tr>
+<tr><td><span class="tag tag-blue">bundle_2</span></td><td>아침식사</td><td>07:00-09:00</td><td><code>breakfast_status</code>, <code>took_medication</code></td><td>복약은 A그룹만</td></tr>
+<tr><td><span class="tag tag-green">bundle_3</span></td><td>식단 질</td><td>11:30-13:30</td><td><code>meal_balance</code>, <code>sweetdrink</code></td><td>전체</td></tr>
+<tr><td><span class="tag tag-orange">bundle_4</span></td><td>운동</td><td>17:00-20:00</td><td><code>exercise_done</code>, <code>type</code>, <code>minutes</code></td><td>전체 (서브 조건부)</td></tr>
+<tr><td><span class="tag tag-orange">bundle_5</span></td><td>채소+산책</td><td>17:00-20:00</td><td><code>vegetable_intake</code>, <code>walk_done</code></td><td>전체</td></tr>
+<tr><td><span class="tag tag-purple">bundle_6</span></td><td>복약 확인</td><td>Anytime</td><td><code>took_medication</code></td><td>A그룹 전용</td></tr>
+<tr><td><span class="tag tag-purple">bundle_7</span></td><td>기분+음주</td><td>Anytime (48h)</td><td><code>mood_level</code>, <code>alcohol_today</code></td><td>전체 (48시간 규칙)</td></tr>
+</tbody>
+</table>
+
+<h2 class="sec-title" style="margin-top:28px">SSE 이벤트 포맷 (국제 표준)</h2>
+<p class="sec-sub">SSE(Server-Sent Events) = 서버가 브라우저에 실시간으로 글자를 하나씩 보내주는 기술. 카카오톡처럼 메시지가 뜨는 것과 비슷!</p>
+<div class="code-block"><span class="cmt">// 1. 토큰 이벤트 (실시간 글자 전송)</span>
+<span class="kw">event:</span> token
+<span class="kw">data:</span> {<span class="str">"content"</span>: <span class="str">"안녕"</span>}
+
+<span class="cmt">// 2. 완료 이벤트 (건강질문 데이터 포함)</span>
+<span class="kw">event:</span> done
+<span class="kw">data:</span> {<span class="str">"session_id"</span>: 42, <span class="str">"health_questions"</span>: [...]}
+
+<span class="cmt">// 3. 에러 이벤트</span>
+<span class="kw">event:</span> error
+<span class="kw">data:</span> {<span class="str">"message"</span>: <span class="str">"대화를 찾을 수 없어요."</span>}</div>
+
+<h2 class="sec-title" style="margin-top:28px">함수 시그니처 테이블</h2>
+<p class="sec-sub">파이프라인 핵심 함수(기능 단위) 9개의 입출력 정의 — 멘토 요구: "함수명, Input/Output, 실행 순서 구조화"</p>
+<p style="font-size:11px;color:var(--g400);margin-bottom:4px">표 읽는 법: str=텍스트, int=숫자, list[]=~의 목록, dict=키-값 쌍, None=반환값 없음, |(또는)</p>
+<table class="dt">
+<thead><tr><th>#</th><th>함수명</th><th>Input (받는 것)</th><th>Output (돌려주는 것)</th><th>역할</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>_validate_request</code></td><td>user_id, session_id</td><td>str | None</td><td>API키 + 일 제한 체크</td></tr>
+<tr><td>2</td><td><code>_prepare_session</code></td><td>user_id, message, session_id</td><td>ChatSession</td><td>세션 생성/조회 + 메시지 저장</td></tr>
+<tr><td>3</td><td><code>ChatMessage.filter</code></td><td>session</td><td>list[ChatMessage]</td><td>최근 10개 대화 이력 로드</td></tr>
+<tr><td>4</td><td><code>get_eligible_bundles</code></td><td>user_id</td><td>list[str]</td><td>건강질문 삽입 판단 (라우터)</td></tr>
+<tr><td>5</td><td><code>_build_system_prompt</code></td><td>user_id, bundles</td><td>str</td><td>동적 시스템 프롬프트 구성</td></tr>
+<tr><td>6</td><td><code>_build_openai_messages</code></td><td>user_id, history, bundles</td><td>list[dict]</td><td>OpenAI 메시지 배열 조립</td></tr>
+<tr><td>7</td><td><code>_stream_openai</code></td><td>messages[]</td><td>AsyncGenerator[str]</td><td>GPT-4o-mini 스트리밍 호출</td></tr>
+<tr><td>8</td><td><code>_save_response</code></td><td>session, response, bundles</td><td>None</td><td>AI 응답 DB 저장</td></tr>
+<tr><td>9</td><td><code>_build_done_data</code></td><td>session_id, bundles</td><td>dict</td><td>SSE 완료 이벤트 구성</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 3: 요구사항 체크리스트                      -->
+<!-- ════════════════════════════════════════════ -->
+<div class="section" id="sec-3">
+<h2 class="sec-title">멘토 요구사항 체크리스트</h2>
+<p class="sec-sub">관주님 역할로 요구된 항목들의 구현 현황입니다</p>
+
+<table class="dt">
+<thead><tr><th>요구사항</th><th>상태</th><th>구현 근거</th></tr></thead>
+<tbody>
+<tr><td><strong>LLM 플로우 설계 및 함수 흐름도</strong><br><small style="color:var(--g400)">AI 대화가 처리되는 전체 과정을 그림으로</small></td><td><span class="tag tag-done">DONE</span></td><td><code>chat.py</code> 9단계 순차 처리 과정 구현</td></tr>
+<tr><td><strong>함수명, Input/Output, 실행 순서 구조화</strong><br><small style="color:var(--g400)">각 기능의 이름·입력·출력을 정리</small></td><td><span class="tag tag-done">DONE</span></td><td>9개 함수 시그니처(사양서) + 데이터 규격</td></tr>
+<tr><td><strong>체인 (순차 함수 실행)</strong><br><small style="color:var(--g400)">컨베이어 벨트처럼 1→2→3 순서 실행</small></td><td><span class="tag tag-done">DONE</span></td><td><code>send_message_stream()</code> 체인 패턴</td></tr>
+<tr><td><strong>당뇨 위험도 예측 모델</strong></td><td><span class="tag tag-done">DONE</span></td><td>FINDRISC 8변수 (<code>prediction.py</code>)</td></tr>
+<tr><td><strong>건강 추적 대시보드</strong></td><td><span class="tag tag-done">DONE</span></td><td><code>dashboard/init</code> API (5개 컴포넌트 한 번에)</td></tr>
+<tr><td><strong>생활습관 챌린지</strong></td><td><span class="tag tag-done">DONE</span></td><td>Template/UserChallenge/Checkin 3테이블 시스템</td></tr>
+<tr><td><strong>라우터 (질문 유형별 갈림길)</strong><br><small style="color:var(--g400)">질문 종류에 따라 다른 경로로 처리</small></td><td><span class="tag tag-partial">PARTIAL</span></td><td>그룹별(A/B/C) 분기 구현. 질문 유형 자동 분류기는 미구현</td></tr>
+<tr><td><strong>일반질문: AI + 안전장치 + 욕설필터</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>안전장치(면책조항 + 의료표현 금지) 구현. 욕설 필터 미구현</td></tr>
+<tr><td><strong>건강질문: AI + RAG(문서검색) + 프롬프트 설계</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>프롬프트 설계(동적 지시문) 완성. RAG(문서검색 기반 답변) 미구현</td></tr>
+<tr><td><strong>건강데이터: AI + RAG + ML(기계학습) 예측</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>FINDRISC 규칙기반 점수 완성. ML 학습 모델/RAG 미구현</td></tr>
+<tr><td><strong>사용자 상태별 맞춤 답변</strong></td><td><span class="tag tag-partial">PARTIAL</span></td><td>그룹별 다른 지시문 + 질문 분기 구현. 문서 기반 맞춤 답변은 미구현</td></tr>
+</tbody>
+</table>
+
+<div class="card card-red" style="margin-top:24px">
+  <h3>아직 구현되지 않은 항목</h3>
+  <p>아래 항목들은 설계에는 포함되어 있으나, 현재 Phase에서는 미구현 상태입니다.</p>
+  <div class="grid-3" style="margin-top:14px">
+    <div class="card" style="padding:16px">
+      <strong style="color:var(--danger)">RAG (AI가 문서를 검색해서 답하는 기술)</strong>
+      <p style="font-size:12px;margin-top:6px">AI가 자체 지식 외에 우리가 준비한 건강 문서도 찾아보고 답하는 기능. 현재는 지시문에 지식을 직접 넣는 방식으로 대체</p>
+    </div>
+    <div class="card" style="padding:16px">
+      <strong style="color:var(--danger)">욕설 필터</strong>
+      <p style="font-size:12px;margin-top:6px">파이프라인 설계에는 포함되어 있으나 구현 코드 없음. 향후 OpenAI Moderation API 또는 키워드 필터 추가 필요</p>
+    </div>
+    <div class="card" style="padding:16px">
+      <strong style="color:var(--danger)">자체 ML(기계학습) 예측 모델</strong>
+      <p style="font-size:12px;margin-top:6px">현재 FINDRISC는 의학 논문 기반 규칙 점수. AI가 데이터를 보고 스스로 학습하는 모델은 다음 단계(정확도 82~85%) 목표로 계획</p>
+    </div>
+  </div>
+</div>
+
+<div class="card card-green" style="margin-top:16px">
+  <h3>구현 완료 핵심 3기능 (평가 기준)</h3>
+  <div class="grid-3" style="margin-top:12px">
+    <div style="text-align:center;padding:16px">
+      <div style="font-size:36px">📊</div>
+      <strong>당뇨 위험도 예측</strong>
+      <p style="font-size:12px;color:var(--g500)">FINDRISC 8변수<br>0~26점, 5단계 위험도<br>매일 자정 자동 재계산</p>
+    </div>
+    <div style="text-align:center;padding:16px">
+      <div style="font-size:36px">📱</div>
+      <strong>건강 추적 대시보드</strong>
+      <p style="font-size:12px;color:var(--g500)">오늘 기록 + 위험도 +<br>챌린지 + 참여상태 +<br>유저그룹 한 번에 조회</p>
+    </div>
+    <div style="text-align:center;padding:16px">
+      <div style="font-size:36px">🏆</div>
+      <strong>생활습관 챌린지</strong>
+      <p style="font-size:12px;color:var(--g500)">6카테고리, 최대 2개 동시<br>스트릭 + 진행률 + 달력<br>자동/수동 체크인</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- TAB 4: 기술 결정 & 보안                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="section" id="sec-4">
+<h2 class="sec-title">핵심 기술 결정</h2>
+<p class="sec-sub">왜 이 기술을 선택했는지, 어떤 대안이 있었는지</p>
+
+<div class="grid-2">
+<div class="card card-blue">
+  <h3>DB 도구: Tortoise ORM vs SQLAlchemy</h3>
+  <p><span class="tag tag-blue">선택: Tortoise ORM</span> <small style="color:var(--g400)">(코드로 DB를 다루는 도구)</small></p>
+  <ul>
+    <li>FastAPI와 같은 비동기(동시 처리) 방식으로 빠름</li>
+    <li>데이터 검증 도구(Pydantic)와 자연스럽게 연동</li>
+    <li>DB 구조 변경 기록(마이그레이션) 도구 내장</li>
+  </ul>
+</div>
+<div class="card card-green">
+  <h3>실시간 전송: SSE vs WebSocket</h3>
+  <p><span class="tag tag-green">선택: SSE</span> <small style="color:var(--g400)">(서버→브라우저 단방향 실시간 전송)</small></p>
+  <ul>
+    <li>AI 채팅은 서버가 보내기만 하면 되니 SSE가 딱 맞음</li>
+    <li>일반 HTTP 기반이라 Nginx 설정이 간단</li>
+    <li>연결 끊기면 자동 재연결, 브라우저가 기본 지원</li>
+  </ul>
+</div>
+<div class="card card-purple">
+  <h3>중복 실행 방지: Redis 잠금 vs DB 잠금</h3>
+  <p><span class="tag tag-purple">선택: Redis 분산 잠금</span> <small style="color:var(--g400)">(임시 메모판으로 "내가 하고 있어!" 표시)</small></p>
+  <ul>
+    <li>DB에 부담 주지 않고 빠르게 잠금/해제</li>
+    <li>서버가 갑자기 꺼져도 시간 지나면 자동으로 잠금 해제</li>
+    <li>Lua(Redis 내장 언어) 스크립트로 "확인+잠금"을 한 번에 처리 (중간에 끼어들기 불가)</li>
+  </ul>
+</div>
+<div class="card card-orange">
+  <h3>위험도 계산: 의학 공식 vs AI 학습 모델</h3>
+  <p><span class="tag tag-orange">선택: FINDRISC 규칙 기반</span> <small style="color:var(--g400)">(논문으로 검증된 국제 공식)</small></p>
+  <ul>
+    <li>의학 논문으로 검증된 공식 (정확도 AUC ~0.80, 즉 100명 중 80명 정확 판별)</li>
+    <li>학습 데이터 없어도 바로 쓸 수 있음</li>
+    <li>다음 단계에서 AI 학습 모델(정확도 0.82~0.85, 더 정밀) 추가 계획</li>
+  </ul>
+</div>
+</div>
+
+<h2 class="sec-title" style="margin-top:28px">보안 조치 (Phase 8)</h2>
+<p class="sec-sub">코드 리뷰 기반 보안 강화 6건</p>
+
+<table class="dt">
+<thead><tr><th>조치</th><th>파일</th><th>효과</th></tr></thead>
+<tbody>
+<tr><td>쿠키 위조 방지 <code>samesite="Lax"</code></td><td><code>auth_routers.py</code>, <code>onboarding_routers.py</code></td><td>CSRF(다른 사이트가 우리 서버에 위조 요청 보내는 공격) 방어</td></tr>
+<tr><td>운영환경 API 문서 숨김</td><td><code>main.py</code></td><td>해커가 API 구조를 들여다볼 수 없도록 문서 페이지 비활성화</td></tr>
+<tr><td>보안 헤더 추가</td><td><code>prod_http.conf</code>, <code>prod_https.conf</code></td><td>HSTS(HTTPS 강제 접속) + 클릭재킹/XSS(악성 코드 삽입 공격) 방어 헤더</td></tr>
+<tr><td>비활성 계정 차단</td><td><code>security.py</code></td><td>탈퇴·정지된 계정의 신분증(JWT)을 사용 불가 처리</td></tr>
+<tr><td>로그 기록 통일</td><td><code>chat.py</code></td><td>모든 파일에서 같은 형식으로 기록하도록 통일</td></tr>
+<tr><td>직접 SQL 제거</td><td><code>daily_cron.py</code></td><td>안전한 ORM(코드로 DB 조작) 방식으로 변환, SQL 주입 공격 방지</td></tr>
+</tbody>
+</table>
+
+<h2 class="sec-title" style="margin-top:28px">테스트 커버리지</h2>
+<p class="sec-sub">단위 테스트 5파일 + API 통합 테스트 4파일 = 총 54 테스트 케이스</p>
+
+<div class="grid-3">
+<div class="card" style="padding:16px;text-align:center">
+  <strong style="color:var(--primary)">FINDRISC</strong>
+  <div style="font-size:24px;font-weight:900;color:var(--primary);margin:6px 0">15</div>
+  <span style="font-size:11px;color:var(--g500)">경계값, null 처리, 성별 차이</span>
+</div>
+<div class="card" style="padding:16px;text-align:center">
+  <strong style="color:var(--accent)">참여 상태</strong>
+  <div style="font-size:24px;font-weight:900;color:var(--accent);margin:6px 0">11</div>
+  <span style="font-size:11px;color:var(--g500)">5단계 상태 전환 + 경계값</span>
+</div>
+<div class="card" style="padding:16px;text-align:center">
+  <strong style="color:var(--warning)">온보딩</strong>
+  <div style="font-size:24px;font-weight:900;color:var(--warning);margin:6px 0">8</div>
+  <span style="font-size:11px;color:var(--g500)">전체 흐름 + JWT + 그룹분류</span>
+</div>
+<div class="card" style="padding:16px;text-align:center">
+  <strong style="color:var(--danger)">건강 데이터</strong>
+  <div style="font-size:24px;font-weight:900;color:var(--danger);margin:6px 0">6</div>
+  <span style="font-size:11px;color:var(--g500)">날짜 제한, First Answer Wins</span>
+</div>
+<div class="card" style="padding:16px;text-align:center">
+  <strong style="color:var(--purple)">SSE 포맷</strong>
+  <div style="font-size:24px;font-weight:900;color:var(--purple);margin:6px 0">5</div>
+  <span style="font-size:11px;color:var(--g500)">W3C 표준 준수 + 한글</span>
+</div>
+<div class="card" style="padding:16px;text-align:center">
+  <strong style="color:var(--g600)">API 통합 테스트</strong>
+  <div style="font-size:24px;font-weight:900;color:var(--g700);margin:6px 0">9</div>
+  <span style="font-size:11px;color:var(--g500)">로그인·회원가입·토큰·사용자</span>
+</div>
+</div>
+
+<div class="card" style="margin-top:24px;text-align:center;padding:20px">
+  <p style="font-size:13px;color:var(--g500)">이 문서는 <strong>다나아 프로젝트 Phase 0-8 백엔드 구현</strong>의 팀 발표자료입니다.<br>2026-04-03 기준 &mdash; 프론트엔드 연동 및 프로덕션 배포는 다음 단계에서 진행됩니다.</p>
+</div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+function showTab(n){
+  document.querySelectorAll('.section').forEach((s,i)=>{s.classList.toggle('active',i===n)});
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',i===n)});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
