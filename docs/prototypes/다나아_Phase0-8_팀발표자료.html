@@ -198,7 +198,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <div class="hero">
   <div class="hero-badge">DA-NA-A Health AI Platform &mdash; Backend</div>
   <h1>다나아 &mdash; 만성질환 생활습관 AI 코칭 서비스</h1>
-  <p>당뇨&middot;고혈압 예방을 위한 맞춤형 건강관리 백엔드(서버 쪽 두뇌) 시스템 (Phase 0-8 완료)</p>
+  <p>당뇨&middot;고혈압 예방을 위한 맞춤형 건강관리 백엔드(서버 쪽 두뇌) 시스템 (Phase 0-8 완료 + API 명세 동기화)</p>
   <div class="stack-badges">
     <span class="stack-badge">FastAPI</span>
     <span class="stack-badge">MySQL 8.0</span>
@@ -217,7 +217,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
   <div class="stat-card"><span class="stat-num">25</span><span class="stat-label">API 엔드포인트<br><small style="font-weight:400;color:var(--g400)">(프로그램 간 대화 창구)</small></span></div>
   <div class="stat-card"><span class="stat-num">13</span><span class="stat-label">DB 테이블<br><small style="font-weight:400;color:var(--g400)">(데이터 저장 구조)</small></span></div>
   <div class="stat-card"><span class="stat-num">31</span><span class="stat-label">Enum 정의<br><small style="font-weight:400;color:var(--g400)">(정해진 선택지 목록)</small></span></div>
-  <div class="stat-card"><span class="stat-num" style="font-size:22px">~6,600</span><span class="stat-label">Python 코드 줄</span></div>
+  <div class="stat-card"><span class="stat-num" style="font-size:22px">~6,700</span><span class="stat-label">Python 코드 줄</span></div>
   <div class="stat-card"><span class="stat-num">11</span><span class="stat-label">Service 클래스<br><small style="font-weight:400;color:var(--g400)">(기능별 업무 담당자)</small></span></div>
   <div class="stat-card"><span class="stat-num">9</span><span class="stat-label">Router 파일<br><small style="font-weight:400;color:var(--g400)">(요청 경로 안내판)</small></span></div>
   <div class="stat-card"><span class="stat-num">2</span><span class="stat-label">Cron 작업<br><small style="font-weight:400;color:var(--g400)">(매일 자동 실행)</small></span></div>
@@ -256,6 +256,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
         <li>AI 채팅 SSE(실시간 글자 전송) 스트리밍</li>
         <li>자동 크론 (위험도 재계산)</li>
         <li>Pytest 단위 테스트</li>
+        <li>API 명세↔코드 필드명 동기화 완료</li>
       </ul>
     </div>
     <div class="status-col">
@@ -278,7 +279,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <!-- ════════════════════════════════════════════ -->
 <div class="section" id="sec-1">
 <h2 class="sec-title">Phase별 구현 내용</h2>
-<p class="sec-sub">8개 Phase에 걸쳐 백엔드 전체를 순차적으로 구현했습니다</p>
+<p class="sec-sub">8개 Phase + API 명세 동기화 수정까지 백엔드 전체를 순차적으로 구현했습니다</p>
 
 <div class="tl">
 
@@ -310,7 +311,8 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
   <ul>
     <li><strong>API 6개</strong>: 오늘기록 조회/수정, 일괄입력, 미입력항목, 측정값 등록/조회</li>
     <li><strong>핵심</strong>: 14개 출처 추적 필드(AI 채팅인지 직접입력인지 기록), 소급입력 3일 제한</li>
-    <li><strong>측정값</strong>: 체중, 허리둘레, 혈압, HbA1c, 공복혈당</li>
+    <li><strong>측정값</strong>: 체중, 허리둘레, 혈압, HbA1c, 공복혈당 — <code>unit</code>(단위) 서버 자동매핑</li>
+    <li><strong>API 명세 호환</strong>: 프론트가 <code>value</code>/<code>systolic</code>/<code>diastolic</code>/<code>date</code>로 보내면 서버가 내부 필드명(<code>numeric_value</code>/<code>log_date</code>)으로 자동 변환 (Pydantic alias)</li>
   </ul>
 </div></div>
 
@@ -353,6 +355,19 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
   <ul>
     <li><strong>보안</strong>: 쿠키 위조방지(SameSite), HTTPS 강제(HSTS), 운영환경 API문서 숨김, 비활성 계정 차단</li>
     <li><strong>테스트</strong>: FINDRISC 점수 경계값, 실시간 전송(SSE) 포맷, 온보딩 전체 흐름, 참여 상태 전환</li>
+  </ul>
+</div></div>
+
+<div class="tl-item"><div class="tl-dot"></div>
+<div class="card card-orange">
+  <h3><span class="phase-badge" style="background:var(--warning-light);color:#92400E">Post-8</span> API 명세 동기화 수정</h3>
+  <p>팀원 간 공유된 원본 API/DB 명세서와 코드가 불일치하던 문제를 전면 수정</p>
+  <ul>
+    <li><strong>DTO 수정</strong>: <code>MeasurementCreateRequest</code>에 <code>value</code>/<code>systolic</code>/<code>diastolic</code> alias 추가 (원본 명세 필드명 수용, 기존 <code>numeric_value</code>도 호환 유지)</li>
+    <li><strong>DTO 수정</strong>: <code>BatchEntryRequest</code>에 <code>date</code> alias 추가 (원본 명세 필드명 수용, 기존 <code>log_date</code>도 호환 유지)</li>
+    <li><strong>서비스 수정</strong>: 측정값 저장 시 <code>unit</code>(단위)을 <code>measurement_type</code>에 따라 자동 결정 (kg/cm/mmHg/%/mg·dL)</li>
+    <li><strong>서비스 수정</strong>: 소급입력 시 클라이언트가 보낸 <code>source</code> 필드를 무시하고 서버가 <code>backfill</code>로 강제</li>
+    <li><strong>명세 문서</strong>: API/DB 명세 문서를 원본(Downloads) 기준으로 원복 + 호환성 메모 추가</li>
   </ul>
 </div></div>
 
@@ -569,6 +584,15 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
   </ul>
 </div>
 <div class="card card-orange">
+  <h3>API 명세 동기화: Pydantic Alias 패턴</h3>
+  <p><span class="tag tag-orange">선택: validation_alias + populate_by_name</span> <small style="color:var(--g400)">(프론트·서버 필드명이 다를 때 양쪽 다 허용)</small></p>
+  <ul>
+    <li>프론트가 <code>value</code>로 보내면 서버가 <code>numeric_value</code>로 자동 변환 (DB 컬럼명 유지)</li>
+    <li>기존 <code>numeric_value</code>로 보내도 호환 — 이미 배포된 코드가 깨지지 않음</li>
+    <li>혈압의 <code>systolic</code>/<code>diastolic</code> → <code>model_validator</code>로 다형성 처리</li>
+  </ul>
+</div>
+<div class="card card-orange">
   <h3>위험도 계산: 의학 공식 vs AI 학습 모델</h3>
   <p><span class="tag tag-orange">선택: FINDRISC 규칙 기반</span> <small style="color:var(--g400)">(논문으로 검증된 국제 공식)</small></p>
   <ul>
@@ -579,8 +603,8 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 </div>
 </div>
 
-<h2 class="sec-title" style="margin-top:28px">보안 조치 (Phase 8)</h2>
-<p class="sec-sub">코드 리뷰 기반 보안 강화 6건</p>
+<h2 class="sec-title" style="margin-top:28px">보안 조치 (Phase 8 + Post-8)</h2>
+<p class="sec-sub">코드 리뷰 기반 보안 강화 6건 + API 명세 동기화 1건</p>
 
 <table class="dt">
 <thead><tr><th>조치</th><th>파일</th><th>효과</th></tr></thead>
@@ -591,6 +615,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 <tr><td>비활성 계정 차단</td><td><code>security.py</code></td><td>탈퇴·정지된 계정의 신분증(JWT)을 사용 불가 처리</td></tr>
 <tr><td>로그 기록 통일</td><td><code>chat.py</code></td><td>모든 파일에서 같은 형식으로 기록하도록 통일</td></tr>
 <tr><td>직접 SQL 제거</td><td><code>daily_cron.py</code></td><td>안전한 ORM(코드로 DB 조작) 방식으로 변환, SQL 주입 공격 방지</td></tr>
+<tr><td>API 명세 동기화</td><td><code>dtos/health.py</code>, <code>services/</code></td><td>원본 API 명세와 코드 필드명 일치 — Pydantic alias로 양방향 호환 + unit 자동매핑</td></tr>
 </tbody>
 </table>
 
@@ -631,7 +656,7 @@ table.dt code{background:var(--g100);padding:1px 6px;border-radius:3px;font-size
 </div>
 
 <div class="card" style="margin-top:24px;text-align:center;padding:20px">
-  <p style="font-size:13px;color:var(--g500)">이 문서는 <strong>다나아 프로젝트 Phase 0-8 백엔드 구현</strong>의 팀 발표자료입니다.<br>2026-04-03 기준 &mdash; 프론트엔드 연동 및 프로덕션 배포는 다음 단계에서 진행됩니다.</p>
+  <p style="font-size:13px;color:var(--g500)">이 문서는 <strong>다나아 프로젝트 Phase 0-8 백엔드 구현</strong>의 팀 발표자료입니다.<br>2026-04-03 기준 (API 명세 동기화 수정 반영) &mdash; 프론트엔드 연동 및 프로덕션 배포는 다음 단계에서 진행됩니다.</p>
 </div>
 </div>
 
