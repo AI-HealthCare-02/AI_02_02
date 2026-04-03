@@ -36,6 +36,9 @@ Thumbs.db
 archive/
 .tmp_template_check/
 
+# Docker override (개발 전용)
+docker-compose.override.yml
+
 # Local planning artifacts
 task_plan.md
 findings.md

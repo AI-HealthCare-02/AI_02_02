@@ -2,7 +2,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import ORJSONResponse
 from tortoise import Tortoise
 
@@ -12,6 +11,7 @@ from app.core.config import Env
 from app.core.logger import setup_logger
 from app.core.sentry import init_sentry
 from app.db.databases import TORTOISE_APP_MODELS, TORTOISE_ORM
+from app.middleware.cors import setup_cors
 from app.middleware.rate_limit import setup_rate_limit
 
 logger = setup_logger("app.main")
@@ -74,17 +74,7 @@ app = FastAPI(
     openapi_url=None if _is_prod else "/api/openapi.json",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost",
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+setup_cors(app)
 setup_rate_limit(app)
 
 app.include_router(v1_routers)
