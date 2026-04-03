@@ -1,18 +1,31 @@
-# AI Healthcare Project Template
+# 다나아 (DA-NA-A) -- AI 건강 생활습관 코칭 웹 서비스
 
-이 프로젝트는 AI 모델 추론(Inference) 워커와 FastAPI API 서버를 통합한 서비스 템플릿입니다. 
-현대적인 Python 패키지 관리 도구인 `uv`와 컨테이너화 도구인 `Docker`를 활용하여 일관된 개발 및 배포 환경을 제공합니다.
+만성질환(당뇨/고혈압) 예방을 위한 AI 건강관리 웹 서비스입니다.
+**당뇨 위험도 예측** + **건강 추적 대시보드** + **생활습관 챌린지** 3가지 핵심 기능을 제공합니다.
 
 ---
 
-## 🚀 주요 특징
+## 처음이라면 여기부터
 
-- **FastAPI Framework**: 고성능 비동기 API 서버 구현.
-- **AI Worker**: 모델 추론 및 학습 작업을 API 서버와 분리하여 처리.
-- **UV Package Manager**: 매우 빠른 의존성 설치 및 가상환경 관리.
-- **Tortoise ORM**: 비동기 방식의 데이터베이스 모델링 및 쿼리 관리.
-- **Docker-Compose**: PostgreSQL, Redis, Nginx를 포함한 전체 서비스 스택을 한 번에 실행.
-- **CI/CD Scripts**: 코드 포맷팅(Ruff), 타입 체크(Mypy), 테스트(Pytest)를 위한 자동화 스크립트 제공.
+| 문서 | 내용 |
+|------|------|
+| **[QUICK_START.md](docs/QUICK_START.md)** | 내 컴퓨터에서 서버 켜기 (처음 15~20분) |
+| **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | 프로젝트 구조 이해하기 |
+| **[DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md)** | Git 사용법, 커밋 규칙 |
+| **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** | 에러 해결 모음 |
+| **[MEDICAL_COMPLIANCE.md](docs/MEDICAL_COMPLIANCE.md)** | 의료 데이터 준수 가이드 |
+
+---
+
+## 주요 특징
+
+- **FastAPI Framework**: 고성능 비동기 API 서버 (Python 3.13)
+- **AI Worker**: 모델 추론 작업을 API 서버와 분리하여 처리
+- **Tortoise ORM + PostgreSQL 16**: 비동기 DB 모델링 + asyncpg
+- **Redis**: 캐시, 분산 락, 세션 관리
+- **Docker Compose**: PostgreSQL, Redis, Nginx 포함 전체 스택 실행
+- **OpenAI GPT-4o-mini**: SSE 스트리밍 AI 채팅
+- **CI/CD**: Ruff 린트 + Pytest 54개 테스트 자동 검증
 
 ---
 
@@ -42,11 +55,18 @@
 
 ---
 
-## ⚙️ 사전 준비 사항
+## 사전 준비 사항
 
-- **Python**: 3.13 이상 (로컬 개발 환경용)
-- **UV**: Python 패키지 매니저 ([설치 가이드](https://github.com/astral-sh/uv))
-- **Docker & Docker-Compose**: 전체 서비스 실행용
+| 프로그램 | 필요 버전 | 설치 링크 |
+|---------|----------|----------|
+| Python | 3.13 이상 | https://python.org |
+| uv | 최신 | https://github.com/astral-sh/uv |
+| Docker Desktop | 4.x 이상 (WSL2 필수) | https://docker.com |
+| Node.js | 18 이상 | https://nodejs.org |
+| Git | 2.x 이상 | https://git-scm.com |
+
+> **Windows 한글 경로 사용자**: Docker 빌드 시 `subst X:` 우회가 필요합니다.
+> 자세한 방법은 [QUICK_START.md](docs/QUICK_START.md#2-한글-경로-우회-windows-필수)를 참고하세요.
 
 ---
 
@@ -169,8 +189,19 @@ chmod +x scripts/certbot.sh
 
 ---
 
-## 📝 개발 가이드
+## 개발 가이드
 
 - **API 추가**: `app/apis/v1/` 아래에 새로운 라우터 파일을 생성하고 `app/apis/v1/__init__.py`에 등록하세요.
 - **DB 모델 추가**: `app/models/`에 Tortoise 모델을 정의하고 `app/db/databases.py`의 `MODELS` 리스트에 추가하세요.
 - **AI 로직 추가**: `ai_worker/tasks/`에 새로운 처리 로직을 작성하고 `ai_worker/main.py`에서 호출하도록 구성하세요.
+
+---
+
+## 상세 문서
+
+| 문서 | 내용 |
+|------|------|
+| [CLAUDE.md](CLAUDE.md) | AI 페어 프로그래밍 규칙 |
+| [docs/HANDOFF_MEMO.md](docs/HANDOFF_MEMO.md) | 프로젝트 전체 인수인계 메모 |
+| [docs/collaboration/](docs/collaboration/) | API/DB 명세 확정안 |
+| [LLM-파트-시작-가이드.md](LLM-파트-시작-가이드.md) | LLM 파트 구현 순서 가이드 |
