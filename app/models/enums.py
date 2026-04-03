@@ -100,6 +100,48 @@ class AiConsent(StrEnum):
     DECLINED = "declined"
 
 
+class GoalType(StrEnum):
+    """온보딩 목표 설정"""
+
+    RISK_ASSESSMENT = "risk_assessment"
+    HEALTH_TRACKING = "health_tracking"
+    DIET_IMPROVEMENT = "diet_improvement"
+    EXERCISE_HABIT = "exercise_habit"
+    WEIGHT_MANAGEMENT = "weight_management"
+    ALL = "all"
+
+
+class DietHabitType(StrEnum):
+    """온보딩 식습관 패턴"""
+
+    CARB_HEAVY = "carb_heavy"
+    SUGARY_DRINK = "sugary_drink"
+    LATE_SNACK = "late_snack"
+    VEGGIES_DAILY = "veggies_daily"
+    IRREGULAR_MEALS = "irregular_meals"
+    NONE = "none"
+
+
+class ConditionType(StrEnum):
+    """동반 상태 (복수선택)"""
+
+    HYPERTENSION = "hypertension"
+    DYSLIPIDEMIA = "dyslipidemia"
+    HIGH_GLUCOSE = "high_glucose"
+    GESTATIONAL = "gestational"
+    NONE = "none"
+
+
+class TreatmentType(StrEnum):
+    """치료 방식 (A그룹, 복수선택)"""
+
+    LIFESTYLE = "lifestyle"
+    ORAL_MED = "oral_med"
+    INSULIN = "insulin"
+    OTHER_MED = "other_med"
+    NOTHING = "nothing"
+
+
 class RiskLevel(StrEnum):
     """FINDRISC 위험도 5단계 (0-26점)"""
 

@@ -9,13 +9,17 @@ from app.models.enums import (
     AgeRange,
     AiConsent,
     AlcoholFrequency,
+    ConditionType,
+    DietHabitType,
     ExerciseFrequency,
     FamilyHistory,
     FastingGlucoseRange,
+    GoalType,
     HbA1cRange,
     Relation,
     SleepDurationBucket,
     SmokingStatus,
+    TreatmentType,
 )
 from app.models.users import Gender
 
@@ -23,13 +27,17 @@ from app.models.users import Gender
 class ConsentRequest(BaseModel):
     """이용약관 동의 요청."""
 
-    model_config = {"json_schema_extra": {"example": {
-        "terms_of_service": True,
-        "privacy_policy": True,
-        "health_data_consent": True,
-        "disclaimer_consent": True,
-        "marketing_consent": False,
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "terms_of_service": True,
+                "privacy_policy": True,
+                "health_data_consent": True,
+                "disclaimer_consent": True,
+                "marketing_consent": False,
+            }
+        }
+    }
 
     terms_of_service: bool
     privacy_policy: bool
@@ -60,22 +68,26 @@ class ConsentResponse(BaseModel):
 class SurveyRequest(BaseModel):
     """건강 설문 요청."""
 
-    model_config = {"json_schema_extra": {"example": {
-        "relation": "prevention",
-        "gender": "MALE",
-        "age_range": "45_54",
-        "height_cm": 175.0,
-        "weight_kg": 80.0,
-        "family_history": "parents",
-        "conditions": ["hypertension"],
-        "exercise_frequency": "1_2_per_week",
-        "diet_habits": ["irregular_meals"],
-        "sleep_duration_bucket": "between_6_7",
-        "alcohol_frequency": "sometimes",
-        "smoking_status": "non_smoker",
-        "goals": ["weight_management"],
-        "ai_consent": "agreed",
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "relation": "prevention",
+                "gender": "MALE",
+                "age_range": "45_54",
+                "height_cm": 175.0,
+                "weight_kg": 80.0,
+                "family_history": "parents",
+                "conditions": ["hypertension"],
+                "exercise_frequency": "1_2_per_week",
+                "diet_habits": ["irregular_meals"],
+                "sleep_duration_bucket": "between_6_7",
+                "alcohol_frequency": "sometimes",
+                "smoking_status": "non_smoker",
+                "goals": ["weight_management"],
+                "ai_consent": "agreed",
+            }
+        }
+    }
 
     relation: Relation
     gender: Gender
@@ -100,6 +112,44 @@ class SurveyRequest(BaseModel):
     def normalize_gender(cls, v: str) -> str:
         """프론트에서 'male' 소문자로 보낼 수 있으므로 대문자로 변환."""
         return v.upper() if isinstance(v, str) else v
+
+    @field_validator("conditions", mode="before")
+    @classmethod
+    def validate_conditions(cls, v: list[str]) -> list[str]:
+        valid = {e.value for e in ConditionType}
+        for item in v:
+            if item not in valid:
+                raise ValueError(f"Invalid condition: {item}. Must be one of {sorted(valid)}")
+        return v
+
+    @field_validator("diet_habits", mode="before")
+    @classmethod
+    def validate_diet_habits(cls, v: list[str]) -> list[str]:
+        valid = {e.value for e in DietHabitType}
+        for item in v:
+            if item not in valid:
+                raise ValueError(f"Invalid diet_habit: {item}. Must be one of {sorted(valid)}")
+        return v
+
+    @field_validator("goals", mode="before")
+    @classmethod
+    def validate_goals(cls, v: list[str]) -> list[str]:
+        valid = {e.value for e in GoalType}
+        for item in v:
+            if item not in valid:
+                raise ValueError(f"Invalid goal: {item}. Must be one of {sorted(valid)}")
+        return v
+
+    @field_validator("treatments", mode="before")
+    @classmethod
+    def validate_treatments(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        valid = {e.value for e in TreatmentType}
+        for item in v:
+            if item not in valid:
+                raise ValueError(f"Invalid treatment: {item}. Must be one of {sorted(valid)}")
+        return v
 
 
 class SurveyResponse(BaseModel):
