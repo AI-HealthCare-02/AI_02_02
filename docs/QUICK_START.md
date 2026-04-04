@@ -122,7 +122,8 @@ docker compose -p ai-health-local ps
 
 ### 브라우저로 확인
 
-- http://localhost/api/docs 접속
+- http://localhost/api/docs 접속 (Nginx 경유)
+- 또는 http://localhost:8000/api/docs 접속 (FastAPI 직접)
 - Swagger UI 화면이 뜨면 **완전 성공!**
 
 ---

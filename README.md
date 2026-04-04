@@ -25,7 +25,7 @@
 - **Redis**: 캐시, 분산 락, 세션 관리
 - **Docker Compose**: PostgreSQL, Redis, Nginx 포함 전체 스택 실행
 - **OpenAI GPT-4o-mini**: SSE 스트리밍 AI 채팅
-- **CI/CD**: Ruff 린트 + Pytest 54개 테스트 자동 검증
+- **검증 도구**: Ruff, Pytest, Mypy, Aerich 기반 점검 스크립트 사용
 
 ---
 
@@ -110,11 +110,12 @@ uv sync --group ai   # AI 워커용
 모든 서비스(API, Worker, DB, Redis, Nginx)를 한 번에 실행합니다.
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 실행 후 다음 주소로 접속 가능합니다:
-- **API 서버**: [http://localhost/api/docs](http://localhost/api/docs) (Swagger UI)
+- **Swagger UI (Nginx 경유)**: [http://localhost/api/docs](http://localhost/api/docs)
+- **Swagger UI (FastAPI 직접)**: [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
 - **Nginx**: 80 포트를 통해 API 서버로 요청을 전달합니다.
 
 #### 로컬에서 개별 실행 (개발용)
@@ -123,14 +124,14 @@ docker-compose up -d --build
 ```bash
 uv run uvicorn app.main:app --reload
 # or
-docker compose up -d --build app
+docker compose up -d --build fastapi
 ```
 
 **AI Worker 실행:**
 ```bash
 uv run python -m ai_worker.main
 # or
-docker compose up -d --build ai_worker
+docker compose up -d --build ai-worker
 ```
 
 ### 2. EC2 배포 환경 (Production)
@@ -192,7 +193,7 @@ chmod +x scripts/certbot.sh
 ## 개발 가이드
 
 - **API 추가**: `app/apis/v1/` 아래에 새로운 라우터 파일을 생성하고 `app/apis/v1/__init__.py`에 등록하세요.
-- **DB 모델 추가**: `app/models/`에 Tortoise 모델을 정의하고 `app/db/databases.py`의 `MODELS` 리스트에 추가하세요.
+- **DB 모델 추가**: `app/models/`에 Tortoise 모델을 정의하고 `app/db/databases.py`의 `TORTOISE_APP_MODELS`에 등록하세요.
 - **AI 로직 추가**: `ai_worker/tasks/`에 새로운 처리 로직을 작성하고 `ai_worker/main.py`에서 호출하도록 구성하세요.
 
 ---
