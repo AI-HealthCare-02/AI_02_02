@@ -45,6 +45,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception:
         logger.warning("Redis/Scheduler 시작 실패 — 스케줄러 비활성화, API는 정상 작동")
 
+    # 3) RAG corpus warm-up (실패해도 앱 차단 안 함)
+    if config.RAG_ENABLED:
+        try:
+            from app.services.rag_corpus import load_corpus
+
+            load_corpus()
+            logger.info("rag_corpus_loaded")
+        except Exception:
+            logger.warning("rag_corpus_load_failed")
+
     yield
 
     # ── Shutdown (역순) ──────────────────────────────────────

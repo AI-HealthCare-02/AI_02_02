@@ -4,6 +4,7 @@
 """
 
 import json
+import re
 from collections.abc import AsyncGenerator
 from datetime import datetime, timedelta
 
@@ -93,13 +94,151 @@ EMOTIONAL_INSTRUCTION = (
 class ChatService:
     """AI 채팅 서비스."""
 
+    # ── RAG: 보수적 정보요청 판별 패턴 ──────────────────────────
+    _FACTUAL_KEYWORDS = re.compile(r"(?:왜|어떻게|얼마나|기준|방법|목표|빈도|권장)")
+    _FACTUAL_COMPOUNDS = re.compile(
+        r"(?:좋은\s*(?:음식|운동|습관|방법))"
+        r"|(?:나쁜\s*(?:음식|습관|영향))"
+        r"|(?:도움이\s*(?:될까|되나|돼|될))"
+    )
+    _LIFESTYLE_QUERY_PATTERNS = re.compile(
+        r"(?:관리|생활|습관|식단|운동|수면|스트레스|방법|팁|도움)"
+    )
+    _CLINICAL_PATTERNS = re.compile(
+        r"(?:진단|처방|치료|수술|검사\s*결과)"
+        r"|(?:약\s*(?:바꿔|변경|조절|줄여))"
+        r"|(?:인슐린\s*(?:단위|용량|조절))"
+        r"|(?:용량\s*조절)"
+    )
+
     def __init__(self):
         self.health_question_service = HealthQuestionService()
         self.content_filter = ContentFilterService()
         # 위기 발생 시각 기록 (세션 레벨 메모리 — DB 저장 아님)
         self._last_crisis_at: dict[int, datetime] = {}
+        # RAG 서비스 (lazy init)
+        self._rag_service = None
+        # 사용자 맥락 서비스 (lazy init)
+        self._user_context_service = None
 
-    async def send_message_stream(
+    # ── RAG 메서드 ───────────────────────────────────────────────
+
+    def _get_rag_service(self):
+        """RAG 서비스 lazy init. 실패 시 None."""
+        if self._rag_service is not None:
+            return self._rag_service
+        try:
+            from app.services.rag import RAGService
+
+            self._rag_service = RAGService()
+            return self._rag_service
+        except Exception:
+            logger.warning("rag_init_failed")
+            return None
+
+    def _should_run_rag(self, message: str, filter_result: FilterResult) -> bool:
+        """RAG 실행 조건 판별."""
+        if not config.RAG_ENABLED:
+            return False
+        if not config.CONTENT_FILTER_ROUTING_ENABLED:
+            return False
+        if len(message.strip()) < 3:
+            return False
+        if filter_result.medical_action == FilterMedicalAction.MEDICAL_NOTE:
+            return False
+        if filter_result.message_route == MessageRoute.LIFESTYLE_CHAT:
+            return False
+        if filter_result.message_route is None:
+            return False
+        if filter_result.emotional_priority:
+            return self._has_factual_intent(message)
+        if filter_result.message_route == MessageRoute.HEALTH_SPECIFIC:
+            return self._is_lifestyle_query(message)
+        return True  # HEALTH_GENERAL
+
+    def _has_factual_intent(self, message: str) -> bool:
+        """명시적 정보요청 판별. 보수적."""
+        return bool(
+            self._FACTUAL_KEYWORDS.search(message)
+            or self._FACTUAL_COMPOUNDS.search(message)
+        )
+
+    def _is_lifestyle_query(self, message: str) -> bool:
+        """HEALTH_SPECIFIC 중 생활습관/관리 질문인지 판별. clinical 우선 skip."""
+        if self._CLINICAL_PATTERNS.search(message):
+            return False
+        return bool(self._LIFESTYLE_QUERY_PATTERNS.search(message))
+
+    def _rag_top_k(self, filter_result: FilterResult) -> int:
+        """RAG top_k 결정."""
+        if filter_result.emotional_priority:
+            return 1
+        return config.RAG_TOP_K
+
+    def _try_rag_search(self, message: str, filter_result: FilterResult):
+        """RAG 검색 시도. 실패 시 None."""
+        if not self._should_run_rag(message, filter_result):
+            logger.info("rag_skipped")
+            return None
+        rag_svc = self._get_rag_service()
+        if not rag_svc:
+            return None
+        try:
+            result = rag_svc.search(query=message, top_k=self._rag_top_k(filter_result))
+            if result and result.hit_count > 0:
+                logger.info("rag_search_hit")
+            else:
+                logger.info("rag_search_no_hit")
+            return result
+        except Exception:
+            logger.warning("rag_search_failed")
+            return None
+
+    # ── User Context 메서드 ──────────────────────────────────────
+
+    def _get_user_context_service(self):
+        """User Context 서비스 lazy init. 실패 시 None."""
+        if self._user_context_service is not None:
+            return self._user_context_service
+        try:
+            from app.services.user_context import UserContextService
+
+            self._user_context_service = UserContextService()
+            return self._user_context_service
+        except Exception:
+            logger.warning("user_context_init_failed")
+            return None
+
+    def _should_build_user_context(
+        self, filter_result: FilterResult, profile
+    ) -> bool:
+        """User Context 생성 조건 판별. HEALTH_GENERAL만."""
+        if not config.USER_CONTEXT_ENABLED:
+            return False
+        if profile is None:
+            return False
+        if filter_result.medical_action == FilterMedicalAction.MEDICAL_NOTE:
+            return False
+        if filter_result.message_route is None:
+            return False
+        if filter_result.emotional_priority:
+            return False
+        if filter_result.message_route != MessageRoute.HEALTH_GENERAL:
+            return False
+        return True
+
+    _TOPIC_SLEEP_RE = re.compile(r"(?:수면|잠|불면|숙면|시간.*자)")
+    _TOPIC_EXERCISE_RE = re.compile(r"(?:운동|산책|걷기|달리기|헬스|체조|활동)")
+
+    def _select_topic_hint(self, message: str) -> str | None:
+        """메시지 키워드 기반 topic hint 선택."""
+        if self._TOPIC_SLEEP_RE.search(message):
+            return "sleep"
+        if self._TOPIC_EXERCISE_RE.search(message):
+            return "exercise"
+        return None
+
+    async def send_message_stream(  # noqa: C901
         self,
         user_id: int,
         message: str,
@@ -165,13 +304,35 @@ class ChatService:
         if not self._is_in_crisis_cooldown(user_id) and not suppress_emotional:
             eligible_bundles = await self.health_question_service.get_eligible_bundles(user_id)
 
+        # RAG 검색 (eligible_bundles 뒤, _build_openai_messages 전)
+        rag_result = self._try_rag_search(message, filter_result)
+
+        # 사용자 맥락 (HEALTH_GENERAL만, profile 재사용)
+        user_context = None
+        if self._should_build_user_context(filter_result, profile):
+            uc_svc = self._get_user_context_service()
+            if uc_svc:
+                try:
+                    topic_hint = self._select_topic_hint(message)
+                    user_context = uc_svc.build_context(profile, topic_hint=topic_hint)
+                    if user_context and user_context.has_context:
+                        logger.info("user_context_built")
+                    else:
+                        logger.info("user_context_none")
+                except Exception:
+                    logger.warning("user_context_failed")
+        else:
+            logger.info("user_context_skipped")
+
         # 컨텍스트 구성 (WARN/MEDICAL_NOTE 시 추가 지시문 포함)
         history = await ChatMessage.filter(session=session).order_by("created_at").limit(MAX_HISTORY_MESSAGES).all()
         openai_messages = await self._build_openai_messages(
-            user_id,
+            profile,
             history,
             eligible_bundles,
             filter_result,
+            rag_result,
+            user_context,
         )
 
         # OpenAI 스트리밍 + 응답 저장
@@ -256,17 +417,32 @@ class ChatService:
             return await ChatSession.get_or_none(id=session_id, user_id=user_id)
         return await ChatSession.create(user_id=user_id, title=message[:50])
 
+    # ── User Context Preface (chat.py가 소유) ──────────────────
+    _USER_CONTEXT_PREFACE = (
+        "\n\n## 사용자 맥락 (답변 조정용)\n"
+        "아래는 사용자의 생활습관 맥락이야. "
+        "이 정보를 직접 언급하거나 나열하지 마. "
+        "진단명·수치·질환명·복약 정보를 추론해 말하지 마. "
+        "답변 톤을 자연스럽게 조정하는 데만 활용해.\n"
+    )
+
     async def _build_openai_messages(
         self,
-        user_id: int,
+        profile,
         history: list,
         eligible_bundles: list[str],
         filter_result: FilterResult | None = None,
+        rag_result=None,
+        user_context=None,
     ) -> list[dict[str, str]]:
-        """OpenAI 메시지 리스트 구성. route/emotional/filter 지시문 순서대로 append."""
-        system_prompt = await self._build_system_prompt(user_id, eligible_bundles)
+        """OpenAI 메시지 리스트 구성. 7-layer 프롬프트 순서."""
+        system_prompt = await self._build_system_prompt(profile, eligible_bundles)
 
-        # 프롬프트 순서: BASE → 건강질문 → route 지시문 → emotional 지시문 → filter 지시문
+        # Layer 2.5: 사용자 맥락 (HEALTH_GENERAL + profile 존재 시만)
+        if user_context and user_context.has_context and config.USER_CONTEXT_APPLY_ENABLED:
+            system_prompt += self._USER_CONTEXT_PREFACE + user_context.summary + "\n"
+
+        # 프롬프트 순서: BASE → 건강질문 → user-context → route → emotional → RAG → filter
         if (
             filter_result
             and config.CONTENT_FILTER_ROUTING_APPLY_ENABLED
@@ -277,6 +453,10 @@ class ChatService:
                 system_prompt += route_instruction
             if filter_result.emotional_priority:
                 system_prompt += EMOTIONAL_INSTRUCTION
+
+        # RAG 컨텍스트 (route/emotional 뒤, filter ���)
+        if rag_result and rag_result.has_context and config.RAG_APPLY_ENABLED:
+            system_prompt += rag_result.prompt_context
 
         # 기존 filter instruction 항상 마지막 (의료안전 최우선)
         if filter_result and filter_result.prompt_instruction:
@@ -395,9 +575,8 @@ class ChatService:
             cooldown_until=result["cooldown_until"],
         )
 
-    async def _build_system_prompt(self, user_id: int, eligible_bundles: list[str]) -> str:
+    async def _build_system_prompt(self, profile, eligible_bundles: list[str]) -> str:
         """시스템 프롬프트 구성."""
-        profile = await HealthProfile.get_or_none(user_id=user_id)
         user_group = profile.user_group if profile else "C"
 
         health_instruction = ""

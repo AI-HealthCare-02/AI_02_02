@@ -59,3 +59,14 @@ class Config(BaseSettings):
     # 메시지 라우팅 (route enum + emotional_priority)
     CONTENT_FILTER_ROUTING_ENABLED: bool = False
     CONTENT_FILTER_ROUTING_APPLY_ENABLED: bool = False
+
+    # RAG (건강 문서 검색 — in-process lexical)
+    RAG_ENABLED: bool = False
+    RAG_APPLY_ENABLED: bool = False
+    RAG_TOP_K: int = 2
+    RAG_MAX_CONTEXT_CHARS: int = 700
+    RAG_CORPUS_DIR: str = "docs/knowledge/approved"
+
+    # 사용자 맥락 (맞춤답변 — HealthProfile 기반 thin personalization)
+    USER_CONTEXT_ENABLED: bool = False
+    USER_CONTEXT_APPLY_ENABLED: bool = False

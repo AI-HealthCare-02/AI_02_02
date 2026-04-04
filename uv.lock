@@ -46,6 +46,7 @@ app = [
     { name = "bcrypt" },
     { name = "fastapi", extra = ["standard"] },
     { name = "httpx" },
+    { name = "korcen" },
     { name = "openai" },
     { name = "orjson" },
     { name = "passlib", extra = ["bcrypt"] },
@@ -91,6 +92,7 @@ app = [
     { name = "bcrypt", specifier = "<=4.0.1" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.128.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "korcen", specifier = ">=0.4" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "orjson", specifier = ">=3.11.5" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
@@ -222,6 +224,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/87/69/edacb37481d360d06fc947dab5734aaf511acb7d1a1f9e2849454376c0f8/bcrypt-4.0.1-cp36-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:e9a51bbfe7e9802b5f3508687758b564069ba937748ad7b9e890086290d2f79e", size = 624290, upload-time = "2022-10-09T15:36:31.251Z" },
     { url = "https://files.pythonhosted.org/packages/aa/ca/6a534669890725cbb8c1fb4622019be31813c8edaa7b6d5b62fc9360a17e/bcrypt-4.0.1-cp36-abi3-win32.whl", hash = "sha256:2caffdae059e06ac23fce178d31b4a702f2a3264c20bfb5ff541b338194d8fab", size = 159428, upload-time = "2022-10-09T15:36:32.893Z" },
     { url = "https://files.pythonhosted.org/packages/46/81/d8c22cd7e5e1c6a7d48e41a1d1d46c92f17dae70a54d9814f746e6027dec/bcrypt-4.0.1-cp36-abi3-win_amd64.whl", hash = "sha256:8a68f4341daf7522fe8d73874de8906f3a339048ba406be6ddc1b3ccb16fc0d9", size = 152930, upload-time = "2022-10-09T15:36:34.635Z" },
+]
+
+[[package]]
+name = "better-profanity"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/4a/52966c1c883819f0b48540312a4a7f63b5c49f4e5b1a10838ae7f06ebb3c/better_profanity-0.7.0.tar.gz", hash = "sha256:8a6fdc8606d7471e7b5f6801917eca98ec211098262e82f62da4f5de3a73145b", size = 29977, upload-time = "2020-11-02T10:49:57.54Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/dd/0b074d89e903cc771721cde2c4bf3d8c9d114b5bd791af5c62bcf5fb9459/better_profanity-0.7.0-py3-none-any.whl", hash = "sha256:bd4c529ea6aa2db1aaa50524be1ed14d0fe5c664f1fd88c8bc388c7e9f9f00e8", size = 46104, upload-time = "2020-11-02T10:49:56.066Z" },
 ]
 
 [[package]]
@@ -836,6 +847,19 @@ wheels = [
 ]
 
 [[package]]
+name = "korcen"
+version = "1.0.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "better-profanity" },
+    { name = "ordereddict" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cb/56/66b05520db2561968909c2347e46d91ff3ff8d8f2e07ebe8b728290edb8a/korcen-1.0.2.tar.gz", hash = "sha256:a2ee52bda54ae1c356556ef6d9d49b4012e0dafee1f7fabe1690b8aa27286273", size = 22704, upload-time = "2025-05-20T11:49:06.728Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/eb/c0/0674954252f84f65d984a4c999969ba2dd84811abe15dcb7e23cb76d492b/korcen-1.0.2-py3-none-any.whl", hash = "sha256:bf543ce48e79a4b4391e17f25054b5fdfb90a8224e728be8331c7ed6cc4b861e", size = 59246, upload-time = "2025-05-20T11:49:03.555Z" },
+]
+
+[[package]]
 name = "librt"
 version = "0.7.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1219,6 +1243,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/88/15/52580c8fbc16d0675
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/9e/5bfa2270f902d5b92ab7d41ce0475b8630572e71e349b2a4996d14bdda93/openai-2.30.0-py3-none-any.whl", hash = "sha256:9a5ae616888eb2748ec5e0c5b955a51592e0b201a11f4262db920f2a78c5231d", size = 1146656, upload-time = "2026-03-25T22:08:58.2Z" },
 ]
+
+[[package]]
+name = "ordereddict"
+version = "1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/25/ef88e8e45db141faa9598fbf7ad0062df8f50f881a36ed6a0073e1572126/ordereddict-1.1.tar.gz", hash = "sha256:1c35b4ac206cef2d24816c89f89cf289dd3d38cf7c449bb3fab7bf6d43f01b1f", size = 2114, upload-time = "2010-10-28T10:08:17.831Z" }
 
 [[package]]
 name = "orjson"
