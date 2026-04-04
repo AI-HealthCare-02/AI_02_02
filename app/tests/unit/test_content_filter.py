@@ -10,7 +10,7 @@
 
 import pytest
 
-from app.models.enums import FilterExpressionVerdict, FilterMedicalAction
+from app.models.enums import FilterExpressionVerdict, FilterMedicalAction, MessageRoute
 from app.services.content_filter import ContentFilterService, _normalize_text
 
 
@@ -223,3 +223,137 @@ class TestPriority:
         result = service.check_message("죽고 싶다")
         assert result.medical_action == FilterMedicalAction.CRISIS_ESCALATE
         assert result.user_facing_message is not None
+
+
+# ──────────────────────────────────────────────
+# 메시지 라우팅 분류
+# ──────────────────────────────────────────────
+
+
+@pytest.fixture
+def routing_service(monkeypatch):
+    """ROUTING_ENABLED=True인 ContentFilterService 인스턴스."""
+    monkeypatch.setenv("CONTENT_FILTER_ROUTING_ENABLED", "true")
+    return ContentFilterService()
+
+
+class TestRoutingSpecific:
+    """HEALTH_SPECIFIC 분류 검증."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "혈당이 130이에요",
+            "당뇨약 먹고 있어요",
+            "인슐린 용량이 걱정돼",
+        ],
+    )
+    def test_specific_route(self, routing_service, text):
+        result = routing_service.check_message(text)
+        assert result.message_route == MessageRoute.HEALTH_SPECIFIC, f"'{text}' → expected HEALTH_SPECIFIC"
+        assert result.emotional_priority is False
+
+
+class TestRoutingGeneral:
+    """HEALTH_GENERAL 분류 검증."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "혈당이 왜 올라가?",
+            "식단 관리 어떻게 해?",
+            "운동하면 혈당이 떨어져?",
+        ],
+    )
+    def test_general_route(self, routing_service, text):
+        result = routing_service.check_message(text)
+        assert result.message_route == MessageRoute.HEALTH_GENERAL, f"'{text}' → expected HEALTH_GENERAL"
+        assert result.emotional_priority is False
+
+
+class TestRoutingLifestyle:
+    """LIFESTYLE_CHAT 분류 검증."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "안녕",
+            "오늘 날씨 좋다",
+            "밥 먹었어?",
+        ],
+    )
+    def test_lifestyle_route(self, routing_service, text):
+        result = routing_service.check_message(text)
+        assert result.message_route == MessageRoute.LIFESTYLE_CHAT, f"'{text}' → expected LIFESTYLE_CHAT"
+        assert result.emotional_priority is False
+
+
+class TestRoutingEmotional:
+    """emotional_priority 분류 검증."""
+
+    @pytest.mark.parametrize(
+        "text,expected_route",
+        [
+            ("요즘 너무 우울해", MessageRoute.LIFESTYLE_CHAT),
+            ("너무 불안해", MessageRoute.LIFESTYLE_CHAT),
+        ],
+    )
+    def test_pure_emotional(self, routing_service, text, expected_route):
+        result = routing_service.check_message(text)
+        assert result.message_route == expected_route, f"'{text}' → expected {expected_route}"
+        assert result.emotional_priority is True
+
+
+class TestRoutingMixed:
+    """혼합 메시지 — route + emotional 동시 검증 (핵심 시나리오)."""
+
+    def test_specific_with_emotional(self, routing_service):
+        """혈당 수치 + 불안 → HEALTH_SPECIFIC + emotional=True."""
+        result = routing_service.check_message("혈당 130인데 너무 불안해")
+        assert result.message_route == MessageRoute.HEALTH_SPECIFIC
+        assert result.emotional_priority is True
+
+    def test_general_with_emotional(self, routing_service):
+        """운동 + 힘듦 → HEALTH_GENERAL + emotional=True."""
+        result = routing_service.check_message("운동했는데 너무 힘들어")
+        assert result.message_route == MessageRoute.HEALTH_GENERAL
+        assert result.emotional_priority is True
+
+    def test_medication_with_emotional(self, routing_service):
+        """약 미복용 + 우울 → HEALTH_SPECIFIC + emotional=True."""
+        result = routing_service.check_message("우울한데 약도 안 먹었어")
+        assert result.message_route == MessageRoute.HEALTH_SPECIFIC
+        assert result.emotional_priority is True
+
+
+class TestRoutingFalsePositive:
+    """오탐 방지 검증."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "살짝 늦었어",
+            "물어봐도 돼?",
+            "오늘 날씨 좋다",
+        ],
+    )
+    def test_no_false_positive(self, routing_service, text):
+        result = routing_service.check_message(text)
+        assert result.message_route == MessageRoute.LIFESTYLE_CHAT, f"'{text}' → expected LIFESTYLE_CHAT"
+        assert result.emotional_priority is False
+
+
+class TestRoutingFeatureFlagOff:
+    """feature flag off 시 기존 동작 유지."""
+
+    def test_flag_off_returns_none(self, service):
+        """ROUTING_ENABLED=False(기본) → route=None, emotional=False."""
+        result = service.check_message("혈당이 130이에요")
+        assert result.message_route is None
+        assert result.emotional_priority is False
+
+    def test_existing_tests_unaffected(self, service):
+        """기존 2축 판정이 영향받지 않는지 확인."""
+        result = service.check_message("죽고 싶다")
+        assert result.medical_action == FilterMedicalAction.CRISIS_ESCALATE
+        assert result.message_route is None

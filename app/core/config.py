@@ -55,3 +55,7 @@ class Config(BaseSettings):
     CONTENT_FILTER_ENABLED: bool = True
     CONTENT_FILTER_BLOCK_ENABLED: bool = True
     CONTENT_FILTER_SHADOW_MODERATION_ENABLED: bool = False
+
+    # 메시지 라우팅 (route enum + emotional_priority)
+    CONTENT_FILTER_ROUTING_ENABLED: bool = False
+    CONTENT_FILTER_ROUTING_APPLY_ENABLED: bool = False

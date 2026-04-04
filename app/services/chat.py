@@ -13,7 +13,7 @@ from app.core import config
 from app.core.logger import setup_logger
 from app.dtos.chat import ChatHistoryResponse, ChatMessageDTO, HealthAnswerResponse
 from app.models.chat import ChatMessage, ChatSession, MessageRole
-from app.models.enums import AiConsent, FilterExpressionVerdict, FilterMedicalAction
+from app.models.enums import AiConsent, FilterExpressionVerdict, FilterMedicalAction, MessageRoute
 from app.models.health import HealthProfile
 from app.services.content_filter import ContentFilterService, FilterResult
 from app.services.health_question import (
@@ -67,6 +67,27 @@ HEALTH_QUESTION_INSTRUCTION = """
 질문 목록:
 {questions}
 """
+
+# ──────────────────────────────────────────────
+# 메시지 라우팅 지시문
+# ──────────────────────────────────────────────
+
+ROUTE_INSTRUCTIONS: dict[MessageRoute, str] = {
+    MessageRoute.HEALTH_SPECIFIC: (
+        "\n\n## 추가 지시 (구체적 건강 수치)\n"
+        "사용자가 구체적 수치, 증상, 약 복용을 언급했어. "
+        "의학적 판단을 절대 하지 말고, 생활습관 범위에서만 답변해. "
+        "필요하면 '전문 의료진 상담을 권장해요'를 자연스럽게 포함해줘."
+    ),
+}
+
+EMOTIONAL_INSTRUCTION = (
+    "\n\n## 추가 지시 (감정 우선)\n"
+    "사용자가 감정적 어려움을 표현했어. "
+    "공감과 위로를 최우선으로 응답해. "
+    "건강 정보보다 감정 인정이 먼저야. "
+    "이번 응답에서 건강 관련 질문은 하지 마."
+)
 
 
 class ChatService:
@@ -135,9 +156,13 @@ class ChatService:
 
         await ChatMessage.create(session=session, role=MessageRole.USER, content=message)
 
-        # 건강질문 — 위기 후 24시간 쿨링오프 적용
+        # 건강질문 — 위기 쿨링오프 + emotional_priority 억제
         eligible_bundles: list[str] = []
-        if not self._is_in_crisis_cooldown(user_id):
+        suppress_emotional = (
+            config.CONTENT_FILTER_ROUTING_APPLY_ENABLED
+            and filter_result.emotional_priority
+        )
+        if not self._is_in_crisis_cooldown(user_id) and not suppress_emotional:
             eligible_bundles = await self.health_question_service.get_eligible_bundles(user_id)
 
         # 컨텍스트 구성 (WARN/MEDICAL_NOTE 시 추가 지시문 포함)
@@ -238,8 +263,22 @@ class ChatService:
         eligible_bundles: list[str],
         filter_result: FilterResult | None = None,
     ) -> list[dict[str, str]]:
-        """OpenAI 메시지 리스트 구성. WARN/MEDICAL_NOTE 시 추가 지시문 포함."""
+        """OpenAI 메시지 리스트 구성. route/emotional/filter 지시문 순서대로 append."""
         system_prompt = await self._build_system_prompt(user_id, eligible_bundles)
+
+        # 프롬프트 순서: BASE → 건강질문 → route 지시문 → emotional 지시문 → filter 지시문
+        if (
+            filter_result
+            and config.CONTENT_FILTER_ROUTING_APPLY_ENABLED
+            and filter_result.message_route
+        ):
+            route_instruction = ROUTE_INSTRUCTIONS.get(filter_result.message_route)
+            if route_instruction:
+                system_prompt += route_instruction
+            if filter_result.emotional_priority:
+                system_prompt += EMOTIONAL_INSTRUCTION
+
+        # 기존 filter instruction 항상 마지막 (의료안전 최우선)
         if filter_result and filter_result.prompt_instruction:
             system_prompt += filter_result.prompt_instruction
         messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]

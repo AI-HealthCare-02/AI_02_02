@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 
 from app.core.config import Config
 from app.core.logger import setup_logger
-from app.models.enums import FilterExpressionVerdict, FilterMedicalAction
+from app.models.enums import FilterExpressionVerdict, FilterMedicalAction, MessageRoute
 
 logger = setup_logger(__name__)
 
@@ -187,6 +187,49 @@ POSITIVE_EXCLUDERS: list[re.Pattern[str]] = [
 ]
 
 # ──────────────────────────────────────────────
+# 메시지 라우팅 패턴 (사전 컴파일)
+# ──────────────────────────────────────────────
+
+# HEALTH_SPECIFIC: 혈당수치/복약/증상 — 면책 강화 대상
+ROUTING_SPECIFIC_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(p)
+    for p in [
+        r"(?:혈당|혈압|당화혈색소|공복혈당).{0,5}\d+",
+        r"(?:몸무게|체중|허리둘레).{0,5}\d+",
+        r"(?:당뇨|혈압|고지혈)약\s*(?:먹|복용|끊|중단)",
+        r"(?:인슐린|메트포민|글리메피리드)\s*(?:주사|복용|용량|맞)",
+        r"(?:저혈당|고혈당|두통|어지러|시야)\s*(?:증상|있|났|생겼)",
+        r"인슐린\s*용량",
+        r"약.{0,3}(?:안\s*먹|안\s*맞|끊|중단|복용)",
+    ]
+]
+
+# HEALTH_GENERAL: 운동/식단/수면 일반 건강 질문
+ROUTING_GENERAL_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(p)
+    for p in [
+        r"(?:운동|산책|걷기|달리기|수영|자전거|등산|스트레칭|요가)\s*(?:하|했|해|할|시작|방법)?",
+        r"(?:식단|다이어트|칼로리|탄수화물|단백질)\s*(?:관리|조절|어떻게)?",
+        r"(?:수면|잠|숙면|불면)\s*(?:시간|못|잘|패턴)?",
+        r"(?:금주|금연|음주|술)\s*(?:줄이|끊|했|안)?",
+        r"(?:건강검진|검진|정기검진)",
+        r"혈당\s*(?:이?\s*왜|어떻게|뭐|언제|올라|내려|떨어)",
+    ]
+]
+
+# EMOTIONAL: 감정 표현 — 건강질문 억제 + 공감 우선
+ROUTING_EMOTION_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(p)
+    for p in [
+        r"(?:우울|불안|외로|무기력|짜증|서운|괴로)\s*(?:하|해|한|했|ㅠ|\.{2,})",
+        r"(?:스트레스|답답)\s*(?:받|돼|되|나|심|해)",
+        r"(?:힘들|지쳐|지치|슬프|화나)\s*(?:어|다|네|ㅠ|\.{2,})",
+        r"(?:기분|마음|감정)\s*이?\s*(?:안\s*좋|나빠|우울|불안)",
+        r"너무\s*(?:우울|불안|힘들|지쳐)",
+    ]
+]
+
+# ──────────────────────────────────────────────
 # 위기 고정 응답
 # ──────────────────────────────────────────────
 
@@ -238,13 +281,15 @@ def _normalize_text(text: str) -> str:
 
 @dataclass
 class FilterResult:
-    """2축 판정 결과. 내부 전용 — API 응답에 직접 노출하지 않는다."""
+    """2축 판정 + 라우팅 결과. 내부 전용 — API 응답에 직접 노출하지 않는다."""
 
     expression_verdict: FilterExpressionVerdict
     medical_action: FilterMedicalAction
     reason_codes: list[str] = field(default_factory=list)
     user_facing_message: str | None = None
     prompt_instruction: str | None = None
+    message_route: MessageRoute | None = None
+    emotional_priority: bool = False
 
 
 # ──────────────────────────────────────────────
@@ -294,7 +339,14 @@ class ContentFilterService:
 
         # 3. 우선순위 합산: CRISIS > BLOCK > MEDICAL_NOTE > WARN > ALLOW
         reason_codes = expression_reasons + medical_reasons
-        return self._merge_results(expression_verdict, medical_action, reason_codes)
+        result = self._merge_results(expression_verdict, medical_action, reason_codes)
+
+        # 4. 라우팅 분류 (기존 2축과 독립)
+        route, emotional = self._classify_routing(normalized, medical_action, reason_codes)
+        result.message_route = route
+        result.emotional_priority = emotional
+
+        return result
 
     # ── 의료안전축 ──
 
@@ -483,3 +535,45 @@ class ContentFilterService:
             medical_action=medical,
             reason_codes=reason_codes,
         )
+
+    # ── 메시지 라우팅 ──
+
+    def _classify_routing(
+        self,
+        text: str,
+        medical_action: FilterMedicalAction,
+        reason_codes: list[str],
+    ) -> tuple[MessageRoute | None, bool]:
+        """메시지를 route(3값) + emotional_priority(bool)로 분류한다.
+
+        route와 emotional은 독립적 — 혼합 메시지 시 둘 다 True 가능.
+        실패 시 (None, False) 반환 → 기존 2축 판정에 영향 없음.
+        """
+        if not self._config.CONTENT_FILTER_ROUTING_ENABLED:
+            return None, False
+
+        try:
+            # 1. emotional_priority 판정 (route와 독립)
+            emotional = False
+            if "health_frustration" in reason_codes:
+                emotional = True
+            elif any(p.search(text) for p in ROUTING_EMOTION_PATTERNS):
+                emotional = True
+
+            # 2. route 판정 (specific > general > lifestyle)
+            specific_signal = (
+                medical_action == FilterMedicalAction.MEDICAL_NOTE
+                or any(p.search(text) for p in ROUTING_SPECIFIC_PATTERNS)
+            )
+            general_signal = any(p.search(text) for p in ROUTING_GENERAL_PATTERNS)
+
+            if specific_signal:
+                route = MessageRoute.HEALTH_SPECIFIC
+            elif general_signal:
+                route = MessageRoute.HEALTH_GENERAL
+            else:
+                route = MessageRoute.LIFESTYLE_CHAT
+
+            return route, emotional
+        except Exception:
+            return None, False

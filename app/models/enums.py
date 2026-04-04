@@ -374,6 +374,14 @@ class FilterMedicalAction(StrEnum):
     CRISIS_ESCALATE = "crisis_escalate"
 
 
+class MessageRoute(StrEnum):
+    """채팅 메시지 라우팅 — 프롬프트 전략 분기용"""
+
+    HEALTH_GENERAL = "health_general"
+    HEALTH_SPECIFIC = "health_specific"
+    LIFESTYLE_CHAT = "lifestyle_chat"
+
+
 # ──────────────────────────────────────────────
 # 도메인 매핑 상수
 # ──────────────────────────────────────────────
