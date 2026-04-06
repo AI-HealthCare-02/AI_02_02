@@ -57,7 +57,7 @@ echo ""
 # ---------- Select Prompt ----------
 echo "${COLOR_BLUE}배포 전 빌드 & 푸시할 이미지를 선택하세요(복수선택 가능, 띄어쓰기로 구분)${COLOR_NC}"
 echo "1) fastapi"
-echo "2) ai_worker"
+echo "2) ai-worker"
 read -p "선택 (예: 1 2): " selections
 echo ""
 
@@ -70,13 +70,13 @@ for choice in $selections; do
     1)
       echo "${COLOR_BLUE}FastAPI 앱의 배포 버젼을 입력하세요(ex. v1.0.0)${COLOR_NC}"
       read -p "FastAPI 앱 버젼: " fastapi_version
-      build_and_push ${docker_user} ${docker_repo} "FastAPI" ${fastapi_version} "app/Dockerfile" "."
+      build_and_push ${docker_user} ${docker_repo} "FastAPI" ${fastapi_version} "backend/Dockerfile" "."
       DEPLOY_SERVICES+=("fastapi")
       ;;
     2)
       echo "${COLOR_BLUE}AI-worker 앱의 배포 버젼을 입력하세요(ex. v1.0.0)${COLOR_NC}"
       read -p "AI-worker 앱 버젼: " ai_version
-      build_and_push ${docker_user} ${docker_repo} "AI Worker" ${ai_version} "ai_worker/Dockerfile" "."
+      build_and_push ${docker_user} ${docker_repo} "AI Worker" ${ai_version} "workers/ai/Dockerfile" "."
       DEPLOY_SERVICES+=("ai-worker")
       ;;
     *)

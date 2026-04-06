@@ -30,7 +30,7 @@
 
 > "누가 어떤 데이터에 접근할 수 있는가?"
 
-- **인증(Authentication)**: JWT 토큰 기반. `app/dependencies/security.py`의 `get_request_user()`가 모든 보호 엔드포인트에 적용
+- **인증(Authentication)**: JWT 토큰 기반. `backend/dependencies/security.py`의 `get_request_user()`가 모든 보호 엔드포인트에 적용
 - **인가(Authorization)**: 사용자는 **자신의 데이터만** 조회/수정 가능. 모든 쿼리에 `user_id=user.id` 조건 필수
 - **관리자 접근**: 별도 어드민 API는 현재 미구현. 구현 시 역할(Role) 기반 접근 제어 필요
 - DB 직접 접근은 프로덕션 환경에서 **VPN + SSH 터널** 경유만 허용
@@ -73,7 +73,7 @@
 
 > "AI 채팅 기능에서 사용자 데이터가 OpenAI로 전송되는 부분의 규칙"
 
-- **전송 범위**: `app/services/chat.py`에서 OpenAI API로 전송되는 것은 대화 메시지와 시스템 프롬프트(user_group 정보 포함)
+- **전송 범위**: `backend/services/chat.py`에서 OpenAI API로 전송되는 것은 대화 메시지와 시스템 프롬프트(user_group 정보 포함)
 - **전송되지 않는 것**: 혈압/혈당 수치, 복약 기록, 음주량 등 건강 원시 데이터는 직접 전송하지 않음
 - **OpenAI 정책**: API 요청 데이터는 모델 학습에 사용되지 않음 (OpenAI API Data Usage Policy)
 - **사용자 고지**: 이용약관에 "AI 응답 생성을 위해 대화 내용이 OpenAI 서버로 전송될 수 있습니다" 명시 필요

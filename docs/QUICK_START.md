@@ -37,7 +37,7 @@ git clone https://github.com/BIJENG/DANAA_project.git
 cd DANAA_project
 ```
 
-> 이게 뜨면 성공!: 폴더 안에 `app/`, `docker-compose.yml` 등이 보이면 OK
+> 이게 뜨면 성공!: 폴더 안에 `backend/`, `docker-compose.yml` 등이 보이면 OK
 
 ---
 
@@ -141,7 +141,7 @@ docker compose -p ai-health-local exec fastapi uv run aerich upgrade
 ## 7. 프론트엔드 켜기 (별도 터미널)
 
 ```bash
-cd apps/web
+cd frontend
 npm install      # 처음 한 번만
 npm run dev      # http://localhost:3000 에서 확인
 ```

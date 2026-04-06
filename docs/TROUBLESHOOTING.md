@@ -196,7 +196,7 @@ Module not found: Can't resolve ...
 ### 이렇게 해결
 
 ```bash
-cd apps/web
+cd frontend
 rm -rf node_modules
 npm install
 npm run dev

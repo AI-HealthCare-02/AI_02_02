@@ -11,12 +11,12 @@
 
 - 현재 작업 디렉토리는 팀원이 만든 뼈대 구조와 맞춰진 상태로 본다.
 - 백엔드 주요 구조는 아래 기준을 따른다.
-  - `app/apis/v1/`
-  - `app/models/`
-  - `app/services/`
-  - `app/dtos/`
-  - `app/core/`
-  - `app/middleware/`
+  - `backend/apis/v1/`
+  - `backend/models/`
+  - `backend/services/`
+  - `backend/dtos/`
+  - `backend/core/`
+  - `backend/middleware/`
 - 사용자가 명확하게 구조 변경을 요청하지 않는 한, 이 구조를 현재 프로젝트 기본 뼈대로 본다.
 
 ## 명세 기준
@@ -58,12 +58,12 @@
 
 ## 백엔드 구조 규칙
 
-- API 라우터는 `app/apis/v1/`에 둔다.
-- Pydantic 요청/응답 모델은 `app/dtos/`에 둔다.
-- Tortoise ORM 모델은 `app/models/`에 둔다.
-- 비즈니스 로직은 `app/services/`에 둔다.
-- 설정, 로깅, Redis, JWT, 캐시, Sentry는 `app/core/`에 둔다.
-- 미들웨어는 `app/middleware/`에 둔다.
+- API 라우터는 `backend/apis/v1/`에 둔다.
+- Pydantic 요청/응답 모델은 `backend/dtos/`에 둔다.
+- Tortoise ORM 모델은 `backend/models/`에 둔다.
+- 비즈니스 로직은 `backend/services/`에 둔다.
+- 설정, 로깅, Redis, JWT, 캐시, Sentry는 `backend/core/`에 둔다.
+- 미들웨어는 `backend/middleware/`에 둔다.
 - 새 모델을 추가할 때는 모델 등록과 migration 처리까지 같이 확인한다.
 
 ## 건강 데이터와 의료 안전

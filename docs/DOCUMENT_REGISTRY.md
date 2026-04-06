@@ -68,13 +68,13 @@
 
 | 영역 | 경로 | 동기화 기준 |
 |------|------|------------|
-| DB 모델 (ORM) | `app/models/*.py` | DB 명세 V2 |
-| Enum 정의 | `app/models/enums.py` | API 명세 V2 허용값 |
-| DTO (요청/응답) | `app/dtos/*.py` | API 명세 V2 JSON 스키마 |
-| 서비스 로직 | `app/services/*.py` | DB 명세 V2 + API 명세 V2 |
-| API 라우터 | `app/apis/v1/*.py` | API 명세 V2 엔드포인트 |
-| 프론트 질문 데이터 | `apps/web/data/diabetes.js` | 매일수집질문_DB설계.md |
-| 테스트 | `app/tests/`, `scripts/test_*.py` | 위 코드와 동일 기준 |
+| DB 모델 (ORM) | `backend/models/*.py` | DB 명세 V2 |
+| Enum 정의 | `backend/models/enums.py` | API 명세 V2 허용값 |
+| DTO (요청/응답) | `backend/dtos/*.py` | API 명세 V2 JSON 스키마 |
+| 서비스 로직 | `backend/services/*.py` | DB 명세 V2 + API 명세 V2 |
+| API 라우터 | `backend/apis/v1/*.py` | API 명세 V2 엔드포인트 |
+| 프론트 질문 데이터 | `frontend/data/diabetes.js` | 매일수집질문_DB설계.md |
+| 테스트 | `backend/tests/`, `scripts/test_*.py` | 위 코드와 동일 기준 |
 
 ---
 

@@ -36,7 +36,7 @@
 | 로깅 | structlog | (setup_logger() 인터페이스) |
 | 에러추적 | Sentry | (DSN 비어있으면 비활성화) |
 | Rate Limit | slowapi | (Redis 백엔드) |
-| 프론트엔드 | Next.js 14 | apps/web/ 폴더 (별도 작업) |
+| 프론트엔드 | Next.js 14 | frontend/ 폴더 (별도 작업) |
 
 ---
 
@@ -44,7 +44,7 @@
 
 ```
 프로젝트루트/
-├── app/                        ← 🔥 FastAPI 백엔드 (여기서 주로 작업)
+├── backend/                    ← 🔥 FastAPI 백엔드 실소스
 │   ├── apis/v1/                ← API 라우터 9개 (auth, chat, user, dashboard, ...)
 │   ├── core/                   ← 설정(config.py), 로거, Redis, JWT, Sentry, 캐시
 │   ├── db/                     ← Tortoise ORM 초기화 (databases.py)
@@ -60,8 +60,8 @@
 │   │   └── integration/        ← DB 필요 (23개 테스트, conftest.py에 DB설정)
 │   └── utils/                  ← 공통 유틸 (common.py, security.py)
 │
-├── ai_worker/                  ← AI 모델 추론 전용 워커 (별도 컨테이너)
-├── apps/web/                   ← Next.js 프론트엔드
+├── workers/ai/                 ← AI 모델 추론 전용 워커 실소스
+├── frontend/                   ← Next.js 프론트엔드
 │
 ├── docs/
 │   ├── QUICK_START.md          ← 처음 환경 구축 (15~20분)
@@ -88,8 +88,8 @@
 
 #### 1. API 라우터 패턴
 ```python
-# 파일: app/apis/v1/{도메인}_routers.py
-from app.dependencies.security import get_request_user  # 인증
+# 파일: backend/apis/v1/{도메인}_routers.py
+from backend.dependencies.security import get_request_user  # 인증
 
 @router.post("/endpoint", status_code=status.HTTP_201_CREATED)
 async def my_endpoint(
@@ -103,7 +103,7 @@ async def my_endpoint(
 
 #### 2. 서비스 클래스 패턴
 ```python
-# 파일: app/services/{도메인}.py
+# 파일: backend/services/{도메인}.py
 class MyService:
     async def do_something(self, user_id: int, data: MyRequest) -> MyResponse:
         # Tortoise ORM으로 DB 조작
@@ -113,7 +113,7 @@ class MyService:
 
 #### 3. DB 모델 패턴 (Tortoise ORM)
 ```python
-# 파일: app/models/{도메인}.py
+# 파일: backend/models/{도메인}.py
 class MyModel(models.Model):
     id = fields.IntField(pk=True)
     user = fields.ForeignKeyField("models.User", related_name="my_records")
@@ -122,11 +122,11 @@ class MyModel(models.Model):
     class Meta:
         table = "my_table"
 ```
-- 새 모델 추가 시 `app/db/databases.py`의 `TORTOISE_APP_MODELS` 리스트에 등록 필수
+- 새 모델 추가 시 `backend/db/databases.py`의 `TORTOISE_APP_MODELS` 리스트에 등록 필수
 
 #### 4. DTO 패턴 (Pydantic)
 ```python
-# 파일: app/dtos/{도메인}.py
+# 파일: backend/dtos/{도메인}.py
 class MyRequest(BaseModel):
     field_name: str
     optional_field: int | None = None
@@ -139,7 +139,7 @@ class MyResponse(BaseModel):
 
 #### 5. Enum 패턴
 ```python
-# 파일: app/models/enums.py (한 곳에 모아둠, 38개 StrEnum)
+# 파일: backend/models/enums.py (한 곳에 모아둠, 38개 StrEnum)
 class MyStatus(StrEnum):
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -156,7 +156,7 @@ user: Annotated[User, Depends(get_request_user)]
 
 #### 7. 로깅 패턴
 ```python
-from app.core.logger import setup_logger
+from backend.core.logger import setup_logger
 logger = setup_logger("모듈이름")
 logger.info("메시지", key="value")  # structlog 기반
 ```
@@ -234,7 +234,7 @@ docker compose -p ai-health-local up -d postgres redis fastapi nginx
 # http://localhost/api/docs (Swagger UI)
 
 # 5. 테스트
-uv run pytest app/tests/unit/ -v    # DB 없이 31개
+uv run pytest backend/tests/unit/ -v    # DB 없이 31개
 ```
 
 ---
@@ -300,13 +300,13 @@ uv run pytest app/tests/unit/ -v    # DB 없이 31개
 
 ### 새 기능 추가할 때 체크리스트
 
-1. **API 추가**: `app/apis/v1/` 라우터 파일 → `app/apis/v1/__init__.py`에 등록
-2. **DB 모델 추가**: `app/models/` 모델 파일 → `app/db/databases.py` MODELS 리스트에 등록
-3. **DTO 추가**: `app/dtos/` 요청/응답 스키마
-4. **서비스 추가**: `app/services/` 비즈니스 로직
-5. **Enum 추가**: `app/models/enums.py`에 StrEnum 클래스
-6. **테스트 추가**: `app/tests/unit/` (순수 로직) 또는 `app/tests/integration/` (DB 필요)
-7. **린트 확인**: `uv run ruff check app/`
+1. **API 추가**: `backend/apis/v1/` 라우터 파일 → `backend/apis/v1/__init__.py`에 등록
+2. **DB 모델 추가**: `backend/models/` 모델 파일 → `backend/db/databases.py` MODELS 리스트에 등록
+3. **DTO 추가**: `backend/dtos/` 요청/응답 스키마
+4. **서비스 추가**: `backend/services/` 비즈니스 로직
+5. **Enum 추가**: `backend/models/enums.py`에 StrEnum 클래스
+6. **테스트 추가**: `backend/tests/unit/` (순수 로직) 또는 `backend/tests/integration/` (DB 필요)
+7. **린트 확인**: `uv run ruff check backend/`
 
 ---
 
@@ -348,7 +348,7 @@ Claude Code를 사용하면 이 규칙들이 자동으로 로드돼:
 3. **Tortoise ORM 패턴 유지** — SQLAlchemy로 바꾸지 마
 4. **인증 필요한 API는 `Depends(get_request_user)` 사용**
 5. **건강 데이터 로그에 남기지 마** — Sentry에도 필터링됨
-6. **`uv run ruff check app/` 통과해야 커밋 가능**
+6. **`uv run ruff check backend/` 통과해야 커밋 가능**
 7. **모르겠으면 `docs/` 안의 문서를 먼저 읽어**
 
 이제 맥락이 잡혔으면, 내가 시키는 작업을 해줘!

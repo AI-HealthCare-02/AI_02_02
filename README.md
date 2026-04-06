@@ -33,12 +33,12 @@
 
 ```text
 .
-├── ai_worker/          # AI 모델 추론 및 학습 관련 코드 (Worker)
+├── workers/ai/         # AI 모델 추론 및 학습 관련 코드 (Worker)
 │   ├── core/           # 워커 설정 및 로거
 │   ├── models/         # AI 모델 파일 보관 (PyTorch 등)
 │   ├── tasks/          # 실제 처리할 작업 정의
 │   └── main.py         # 워커 진입점
-├── app/                # FastAPI 서버 코드
+├── backend/            # FastAPI 서버 코드
 │   ├── apis/           # API 라우터 (v1 버전 관리)
 │   ├── core/           # 서버 설정 (pydantic-settings)
 │   ├── db/             # 데이터베이스 초기화 및 마이그레이션 (Tortoise ORM)
@@ -122,14 +122,14 @@ docker compose up -d --build
 
 **FastAPI 서버 실행:**
 ```bash
-uv run uvicorn app.main:app --reload
+uv run uvicorn backend.main:app --reload
 # or
 docker compose up -d --build fastapi
 ```
 
 **AI Worker 실행:**
 ```bash
-uv run python -m ai_worker.main
+uv run python -m workers.ai.main
 # or
 docker compose up -d --build ai-worker
 ```
@@ -192,9 +192,9 @@ chmod +x scripts/certbot.sh
 
 ## 개발 가이드
 
-- **API 추가**: `app/apis/v1/` 아래에 새로운 라우터 파일을 생성하고 `app/apis/v1/__init__.py`에 등록하세요.
-- **DB 모델 추가**: `app/models/`에 Tortoise 모델을 정의하고 `app/db/databases.py`의 `TORTOISE_APP_MODELS`에 등록하세요.
-- **AI 로직 추가**: `ai_worker/tasks/`에 새로운 처리 로직을 작성하고 `ai_worker/main.py`에서 호출하도록 구성하세요.
+- **API 추가**: `backend/apis/v1/` 아래에 새로운 라우터 파일을 생성하고 라우터 등록을 확인하세요.
+- **DB 모델 추가**: `backend/models/`에 Tortoise 모델을 정의하고 현재 Aerich 설정과 `TORTOISE_APP_MODELS` 등록을 함께 확인하세요.
+- **AI 로직 추가**: `workers/ai/tasks/`에 새로운 처리 로직을 작성하고 `python -m workers.ai.main`에서 호출되도록 구성하세요.
 
 ---
 

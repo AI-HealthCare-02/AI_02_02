@@ -14,7 +14,7 @@ sys.path.insert(0, ".")
 
 from tortoise import Tortoise
 
-from app.db.databases import TORTOISE_APP_MODELS, TORTOISE_ORM
+from backend.db.databases import TORTOISE_ORM
 
 TEMPLATES = [
     {
@@ -123,7 +123,7 @@ async def seed() -> None:
     """챌린지 템플릿 시드 데이터 생성."""
     await Tortoise.init(config=TORTOISE_ORM)
 
-    from app.models.challenges import ChallengeTemplate
+    from backend.models.challenges import ChallengeTemplate
 
     created = 0
     skipped = 0

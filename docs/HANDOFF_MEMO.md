@@ -45,7 +45,7 @@
 
 ```
 프로젝트루트/
-├── app/                          ← FastAPI 백엔드 (핵심)
+├── backend/                      ← FastAPI 백엔드 실소스 (핵심)
 │   ├── main.py                   ← FastAPI 앱 초기화, 미들웨어, lifespan
 │   ├── apis/v1/                  ← 라우터 10개 파일
 │   │   ├── auth_routers.py       ← 인증 (signup, login, refresh, consent)
@@ -89,8 +89,8 @@
 │   ├── utils/                    ← 비밀번호 해싱, JWT 유틸
 │   ├── tests/                    ← 테스트 54개 (828줄)
 │   └── db/                       ← Tortoise 설정 + Aerich 마이그레이션
-├── apps/web/                     ← Next.js 14 프론트엔드 (미완성)
-├── ai_worker/                    ← AI Worker (미실행)
+├── frontend/                     ← Next.js 14 프론트엔드 (미완성)
+├── workers/ai/                   ← AI Worker 실소스 (미실행)
 ├── nginx/                        ← Nginx 설정 (HTTP/HTTPS)
 ├── envs/                         ← 환경변수 예시 파일
 ├── docker-compose.yml            ← 개발용 (postgres, redis, fastapi, nginx)
@@ -219,7 +219,7 @@
 ## 5. LLM 파이프라인 상세 (멘토 핵심 관심사)
 
 ### 9단계 순차 처리 (Chain 패턴)
-`app/services/chat.py` — `send_message_stream()` 메서드
+`backend/services/chat.py` — `send_message_stream()` 메서드
 
 ```
 Step 1: _validate_request(user_id, session_id) → str | None
@@ -255,7 +255,7 @@ Step 9: _build_done_data(session_id, bundles) → dict
 2. **건강 질문 삽입**: 시스템 프롬프트 + 질문 지시문 → OpenAI가 자연스럽게 질문 → 응답 + 질문 UI 데이터
 3. **건강 답변 저장**: POST /health-answer → DailyHealthLog 저장 (First Answer Wins) → 90분 쿨다운
 
-### 건강질문 4대 삽입 조건 (`app/services/health_question.py`)
+### 건강질문 4대 삽입 조건 (`backend/services/health_question.py`)
 1. **90분 쿨다운 경과**: 마지막 건강질문 응답으로부터 90분 이상
 2. **시간 윈도우 내**: 아침(07-09), 점심(11:30-13:30), 저녁(17-20)
 3. **해당 묶음 미응답**: 오늘 아직 답하지 않은 질문
@@ -329,7 +329,7 @@ ChallengeTemplate (글로벌) ← 챌린지 템플릿 정의
 
 ## 7. 핵심 비즈니스 로직
 
-### FINDRISC 점수 계산 (`app/services/prediction.py`)
+### FINDRISC 점수 계산 (`backend/services/prediction.py`)
 8개 변수, 0-26점:
 
 | 변수 | 최대점 | 계산 방식 |
@@ -350,14 +350,14 @@ ChallengeTemplate (글로벌) ← 챌린지 템플릿 정의
 - 채소=null → 1점 (안 먹는 것 가정)
 - 고혈압=null → 0점 (약 복용 가정 절대 불가)
 
-### 생활습관 점수 (`app/services/risk_analysis.py`)
+### 생활습관 점수 (`backend/services/risk_analysis.py`)
 가중 평균: 수면25% + 식단30% + 운동30% + 음주15% = 0~100점
 
 - **수면**: quality 기본점(10-100) + duration 보정(-20~+10)
 - **식단**: 채소(30) + 균형(30) + 단음료(20) + 야식(20)
 - **운동**: 빈도(50) + 시간(30, 주150분 기준) + 산책(20)
 
-### 참여 상태 머신 (`app/tasks/daily_cron.py`)
+### 참여 상태 머신 (`backend/tasks/daily_cron.py`)
 ```
 ACTIVE (응답률 ≥ 80%)
   ↓
@@ -441,7 +441,7 @@ HIBERNATING (마지막 응답 > 30일)
   docs/prototypes/다나아_Phase0-8_팀발표자료.html (5탭, 시각화)
        ↓
 [계층 5: 코드]
-  app/models/, app/dtos/, app/apis/, app/services/
+  backend/models/, backend/dtos/, backend/apis/, backend/services/
 ```
 
 ---
@@ -532,7 +532,7 @@ docker compose -p ai-health-local up -d postgres redis fastapi nginx
 # http://localhost/api/docs
 
 # 테스트 실행
-docker exec -it fastapi pytest app/tests/ -v
+docker exec -it fastapi pytest backend/tests/ -v
 
 # 린트
 ruff check . --fix
@@ -541,4 +541,4 @@ ruff check . --fix
 ---
 
 > 이 메모는 프로젝트의 모든 구현 내역, 설계 결정, 비즈니스 로직, 보안 조치를 포함합니다.
-> 코드를 직접 읽을 때는 `app/services/` → `app/models/` → `app/apis/v1/` → `app/tests/` 순서로 읽는 것을 권장합니다.
+> 코드를 직접 읽을 때는 `backend/services/` → `backend/models/` → `backend/apis/v1/` → `backend/tests/` 순서로 읽는 것을 권장합니다.

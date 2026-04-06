@@ -33,7 +33,7 @@ jobs:
         run: uv sync --group app --group dev
 
       - name: Run Ruff
-        run: uv run ruff check app
+        run: uv run ruff check backend
 
       - name: Run unit tests
-        run: uv run pytest app/tests/unit -q
+        run: uv run pytest backend/tests/unit -q
