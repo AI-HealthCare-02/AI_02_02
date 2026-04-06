@@ -90,7 +90,6 @@
 | `docs/DEVELOPMENT_WORKFLOWS.md` | Git/CI/CD 워크플로 | |
 | `docs/TROUBLESHOOTING.md` | 에러 해결 가이드 | |
 | `docs/MEDICAL_COMPLIANCE.md` | 의료 데이터 컴플라이언스 | |
-| `LLM-파트-시작-가이드.md` | LLM 파트 구현 시작 가이드 | 프로젝트 루트 |
 | `docs/collaboration/doc-sync-map.md` | 문서 동기화 안내 (비개발자용) | |
 
 ---

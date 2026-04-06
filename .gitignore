@@ -43,3 +43,10 @@ docker-compose.override.yml
 task_plan.md
 findings.md
 progress.md
+
+# AI tooling & session artifacts (Claude Code harness)
+.claude/
+AGENTS.md
+CLAUDE.md
+LLM-파트-시작-가이드.md
+prompt_plan.md

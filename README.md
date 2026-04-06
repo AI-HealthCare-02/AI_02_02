@@ -202,7 +202,5 @@ chmod +x scripts/certbot.sh
 
 | 문서 | 내용 |
 |------|------|
-| [CLAUDE.md](CLAUDE.md) | AI 페어 프로그래밍 규칙 |
 | [docs/HANDOFF_MEMO.md](docs/HANDOFF_MEMO.md) | 프로젝트 전체 인수인계 메모 |
 | [docs/collaboration/](docs/collaboration/) | API/DB 명세 확정안 |
-| [LLM-파트-시작-가이드.md](LLM-파트-시작-가이드.md) | LLM 파트 구현 순서 가이드 |

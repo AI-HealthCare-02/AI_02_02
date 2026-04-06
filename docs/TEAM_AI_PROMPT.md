@@ -294,7 +294,6 @@ uv run pytest backend/tests/unit/ -v    # DB 없이 31개
 | 문서 동기화 규칙 | `docs/collaboration/doc-sync-map.md` |
 | 문서 목록 대장 | `docs/DOCUMENT_REGISTRY.md` |
 | 전체 인수인계 | `docs/HANDOFF_MEMO.md` |
-| LLM 파트 구현 | `LLM-파트-시작-가이드.md` |
 
 ---
 
