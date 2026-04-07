@@ -27,6 +27,7 @@
 |------|------|
 | BJ | `docs/TEAM_CHANGELOG_BJ.md` |
 | KJ | `docs/TEAM_CHANGELOG_KJ.md` |
+| SH | `docs/TEAM_CHANGELOG_SH.md` |
 
 ---
 
