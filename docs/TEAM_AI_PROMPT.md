@@ -69,7 +69,6 @@
 │   ├── TROUBLESHOOTING.md      ← 에러 해결 모음
 │   ├── DEVELOPMENT_WORKFLOWS.md ← Git 규칙, 커밋 컨벤션
 │   ├── MEDICAL_COMPLIANCE.md   ← 의료 데이터 준수 규칙
-│   ├── HANDOFF_MEMO.md         ← 프로젝트 전체 인수인계 메모
 │   ├── collaboration/          ← API 명세, DB 명세 (팀 공유 확정안)
 │   ├── planning/               ← 기획 문서 (참고용, 수정 금지)
 │   └── prototypes/             ← HTML 시안/데모 (참고용, 수정 금지)
@@ -78,8 +77,7 @@
 ├── scripts/                    ← CI 스크립트, git hooks, 배포 스크립트
 ├── docker-compose.yml          ← 전체 서비스 실행
 ├── pyproject.toml              ← Python 의존성 (uv 기반)
-├── CLAUDE.md                   ← AI 작업 규칙 (Claude Code 전용)
-└── .claude/rules/              ← 프로젝트별 AI 규칙 (자동 로드)
+└── README.md                   ← 프로젝트 시작 안내
 ```
 
 ---
@@ -293,7 +291,6 @@ uv run pytest backend/tests/unit/ -v    # DB 없이 31개
 | DB 구조 확인 | `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md` |
 | 문서 동기화 규칙 | `docs/collaboration/doc-sync-map.md` |
 | 문서 목록 대장 | `docs/DOCUMENT_REGISTRY.md` |
-| 전체 인수인계 | `docs/HANDOFF_MEMO.md` |
 
 ---
 
@@ -324,18 +321,10 @@ git push -u origin feature/기능이름
 
 ---
 
-### 이 프로젝트의 `.claude/` 폴더에 대해
+### 개인 AI 도구 파일 정책
 
-이 프로젝트에는 `.claude/rules/` 폴더에 AI 작업 규칙이 설정되어 있어.
-Claude Code를 사용하면 이 규칙들이 자동으로 로드돼:
-- `commit-convention.md` — 커밋 메시지 형식
-- `medical-domain.md` — 의료 표현 가드레일
-- `design-context.md` — 설계 문서 참조 기준
-- `dev-environment.md` — Docker/개발환경 설정
-- `doc-sync.md` — 문서 간 동기화 규칙
-- `eval-criteria.md` — 코드 품질 기준
-
-**다른 AI 도구(Cursor, ChatGPT)를 쓸 때는** 이 파일들을 직접 읽어서 참고해야 해.
+`.claude/`, `CLAUDE.md`, `AGENTS.md`, `docs/HANDOFF_MEMO.md` 같은 파일은 개인 작업 환경용 메모/설정일 수 있어.
+이 파일들은 저장소 정본으로 보지 말고, 실제 기준은 현재 대화 지시와 `docs/` 안의 공용 문서를 우선해서 판단해.
 
 ---
 

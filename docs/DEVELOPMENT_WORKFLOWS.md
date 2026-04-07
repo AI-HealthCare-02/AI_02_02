@@ -135,7 +135,7 @@ uv run ruff format . --check
 ### 테스트
 
 ```bash
-uv run coverage run -m pytest app
+uv run coverage run -m pytest backend
 uv run coverage report -m
 ```
 
@@ -150,19 +150,16 @@ uv run coverage report -m
 
 ## 8. 현재 CI/CD 상태
 
-현재 저장소에는 GitHub Actions 기반 자동 CI가 아직 고정되어 있지 않습니다.
+현재 저장소에는 GitHub Actions 기반 CI/CD가 설정되어 있습니다.
 
-즉 지금은:
+- `checks.yml`
+  - `uv sync --group app --group dev`
+  - `uv run ruff check backend`
+  - `uv run python -m pytest backend/tests/unit -q`
+- `ghcr-build.yml`
+  - `main` push 시 `backend/Dockerfile` 기준 FastAPI 이미지를 GHCR에 빌드/푸시
 
-- push하면 자동 검사되는 상태가 아님
-- 커밋 전 또는 PR 전에 위 검증 명령을 직접 실행하는 방식
-
-나중에 CI를 붙일 때는 최소한 아래를 자동화하면 됩니다.
-
-- `ruff check`
-- `pytest`
-- `aerich migrate/upgrade` 점검
-- Docker build 확인
+운영 배포는 완전 자동 배포가 아니라, EC2에서 `docker compose -f docker-compose.prod.yml up -d`로 수동 반영하는 방식입니다.
 
 ---
 
@@ -183,6 +180,5 @@ uv run coverage report -m
 - `docs/QUICK_START.md`
 - `docs/ARCHITECTURE.md`
 - `docs/TROUBLESHOOTING.md`
-- `docs/HANDOFF_MEMO.md`
 - `docs/TEAM_CHANGELOG.md`
 - `docs/collaboration/`

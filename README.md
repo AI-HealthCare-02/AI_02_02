@@ -20,7 +20,7 @@
 ## 주요 특징
 
 - **FastAPI Framework**: 고성능 비동기 API 서버 (Python 3.13)
-- **AI Worker**: 모델 추론 작업을 API 서버와 분리하여 처리
+- **AI Worker**: `workers/ai/`에서 별도 추론 작업 관리
 - **Tortoise ORM + PostgreSQL 16**: 비동기 DB 모델링 + asyncpg
 - **Redis**: 캐시, 분산 락, 세션 관리
 - **Docker Compose**: PostgreSQL, Redis, Nginx 포함 전체 스택 실행
@@ -29,13 +29,12 @@
 
 ---
 
-## 📂 프로젝트 구조
+## 프로젝트 구조
 
 ```text
 .
 ├── workers/ai/         # AI 모델 추론 및 학습 관련 코드 (Worker)
 │   ├── core/           # 워커 설정 및 로거
-│   ├── models/         # AI 모델 파일 보관 (PyTorch 등)
 │   ├── tasks/          # 실제 처리할 작업 정의
 │   └── main.py         # 워커 진입점
 ├── backend/            # FastAPI 서버 코드
@@ -136,40 +135,23 @@ docker compose up -d --build ai-worker
 
 ### 2. EC2 배포 환경 (Production)
 
-제공된 쉘 스크립트를 사용하여 AWS EC2 환경에 이미지를 빌드, 푸시 및 배포할 수 있습니다.
+현재 운영 배포 기준은 `main` 머지 후 GitHub Actions가 FastAPI 이미지를 GHCR에 빌드하고, EC2에서 최신 이미지를 pull 받아 수동 반영하는 방식입니다.
 
 #### 사전 준비
 - EC2 인스턴스 (Ubuntu 권장)
-- SSH 키 페어 (`~/.ssh/` 경로에 위치)
-- 도커 허브(Docker Hub) 계정 및 Personal Access Token
-- 배포용 환경 변수 설정 (`envs/.prod.env`)
-- 도메인 구매 (Gabia, GoDaddy, AWS Route53 등)
+- SSH 키 페어
+- GHCR 접근 가능한 GitHub 계정
+- 운영용 `.env`
+- `docker-compose.prod.yml`에서 사용할 `FASTAPI_IMAGE`
 
-#### 자동 배포 스크립트 실행
-`scripts/deployment.sh`는 도커 이미지 빌드, 레포지토리 푸시, EC2 접속 및 컨테이너 실행 과정을 자동화합니다.
-
-```bash
-chmod +x scripts/deployment.sh
-./scripts/deployment.sh
-```
-스크립트 실행 시 다음 정보를 입력해야 합니다:
-1. 도커 허브 계정 정보 (Username, PAT)
-2. 이미지를 업로드할 레포지토리 이름
-3. 배포할 서비스 선택 (FastAPI, AI-Worker) 및 버전(Tag)
-4. SSH 키 파일명 및 EC2 IP 주소
-5. https 사용여부
-   - 5-1. https인 경우 도메인 추가 입력  
-
-#### SSL(HTTPS) 설정 (Certbot)
-도메인을 연결하고 HTTPS를 적용하려면 `scripts/certbot.sh`를 사용합니다.
+#### 운영 반영 순서
 
 ```bash
-chmod +x scripts/certbot.sh
-./scripts/certbot.sh
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 ```
-1. 도메인 주소 및 이메일 입력
-2. SSH 키 파일명 및 EC2 IP 주소 입력
-3. Let's Encrypt를 통한 인증서 발급 및 Nginx 설정 자동 갱신 적용
+
+배포 상세 절차는 `docs/EC2_GHCR_MANUAL_DEPLOY.md`를 참고하세요.
 
 ---
 
@@ -202,5 +184,4 @@ chmod +x scripts/certbot.sh
 
 | 문서 | 내용 |
 |------|------|
-| [docs/HANDOFF_MEMO.md](docs/HANDOFF_MEMO.md) | 프로젝트 전체 인수인계 메모 |
 | [docs/collaboration/](docs/collaboration/) | API/DB 명세 확정안 |

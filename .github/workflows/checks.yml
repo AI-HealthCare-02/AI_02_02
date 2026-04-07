@@ -36,4 +36,4 @@ jobs:
         run: uv run ruff check backend
 
       - name: Run unit tests
-        run: uv run pytest backend/tests/unit -q
+        run: uv run python -m pytest backend/tests/unit -q

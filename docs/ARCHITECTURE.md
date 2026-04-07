@@ -91,7 +91,7 @@ ai-worker -------> postgres
 +-- envs/                 <-- 환경변수 예시 파일
 +-- docker-compose.yml    <-- Docker 설정 (개발용)
 +-- pyproject.toml        <-- Python 의존성 설정
-+-- CLAUDE.md             <-- AI 페어 프로그래밍 규칙
++-- docs/TEAM_AI_PROMPT.md <-- 팀 공용 AI 협업 가이드
 ```
 
 ---

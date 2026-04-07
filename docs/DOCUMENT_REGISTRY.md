@@ -52,17 +52,14 @@
 
 > V8-7 이하 데모, V2 이하 설계가이드는 **구현 시 참조 금지**. 이력 확인용으로만 보세요.
 
-### 규칙 파일 (자동 로딩)
+### 로컬 AI 도구 파일
 
-| 파일 | 역할 |
-|------|------|
-| `.claude/rules/design-context.md` | V8-8 기준 확정 규칙 (90분 쿨다운, 5색 등) |
-| `.claude/rules/medical-domain.md` | 의료 안전 가드레일 |
-| `.claude/rules/doc-sync.md` | 문서 동기화 규칙 (유형 A~I) |
-| `.claude/rules/eval-criteria.md` | 기술 평가 기준 |
-| `.claude/rules/commit-convention.md` | 커밋 메시지 규칙 |
-| `.claude/rules/skill-usage.md` | 스킬 사용 규칙 |
-| `.claude/rules/dev-environment.md` | 개발 환경 설정 |
+아래 파일들은 개인 AI 도구 설정/메모 성격이라 저장소 정본으로 관리하지 않습니다.
+
+- `.claude/`
+- `CLAUDE.md`
+- `AGENTS.md`
+- `docs/HANDOFF_MEMO.md`
 
 ## 계층 5: 코드 (Code) — "구현"
 
@@ -82,9 +79,7 @@
 
 | 파일 | 역할 | 비고 |
 |------|------|------|
-| `CLAUDE.md` | AI 실행 가이드 (마스터 규칙) | 프로젝트 루트 |
 | `docs/TEAM_AI_PROMPT.md` | 팀원 AI 협업 프롬프트 | **확정안 변경 시 같이 갱신** |
-| `docs/HANDOFF_MEMO.md` | 인수인계 메모 | **확정안 변경 시 같이 갱신** |
 | `docs/ARCHITECTURE.md` | 시스템 아키텍처 개요 | **확정안 변경 시 같이 갱신** |
 | `docs/QUICK_START.md` | 8단계 환경 설정 가이드 | |
 | `docs/DEVELOPMENT_WORKFLOWS.md` | Git/CI/CD 워크플로 | |
@@ -119,12 +114,12 @@
 
 ## 문서 변경 시 체크리스트
 
-1. 확정안(DB/API) 내용 수정 → `.claude/rules/doc-sync.md` 유형 A~F 체크리스트 따르기
+1. 확정안(DB/API) 내용 수정 → `docs/collaboration/doc-sync-map.md` 기준으로 관련 문서 동기화
 2. 확정안 버전 업 (V2→V3) → 유형 G 체크리스트
 3. 데모 버전 업 (V8-8→V8-9) → 유형 H 체크리스트
 4. 확정안 변경 후 팀 문서 → 유형 I 체크리스트
 
-상세 규칙: `.claude/rules/doc-sync.md` | 비개발자 가이드: `docs/collaboration/doc-sync-map.md`
+비개발자 가이드: `docs/collaboration/doc-sync-map.md`
 
 ---
 
