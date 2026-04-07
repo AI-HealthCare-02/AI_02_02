@@ -19,6 +19,7 @@ from backend.core import config
 from backend.models.assessments import UserEngagement
 from backend.models.enums import FIELD_TO_SOURCE, DataSource, EngagementState, UserGroup
 from backend.models.health import DailyHealthLog, HealthProfile
+from backend.models.settings import UserSettings
 
 # ai_worker의 묶음 정의를 직접 참조하지 않고 여기서 매핑 정의
 # (Docker 컨테이너 격리로 workers/ai/ 직접 import 불가)
@@ -135,6 +136,10 @@ class HealthQuestionService:
     async def get_eligible_bundles(self, user_id: int) -> list[str]:
         """4조건을 모두 만족하는 묶음 키 리스트 반환 (최대 2개)."""
         now = datetime.now(tz=config.TIMEZONE)
+        settings = await self._get_settings(user_id)
+
+        if not settings.chat_notification:
+            return []
 
         # 조건 4: 야간 침묵 (22:00~07:00)
         if now.hour >= NIGHT_START_HOUR or now.hour < NIGHT_END_HOUR:
@@ -144,16 +149,25 @@ class HealthQuestionService:
         engagement = await self._get_engagement(user_id, now)
         if engagement.cooldown_until and engagement.cooldown_until > now:
             return []
+        if engagement.today_bundle_count >= settings.max_bundles_per_day:
+            return []
 
         # 조건 2+3: 시간 윈도우 후보 → 미응답 필터
         today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=now.date())
         profile = await HealthProfile.get_or_none(user_id=user_id)
         user_group = profile.user_group if profile else UserGroup.C
 
-        candidates = self._get_time_candidates(now, user_group, engagement)
+        candidates = self._get_time_candidates(
+            now, user_group, engagement, settings.preferred_times,
+        )
         eligible = self._filter_unanswered(candidates, today_log)
 
         return eligible[:MAX_BUNDLES_PER_RESPONSE]
+
+    @staticmethod
+    async def _get_settings(user_id: int) -> UserSettings:
+        settings, _ = await UserSettings.get_or_create(user_id=user_id)
+        return settings
 
     async def _get_engagement(self, user_id: int, now: datetime) -> UserEngagement:
         """UserEngagement 로드 + 일일 리셋."""
@@ -166,14 +180,21 @@ class HealthQuestionService:
         return engagement
 
     def _get_time_candidates(
-        self, now: datetime, user_group: str, engagement: UserEngagement
+        self,
+        now: datetime,
+        user_group: str,
+        engagement: UserEngagement,
+        preferred_times: list[str] | None,
     ) -> list[str]:
         """현재 시각 기반 묶음 후보 수집."""
         candidates: list[str] = []
         current_minutes = now.hour * 60 + now.minute
+        preferred = set(preferred_times or [])
 
         for touchpoint, (sh, sm, eh, em) in TIME_WINDOWS.items():
             if sh * 60 + sm <= current_minutes < eh * 60 + em:
+                if preferred and touchpoint not in preferred:
+                    continue
                 candidates.extend(TOUCHPOINT_BUNDLES[touchpoint])
 
         # anytime 묶음

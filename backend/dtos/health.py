@@ -212,3 +212,25 @@ class MeasurementListResponse(BaseModel):
     """측정값 목록 응답."""
 
     measurements: list[MeasurementResponse]
+
+
+class WeeklySeriesPoint(BaseModel):
+    date: date
+    value: float | None = None
+    goal_value: float | None = None
+
+
+class WeeklyCategoryResponse(BaseModel):
+    current_value: float | None = None
+    previous_value: float | None = None
+    change: float | None = None
+    goal_value: float
+    series: list[WeeklySeriesPoint] = Field(default_factory=list)
+
+
+class HealthWeeklyResponse(BaseModel):
+    week_start: date
+    week_end: date
+    previous_week_start: date
+    previous_week_end: date
+    categories: dict[str, WeeklyCategoryResponse]

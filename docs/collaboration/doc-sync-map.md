@@ -17,12 +17,12 @@
        │
        ▼
 [2단계: 저장소 설계]
-  docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md (데이터를 어떻게 저장할지)
-  docs/collaboration/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx (같은 내용 엑셀 버전)
+  docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-07.md (데이터를 어떻게 저장할지)
+  docs/collaboration/archive/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx (구버전 엑셀 - archive)
        │
        ▼
 [3단계: 주고받기 규칙]
-  docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md (프론트↔백엔드가 데이터 주고받는 형식)
+  docs/collaboration/DANAA_API최종확정안_V2_2026-04-07.md (프론트↔백엔드가 데이터 주고받는 형식)
        │
        ▼
 [4단계: 참고 자료]

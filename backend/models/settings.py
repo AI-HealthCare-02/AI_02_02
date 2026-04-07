@@ -12,6 +12,7 @@ class UserSettings(models.Model):
     )
 
     nickname = fields.CharField(max_length=30, null=True)
+    chat_notification = fields.BooleanField(default=True)
     morning_reminder = fields.BooleanField(default=True)
     evening_reminder = fields.BooleanField(default=True)
     challenge_reminder = fields.BooleanField(default=True)
