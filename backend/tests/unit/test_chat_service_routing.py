@@ -18,6 +18,7 @@ from backend.services.chat import (
     ROUTE_INSTRUCTIONS,
 )
 from backend.services.content_filter import FilterResult
+from backend.services.content_filter_reason_codes import FilterReasonCode
 
 # ──────────────────────────────────────────────
 # 지시문 구조 검증
@@ -75,7 +76,7 @@ class TestFilterResultCompat:
         result = FilterResult(
             expression_verdict=FilterExpressionVerdict.ALLOW,
             medical_action=FilterMedicalAction.CRISIS_ESCALATE,
-            reason_codes=["crisis_intent"],
+            reason_codes=[FilterReasonCode.CRISIS_INTENT],
             user_facing_message="위기 응답",
             prompt_instruction=None,
         )
