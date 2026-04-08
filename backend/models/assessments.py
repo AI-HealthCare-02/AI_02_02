@@ -9,7 +9,8 @@ class RiskAssessment(models.Model):
     """위험도 계산 결과 · 리포트용 점수.
 
     FINDRISC 8변수 개별 점수(score_age ~ score_family)를 저장하고,
-    risk_badge / overall_grade / coach_summary는 API 계층에서 계산한다.
+    risk_badge / overall_grade / coach_summary는 후속 분석 고도화 시
+    API 계층에서 계산할 수 있는 후보 값이다.
     """
 
     id = fields.BigIntField(primary_key=True)

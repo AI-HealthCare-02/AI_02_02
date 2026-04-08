@@ -18,6 +18,7 @@ class ChallengeOverviewItem(BaseModel):
     emoji: str
     category: str
     status: str
+    is_fixed: bool
     current_streak: int
     best_streak: int
     progress_pct: float

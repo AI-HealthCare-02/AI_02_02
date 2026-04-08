@@ -50,6 +50,7 @@ class ChallengeService:
                 emoji=uc.template.emoji,
                 category=uc.template.category,
                 status=uc.status,
+                is_fixed=uc.selection_source == SelectionSource.SYSTEM_RECOMMENDED,
                 current_streak=uc.current_streak,
                 best_streak=uc.best_streak,
                 progress_pct=float(uc.progress_pct),
@@ -77,6 +78,8 @@ class ChallengeService:
             stats={
                 "active_count": len(active),
                 "completed_count": len(completed),
+                "max_active_count": MAX_ACTIVE_CHALLENGES,
+                "remaining_active_slots": max(0, MAX_ACTIVE_CHALLENGES - len(active)),
             },
         )
 

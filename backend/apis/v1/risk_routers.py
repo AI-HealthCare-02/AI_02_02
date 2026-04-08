@@ -30,6 +30,20 @@ async def get_latest_risk(
     )
 
 
+@risk_router.get("/history", status_code=status.HTTP_200_OK)
+async def get_risk_history(
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[RiskAnalysisService, Depends(RiskAnalysisService)],
+    weeks: int = 12,
+) -> Response:
+    """최근 주간 위험도 이력 조회."""
+    result = await service.get_risk_history(user_id=user.id, weeks=weeks)
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @risk_router.post("/recalculate", status_code=status.HTTP_200_OK)
 async def recalculate_risk(
     user: Annotated[User, Depends(get_request_user)],

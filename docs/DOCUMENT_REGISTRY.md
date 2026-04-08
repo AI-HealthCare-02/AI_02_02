@@ -9,8 +9,8 @@
 
 | 항목 | 현재 버전 | 파일명 | 갱신일 |
 |------|----------|--------|--------|
-| DB 명세 | **V2** | `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md` | 2026-04-03 |
-| API 명세 | **V2** | `docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md` | 2026-04-03 |
+| DB 명세 | **V2** | `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-07.md` | 2026-04-07 |
+| API 명세 | **V2** | `docs/collaboration/DANAA_API최종확정안_V2_2026-04-07.md` | 2026-04-07 |
 | 웹 데모 | **V8-8** | `docs/prototypes/다나아_웹서비스_데모V8-8.html` | 2026-03-31 |
 | 설계가이드 | **V3** | `docs/prototypes/다나아_데이터수집_설계가이드V3.html` | 2026-03-31 |
 
@@ -29,14 +29,14 @@
 
 | 파일 | 역할 | 수정 가능? | 변경 시 동기화 |
 |------|------|-----------|---------------|
-| `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md` | DB 테이블/필드 정의 (13테이블) | YES | 계층 3 + 계층 5 코드 |
-| `docs/collaboration/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx` | 같은 내용 엑셀 버전 | YES | DB 명세 V2와 동일하게 |
+| `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-07.md` | DB 테이블/필드 정의 (13테이블) | YES | 계층 3 + 계층 5 코드 |
+| `docs/collaboration/archive/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx` | 구버전 엑셀 (archive) | NO | 참고용, V2 명세 우선 |
 
 ## 계층 3: API 계약 (Contract) — "어떻게 주고받을지"
 
 | 파일 | 역할 | 수정 가능? | 변경 시 동기화 |
 |------|------|-----------|---------------|
-| `docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md` | 28개 엔드포인트 정의 | YES | 계층 5 코드 + 팀문서 |
+| `docs/collaboration/DANAA_API최종확정안_V2_2026-04-07.md` | 31개 엔드포인트 정의 | YES | 계층 5 코드 + 팀문서 |
 
 ## 계층 4: 참조 (Reference) — "디자인/규칙"
 
@@ -86,6 +86,9 @@
 | `docs/TROUBLESHOOTING.md` | 에러 해결 가이드 | |
 | `docs/MEDICAL_COMPLIANCE.md` | 의료 데이터 컴플라이언스 | |
 | `docs/collaboration/doc-sync-map.md` | 문서 동기화 안내 (비개발자용) | |
+| `docs/setup/04-07 15-04 프론트 계약 변경 메모.md` | 프론트 적용용 계약 변경 메모 | **API/DB 변경 시 같이 갱신** |
+| `docs/setup/04-07 15-04 개발 안전 체크리스트.md` | 이번 DB/API 변경의 개발 게이트 기록 | |
+| `docs/setup/04-07 15-04 PR 리뷰 게이트.md` | 이번 DB/API 변경의 PR 리뷰 게이트 기록 | |
 
 ---
 
@@ -105,10 +108,12 @@
 
 | 파일 | 대체 문서 | 폐기일 |
 |------|----------|--------|
-| `docs/collaboration/DANAA_API최종확정안_2026-04-02.md` | V2 (`_V2_2026-04-03.md`) | 2026-04-03 |
-| `docs/collaboration/DANAA_DB명세최종확정안_2026-04-02.md` | V2 (`_V2_2026-04-03.md`) | 2026-04-03 |
+| `docs/collaboration/archive/DANAA_API최종확정안_2026-04-02.md` | V2 (`_V2_2026-04-07.md`) | 2026-04-07 |
+| `docs/collaboration/archive/DANAA_DB명세최종확정안_2026-04-02.md` | V2 (`_V2_2026-04-07.md`) | 2026-04-07 |
+| `docs/collaboration/archive/DANAA_DB명세최종확정안_2026-04-03.md` | V2 (`_V2_2026-04-07.md`) | 2026-04-07 |
+| `docs/collaboration/archive/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx` | V2 (`_V2_2026-04-07.md`) | 2026-04-07 |
 
-> 폐기 파일은 삭제하지 않고 첫 줄에 "DEPRECATED" 표시가 있습니다. V2 변경이력 비교용으로만 참고하세요.
+> 폐기 파일은 `docs/collaboration/archive/` 로 이동했습니다. V2 변경이력 비교용으로만 참고하세요.
 
 ---
 
@@ -123,4 +128,4 @@
 
 ---
 
-*갱신일: 2026-04-03 | 이 문서 자체의 갱신은 확정안 버전 업(유형 G) 시 자동 포함됩니다.*
+*갱신일: 2026-04-07 | 이 문서 자체의 갱신은 확정안 버전 업(유형 G) 시 자동 포함됩니다.*

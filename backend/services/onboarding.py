@@ -11,8 +11,10 @@ from tortoise.transactions import in_transaction
 
 from backend.core import config
 from backend.dtos.onboarding import (
+    ConsentDetailResponse,
     ConsentRequest,
     ConsentResponse,
+    ConsentUpdateRequest,
     OnboardingStatusResponse,
     SurveyRequest,
     SurveyResponse,
@@ -66,6 +68,32 @@ class OnboardingService:
             consented_at=now,
         )
         return ConsentResponse(consented_at=consent.consented_at)
+
+    async def update_consent(
+        self, user_id: int, data: ConsentUpdateRequest
+    ) -> ConsentDetailResponse:
+        """기존 동의 상태 부분 수정."""
+        consent = await UserConsent.get_or_none(user_id=user_id)
+        if not consent:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="동의 정보가 없습니다. 먼저 최초 동의를 완료해주세요.",
+            )
+
+        payload = data.model_dump(exclude_none=True)
+        for field_name, value in payload.items():
+            setattr(consent, field_name, value)
+
+        await consent.save(update_fields=[*payload.keys(), "updated_at"])
+        return ConsentDetailResponse(
+            terms_of_service=consent.terms_of_service,
+            privacy_policy=consent.privacy_policy,
+            health_data_consent=consent.health_data_consent,
+            disclaimer_consent=consent.disclaimer_consent,
+            marketing_consent=consent.marketing_consent,
+            consented_at=consent.consented_at,
+            updated_at=consent.updated_at,
+        )
 
     async def submit_survey(
         self, user_id: int, data: SurveyRequest
@@ -157,5 +185,8 @@ class OnboardingService:
                 is_completed=True,
                 completed_at=profile.created_at,
                 user_group=profile.user_group,
+                gender=profile.gender,
+                age_range=profile.age_range,
+                bmi=profile.bmi,
             )
         return OnboardingStatusResponse(is_completed=False)
