@@ -1,0 +1,82 @@
+[
+  {
+    "input": "죽고 싶다",
+    "expected_medical_action": "crisis_escalate",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "lifestyle_chat",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": ["crisis_intent"]
+  },
+  {
+    "input": "죽고...싶다",
+    "expected_medical_action": "crisis_escalate",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "lifestyle_chat",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": ["crisis_intent"]
+  },
+  {
+    "input": "배고파, 죽겠다",
+    "expected_medical_action": "none",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "lifestyle_chat",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": []
+  },
+  {
+    "input": "약을 끊을 거예요",
+    "expected_medical_action": "medical_note",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_specific",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": ["medical_refusal"]
+  },
+  {
+    "input": "약. 끊을 거예요",
+    "expected_medical_action": "medical_note",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_specific",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": ["medical_refusal"]
+  },
+  {
+    "input": "혈당이 130.5인데요",
+    "expected_medical_action": "none",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_specific",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": []
+  },
+  {
+    "input": "혈당 100-120 왔다갔다해요",
+    "expected_medical_action": "none",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_specific",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": []
+  },
+  {
+    "input": "공복혈당 95mg/dL",
+    "expected_medical_action": "none",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_specific",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": []
+  },
+  {
+    "input": "운동하면 혈당이 내려가?",
+    "expected_medical_action": "none",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_general",
+    "expected_emotional_priority": false,
+    "expected_reason_codes": []
+  },
+  {
+    "input": "혈당 130인데 너무 불안해",
+    "expected_medical_action": "none",
+    "expected_expression_verdict": "allow",
+    "expected_message_route": "health_specific",
+    "expected_emotional_priority": true,
+    "expected_reason_codes": []
+  }
+]

@@ -86,6 +86,7 @@
 | `docs/TROUBLESHOOTING.md` | 에러 해결 가이드 | |
 | `docs/MEDICAL_COMPLIANCE.md` | 의료 데이터 컴플라이언스 | |
 | `docs/collaboration/doc-sync-map.md` | 문서 동기화 안내 (비개발자용) | |
+| `docs/setup/04-08 12-06 채팅 멘토링 후속 검토.md` | 채팅 흐름 순서도, content_filter decision table, LangGraph 현재 비도입 판단 | **채팅 구조 검토 시 우선 참고** |
 
 ---
 
@@ -123,4 +124,14 @@
 
 ---
 
-*갱신일: 2026-04-03 | 이 문서 자체의 갱신은 확정안 버전 업(유형 G) 시 자동 포함됩니다.*
+*갱신일: 2026-04-08 | 이 문서 자체의 갱신은 확정안 버전 업(유형 G) 시 자동 포함됩니다.*
+
+---
+
+## 2026-04-08 추가 작업 문서
+
+| 파일 | 역할 |
+|------|------|
+| `docs/setup/04-08 14-19 채팅 3트랙 구현 기록.md` | reason_codes enum, normalize option C, chat 패키지 전환 구현 요약 |
+| `docs/setup/04-08 14-19 reason codes 인벤토리.md` | reason code producer/consumer와 타입 규칙 |
+| `docs/setup/04-08 14-19 normalize 골든셋 및 금지조건.md` | normalize golden snapshot, 보호 대상, no-go 조건 |
