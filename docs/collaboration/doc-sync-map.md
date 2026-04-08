@@ -17,24 +17,25 @@
        │
        ▼
 [2단계: 저장소 설계]
-  docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md (데이터를 어떻게 저장할지)
-  docs/collaboration/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx (같은 내용 엑셀 버전)
+  docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-07.md (데이터를 어떻게 저장할지)
+  docs/collaboration/archive/DANAA_DB명세확정안_엑셀_2026-04-02.xlsx (구버전 엑셀 - archive)
        │
        ▼
 [3단계: 주고받기 규칙]
-  docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md (프론트↔백엔드가 데이터 주고받는 형식)
+  docs/collaboration/DANAA_API최종확정안_V2_2026-04-07.md (프론트↔백엔드가 데이터 주고받는 형식)
        │
        ▼
-[4단계: 참고 자료]
-  docs/prototypes/설계가이드V3.html, LLM파트가이드.html, .claude/rules/ 등
+[4단계: 실제 코드]
+  backend/models/, backend/dtos/, backend/services/, backend/apis/v1/ 등
+  backend/tests/, scripts/ (테스트)
        │
        ▼
-[5단계: 실제 코드]
-  app/models/, app/dtos/, app/services/, app/apis/ 등
-  app/tests/, scripts/ (테스트)
+[5단계: 프론트 공지]
+  docs/setup/* 프론트 계약 변경 메모
+  프론트 적용 체크리스트 / PR 본문 contract delta
 ```
 
-**핵심**: 항상 위에서 아래로 수정을 전파해요. 3단계(API)를 먼저 고치고 1단계(질문)를 나중에 고치면 안 돼요.
+**핵심**: 항상 위에서 아래로 수정을 전파해요. 원본 설계보다 API를 먼저 고치거나, 코드가 바뀌었는데 프론트 공지를 빼먹으면 안 돼요.
 
 ---
 
@@ -42,10 +43,10 @@
 
 | 내가 고친 파일 | 같이 확인해야 하는 파일들 |
 |:---|:---|
-| **매일수집질문_DB설계.md** | DB명세 V2, DB엑셀, API명세 V2, diabetes.js, 코드(models/dtos), rules/ |
+| **매일수집질문_DB설계.md** | DB명세 V2, DB엑셀, API명세 V2, `frontend/data/diabetes.js`, 코드(`backend/models`, `backend/dtos`), 프론트 계약 메모 |
 | **온보딩설문플랜.md** | 매일수집질문.md, DB명세 V2, DB엑셀, API명세 V2, diabetes.js |
-| **DB명세 V2** | DB엑셀, API명세 V2, 코드(models/dtos) |
-| **API명세 V2** | diabetes.js, 코드(apis/dtos) |
+| **DB명세 V2** | DB엑셀, API명세 V2, 코드(`backend/models`, `backend/dtos`), migration 파일 |
+| **API명세 V2** | `frontend/data/diabetes.js`, 코드(`backend/apis/v1`, `backend/dtos`), 프론트 계약 메모 |
 
 ---
 
@@ -60,6 +61,8 @@
 - [ ] DANAA_DB명세최종확정안.md에서 테이블 필드 이름 수정
 - [ ] DB엑셀에서 열 이름 수정
 - [ ] DANAA_API최종확정안.md에서 JSON 키 이름 수정
+- [ ] `backend/models`, `backend/dtos`, `backend/apis/v1`에서 실제 필드명 수정
+- [ ] 프론트 계약 메모에 변경 영향 추가
 - [ ] Claude Code에게: "프로젝트 전체에서 옛 이름(height) 검색해줘" → 0건이어야 완료
 
 ### 질문을 추가하거나 삭제할 때
@@ -69,14 +72,18 @@
 - [ ] 온보딩설문플랜.md에 화면 추가/삭제 + 분기 다이어그램 수정
 - [ ] DANAA_DB명세최종확정안.md에 필드 추가/삭제 + "N개 필드" 숫자 수정
 - [ ] DANAA_API최종확정안.md에 필드 추가/삭제
+- [ ] `backend/models`, `backend/dtos`, `backend/apis/v1` 응답/요청 필드 확인
+- [ ] migration 필요 여부 기록
 - [ ] "온보딩 → 3기능 활용" 매핑표 수정
+- [ ] 프론트 계약 메모에 추가 필드 영향 기록
 
 ### 선택지를 바꿀 때 (예: 5개 선택지 → 3개로 줄이기)
 
 - [ ] 매일수집질문_DB설계.md 선택지 목록 + "N지" 숫자
 - [ ] 온보딩설문플랜.md 선택지 목록
 - [ ] DANAA_API최종확정안.md 허용값 목록
-- [ ] diabetes.js options 배열
+- [ ] `frontend/data/diabetes.js` options 배열
+- [ ] `backend/models/enums.py` 허용값과 일치 확인
 
 ### 화면 번호를 바꿀 때
 
@@ -84,6 +91,7 @@
 - [ ] 온보딩설문플랜.md Screen 번호
 - [ ] DANAA_DB명세최종확정안.md Step 번호
 - [ ] 분기 로직 다이어그램 번호
+- [ ] 프론트 계약 메모의 화면 영향 구간 확인
 
 ---
 
@@ -99,6 +107,7 @@
 - "DB설계.md에서 family_history 선택지를 5개에서 3개로 줄였어요. 동기화해줘"
 - "온보딩플랜에서 Screen 7을 삭제했어요. 동기화 체크해줘"
 - "DANAA_API최종확정안.md에서 엔드포인트 URL을 바꿨어요. 동기화해줘"
+- "온보딩 상태 응답 필드가 늘었어요. 프론트 영향 메모까지 같이 정리해줘"
 
 Claude Code가 알아서:
 1. 어떤 유형의 변경인지 파악하고
@@ -116,6 +125,6 @@ Claude Code가 알아서:
 
 따로 요청 안 해도 자동으로 확인해줘요.
 
----
+--- 
 
-*작성일: 2026-04-02 | 관련 규칙: `.claude/rules/doc-sync.md`*
+*작성일: 2026-04-02 | 갱신일: 2026-04-07 | 관련 규칙: `.claude/rules/doc-sync.md`*

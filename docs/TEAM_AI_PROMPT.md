@@ -287,8 +287,8 @@ uv run pytest backend/tests/unit/ -v    # DB 없이 31개
 | 프로젝트 구조 이해 | `docs/ARCHITECTURE.md` |
 | Git/커밋 규칙 | `docs/DEVELOPMENT_WORKFLOWS.md` |
 | 에러 발생 | `docs/TROUBLESHOOTING.md` |
-| API 스펙 확인 | `docs/collaboration/DANAA_API최종확정안_V2_2026-04-03.md` |
-| DB 구조 확인 | `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-03.md` |
+| API 스펙 확인 | `docs/collaboration/DANAA_API최종확정안_V2_2026-04-07.md` |
+| DB 구조 확인 | `docs/collaboration/DANAA_DB명세최종확정안_V2_2026-04-07.md` |
 | 문서 동기화 규칙 | `docs/collaboration/doc-sync-map.md` |
 | 문서 목록 대장 | `docs/DOCUMENT_REGISTRY.md` |
 

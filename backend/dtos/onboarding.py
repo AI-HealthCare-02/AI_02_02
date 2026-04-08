@@ -65,6 +65,31 @@ class ConsentResponse(BaseModel):
     consented_at: datetime
 
 
+class ConsentUpdateRequest(BaseModel):
+    """기존 동의 상태 부분 수정."""
+
+    health_data_consent: bool | None = None
+    marketing_consent: bool | None = None
+
+    @model_validator(mode="after")
+    def check_any_field_present(self) -> "ConsentUpdateRequest":
+        if self.health_data_consent is None and self.marketing_consent is None:
+            raise ValueError("At least one consent field must be provided.")
+        return self
+
+
+class ConsentDetailResponse(BaseModel):
+    """최신 동의 상태 전체 응답."""
+
+    terms_of_service: bool
+    privacy_policy: bool
+    health_data_consent: bool
+    disclaimer_consent: bool
+    marketing_consent: bool
+    consented_at: datetime
+    updated_at: datetime
+
+
 class SurveyRequest(BaseModel):
     """건강 설문 요청."""
 
@@ -169,3 +194,6 @@ class OnboardingStatusResponse(BaseModel):
     is_completed: bool
     completed_at: datetime | None = None
     user_group: str | None = None
+    gender: str | None = None
+    age_range: str | None = None
+    bmi: float | None = None

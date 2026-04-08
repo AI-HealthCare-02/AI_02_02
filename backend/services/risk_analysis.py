@@ -14,6 +14,7 @@ from datetime import date, datetime, timedelta
 from backend.core import config
 from backend.dtos.analysis import AnalysisSummaryResponse, RiskBrief, ScorecardResponse
 from backend.dtos.dashboard import RiskDetailResponse
+from backend.dtos.risk import RiskHistoryPoint, RiskHistoryResponse
 from backend.models.assessments import RiskAssessment
 from backend.models.enums import PeriodType
 from backend.models.health import DailyHealthLog, HealthProfile, PeriodicMeasurement
@@ -174,6 +175,25 @@ class RiskAnalysisService:
         )
 
         return self._assessment_to_detail(assessment)
+
+    async def get_risk_history(self, user_id: int, weeks: int = 12) -> RiskHistoryResponse:
+        """최근 주간 위험도 이력 조회."""
+        assessments = await RiskAssessment.filter(
+            user_id=user_id,
+            period_type=PeriodType.WEEKLY,
+        ).order_by("-period_end").limit(weeks)
+
+        history = [
+            RiskHistoryPoint(
+                period_start=item.period_start,
+                period_end=item.period_end,
+                findrisc_score=item.findrisc_score,
+                risk_level=item.risk_level,
+                assessed_at=item.assessed_at,
+            )
+            for item in reversed(assessments)
+        ]
+        return RiskHistoryResponse(history=history)
 
     async def get_analysis_summary(
         self, user_id: int, period: int = 7

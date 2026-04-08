@@ -10,10 +10,12 @@ from backend.dependencies.security import get_request_user
 from backend.dtos.health import (
     BatchRequest,
     DailyLogPatchRequest,
+    HealthWeeklyResponse,
     MeasurementCreateRequest,
 )
 from backend.models.users import User
 from backend.services.health_daily import HealthDailyService
+from backend.services.health_weekly import HealthWeeklyService
 from backend.services.measurement import MeasurementService
 
 health_router = APIRouter(prefix="/health", tags=["health"])
@@ -113,6 +115,19 @@ async def list_measurements(
     result = await service.list_measurements(
         user_id=user.id, measurement_type=measurement_type, limit=limit,
     )
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@health_router.get("/weekly", response_model=HealthWeeklyResponse, status_code=status.HTTP_200_OK)
+async def get_weekly_summary(
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[HealthWeeklyService, Depends(HealthWeeklyService)],
+) -> Response:
+    """주간 건강 요약 지표 조회."""
+    result = await service.get_weekly_summary(user_id=user.id)
     return Response(
         content=result.model_dump(mode="json"),
         status_code=status.HTTP_200_OK,

@@ -7,7 +7,7 @@ from backend.core import config
 from backend.core.config import Env
 from backend.dependencies.security import get_request_user
 from backend.dtos.auth import LoginRequest, LoginResponse, SignUpRequest, TokenRefreshResponse
-from backend.dtos.onboarding import ConsentRequest
+from backend.dtos.onboarding import ConsentRequest, ConsentUpdateRequest
 from backend.middleware.rate_limit import limiter
 from backend.models.users import User
 from backend.services.auth import AuthService
@@ -76,4 +76,18 @@ async def save_consent(
     return Response(
         content=result.model_dump(mode="json"),
         status_code=status.HTTP_201_CREATED,
+    )
+
+
+@auth_router.patch("/consent", status_code=status.HTTP_200_OK)
+async def update_consent(
+    request: ConsentUpdateRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[OnboardingService, Depends(OnboardingService)],
+) -> Response:
+    """기존 동의 상태 부분 수정."""
+    result = await service.update_consent(user_id=user.id, data=request)
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
     )
