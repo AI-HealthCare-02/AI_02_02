@@ -89,6 +89,7 @@
 | `docs/setup/04-07 15-04 프론트 계약 변경 메모.md` | 프론트 적용용 계약 변경 메모           | **API/DB 변경 시 같이 갱신** |
 | `docs/setup/04-07 15-04 개발 안전 체크리스트.md`  | 이번 DB/API 변경의 개발 게이트 기록    |                       |
 | `docs/setup/04-07 15-04 PR 리뷰 게이트.md`    | 이번 DB/API 변경의 PR 리뷰 게이트 기록 |                       |
+| `docs/setup/04-08 12-06 채팅 멘토링 후속 검토.md` | 채팅 흐름 순서도, content_filter decision table, LangGraph 현재 비도입 판단 | **채팅 구조 검토 시 우선 참고** |
 
 ---
 
@@ -128,4 +129,14 @@
 
 ---
 
-*갱신일: 2026-04-07 | 이 문서 자체의 갱신은 확정안 버전 업(유형 G) 시 자동 포함됩니다.*
+*갱신일: 2026-04-08 | 이 문서 자체의 갱신은 확정안 버전 업(유형 G) 시 자동 포함됩니다.*
+
+---
+
+## 2026-04-08 추가 작업 문서
+
+| 파일 | 역할 |
+|------|------|
+| `docs/setup/04-08 14-19 채팅 3트랙 구현 기록.md` | reason_codes enum, normalize option C, chat 패키지 전환 구현 요약 |
+| `docs/setup/04-08 14-19 reason codes 인벤토리.md` | reason code producer/consumer와 타입 규칙 |
+| `docs/setup/04-08 14-19 normalize 골든셋 및 금지조건.md` | normalize golden snapshot, 보호 대상, no-go 조건 |
