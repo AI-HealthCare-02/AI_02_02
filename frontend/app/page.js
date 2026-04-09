@@ -9,7 +9,7 @@ export default function LandingPage() {
       {/* Nav — Glass */}
       <nav className="sticky top-0 z-10 flex items-center justify-between px-12 py-4 bg-white/85 backdrop-blur-xl border-b border-black/[.04]">
         <div className="text-lg font-bold text-nature-900 tracking-tight">🩺 DA-NA-A</div>
-        <Link href="/login" className="px-5 py-2.5 bg-nature-900 text-white text-sm font-medium rounded-full hover:bg-nature-800 transition-all hover:-translate-y-px">
+        <Link href="/login" className="px-5 py-2.5 bg-nature-500 text-white text-sm font-medium rounded-full hover:bg-nature-600 transition-all hover:-translate-y-px">
           시작하기
         </Link>
       </nav>
@@ -22,7 +22,7 @@ export default function LandingPage() {
         <p className="text-lg text-neutral-400 leading-relaxed mb-9 max-w-[480px] mx-auto">
           ChatGPT, Claude, Gemini 쓰는 동안<br />자연스럽게 건강 데이터가 쌓이고, AI가 맞춤 리포트를 만들어줘요.
         </p>
-        <Link href="/login" className="inline-block px-10 py-4 bg-nature-900 text-white text-base font-semibold rounded-full shadow-soft hover:bg-nature-800 hover:shadow-float hover:-translate-y-0.5 transition-all">
+        <Link href="/login" className="inline-block px-10 py-4 bg-nature-500 text-white text-base font-semibold rounded-full shadow-soft hover:bg-nature-600 hover:shadow-float hover:-translate-y-0.5 transition-all">
           지금 무료로 시작하기 →
         </Link>
         <div className="text-xs text-neutral-300 mt-4">가입 후 바로 사용 · 카드 등록 불필요</div>
@@ -38,7 +38,7 @@ export default function LandingPage() {
             { num: '3', title: 'AI와 대화', desc: '평소처럼 쓰면\n데이터가 쌓여요' },
           ].map((step) => (
             <div key={step.num} className="text-center p-7 bg-white rounded-lg shadow-soft hover:shadow-float hover:-translate-y-1 transition-all">
-              <div className="w-8 h-8 rounded-full bg-nature-900 text-white text-sm font-bold flex items-center justify-center mx-auto mb-4">{step.num}</div>
+              <div className="w-8 h-8 rounded-full bg-nature-500 text-white text-sm font-bold flex items-center justify-center mx-auto mb-4">{step.num}</div>
               <h3 className="text-base font-semibold text-nature-900 mb-2">{step.title}</h3>
               <p className="text-xs text-neutral-400 whitespace-pre-line leading-relaxed">{step.desc}</p>
             </div>
@@ -70,7 +70,7 @@ export default function LandingPage() {
       <section className="max-w-[640px] mx-auto px-12 py-14 text-center bg-cream-300 rounded-2xl mx-12 mb-16">
         <h2 className="text-2xl font-bold text-nature-900 mb-3 tracking-tight">지금 시작하세요</h2>
         <p className="text-base text-neutral-400 mb-7">작은 변화가 3개월 후 큰 차이를 만들어요</p>
-        <Link href="/login" className="inline-block px-10 py-4 bg-nature-900 text-white text-base font-semibold rounded-full shadow-soft hover:bg-nature-800 hover:shadow-float hover:-translate-y-0.5 transition-all">
+        <Link href="/login" className="inline-block px-10 py-4 bg-nature-500 text-white text-base font-semibold rounded-full shadow-soft hover:bg-nature-600 hover:shadow-float hover:-translate-y-0.5 transition-all">
           무료로 시작하기 →
         </Link>
       </section>
