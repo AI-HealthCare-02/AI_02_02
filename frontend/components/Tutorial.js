@@ -23,7 +23,7 @@ const STEPS = [
     target: '[data-tutorial="today-cards"]',
     emoji: BarChart3,
     title: '오늘의 건강 기록',
-    desc: '수면, 식사, 운동, 수분을 탭해서 기록해요.',
+    desc: '수면, 식사, 운동, 수분을 탭해서 기록해요.\n오른쪽 상단 아이콘으로 패널을 접었다 펼 수 있어요.',
     position: 'left',
   },
   {
@@ -232,7 +232,7 @@ export default function Tutorial({ onComplete }) {
         )}
 
         {/* 설명 */}
-        <div className="text-[13px] text-neutral-400 leading-[1.7] mb-4">
+        <div className="text-[13px] text-neutral-400 leading-[1.7] mb-4 whitespace-pre-line">
           {current.desc}
         </div>
 

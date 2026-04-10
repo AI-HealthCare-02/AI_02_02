@@ -125,12 +125,13 @@ export default function Sidebar() {
               setActiveSessionId(null);
               if (window.__danaa_newChat) window.__danaa_newChat();
             }}
-            className="w-full py-2 px-2 border border-dashed border-black/[.08] rounded-lg bg-transparent text-[13px] text-neutral-400 cursor-pointer mt-2 mb-1 hover:border-black/[.15] transition-colors"
+            className="w-full py-2 px-2 border border-dashed border-black/[.08] rounded-lg bg-transparent text-[13px] text-neutral-400 cursor-pointer mt-2 mb-1 hover:bg-black/[.03] transition-colors"
           >+ 새 대화</button>
 
           {hasOnboarding ? (
             grouped.length > 0 ? (
               // 실제 대화 목록 (날짜별 그룹)
+              // 백엔드 연동 시: GET /api/v1/chat/sessions → useConversations 훅에서 자동 로드
               grouped.map((group) => (
                 <div key={group.label}>
                   <div className="text-[11px] font-semibold text-neutral-300 px-2 pt-2.5 pb-1 uppercase tracking-wider">
@@ -140,10 +141,10 @@ export default function Sidebar() {
                     <div
                       key={conv.id}
                       onClick={() => handleConversationClick(conv)}
-                      className={`text-[13px] px-2 py-1.5 rounded-md cursor-pointer flex justify-between mb-0.5 transition-colors ${
+                      className={`text-[13px] px-2 py-1.5 rounded-md cursor-pointer flex justify-between mb-0.5 transition-all ${
                         activeSessionId === conv.id
                           ? 'bg-cream-300 text-nature-900 font-medium'
-                          : 'text-neutral-400 hover:bg-black/[.03]'
+                          : 'text-neutral-400 hover:bg-cream-300 hover:text-nature-900'
                       }`}
                     >
                       <span className="truncate flex-1 mr-2">{conv.title}</span>

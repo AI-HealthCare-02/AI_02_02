@@ -87,6 +87,7 @@ export default function ChatPage() {
       // 튜토리얼: 온보딩 완료 + 튜토리얼 미완료 시 표시
       if (ob && !localStorage.getItem('danaa_tutorial_done')) {
         setShowTutorial(true);
+        setPanelOpen(true); // 튜토리얼 시 오른쪽 패널 자동 열기
       }
     } catch {}
     setLoaded(true);
@@ -138,7 +139,19 @@ export default function ChatPage() {
         signal: controller.signal,
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          // 인증 만료 → 토큰 삭제 + 로그인 이동
+          try { localStorage.removeItem('danaa_token'); } catch {}
+          throw new Error('AUTH_EXPIRED');
+        } else if (res.status === 429) {
+          throw new Error('RATE_LIMIT');
+        } else if (res.status >= 500) {
+          throw new Error('SERVER_ERROR');
+        } else {
+          throw new Error(`HTTP_${res.status}`);
+        }
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -193,14 +206,32 @@ export default function ChatPage() {
 
     } catch (err) {
       if (err.name === 'AbortError') return;
-      // 에러 시 AI 메시지를 에러 메시지로 교체
+
+      // 에러 유형별 메시지
+      let errorMsg;
+      switch (err.message) {
+        case 'AUTH_EXPIRED':
+          errorMsg = '로그인이 만료됐어요. 다시 로그인해주세요.';
+          setTimeout(() => { window.location.href = '/login'; }, 2000);
+          break;
+        case 'RATE_LIMIT':
+          errorMsg = '메시지를 너무 빠르게 보내고 있어요. 잠시 후 다시 시도해주세요.';
+          break;
+        case 'SERVER_ERROR':
+          errorMsg = '서버에 문제가 발생했어요. 잠시 후 다시 시도해주세요.';
+          break;
+        default:
+          errorMsg = '인터넷 연결을 확인해주세요. 연결이 원활하지 않아요.';
+          break;
+      }
+
       setMessages(prev => {
         const updated = [...prev];
         const last = updated[updated.length - 1];
         if (last.role === 'assistant') {
           updated[updated.length - 1] = {
             ...last,
-            content: '현재 AI 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
+            content: errorMsg,
             streaming: false,
             isError: true,
             ts: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
@@ -257,12 +288,49 @@ export default function ChatPage() {
     briefings.push({ icon: 'droplets', text: `수분 ${log.water_cups}잔`, sub: log.water_cups >= 8 ? '목표 달성!' : log.water_cups >= 5 ? '좀 더 마셔요' : '좀 부족해요' });
   }
 
-  if (!loaded) return null;
+  /* ── 로딩 스켈레톤 ── */
+  if (!loaded) return (
+    <>
+      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+        <span className="text-[14px] font-medium text-nature-900">AI 채팅</span>
+      </header>
+      <div className="flex-1 px-6 py-6">
+        <div className="max-w-[840px] mx-auto space-y-4">
+          {/* 아바타 + 텍스트 스켈레톤 */}
+          <div className="flex gap-2.5 animate-pulse">
+            <div className="w-7 h-7 rounded-full bg-cream-400 shrink-0"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-cream-400 rounded w-3/4"></div>
+              <div className="h-3 bg-cream-400 rounded w-1/2"></div>
+              <div className="h-3 bg-cream-400 rounded w-2/3"></div>
+            </div>
+          </div>
+          <div className="flex gap-2.5 animate-pulse">
+            <div className="w-7 h-7 shrink-0"></div>
+            <div className="flex-1 border border-cream-400 rounded-xl p-4 space-y-2">
+              <div className="h-3 bg-cream-400 rounded w-1/3"></div>
+              <div className="flex gap-2">
+                <div className="h-8 bg-cream-400 rounded-full w-20"></div>
+                <div className="h-8 bg-cream-400 rounded-full w-20"></div>
+                <div className="h-8 bg-cream-400 rounded-full w-20"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="py-3 px-6 bg-white border-t border-cream-500">
+        <div className="max-w-[840px] mx-auto flex gap-2 items-center animate-pulse">
+          <div className="flex-1 h-10 bg-cream-400 rounded-[20px]"></div>
+          <div className="w-9 h-9 bg-cream-400 rounded-full"></div>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
       {/* 튜토리얼 */}
-      {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} />}
+      {showTutorial && <Tutorial onComplete={() => { setShowTutorial(false); setPanelOpen(false); }} />}
 
       {/* 헤더 */}
       <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">

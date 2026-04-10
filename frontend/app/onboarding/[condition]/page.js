@@ -171,10 +171,30 @@ export default function OnboardingFlow() {
   const toggleChip = useCallback((idx) => {
     setAnswers((prev) => {
       const current = prev[currentStep] ? [...prev[currentStep]] : [];
-      const pos = current.indexOf(idx);
-      if (pos >= 0) current.splice(pos, 1);
-      else current.push(idx);
-      return { ...prev, [currentStep]: current };
+      const step = STEPS[currentStep];
+      const chips = step?.chips || [];
+      const chipLabel = chips[idx] || '';
+
+      // "해당 없음", "없음", "관리 안 함" 등은 배타적 선택
+      const exclusiveLabels = ['해당 없음', '없음', '관리 안 함'];
+      const isExclusive = exclusiveLabels.some(l => chipLabel.includes(l));
+      const lastChipIdx = chips.length - 1;
+
+      if (isExclusive) {
+        // 배타적 항목 클릭 → 다른 것 다 해제하고 이것만
+        const pos = current.indexOf(idx);
+        return { ...prev, [currentStep]: pos >= 0 ? [] : [idx] };
+      } else {
+        // 일반 항목 클릭 → 배타적 항목 해제
+        const filtered = current.filter(i => {
+          const label = chips[i] || '';
+          return !exclusiveLabels.some(l => label.includes(l));
+        });
+        const pos = filtered.indexOf(idx);
+        if (pos >= 0) filtered.splice(pos, 1);
+        else filtered.push(idx);
+        return { ...prev, [currentStep]: filtered };
+      }
     });
   }, [currentStep]);
 
@@ -420,22 +440,36 @@ export default function OnboardingFlow() {
         {/* ── CHIP SELECT ── */}
         {step.type === 'chip' && (
           <div className="flex flex-wrap gap-2">
-            {step.chips.map((chip, i) => {
-              const selected = answers[currentStep]?.includes(i);
-              return (
-                <button
-                  key={i}
-                  onClick={() => toggleChip(i)}
-                  className={`px-4 py-2.5 rounded-full text-[14px] transition-all ${
-                    selected
-                      ? 'bg-nature-500 text-white font-medium'
-                      : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
-                  }`}
-                >
-                  {chip}
-                </button>
-              );
-            })}
+            {(() => {
+              const exclusiveLabels = ['해당 없음', '없음', '관리 안 함'];
+              const currentAnswers = answers[currentStep] || [];
+              const hasExclusiveSelected = currentAnswers.some(i => {
+                const label = step.chips[i] || '';
+                return exclusiveLabels.some(l => label.includes(l));
+              });
+              return step.chips.map((chip, i) => {
+                const selected = currentAnswers.includes(i);
+                const isExclusive = exclusiveLabels.some(l => chip.includes(l));
+                const isDisabled = hasExclusiveSelected && !isExclusive;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggleChip(i)}
+                    className={`px-4 py-2.5 rounded-full text-[14px] transition-all ${
+                      selected
+                        ? isExclusive
+                          ? 'bg-nature-500 text-white font-medium ring-2 ring-nature-500/30'
+                          : 'bg-nature-500 text-white font-medium'
+                        : isDisabled
+                          ? 'bg-cream-300 border border-cream-500 text-neutral-200 cursor-not-allowed'
+                          : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                );
+              });
+            })()}
           </div>
         )}
 
@@ -623,16 +657,14 @@ export default function OnboardingFlow() {
             />
           </div>
           <span className="text-[12px] text-neutral-300">{stepLabel}</span>
-          {/* DEV 건너뛰기 — 모든 데이터 초기화 후 바로 채팅으로 */}
+          {/* DEV 건너뛰기 — 현재 입력된 데이터 그대로 저장 후 채팅으로 */}
           <button
             onClick={() => {
-              localStorage.removeItem('danaa_onboarding');
-              localStorage.removeItem('danaa_risk');
-              localStorage.removeItem('danaa_challenges');
-              // 오늘의 daily log 삭제
-              const d = new Date();
-              const key = `danaa_daily_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-              localStorage.removeItem(key);
+              // 현재까지 입력된 온보딩 데이터 저장 (없으면 빈 객체)
+              if (!localStorage.getItem('danaa_onboarding')) {
+                localStorage.setItem('danaa_onboarding', JSON.stringify({}));
+              }
+              localStorage.removeItem('danaa_tutorial_done');
               window.location.href = '/app/chat';
             }}
             className="ml-1 px-2 py-0.5 text-[9px] bg-red-100 text-red-500 rounded hover:bg-red-200 transition-colors shrink-0"
