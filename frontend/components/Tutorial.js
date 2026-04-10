@@ -1,18 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Compass, MessageSquare, BarChart3, HelpCircle, Sparkles } from 'lucide-react';
 
 const STEPS = [
   {
     target: '[data-tutorial="sidebar-nav"]',
-    emoji: '🧭',
+    emoji: Compass,
     title: '메뉴 살펴보기',
     desc: '채팅, 리포트, 챌린지 메뉴로 이동할 수 있어요.',
     position: 'right',
   },
   {
     target: null,
-    emoji: '💬',
+    emoji: MessageSquare,
     title: 'AI와 대화하다 보면',
     desc: '이런 식으로 생활 습관을 물어봐요. 잘 답변해주실수록 맞춤 리포트가 정확해져요!',
     position: 'center',
@@ -20,21 +21,21 @@ const STEPS = [
   },
   {
     target: '[data-tutorial="today-cards"]',
-    emoji: '📊',
+    emoji: BarChart3,
     title: '오늘의 건강 기록',
-    desc: '수면, 식사, 운동, 수분을 탭해서 기록해요.',
+    desc: '수면, 식사, 운동, 수분을 탭해서 기록해요.\n오른쪽 상단 아이콘으로 패널을 접었다 펼 수 있어요.',
     position: 'left',
   },
   {
     target: '[data-tutorial="unanswered"]',
-    emoji: '❓',
+    emoji: HelpCircle,
     title: '미답변 질문',
     desc: '놓친 질문도 꼼꼼히 답변해주시면 리포트의 정확도가 올라가요!',
     position: 'left',
   },
   {
     target: null,
-    emoji: '🎉',
+    emoji: Sparkles,
     title: '준비 완료!',
     desc: '오늘의 건강 기록부터 시작해볼까요?',
     position: 'center',
@@ -194,31 +195,31 @@ export default function Tutorial({ onComplete }) {
         {/* 이모지 + 제목 */}
         <div className="flex items-center gap-2.5 mb-2">
           <div className="w-10 h-10 rounded-xl bg-cream-300 flex items-center justify-center text-[20px]">
-            {current.emoji}
+            <current.emoji size={22} />
           </div>
-          <div className="text-[14px] font-semibold text-nature-900">{current.title}</div>
+          <div className="text-[15px] font-semibold text-nature-900">{current.title}</div>
         </div>
 
         {/* 미니 채팅 예시 */}
         {current.miniChat && (
-          <div className="bg-[#f5f5f3] rounded-xl p-3 mb-3 space-y-2.5">
+          <div className="bg-cream-300 rounded-xl p-3 mb-3 space-y-2.5">
             {/* AI 질문 */}
             <div className="flex gap-2">
               <div className="w-6 h-6 rounded-full bg-nature-900 text-white flex items-center justify-center text-[8px] font-semibold shrink-0">다</div>
-              <div className="bg-white rounded-xl rounded-tl-md px-3 py-2 text-[11px] text-nature-900 leading-[1.6] shadow-sm">
+              <div className="bg-white rounded-xl rounded-tl-md px-3 py-2 text-[12px] text-nature-900 leading-[1.6] shadow-sm">
                 어제 저녁은 드셨나요? 🍽️
               </div>
             </div>
             {/* 사용자 답변 버튼들 */}
             <div className="flex justify-end gap-1.5">
-              <div className="bg-nature-900 text-white rounded-xl rounded-br-md px-3 py-1.5 text-[11px]">
+              <div className="bg-nature-900 text-white rounded-xl rounded-br-md px-3 py-1.5 text-[12px]">
                 간단히 먹었어요
               </div>
             </div>
             {/* AI 후속 */}
             <div className="flex gap-2">
               <div className="w-6 h-6 rounded-full bg-nature-900 text-white flex items-center justify-center text-[8px] font-semibold shrink-0">다</div>
-              <div className="bg-white rounded-xl rounded-tl-md px-3 py-2 text-[11px] text-nature-900 leading-[1.6] shadow-sm">
+              <div className="bg-white rounded-xl rounded-tl-md px-3 py-2 text-[12px] text-nature-900 leading-[1.6] shadow-sm">
                 채소는 드셨나요? 🥗
                 <div className="flex gap-1 mt-1.5">
                   {['충분히', '조금', '못 먹었어요'].map(opt => (
@@ -231,7 +232,7 @@ export default function Tutorial({ onComplete }) {
         )}
 
         {/* 설명 */}
-        <div className="text-[12px] text-neutral-400 leading-[1.7] mb-4">
+        <div className="text-[13px] text-neutral-400 leading-[1.7] mb-4 whitespace-pre-line">
           {current.desc}
         </div>
 
@@ -243,7 +244,7 @@ export default function Tutorial({ onComplete }) {
               <div
                 key={i}
                 className={`w-2 h-2 rounded-full transition-colors ${
-                  i === step ? 'bg-nature-900' : i < step ? 'bg-nature-500' : 'bg-neutral-200'
+                  i === step ? 'bg-nature-500' : i < step ? 'bg-nature-500' : 'bg-neutral-200'
                 }`}
               />
             ))}
@@ -254,14 +255,14 @@ export default function Tutorial({ onComplete }) {
             {step < STEPS.length - 1 && (
               <button
                 onClick={finish}
-                className="text-[11px] text-neutral-400 hover:text-nature-900 transition-colors"
+                className="text-[12px] text-neutral-400 hover:text-nature-900 transition-colors"
               >
                 건너뛰기
               </button>
             )}
             <button
               onClick={next}
-              className="px-4 py-1.5 bg-nature-900 text-white text-[12px] font-medium rounded-lg hover:bg-nature-800 transition-colors"
+              className="px-4 py-1.5 bg-nature-500 text-white text-[13px] font-medium rounded-lg hover:bg-nature-600 transition-colors"
             >
               {step < STEPS.length - 1 ? '다음' : '시작하기'}
             </button>

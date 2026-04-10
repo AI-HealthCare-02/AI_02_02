@@ -171,10 +171,30 @@ export default function OnboardingFlow() {
   const toggleChip = useCallback((idx) => {
     setAnswers((prev) => {
       const current = prev[currentStep] ? [...prev[currentStep]] : [];
-      const pos = current.indexOf(idx);
-      if (pos >= 0) current.splice(pos, 1);
-      else current.push(idx);
-      return { ...prev, [currentStep]: current };
+      const step = STEPS[currentStep];
+      const chips = step?.chips || [];
+      const chipLabel = chips[idx] || '';
+
+      // "해당 없음", "없음", "관리 안 함" 등은 배타적 선택
+      const exclusiveLabels = ['해당 없음', '없음', '관리 안 함'];
+      const isExclusive = exclusiveLabels.some(l => chipLabel.includes(l));
+      const lastChipIdx = chips.length - 1;
+
+      if (isExclusive) {
+        // 배타적 항목 클릭 → 다른 것 다 해제하고 이것만
+        const pos = current.indexOf(idx);
+        return { ...prev, [currentStep]: pos >= 0 ? [] : [idx] };
+      } else {
+        // 일반 항목 클릭 → 배타적 항목 해제
+        const filtered = current.filter(i => {
+          const label = chips[i] || '';
+          return !exclusiveLabels.some(l => label.includes(l));
+        });
+        const pos = filtered.indexOf(idx);
+        if (pos >= 0) filtered.splice(pos, 1);
+        else filtered.push(idx);
+        return { ...prev, [currentStep]: filtered };
+      }
     });
   }, [currentStep]);
 
@@ -229,7 +249,7 @@ export default function OnboardingFlow() {
           <div className="text-center mb-4">
             <div className="text-[28px] mb-2">📋</div>
             <h2 className="text-[20px] font-bold text-nature-900 mb-1">{step.title}</h2>
-            <p className="text-[12px] text-neutral-400 whitespace-pre-line">{step.sub}</p>
+            <p className="text-[13px] text-neutral-400 whitespace-pre-line">{step.sub}</p>
           </div>
 
           {/* Toggle all */}
@@ -237,10 +257,10 @@ export default function OnboardingFlow() {
             onClick={toggleAllConsents}
             className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-cream-300 border border-cream-500 mb-3 transition-all"
           >
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] transition-all ${allChecked ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[11px] transition-all ${allChecked ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
               {allChecked && '✓'}
             </div>
-            <span className="text-[14px] font-medium text-nature-900">전체 동의</span>
+            <span className="text-[15px] font-medium text-nature-900">전체 동의</span>
           </button>
 
           <div className="space-y-1">
@@ -250,11 +270,11 @@ export default function OnboardingFlow() {
                 onClick={() => toggleConsent(i)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all"
               >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] shrink-0 transition-all ${consents[i] ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[11px] shrink-0 transition-all ${consents[i] ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
                   {consents[i] && '✓'}
                 </div>
-                <span className="flex-1 text-[13px] text-neutral-600">{item.label}</span>
-                <span className={`text-[11px] ${item.required ? 'text-nature-500' : 'text-neutral-300'}`}>
+                <span className="flex-1 text-[14px] text-neutral-600">{item.label}</span>
+                <span className={`text-[12px] ${item.required ? 'text-nature-500' : 'text-neutral-300'}`}>
                   {item.required ? '필수' : '선택'}
                 </span>
               </button>
@@ -276,12 +296,12 @@ export default function OnboardingFlow() {
           <div className="text-center mb-4">
             <div className="text-[28px] mb-2">🔒</div>
             <h2 className="text-[20px] font-bold text-nature-900 mb-1">{step.title}</h2>
-            <p className="text-[12px] text-neutral-400 whitespace-pre-line">{step.sub}</p>
+            <p className="text-[13px] text-neutral-400 whitespace-pre-line">{step.sub}</p>
           </div>
 
           <div className="bg-cream-300 rounded-xl p-4 mb-4">
-            <h4 className="text-[13px] font-semibold text-nature-900 mb-2">수집하는 건강정보</h4>
-            <div className="text-[12px] text-neutral-600 leading-[1.8] space-y-0.5">
+            <h4 className="text-[14px] font-semibold text-nature-900 mb-2">수집하는 건강정보</h4>
+            <div className="text-[13px] text-neutral-600 leading-[1.8] space-y-0.5">
               <p>✓ 신체 정보 (키, 몸무게, 나이, 성별)</p>
               <p>✓ 건강 상태 (만성질환, 가족력)</p>
               <p>✓ 생활 습관 (식사, 운동, 수면)</p>
@@ -295,18 +315,18 @@ export default function OnboardingFlow() {
               onClick={() => toggleHealthDisc(i)}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all"
             >
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] shrink-0 transition-all ${healthDisc[i] ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[11px] shrink-0 transition-all ${healthDisc[i] ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
                 {healthDisc[i] && '✓'}
               </div>
-              <span className="flex-1 text-[13px] text-neutral-600">{item.label}</span>
-              <span className="text-[11px] text-nature-500">필수</span>
+              <span className="flex-1 text-[14px] text-neutral-600">{item.label}</span>
+              <span className="text-[12px] text-nature-500">필수</span>
             </button>
           ))}
 
           {/* Medical disclaimer box */}
-          <div className="bg-[#fff8f0] border border-[#f0d8c8] rounded-xl p-4 my-3">
-            <h4 className="text-[13px] font-semibold text-nature-900 mb-1">⚕️ 의료 면책</h4>
-            <p className="text-[11px] text-neutral-400 leading-[1.7]">
+          <div className="bg-warning-light border border-warning/20 rounded-xl p-4 my-3">
+            <h4 className="text-[14px] font-semibold text-nature-900 mb-1">⚕️ 의료 면책</h4>
+            <p className="text-[12px] text-neutral-400 leading-[1.7]">
               다나아 AI는 의료 기기가 아니며, 의학적 진단을 대체하지 않습니다. 건강 리포트는 참고용이며 중요한 결정은 의료 전문가와 상담하세요.
             </p>
           </div>
@@ -315,11 +335,11 @@ export default function OnboardingFlow() {
             onClick={() => toggleHealthDisc(2)}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all"
           >
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] shrink-0 transition-all ${healthDisc[2] ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[11px] shrink-0 transition-all ${healthDisc[2] ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'}`}>
               {healthDisc[2] && '✓'}
             </div>
-            <span className="flex-1 text-[13px] text-neutral-600">{hdItems[2].label}</span>
-            <span className="text-[11px] text-nature-500">필수</span>
+            <span className="flex-1 text-[14px] text-neutral-600">{hdItems[2].label}</span>
+            <span className="text-[12px] text-nature-500">필수</span>
           </button>
         </div>
       );
@@ -330,27 +350,27 @@ export default function OnboardingFlow() {
       <div>
         {/* Phase transition celebration message */}
         {step.phaseMsg && (
-          <div className="bg-[#e8f5e9] text-[#3D7C3F] text-[12px] font-medium rounded-lg px-4 py-2.5 mb-3 text-center">
+          <div className="bg-nature-50 text-nature-700 text-[13px] font-medium rounded-lg px-4 py-2.5 mb-3 text-center">
             {step.phaseMsg}
           </div>
         )}
 
         {/* Phase tag */}
         {step.phase && (
-          <div className="text-[11px] text-nature-500 font-semibold tracking-wide mb-1.5">{step.phase}</div>
+          <div className="text-[12px] text-nature-500 font-semibold tracking-wide mb-1.5">{step.phase}</div>
         )}
 
         {/* Title */}
         <h2 className="text-[20px] font-bold text-nature-900 mb-1 leading-tight whitespace-pre-line">{step.title}</h2>
 
         {/* Subtitle */}
-        {step.sub && <p className="text-[12px] text-neutral-400 mb-3">{step.sub}</p>}
+        {step.sub && <p className="text-[13px] text-neutral-400 mb-3">{step.sub}</p>}
 
         {/* Why box */}
         {step.why && (
           <div className="bg-cream-300 rounded-lg p-3 mb-4 flex gap-2">
-            <span className="text-[12px]">💡</span>
-            <span className="text-[11px] text-neutral-400 leading-[1.6]">{step.why}</span>
+            <span className="text-[13px]">💡</span>
+            <span className="text-[12px] text-neutral-400 leading-[1.6]">{step.why}</span>
           </div>
         )}
 
@@ -372,14 +392,14 @@ export default function OnboardingFlow() {
               >
                 <span className="text-[20px]">{cat.e}</span>
                 <div className="flex-1">
-                  <div className="text-[14px] font-semibold text-nature-900">{cat.n}</div>
-                  <div className="text-[11px] text-neutral-400">{cat.d}</div>
+                  <div className="text-[15px] font-semibold text-nature-900">{cat.n}</div>
+                  <div className="text-[12px] text-neutral-400">{cat.d}</div>
                 </div>
                 {!cat.active && (
-                  <span className="text-[10px] bg-cream-500 text-neutral-400 px-2 py-0.5 rounded-full">준비 중</span>
+                  <span className="text-[11px] bg-cream-500 text-neutral-400 px-2 py-0.5 rounded-full">준비 중</span>
                 )}
                 {cat.active && categorySelected && (
-                  <div className="w-5 h-5 rounded-full bg-nature-500 text-white flex items-center justify-center text-[10px]">✓</div>
+                  <div className="w-5 h-5 rounded-full bg-nature-500 text-white flex items-center justify-center text-[11px]">✓</div>
                 )}
               </button>
             ))}
@@ -395,7 +415,7 @@ export default function OnboardingFlow() {
                 <button
                   key={i}
                   onClick={() => pickSingle(i)}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[13px] text-left transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[14px] text-left transition-all ${
                     selected
                       ? 'bg-cream-300 border-2 border-nature-500 text-nature-900 font-medium'
                       : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
@@ -404,9 +424,9 @@ export default function OnboardingFlow() {
                   {opt.e && <span className="text-lg">{opt.e}</span>}
                   <span className="flex-1">{opt.l}</span>
                   {opt.rec && (
-                    <span className="text-[10px] bg-[#e8f5e9] text-[#3D7C3F] px-2 py-0.5 rounded-full font-medium">추천</span>
+                    <span className="text-[11px] bg-nature-50 text-nature-700 px-2 py-0.5 rounded-full font-medium">추천</span>
                   )}
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] shrink-0 ${
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[11px] shrink-0 ${
                     selected ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'
                   }`}>
                     {selected && '✓'}
@@ -420,22 +440,36 @@ export default function OnboardingFlow() {
         {/* ── CHIP SELECT ── */}
         {step.type === 'chip' && (
           <div className="flex flex-wrap gap-2">
-            {step.chips.map((chip, i) => {
-              const selected = answers[currentStep]?.includes(i);
-              return (
-                <button
-                  key={i}
-                  onClick={() => toggleChip(i)}
-                  className={`px-4 py-2.5 rounded-full text-[13px] transition-all ${
-                    selected
-                      ? 'bg-nature-500 text-white font-medium'
-                      : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
-                  }`}
-                >
-                  {chip}
-                </button>
-              );
-            })}
+            {(() => {
+              const exclusiveLabels = ['해당 없음', '없음', '관리 안 함'];
+              const currentAnswers = answers[currentStep] || [];
+              const hasExclusiveSelected = currentAnswers.some(i => {
+                const label = step.chips[i] || '';
+                return exclusiveLabels.some(l => label.includes(l));
+              });
+              return step.chips.map((chip, i) => {
+                const selected = currentAnswers.includes(i);
+                const isExclusive = exclusiveLabels.some(l => chip.includes(l));
+                const isDisabled = hasExclusiveSelected && !isExclusive;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => toggleChip(i)}
+                    className={`px-4 py-2.5 rounded-full text-[14px] transition-all ${
+                      selected
+                        ? isExclusive
+                          ? 'bg-nature-500 text-white font-medium ring-2 ring-nature-500/30'
+                          : 'bg-nature-500 text-white font-medium'
+                        : isDisabled
+                          ? 'bg-cream-300 border border-cream-500 text-neutral-200 cursor-not-allowed'
+                          : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                );
+              });
+            })()}
           </div>
         )}
 
@@ -444,7 +478,7 @@ export default function OnboardingFlow() {
           <div className="space-y-4">
             {step.groups.map((group, gi) => (
               <div key={gi}>
-                <div className="text-[13px] font-semibold text-nature-900 mb-2">{group.l}</div>
+                <div className="text-[14px] font-semibold text-nature-900 mb-2">{group.l}</div>
                 <div className="flex flex-wrap gap-2">
                   {group.o.map((opt, oi) => {
                     const selected = answers[currentStep]?.[gi] === oi;
@@ -452,7 +486,7 @@ export default function OnboardingFlow() {
                       <button
                         key={oi}
                         onClick={() => pickGrid(gi, oi)}
-                        className={`px-4 py-2.5 rounded-lg text-[13px] transition-all ${
+                        className={`px-4 py-2.5 rounded-lg text-[14px] transition-all ${
                           selected
                             ? 'bg-nature-500 text-white font-medium'
                             : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
@@ -473,7 +507,7 @@ export default function OnboardingFlow() {
           <div className="space-y-5">
             {/* Height slider */}
             <div>
-              <div className="text-[13px] font-semibold text-nature-900 mb-2">키</div>
+              <div className="text-[14px] font-semibold text-nature-900 mb-2">키</div>
               <div className="flex items-center gap-3">
                 <input
                   type="range"
@@ -499,16 +533,16 @@ export default function OnboardingFlow() {
                       const v = Math.max(140, Math.min(200, Number(height) || 170));
                       setHeight(v);
                     }}
-                    className="w-14 text-center text-[14px] font-medium border border-cream-500 rounded-lg py-1.5 outline-none focus:border-nature-500"
+                    className="w-14 text-center text-[15px] font-medium border border-cream-500 rounded-lg py-1.5 outline-none focus:border-nature-500"
                   />
-                  <span className="text-[12px] text-neutral-400">cm</span>
+                  <span className="text-[13px] text-neutral-400">cm</span>
                 </div>
               </div>
             </div>
 
             {/* Weight slider */}
             <div>
-              <div className="text-[13px] font-semibold text-nature-900 mb-2">몸무게</div>
+              <div className="text-[14px] font-semibold text-nature-900 mb-2">몸무게</div>
               <div className="flex items-center gap-3">
                 <input
                   type="range"
@@ -534,18 +568,18 @@ export default function OnboardingFlow() {
                       const v = Math.max(35, Math.min(150, Number(weight) || 70));
                       setWeight(v);
                     }}
-                    className="w-14 text-center text-[14px] font-medium border border-cream-500 rounded-lg py-1.5 outline-none focus:border-nature-500"
+                    className="w-14 text-center text-[15px] font-medium border border-cream-500 rounded-lg py-1.5 outline-none focus:border-nature-500"
                   />
-                  <span className="text-[12px] text-neutral-400">kg</span>
+                  <span className="text-[13px] text-neutral-400">kg</span>
                 </div>
               </div>
             </div>
 
             {/* BMI display */}
             <div className="bg-cream-300 rounded-xl p-4 text-center">
-              <div className="text-[11px] text-neutral-400 mb-1">BMI</div>
-              <div className="text-[24px] font-bold" style={{ color: '#6B8F3C' }}>{bmi}</div>
-              <div className="text-[11px] text-neutral-400 mt-1">
+              <div className="text-[12px] text-neutral-400 mb-1">BMI</div>
+              <div className="text-[24px] font-bold text-nature-500">{bmi}</div>
+              <div className="text-[12px] text-neutral-400 mt-1">
                 {bmi < 18.5 ? '저체중' : bmi < 23 ? '정상' : bmi < 25 ? '과체중' : '비만'}
               </div>
             </div>
@@ -571,7 +605,7 @@ export default function OnboardingFlow() {
         {/* Back button */}
         <button
           onClick={goBack}
-          className={`text-[12px] transition-all ${currentStep > 0 ? 'text-neutral-400 hover:text-neutral-600' : 'text-transparent pointer-events-none'}`}
+          className={`text-[13px] transition-all ${currentStep > 0 ? 'text-neutral-400 hover:text-neutral-600' : 'text-transparent pointer-events-none'}`}
         >
           ← 이전
         </button>
@@ -581,7 +615,7 @@ export default function OnboardingFlow() {
           {step?.canSkip && (
             <button
               onClick={handleSkip}
-              className="text-[12px] text-neutral-300 hover:text-neutral-400 transition-all"
+              className="text-[13px] text-neutral-300 hover:text-neutral-400 transition-all"
             >
               건너뛰기
             </button>
@@ -591,7 +625,7 @@ export default function OnboardingFlow() {
           <button
             onClick={goNext}
             disabled={!canProceed}
-            className={`px-6 py-2.5 rounded-lg text-[13px] font-medium transition-all ${
+            className={`px-6 py-2.5 rounded-lg text-[14px] font-medium transition-all ${
               canProceed
                 ? 'bg-nature-500 text-white hover:bg-nature-800'
                 : 'bg-cream-500 text-neutral-300 cursor-not-allowed'
@@ -612,27 +646,25 @@ export default function OnboardingFlow() {
       <div className="w-[380px] h-[600px] bg-white rounded-xl shadow-modal flex flex-col overflow-hidden">
         {/* ── Header ── */}
         <div className="px-5 pt-4 pb-3 flex items-center gap-2 shrink-0">
-          <div className="w-7 h-7 rounded-full bg-nature-500 text-white flex items-center justify-center text-[10px] font-bold">
+          <div className="w-7 h-7 rounded-full bg-nature-500 text-white flex items-center justify-center text-[11px] font-bold">
             D
           </div>
-          <span className="text-[13px] font-semibold text-nature-900">DA-NA-A</span>
+          <span className="text-[14px] font-semibold text-nature-900">DA-NA-A</span>
           <div className="flex-1 mx-2 h-[3px] bg-cream-500 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-nature-500 to-nature-600 rounded-full transition-all duration-300"
               style={{ width: progressWidth }}
             />
           </div>
-          <span className="text-[11px] text-neutral-300">{stepLabel}</span>
-          {/* DEV 건너뛰기 — 모든 데이터 초기화 후 바로 채팅으로 */}
+          <span className="text-[12px] text-neutral-300">{stepLabel}</span>
+          {/* DEV 건너뛰기 — 현재 입력된 데이터 그대로 저장 후 채팅으로 */}
           <button
             onClick={() => {
-              localStorage.removeItem('danaa_onboarding');
-              localStorage.removeItem('danaa_risk');
-              localStorage.removeItem('danaa_challenges');
-              // 오늘의 daily log 삭제
-              const d = new Date();
-              const key = `danaa_daily_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-              localStorage.removeItem(key);
+              // 현재까지 입력된 온보딩 데이터 저장 (없으면 빈 객체)
+              if (!localStorage.getItem('danaa_onboarding')) {
+                localStorage.setItem('danaa_onboarding', JSON.stringify({}));
+              }
+              localStorage.removeItem('danaa_tutorial_done');
               window.location.href = '/app/chat';
             }}
             className="ml-1 px-2 py-0.5 text-[9px] bg-red-100 text-red-500 rounded hover:bg-red-200 transition-colors shrink-0"

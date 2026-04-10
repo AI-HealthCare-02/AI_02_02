@@ -114,11 +114,11 @@ export default function OnboardingComplete() {
 
         <div className="text-[48px] mb-4">🎉</div>
         <h2 className="text-[22px] font-bold text-nature-900 mb-2">설문 완료!</h2>
-        <p className="text-[13px] text-neutral-400 mb-6">당신만의 건강 프로필이 생성되었습니다</p>
+        <p className="text-[14px] text-neutral-400 mb-6">당신만의 건강 프로필이 생성되었습니다</p>
 
         {/* 요약 카드 */}
         <div className="bg-cream-300 rounded-xl border border-cream-500 p-5 text-left mb-4">
-          <h4 className="text-[13px] font-semibold text-nature-900 mb-3">📋 내 건강 프로필</h4>
+          <h4 className="text-[14px] font-semibold text-nature-900 mb-3">📋 내 건강 프로필</h4>
           {[
             ['그룹', `${profile.group}그룹 (${profile.groupLabel})`],
             ['연령대', profile.ageLabel || '—'],
@@ -126,22 +126,22 @@ export default function OnboardingComplete() {
             ['운동', profile.exerciseLabel],
             ['위험도', profile.levelLabel],
           ].map(([label, value]) => (
-            <div key={label} className="flex justify-between py-1.5 border-b border-[#f5f5f5] last:border-0">
-              <span className="text-[12px] text-neutral-400">{label}</span>
-              <span className="text-[12px] font-medium text-nature-900">{value}</span>
+            <div key={label} className="flex justify-between py-1.5 border-b border-neutral-50 last:border-0">
+              <span className="text-[13px] text-neutral-400">{label}</span>
+              <span className="text-[13px] font-medium text-nature-900">{value}</span>
             </div>
           ))}
         </div>
 
         {/* 위험도 */}
         <div className="rounded-xl px-5 py-3.5 mb-6" style={{ backgroundColor: levelBgColors[profile.level] || '#FFF3E0' }}>
-          <span className="text-[13px] font-semibold" style={{ color: profile.levelColor }}>
+          <span className="text-[14px] font-semibold" style={{ color: profile.levelColor }}>
             ⚠️ 당뇨 위험도: {profile.levelLabel} ({profile.score}점/26점)
           </span>
         </div>
 
         {/* CTA */}
-        <Link href="/app/chat" className="inline-block w-full py-3.5 bg-nature-900 text-white text-[14px] font-semibold rounded-xl hover:bg-nature-800 hover:-translate-y-px shadow-soft transition-all">
+        <Link href="/app/chat" className="inline-block w-full py-3.5 bg-nature-500 text-white text-[15px] font-semibold rounded-xl hover:bg-nature-600 hover:-translate-y-px shadow-soft transition-all">
           메인으로 이동 →
         </Link>
       </div>

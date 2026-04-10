@@ -65,10 +65,6 @@ module.exports = {
           DEFAULT: '#4A7FB5',
           dark: '#3A6694',
         },
-        // 소셜 로그인 브랜드 컬러
-        kakao: { DEFAULT: '#FEE500', text: '#3C1E1E' },
-        naver: { DEFAULT: '#03C75A' },
-        google: { text: '#333333' },
       },
       fontFamily: {
         sans: ['Pretendard Variable', '-apple-system', 'BlinkMacSystemFont', 'Noto Sans KR', 'sans-serif'],
