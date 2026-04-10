@@ -2,8 +2,8 @@ import hashlib
 import secrets
 from datetime import date, datetime, timedelta
 
-from fastapi.exceptions import HTTPException
 import jwt
+from fastapi.exceptions import HTTPException
 from pydantic import EmailStr
 from starlette import status
 from tortoise.transactions import in_transaction
@@ -327,7 +327,26 @@ class AuthService:
         if social_user:
             return social_user
 
+        existing_user = None
+        if email:
+            existing_user = await self.user_repo.get_user_by_email(str(email))
+
         async with in_transaction():
+            if existing_user:
+                await self.user_repo.update_instance(
+                    existing_user,
+                    {
+                        "provider": provider,
+                        "provider_user_id": provider_user_id,
+                        "email": email,
+                        "name": existing_user.name or name or "Kakao User",
+                        "phone_number": existing_user.phone_number or phone_number,
+                        "gender": existing_user.gender or gender,
+                        "birthday": existing_user.birthday or birthday,
+                    },
+                )
+                return existing_user
+
             return await self.user_repo.create_user(
                 provider=provider,
                 provider_user_id=provider_user_id,

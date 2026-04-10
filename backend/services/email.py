@@ -1,5 +1,5 @@
-from email.message import EmailMessage
 import smtplib
+from email.message import EmailMessage
 
 from backend.core import config
 

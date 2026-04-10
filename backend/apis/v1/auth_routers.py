@@ -10,8 +10,8 @@ from backend.core import config
 from backend.core.config import Env
 from backend.dependencies.security import get_request_user
 from backend.dtos.auth import (
-    EmailLinkConfirmResponse,
     EmailLinkConfirmRequest,
+    EmailLinkConfirmResponse,
     EmailLinkPreviewListResponse,
     EmailLinkVerificationRequest,
     EmailLinkVerificationResponse,

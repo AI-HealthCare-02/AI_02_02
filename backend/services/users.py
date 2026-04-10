@@ -1,6 +1,5 @@
-from tortoise.transactions import in_transaction
-
 from fastapi import HTTPException, status
+from tortoise.transactions import in_transaction
 
 from backend.dtos.users import UserUpdateRequest
 from backend.models.users import User
