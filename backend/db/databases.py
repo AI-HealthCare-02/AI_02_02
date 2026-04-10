@@ -7,6 +7,7 @@ from backend.core import config
 TORTOISE_APP_MODELS = [
     "aerich.models",
     "backend.models.users",
+    "backend.models.email_signup_sessions",
     "backend.models.consents",
     "backend.models.health",
     "backend.models.assessments",

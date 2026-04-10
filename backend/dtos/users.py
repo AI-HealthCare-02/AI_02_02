@@ -33,9 +33,9 @@ class UserUpdateRequest(BaseModel):
 
 class UserInfoResponse(BaseSerializerModel):
     id: int
-    name: str
-    email: str
-    phone_number: str
-    birthday: date
-    gender: Gender
+    name: str | None = None
+    email: str | None = None
+    phone_number: str | None = None
+    birthday: date | None = None
+    gender: Gender | None = None
     created_at: datetime

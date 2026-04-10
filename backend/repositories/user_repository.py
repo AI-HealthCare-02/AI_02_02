@@ -22,23 +22,35 @@ class UserRepository:
 
     async def create_user(
         self,
-        email: str | EmailStr,
-        hashed_password: str,
-        name: str,
-        phone_number: str,
-        gender: Gender,
-        birthday: date,
+        email: str | EmailStr | None = None,
+        email_verified: bool = False,
+        email_verified_at: datetime | None = None,
+        hashed_password: str | None = None,
+        name: str | None = None,
+        phone_number: str | None = None,
+        gender: Gender | None = None,
+        birthday: date | None = None,
+        provider: str | None = None,
+        provider_user_id: str | None = None,
         *,
+        onboarding_completed: bool = False,
+        onboarding_completed_at: datetime | None = None,
         is_active: bool = True,
         is_admin: bool = False,
     ) -> User:
         return await self._model.create(
             email=email,
+            email_verified=email_verified,
+            email_verified_at=email_verified_at,
             hashed_password=hashed_password,
             name=name,
             phone_number=phone_number,
             gender=gender,
             birthday=birthday,
+            provider=provider,
+            provider_user_id=provider_user_id,
+            onboarding_completed=onboarding_completed,
+            onboarding_completed_at=onboarding_completed_at,
             is_active=is_active,
             is_admin=is_admin,
         )
@@ -46,11 +58,23 @@ class UserRepository:
     async def get_user_by_email(self, email: str) -> User | None:
         return await self._model.get_or_none(email__iexact=email)
 
+    async def get_users_by_email(self, email: str) -> list[User]:
+        return await self._model.filter(email__iexact=email).all()
+
     async def exists_by_email(self, email: str) -> bool:
         return await self._model.filter(email__iexact=email).exists()
 
+    async def get_user_by_provider(self, provider: str, provider_user_id: str) -> User | None:
+        return await self._model.get_or_none(provider=provider, provider_user_id=provider_user_id)
+
+    async def exists_by_provider_user_id(self, provider: str, provider_user_id: str) -> bool:
+        return await self._model.filter(provider=provider, provider_user_id=provider_user_id).exists()
+
     async def exists_by_phone_number(self, phone_number: str) -> bool:
         return await self._model.filter(phone_number=phone_number).exists()
+
+    async def get_user_by_phone_number(self, phone_number: str) -> User | None:
+        return await self._model.get_or_none(phone_number=phone_number)
 
     async def update_last_login(self, user_id: int) -> None:
         await self._model.filter(id=user_id).update(last_login=datetime.now(config.TIMEZONE))

@@ -56,7 +56,7 @@ export default function LoginPage() {
         const statusRes = await api('/api/v1/onboarding/status');
         if (statusRes.ok) {
           const status = await statusRes.json();
-          window.location.href = status.completed ? '/app/chat' : '/onboarding/diabetes';
+          window.location.href = status.is_completed ? '/app/chat' : '/onboarding/diabetes';
         } else {
           window.location.href = '/onboarding/diabetes';
         }

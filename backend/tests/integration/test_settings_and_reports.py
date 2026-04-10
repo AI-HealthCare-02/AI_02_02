@@ -105,6 +105,10 @@ class TestSettingsAndReports(TestCase):
         assert data["age_range"] == "45_54"
         assert data["bmi"] > 0
 
+        user = await User.get(email="onboarding_status@test.com")
+        assert user.onboarding_completed is True
+        assert user.onboarding_completed_at is not None
+
     async def test_risk_history_returns_weekly_records(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             headers = await self._signup_login_consent_survey(c, "risk_history@test.com")
