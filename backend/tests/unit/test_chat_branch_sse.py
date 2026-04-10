@@ -40,6 +40,8 @@ class TestChatBranchSse:
         service = self._service()
         service._validate_request = AsyncMock(return_value=None)
         service._validate_chat_access = AsyncMock(return_value=(None, None))
+        service._build_openai_messages = AsyncMock(side_effect=AssertionError("crisis should not build messages"))
+        service._stream_openai = AsyncMock(side_effect=AssertionError("crisis should not stream openai"))
         service.content_filter.check_message = Mock(
             return_value=FilterResult(
                 expression_verdict=FilterExpressionVerdict.ALLOW,
@@ -102,6 +104,8 @@ class TestChatBranchSse:
         service._validate_request = AsyncMock(return_value=None)
         service._validate_chat_access = AsyncMock(return_value=(None, consent_error))
         service.content_filter.check_message = Mock(return_value=filter_result)
+        service._build_openai_messages = AsyncMock(side_effect=AssertionError(f"{name} should not build messages"))
+        service._stream_openai = AsyncMock(side_effect=AssertionError(f"{name} should not stream openai"))
         service._prepare_session = AsyncMock(side_effect=AssertionError(f"{name} should short-circuit"))
 
         events = asyncio.run(_collect_events(service))
@@ -110,6 +114,8 @@ class TestChatBranchSse:
         event_type, data = _parse_sse(events[0])
         assert event_type == expected_event
         assert data["code"] == expected_code
+        service._build_openai_messages.assert_not_called()
+        service._stream_openai.assert_not_called()
 
     def test_stream_failure_branch_emits_error(self, monkeypatch: pytest.MonkeyPatch):
         service = self._service()

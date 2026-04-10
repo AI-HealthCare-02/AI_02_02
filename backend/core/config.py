@@ -14,6 +14,12 @@ class Env(StrEnum):
     PROD = "prod"
 
 
+class ChatLangGraphMode(StrEnum):
+    OFF = "off"
+    SHADOW = "shadow"
+    PARTIAL = "partial"
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
 
@@ -93,3 +99,27 @@ class Config(BaseSettings):
     # 사용자 맥락 (맞춤답변 — HealthProfile 기반 thin personalization)
     USER_CONTEXT_ENABLED: bool = False
     USER_CONTEXT_APPLY_ENABLED: bool = False
+
+    # Chat preparation LangGraph rollout
+    CHAT_LANGGRAPH_MODE: ChatLangGraphMode = ChatLangGraphMode.OFF
+    CHAT_LANGGRAPH_PARTIAL_PERCENT: int = 0
+    CHAT_LANGGRAPH_SHADOW_SAMPLE_RATE: float = 0.0
+    CHAT_LANGGRAPH_AUDIT_SAMPLE_RATE: float = 0.0
+    CHAT_LANGGRAPH_PREP_TIMEOUT_MS: int = 250
+    CHAT_LANGGRAPH_FORCE_FALLBACK: bool = False
+
+    CHAT_OPENAI_SHARED_CLIENT_ENABLED: bool = True
+    CHAT_OPENAI_STREAM_CONNECT_TIMEOUT_MS: int = 3000
+    CHAT_OPENAI_STREAM_POOL_TIMEOUT_MS: int = 2000
+    CHAT_OPENAI_STREAM_WRITE_TIMEOUT_MS: int = 5000
+    CHAT_OPENAI_STREAM_MAX_CONNECTIONS: int = 20
+    CHAT_OPENAI_STREAM_MAX_KEEPALIVE_CONNECTIONS: int = 10
+    CHAT_OPENAI_STREAM_MAX_RETRIES: int = 0
+    CHAT_OPENAI_STREAM_FIRST_TOKEN_TIMEOUT_MS: int = 20000
+    CHAT_OPENAI_STREAM_INTER_TOKEN_TIMEOUT_MS: int = 15000
+    CHAT_OPENAI_STREAM_TOTAL_DEADLINE_MS: int = 90000
+    CHAT_OPENAI_MAX_TOKENS: int = 1024
+    CHAT_OPENAI_SHORT_RESPONSE_ENABLED: bool = False
+    CHAT_OPENAI_SHORT_RESPONSE_MAX_TOKENS: int = 256
+
+    CHAT_BENCH_BUDGET_ENABLED: bool = False

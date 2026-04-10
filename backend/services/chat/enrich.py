@@ -5,6 +5,7 @@ import re
 from backend.core import config
 from backend.core.logger import setup_logger
 from backend.models.enums import FilterMedicalAction, MessageRoute
+from backend.services.chat.prep_types import PrepFlags, PromptPolicy
 from backend.services.content_filter import FilterResult
 
 logger = setup_logger(__name__)
@@ -54,24 +55,48 @@ def _is_lifestyle_query(message: str) -> bool:
     return bool(_LIFESTYLE_QUERY_PATTERNS.search(message))
 
 
-def _should_run_rag(message: str, filter_result: FilterResult) -> bool:
-    if not config.RAG_ENABLED:
-        return False
-    if not config.CONTENT_FILTER_ROUTING_ENABLED:
+def _should_run_rag_from_projection(
+    message: str,
+    route: MessageRoute | None,
+    emotional_priority: bool,
+    prompt_policy: PromptPolicy,
+    *,
+    flags: PrepFlags,
+) -> bool:
+    if not flags.rag_enabled:
         return False
     if len(message.strip()) < 3:
         return False
-    if filter_result.message_route is None:
+    if route is None:
         return False
-    if filter_result.medical_action == FilterMedicalAction.MEDICAL_NOTE:
+    if prompt_policy == PromptPolicy.MEDICAL_NOTE:
         return False
-    if filter_result.message_route == MessageRoute.LIFESTYLE_CHAT:
+    if route == MessageRoute.LIFESTYLE_CHAT:
         return False
-    if filter_result.emotional_priority:
+    if emotional_priority:
         return _has_factual_intent(message)
-    if filter_result.message_route == MessageRoute.HEALTH_SPECIFIC:
+    if route == MessageRoute.HEALTH_SPECIFIC:
         return _is_lifestyle_query(message)
     return True
+
+
+def _should_run_rag(message: str, filter_result: FilterResult) -> bool:
+    if not config.CONTENT_FILTER_ROUTING_ENABLED:
+        return False
+    return _should_run_rag_from_projection(
+        message,
+        filter_result.message_route,
+        filter_result.emotional_priority,
+        PromptPolicy.MEDICAL_NOTE if filter_result.medical_action == FilterMedicalAction.MEDICAL_NOTE else PromptPolicy.NONE,
+        flags=PrepFlags(
+            rag_enabled=config.RAG_ENABLED,
+            rag_apply_enabled=config.RAG_APPLY_ENABLED,
+            user_context_enabled=config.USER_CONTEXT_ENABLED,
+            user_context_apply_enabled=config.USER_CONTEXT_APPLY_ENABLED,
+            routing_apply_enabled=config.CONTENT_FILTER_ROUTING_APPLY_ENABLED,
+            rag_top_k=config.RAG_TOP_K,
+        ),
+    )
 
 
 def _rag_top_k(filter_result: FilterResult) -> int:
@@ -112,20 +137,44 @@ def _get_user_context_service(service):
         return None
 
 
-def _should_build_user_context(filter_result: FilterResult, profile) -> bool:
-    if not config.USER_CONTEXT_ENABLED:
+def _should_build_user_context_from_projection(
+    route: MessageRoute | None,
+    emotional_priority: bool,
+    prompt_policy: PromptPolicy,
+    *,
+    has_profile: bool,
+    flags: PrepFlags,
+) -> bool:
+    if not flags.user_context_enabled:
         return False
-    if profile is None:
+    if not has_profile:
         return False
-    if filter_result.medical_action == FilterMedicalAction.MEDICAL_NOTE:
+    if prompt_policy == PromptPolicy.MEDICAL_NOTE:
         return False
-    if filter_result.emotional_priority:
+    if emotional_priority:
         return False
-    if filter_result.message_route is None:
+    if route is None:
         return False
-    if filter_result.message_route != MessageRoute.HEALTH_GENERAL:
+    if route != MessageRoute.HEALTH_GENERAL:
         return False
     return True
+
+
+def _should_build_user_context(filter_result: FilterResult, profile) -> bool:
+    return _should_build_user_context_from_projection(
+        filter_result.message_route,
+        filter_result.emotional_priority,
+        PromptPolicy.MEDICAL_NOTE if filter_result.medical_action == FilterMedicalAction.MEDICAL_NOTE else PromptPolicy.NONE,
+        has_profile=profile is not None,
+        flags=PrepFlags(
+            rag_enabled=config.RAG_ENABLED,
+            rag_apply_enabled=config.RAG_APPLY_ENABLED,
+            user_context_enabled=config.USER_CONTEXT_ENABLED,
+            user_context_apply_enabled=config.USER_CONTEXT_APPLY_ENABLED,
+            routing_apply_enabled=config.CONTENT_FILTER_ROUTING_APPLY_ENABLED,
+            rag_top_k=config.RAG_TOP_K,
+        ),
+    )
 
 
 def _select_topic_hint(message: str) -> str | None:
