@@ -1,12 +1,21 @@
+import hashlib
+import secrets
+from datetime import date, datetime, timedelta
+
 from fastapi.exceptions import HTTPException
+import jwt
 from pydantic import EmailStr
 from starlette import status
 from tortoise.transactions import in_transaction
 
+from backend.core import config
+from backend.core.config import Env
 from backend.core.jwt.tokens import AccessToken, RefreshToken
-from backend.dtos.auth import LoginRequest, SignUpRequest
-from backend.models.users import User
+from backend.dtos.auth import EmailSignupConfirmRequest, EmailSignupVerificationRequest, LoginRequest, SignUpRequest
+from backend.models.email_signup_sessions import EmailSignupSession
+from backend.models.users import Gender, User
 from backend.repositories.user_repository import UserRepository
+from backend.services.email import EmailService
 from backend.services.jwt import JwtService
 from backend.utils.common import normalize_phone_number
 from backend.utils.security import hash_password, verify_password
@@ -16,49 +25,340 @@ class AuthService:
     def __init__(self):
         self.user_repo = UserRepository()
         self.jwt_service = JwtService()
+        self.email_service = EmailService()
+
+    @staticmethod
+    def _hash_verification_code(code: str) -> str:
+        return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _generate_verification_code() -> str:
+        return f"{secrets.randbelow(1_000_000):06d}"
+
+    @staticmethod
+    def _describe_account(user: User) -> str:
+        if user.provider == "kakao":
+            return "카카오 소셜 계정"
+        if user.provider == "naver":
+            return "네이버 소셜 계정"
+        if user.provider == "google":
+            return "구글 소셜 계정"
+        if user.hashed_password:
+            return "일반 이메일 계정"
+        return "기존 계정"
+
+    @staticmethod
+    def _is_social_account(user: User) -> bool:
+        return bool(user.provider)
+
+    def _encode_email_link_token(
+        self,
+        *,
+        email: str,
+        requester_user_id: int,
+        keep_user_id: int,
+        candidate_user_ids: list[int],
+        code_hash: str,
+    ) -> str:
+        now = datetime.now(tz=config.TIMEZONE)
+        payload = {
+            "iss": "danaa-email-link",
+            "purpose": "email-link",
+            "sub": str(requester_user_id),
+            "requester_user_id": requester_user_id,
+            "keep_user_id": keep_user_id,
+            "candidate_user_ids": candidate_user_ids,
+            "email": email,
+            "code_hash": code_hash,
+            "iat": now,
+            "exp": now + timedelta(minutes=10),
+        }
+        return jwt.encode(payload, config.SECRET_KEY, algorithm=config.JWT_ALGORITHM)
+
+    def _decode_email_link_token(self, token: str) -> dict:
+        try:
+            payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+        except jwt.PyJWTError as err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email link token.") from err
+        if payload.get("purpose") != "email-link":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email link token.")
+        return payload
+
+    async def _get_password_user_by_email(self, email: str | EmailStr) -> User | None:
+        accounts = await self.user_repo.get_users_by_email(str(email))
+        password_accounts = [account for account in accounts if account.hashed_password]
+        if not password_accounts:
+            return None
+        return max(password_accounts, key=lambda account: account.id)
 
     async def signup(self, data: SignUpRequest) -> User:
-        # 이메일 중복 체크
         await self.check_email_exists(data.email)
-
-        # 입력받은 휴대폰 번호를 노말라이즈
         normalized_phone_number = normalize_phone_number(data.phone_number)
-
-        # 휴대폰 번호 중복 체크
         await self.check_phone_number_exists(normalized_phone_number)
 
-        # 유저 생성
         async with in_transaction():
-            user = await self.user_repo.create_user(
+            return await self.user_repo.create_user(
                 email=data.email,
-                hashed_password=hash_password(data.password),  # 해시화된 비밀번호를 사용
+                hashed_password=hash_password(data.password),
                 name=data.name,
                 phone_number=normalized_phone_number,
                 gender=data.gender,
                 birthday=data.birth_date,
             )
 
-            return user
+    async def request_email_signup_verification(
+        self, data: EmailSignupVerificationRequest
+    ) -> dict[str, str | None]:
+        existing_user = await self._get_password_user_by_email(str(data.email))
+        if existing_user:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already in use.")
+        verification_code = self._generate_verification_code()
+        expires_at = datetime.now(tz=config.TIMEZONE) + timedelta(minutes=10)
+
+        await EmailSignupSession.filter(email__iexact=data.email, consumed_at__isnull=True).delete()
+        await EmailSignupSession.create(
+            user_id=None,
+            email=str(data.email),
+            password_hash=hash_password(data.password),
+            name=data.name,
+            birthday=data.birth_date,
+            verification_code_hash=self._hash_verification_code(verification_code),
+            expires_at=expires_at,
+        )
+
+        if config.MAIL_FROM and config.SMTP_HOST and config.SMTP_USERNAME and config.SMTP_PASSWORD:
+            self.email_service.send_signup_verification_code(
+                to_email=str(data.email),
+                code=verification_code,
+            )
+
+        return {
+            "detail": "Verification code issued.",
+            "dev_verification_code": verification_code if config.ENV != Env.PROD else None,
+        }
+
+    async def preview_email_link(self, user: User, email: str) -> dict[str, object]:
+        normalized_email = email.strip().lower()
+        accounts = await self.user_repo.get_users_by_email(normalized_email)
+
+        if not accounts:
+            return {
+                "detail": "No linked account exists for this email.",
+                "accounts": [
+                    {
+                        "id": user.id,
+                        "account_type": self._describe_account(user),
+                        "name": user.name,
+                        "email": user.email,
+                        "provider": user.provider,
+                        "email_verified": user.email_verified,
+                        "created_at": user.created_at,
+                        "is_current": True,
+                    }
+                ],
+                "current_user_id": user.id,
+                "current_account_type": self._describe_account(user),
+                "conflict_user_ids": [],
+                "can_transfer": True,
+                "requires_manual_resolution": False,
+                "selected_user_id": user.id,
+            }
+
+        items = []
+        conflict_user_ids: list[int] = []
+        for account in accounts:
+            items.append(
+                {
+                    "id": account.id,
+                    "account_type": self._describe_account(account),
+                    "name": account.name,
+                    "email": account.email,
+                    "provider": account.provider,
+                    "email_verified": account.email_verified,
+                    "created_at": account.created_at,
+                    "is_current": account.id == user.id,
+                }
+            )
+            if account.id != user.id:
+                conflict_user_ids.append(account.id)
+
+        requires_manual_resolution = any(not self._is_social_account(account) and account.id != user.id for account in accounts)
+        return {
+            "detail": "Account link preview loaded.",
+            "accounts": items,
+            "current_user_id": user.id,
+            "current_account_type": self._describe_account(user),
+            "conflict_user_ids": conflict_user_ids,
+            "can_transfer": True,
+            "requires_manual_resolution": requires_manual_resolution,
+            "selected_user_id": user.id,
+        }
+
+    async def request_email_link_verification(
+        self,
+        user: User,
+        email: str,
+        keep_user_id: int,
+    ) -> dict[str, str | bool | None]:
+        normalized_email = email.strip().lower()
+        accounts = await self.user_repo.get_users_by_email(normalized_email)
+        if not accounts:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Linked account not found.")
+
+        keep_user = next((account for account in accounts if account.id == keep_user_id), None)
+        if not keep_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected account not found.")
+
+        verification_code = self._generate_verification_code()
+        code_hash = self._hash_verification_code(verification_code)
+        link_token = self._encode_email_link_token(
+            requester_user_id=user.id,
+            email=normalized_email,
+            keep_user_id=keep_user.id,
+            candidate_user_ids=[account.id for account in accounts],
+            code_hash=code_hash,
+        )
+
+        if config.MAIL_FROM and config.SMTP_HOST and config.SMTP_USERNAME and config.SMTP_PASSWORD:
+            self.email_service.send_email_link_verification_code(
+                to_email=normalized_email,
+                code=verification_code,
+            )
+
+        return {
+            "detail": "Verification code issued.",
+            "link_token": link_token,
+            "selected_user_id": keep_user.id,
+            "dev_verification_code": verification_code if config.ENV != Env.PROD else None,
+        }
+
+    async def confirm_email_signup_verification(self, data: EmailSignupConfirmRequest) -> User:
+        session = (
+            await EmailSignupSession.filter(email__iexact=data.email, consumed_at__isnull=True)
+            .order_by("-created_at")
+            .first()
+        )
+        if not session:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification session not found.")
+        now = datetime.now(tz=config.TIMEZONE)
+        if session.expires_at < now:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired.")
+        if session.verification_code_hash != self._hash_verification_code(data.code):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code is invalid.")
+
+        async with in_transaction():
+            user = await self.user_repo.create_user(
+                email=str(data.email),
+                email_verified=True,
+                email_verified_at=now,
+                hashed_password=session.password_hash,
+                name=session.name,
+                birthday=session.birthday,
+            )
+            session.verified_at = now
+            session.consumed_at = now
+            await session.save(update_fields=["verified_at", "consumed_at", "updated_at"])
+        return user
+
+    async def confirm_email_link_verification(
+        self,
+        user: User,
+        email: str,
+        code: str,
+        link_token: str,
+        keep_user_id: int | None = None,
+    ) -> tuple[User, dict[str, str | None]]:
+        normalized_email = email.strip().lower()
+        payload = self._decode_email_link_token(link_token)
+        if int(payload.get("requester_user_id") or 0) != user.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email link token does not match user.")
+        if payload.get("email") != normalized_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email link token does not match email.")
+        if payload.get("code_hash") != self._hash_verification_code(code):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code is invalid.")
+
+        selected_keep_user_id = keep_user_id or int(payload.get("keep_user_id") or 0)
+        if not selected_keep_user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected account is missing.")
+
+        candidate_user_ids = {int(uid) for uid in (payload.get("candidate_user_ids") or [])}
+        if selected_keep_user_id not in candidate_user_ids:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected account is not available.")
+
+        accounts = await self.user_repo.get_users_by_email(normalized_email)
+        keep_user = next((account for account in accounts if account.id == selected_keep_user_id), None)
+        if not keep_user:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected account not found.")
+
+        now = datetime.now(tz=config.TIMEZONE)
+        async with in_transaction():
+            for account in accounts:
+                if account.id == keep_user.id:
+                    continue
+                await account.delete()
+
+            await self.user_repo.update_instance(
+                keep_user,
+                {
+                    "email": normalized_email,
+                    "email_verified": True,
+                    "email_verified_at": now,
+                },
+            )
+
+        tokens = await self.login(keep_user)
+        return keep_user, {
+            "access_token": str(tokens["access_token"]),
+            "refresh_token": str(tokens["refresh_token"]),
+        }
+
+    async def get_or_create_social_user(
+        self,
+        *,
+        provider: str,
+        provider_user_id: str,
+        email: str | None = None,
+        name: str | None = None,
+        gender: Gender | None = None,
+        birthday: date | None = None,
+        phone_number: str | None = None,
+    ) -> User:
+        social_user = await self.user_repo.get_user_by_provider(provider, provider_user_id)
+        if social_user:
+            return social_user
+
+        async with in_transaction():
+            return await self.user_repo.create_user(
+                provider=provider,
+                provider_user_id=provider_user_id,
+                email=email,
+                hashed_password=None,
+                name=name or "Kakao User",
+                phone_number=phone_number,
+                gender=gender,
+                birthday=birthday,
+            )
 
     async def authenticate(self, data: LoginRequest) -> User:
-        # 이메일로 사용자 조회
         email = str(data.email)
-        user = await self.user_repo.get_user_by_email(email)
+        user = await self._get_password_user_by_email(email)
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일 또는 비밀번호가 올바르지 않습니다."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email or password is invalid.",
             )
-
-        # 비밀번호 검증
+        if not user.hashed_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Social account cannot use password login.",
+            )
         if not verify_password(data.password, user.hashed_password):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="이메일 또는 비밀번호가 올바르지 않습니다."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email or password is invalid.",
             )
-
-        # 활성 사용자 체크
         if not user.is_active:
-            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="비활성화된 계정입니다.")
-
+            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Account is locked.")
         return user
 
     async def login(self, user: User) -> dict[str, AccessToken | RefreshToken]:
@@ -66,9 +366,9 @@ class AuthService:
         return self.jwt_service.issue_jwt_pair(user)
 
     async def check_email_exists(self, email: str | EmailStr) -> None:
-        if await self.user_repo.exists_by_email(email):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 사용중인 이메일입니다.")
+        if await self._get_password_user_by_email(email):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email is already in use.")
 
     async def check_phone_number_exists(self, phone_number: str) -> None:
         if await self.user_repo.exists_by_phone_number(phone_number):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="이미 사용중인 휴대폰 번호입니다.")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Phone number is already in use.")

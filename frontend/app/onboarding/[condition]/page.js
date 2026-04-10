@@ -171,7 +171,7 @@ export default function OnboardingFlow() {
   const toggleChip = useCallback((idx) => {
     setAnswers((prev) => {
       const current = prev[currentStep] ? [...prev[currentStep]] : [];
-      const step = STEPS[currentStep];
+      const step = allSteps[currentStep];
       const chips = step?.chips || [];
       const chipLabel = chips[idx] || '';
 

@@ -10,7 +10,9 @@ def setup_cors(app: FastAPI) -> None:
         CORSMiddleware,
         allow_origins=[
             "http://localhost:3000",
+            "http://127.0.0.1:3000",
             "http://localhost",
+            "http://127.0.0.1",
         ],
         allow_credentials=True,
         allow_methods=["*"],

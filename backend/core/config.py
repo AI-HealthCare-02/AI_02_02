@@ -31,6 +31,29 @@ class Config(BaseSettings):
     DB_CONNECTION_POOL_MAXSIZE: int = 10
 
     COOKIE_DOMAIN: str = "localhost"
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
+
+    # Social login
+    KAKAO_REST_API_KEY: str = ""
+    KAKAO_CLIENT_SECRET: str = ""
+    KAKAO_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/social/callback/kakao"
+    KAKAO_LOGOUT_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/social/logout/kakao"
+    NAVER_CLIENT_ID: str = ""
+    NAVER_CLIENT_SECRET: str = ""
+    NAVER_REDIRECT_URI: str = ""
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    SOCIAL_PENDING_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Email / SMTP
+    MAIL_FROM: str = ""
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    SMTP_USE_SSL: bool = False
 
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
