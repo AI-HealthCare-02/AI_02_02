@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>다나아 + Just Do It 통합 방향 설명</title>
+  <style>
+    :root {
+      --bg: #f6f2ea;
+      --paper: #fffdf8;
+      --ink: #1f2430;
+      --muted: #6f7482;
+      --line: #d8cfc1;
+      --navy: #1c3d5a;
+      --teal: #2f7f8a;
+      --coral: #d86d53;
+      --sand: #e8d7bd;
+      --gold: #c59a4a;
+      --shadow: 0 22px 60px rgba(31, 36, 48, 0.14);
+      --radius: 28px;
+      --max: 1220px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(47, 127, 138, 0.12), transparent 22%),
+        radial-gradient(circle at top right, rgba(216, 109, 83, 0.14), transparent 24%),
+        linear-gradient(180deg, #f9f5ee 0%, var(--bg) 100%);
+      font-family: "Pretendard Variable", "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .page {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 36px 20px 72px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(255, 253, 248, 0.96), rgba(239, 248, 249, 0.9));
+      border: 1px solid rgba(28, 61, 90, 0.12);
+      border-radius: 36px;
+      box-shadow: var(--shadow);
+      padding: 42px;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 240px;
+      height: 240px;
+      right: -60px;
+      top: -70px;
+      background: rgba(47, 127, 138, 0.12);
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      left: -40px;
+      bottom: -60px;
+      background: rgba(216, 109, 83, 0.12);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(28, 61, 90, 0.08);
+      color: var(--navy);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.15;
+      text-wrap: balance;
+    }
+
+    h1 {
+      margin-top: 18px;
+      max-width: 740px;
+      font-size: clamp(34px, 5vw, 62px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy {
+      margin-top: 18px;
+      max-width: 720px;
+      font-size: 18px;
+      color: #2e3444;
+    }
+
+    .hero-copy strong {
+      color: var(--navy);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      margin-top: 32px;
+      align-items: stretch;
+    }
+
+    .note-stage {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .note-card,
+    .binder-card,
+    .panel,
+    .warning-card,
+    .timeline-card,
+    .compare-card,
+    .faq-card {
+      background: var(--paper);
+      border: 1px solid rgba(31, 36, 48, 0.1);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 36px rgba(31, 36, 48, 0.08);
+    }
+
+    .note-card {
+      position: relative;
+      padding: 22px 20px 20px;
+      min-height: 220px;
+    }
+
+    .note-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 14px;
+      border-radius: 28px 28px 0 0;
+    }
+
+    .note-card.health::before {
+      background: linear-gradient(90deg, var(--teal), #76b9c0);
+    }
+
+    .note-card.productivity::before {
+      background: linear-gradient(90deg, var(--coral), #edb088);
+    }
+
+    .note-card.merged::before {
+      background: linear-gradient(90deg, var(--navy), var(--gold));
+    }
+
+    .note-tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(31, 36, 48, 0.06);
+      color: var(--muted);
+    }
+
+    .note-title {
+      margin-top: 14px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .note-desc {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .mini-list {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      font-size: 14px;
+      color: #364154;
+    }
+
+    .mini-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .mini-list li::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: currentColor;
+      opacity: 0.3;
+      flex: none;
+    }
+
+    .binder-card {
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      justify-content: center;
+      background:
+        linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(244, 240, 231, 0.92));
+    }
+
+    .binder {
+      position: relative;
+      min-height: 270px;
+      border: 2px solid rgba(28, 61, 90, 0.24);
+      border-radius: 24px;
+      background: linear-gradient(180deg, #fffdf9 0%, #f2eadb 100%);
+      overflow: hidden;
+      padding: 20px 18px 18px 92px;
+    }
+
+    .binder::before {
+      content: "";
+      position: absolute;
+      left: 28px;
+      top: 0;
+      bottom: 0;
+      width: 26px;
+      background: linear-gradient(180deg, #234965 0%, #183549 100%);
+      border-radius: 12px;
+      box-shadow: inset -3px 0 0 rgba(255, 255, 255, 0.12);
+    }
+
+    .binder::after {
+      content: "";
+      position: absolute;
+      left: 41px;
+      top: 34px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 48px 0 rgba(255, 255, 255, 0.78), 0 96px 0 rgba(255, 255, 255, 0.78), 0 144px 0 rgba(255, 255, 255, 0.78);
+    }
+
+    .binder-title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--navy);
+    }
+
+    .binder-sub {
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .binder-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .binder-tab {
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(28, 61, 90, 0.08);
+      font-size: 13px;
+      font-weight: 700;
+      color: #2f4156;
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 28px;
+    }
+
+    .compare-card {
+      padding: 20px;
+      background: rgba(255, 253, 248, 0.88);
+    }
+
+    .compare-card h3 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .compare-card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .ok,
+    .warn,
+    .bad {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .ok {
+      background: rgba(47, 127, 138, 0.12);
+      color: var(--teal);
+    }
+
+    .warn {
+      background: rgba(197, 154, 74, 0.14);
+      color: #8b6822;
+    }
+
+    .bad {
+      background: rgba(216, 109, 83, 0.12);
+      color: var(--coral);
+    }
+
+    .section {
+      margin-top: 30px;
+      padding: 34px;
+      border-radius: 34px;
+      background: rgba(255, 253, 248, 0.72);
+      border: 1px solid rgba(31, 36, 48, 0.08);
+      backdrop-filter: blur(4px);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .section-kicker {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--teal);
+    }
+
+    .section h2 {
+      margin-top: 8px;
+      font-size: clamp(26px, 3.5vw, 42px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+    }
+
+    .section-head p {
+      max-width: 520px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .systems {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
+    }
+
+    .panel {
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel.health {
+      background: linear-gradient(180deg, rgba(237, 249, 250, 0.96), rgba(255, 253, 248, 0.96));
+    }
+
+    .panel.productivity {
+      background: linear-gradient(180deg, rgba(255, 245, 240, 0.96), rgba(255, 253, 248, 0.96));
+    }
+
+    .panel-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(31, 36, 48, 0.06);
+      color: var(--muted);
+    }
+
+    .panel h3 {
+      margin-top: 14px;
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .panel p {
+      margin: 12px 0 0;
+      color: #3c4452;
+      font-size: 15px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .chip {
+      padding: 9px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(31, 36, 48, 0.08);
+      font-size: 13px;
+      font-weight: 700;
+      color: #334253;
+    }
+
+    .warning-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .warning-card {
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 241, 235, 0.92));
+    }
+
+    .warning-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: var(--navy);
+    }
+
+    .warning-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 16px;
+    }
+
+    .timeline-card {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 18px;
+      padding: 22px;
+      align-items: start;
+      background: rgba(255, 253, 248, 0.92);
+    }
+
+    .phase {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 78px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(28, 61, 90, 0.94), rgba(47, 127, 138, 0.9));
+      color: #fff;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      text-align: center;
+      box-shadow: 0 14px 28px rgba(28, 61, 90, 0.18);
+    }
+
+    .timeline-card h3 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .timeline-card p {
+      margin: 10px 0 0;
+      color: var(--muted);
+    }
+
+    .timeline-card ul {
+      margin: 14px 0 0;
+      padding-left: 18px;
+      color: #364154;
+    }
+
+    .folders {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 22px;
+    }
+
+    .folder-tree {
+      background: #17283a;
+      color: #edf2f7;
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: 0 18px 36px rgba(10, 17, 27, 0.18);
+      overflow: auto;
+    }
+
+    .folder-tree pre {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.7;
+      font-family: "JetBrains Mono", "Consolas", monospace;
+    }
+
+    .folder-note {
+      display: grid;
+      gap: 16px;
+    }
+
+    .folder-note .panel {
+      min-height: 0;
+      padding: 20px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .legend .compare-card {
+      min-height: 140px;
+    }
+
+    .faq {
+      display: grid;
+      gap: 14px;
+    }
+
+    .faq-card {
+      padding: 0;
+      overflow: hidden;
+      background: rgba(255, 253, 248, 0.96);
+    }
+
+    .faq-card summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 18px 20px;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--navy);
+    }
+
+    .faq-card summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-card .faq-body {
+      padding: 0 20px 18px;
+      color: #3c4452;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(28, 61, 90, 0.06);
+      color: #314154;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1080px) {
+      .hero-grid,
+      .systems,
+      .folders,
+      .warning-grid,
+      .legend {
+        grid-template-columns: 1fr;
+      }
+
+      .note-stage,
+      .summary-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 18px 14px 52px;
+      }
+
+      .hero,
+      .section {
+        padding: 24px;
+        border-radius: 26px;
+      }
+
+      .timeline-card {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">다나아 + Just Do It 통합 설명</div>
+      <h1>지금은 따로 만들어도 되고, 나중에 하나의 큰 바인더처럼 합칠 수 있어요.</h1>
+      <p class="hero-copy">
+        결론부터 말하면, <strong>처음부터 한 폴더에 다 섞을 필요는 없습니다.</strong>
+        지금은 <strong>다나아</strong>와 <strong>Just Do It</strong>을 따로 잘 만들고,
+        나중에 <strong>하나의 포털</strong>로 연결하는 것이 더 안전합니다.
+      </p>
+
+      <div class="hero-grid">
+        <div class="note-stage">
+          <article class="note-card health">
+            <span class="note-tag">건강 코칭 서비스</span>
+            <div class="note-title">다나아</div>
+            <p class="note-desc">건강 기록, 위험도, 챌린지, AI 코칭이 중심인 서비스예요.</p>
+            <ul class="mini-list">
+              <li>FastAPI + PostgreSQL + Redis</li>
+              <li>건강 데이터라서 더 조심해야 해요</li>
+              <li>지금은 백엔드가 핵심이에요</li>
+            </ul>
+          </article>
+
+          <article class="note-card productivity">
+            <span class="note-tag">할 일 · PARA 앱</span>
+            <div class="note-title">Just Do It</div>
+            <p class="note-desc">할 일, 프로젝트, 노트, 캘린더를 다루는 생산성 앱이에요.</p>
+            <ul class="mini-list">
+              <li>Next.js + TypeScript + Tailwind</li>
+              <li>Supabase 인증과 DB를 사용해요</li>
+              <li>프론트와 서버 액션이 핵심이에요</li>
+            </ul>
+          </article>
+
+          <article class="note-card merged">
+            <span class="note-tag">나중 목표</span>
+            <div class="note-title">하나의 입구</div>
+            <p class="note-desc">사용자는 하나의 앱처럼 보게 하고, 안쪽 구조는 천천히 정리해요.</p>
+            <ul class="mini-list">
+              <li>메뉴와 화면부터 먼저 연결</li>
+              <li>그 다음 계정 체계 정리</li>
+              <li>맨 마지막에 코드 통합 검토</li>
+            </ul>
+          </article>
+        </div>
+
+        <aside class="binder-card">
+          <div class="binder">
+            <div class="binder-title">큰 바인더 = 통합 포털</div>
+            <div class="binder-sub">처음부터 종이를 한 장에 겹쳐 붙이는 게 아니라, 각각의 노트를 큰 바인더에 넣는다고 생각하면 쉬워요.</div>
+            <div class="binder-tabs">
+              <div class="binder-tab">건강 코칭</div>
+              <div class="binder-tab">생산성 관리</div>
+              <div class="binder-tab">공통 로그인</div>
+              <div class="binder-tab">공통 홈</div>
+              <div class="binder-tab">나중 통합</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="summary-strip">
+        <article class="compare-card">
+          <h3>지금 당장 한 폴더?</h3>
+          <p>아직은 비추천이에요. 기술도 다르고, 로그인 방식도 다르고, 데이터 성격도 달라요.</p>
+          <span class="bad">지금 바로 섞기 X</span>
+        </article>
+
+        <article class="compare-card">
+          <h3>지금 추천</h3>
+          <p>둘은 따로 개발하고, 나중에 하나의 입구 화면을 만들어요.</p>
+          <span class="ok">현재 기본안</span>
+        </article>
+
+        <article class="compare-card">
+          <h3>장기 목표</h3>
+          <p>정말 필요해질 때만 하나의 저장소처럼 묶고, 그래도 역할별 폴더는 나눠요.</p>
+          <span class="warn">마지막 단계</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">현재 실제 성격</div>
+          <h2>두 프로젝트는 같은 “앱 종류”가 아니에요.</h2>
+        </div>
+        <p>
+          둘 다 웹앱이지만, 안쪽 구조와 데이터 책임이 다르기 때문에
+          처음부터 한 상자에 섞으면 오히려 찾기 어렵고 고치기 어려워져요.
+        </p>
+      </div>
+
+      <div class="systems">
+        <article class="panel health">
+          <span class="panel-label">다나아</span>
+          <h3>건강 코칭 시스템</h3>
+          <p>
+            건강 기록, 위험도, 챌린지 같은 민감한 정보를 다루는 서비스예요.
+            그래서 <strong>서버가 중심</strong>이고, 데이터도 조심스럽게 관리해야 해요.
+          </p>
+          <div class="chips">
+            <span class="chip">FastAPI</span>
+            <span class="chip">PostgreSQL 16</span>
+            <span class="chip">Tortoise ORM</span>
+            <span class="chip">Redis</span>
+            <span class="chip">Docker Compose</span>
+            <span class="chip">JWT + refresh cookie</span>
+          </div>
+        </article>
+
+        <article class="panel productivity">
+          <span class="panel-label">Just Do It</span>
+          <h3>생산성 관리 시스템</h3>
+          <p>
+            할 일, 프로젝트, 노트, PARA 분류를 다루는 서비스예요.
+            이쪽은 <strong>프론트와 서버 액션</strong>이 중심이고, 인증과 DB는 Supabase를 강하게 붙잡고 있어요.
+          </p>
+          <div class="chips">
+            <span class="chip">Next.js 16</span>
+            <span class="chip">TypeScript strict</span>
+            <span class="chip">Tailwind 4</span>
+            <span class="chip">Supabase Auth</span>
+            <span class="chip">Supabase Postgres + RLS</span>
+            <span class="chip">Server Actions</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">위험 신호</div>
+          <h2>왜 지금 바로 한 폴더로 섞으면 위험할까요?</h2>
+        </div>
+        <p>
+          폴더를 하나로 만든다고 자동으로 잘 섞이는 게 아니에요.
+          특히 로그인, 데이터, 서버 책임이 다르면 먼저 선을 그어야 해요.
+        </p>
+      </div>
+
+      <div class="warning-grid">
+        <article class="warning-card">
+          <strong>1. 로그인 방식이 달라요</strong>
+          <p>다나아는 자체 JWT 중심이고, Just Do It은 Supabase Auth 중심이라 바로 합치면 사용자 계정이 꼬일 수 있어요.</p>
+        </article>
+
+        <article class="warning-card">
+          <strong>2. 데이터 성격이 달라요</strong>
+          <p>건강 데이터는 더 민감해요. 생산성 앱 데이터와 처음부터 같은 통로로 다루면 위험이 커져요.</p>
+        </article>
+
+        <article class="warning-card">
+          <strong>3. 서버 역할이 달라요</strong>
+          <p>다나아는 API 서버가 핵심이고, Just Do It은 Next 앱 안에서 많은 로직을 처리해요. 바로 한 구조로 맞추기 어려워요.</p>
+        </article>
+
+        <article class="warning-card">
+          <strong>4. 나중 변경 비용이 커져요</strong>
+          <p>지금 억지로 섞으면 나중에 다시 분리하거나 고칠 때 더 오래 걸릴 수 있어요.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">추천 로드맵</div>
+          <h2>가장 안전한 순서는 “따로 개발 → 하나의 입구 → 필요할 때 통합”이에요.</h2>
+        </div>
+        <p>
+          중학생 버전으로 말하면, 두 과목 공책을 먼저 따로 잘 쓰고,
+          나중에 같은 바인더에 넣는 순서예요.
+        </p>
+      </div>
+
+      <div class="timeline">
+        <article class="timeline-card">
+          <div class="phase">0단계</div>
+          <div>
+            <h3>각자 따로 잘 만들기</h3>
+            <p>지금은 다나아와 Just Do It을 각각 자기 방식대로 개발해요.</p>
+            <ul>
+              <li>다나아는 건강 기능과 API를 계속 다듬기</li>
+              <li>Just Do It은 생산성 화면과 흐름을 완성하기</li>
+              <li>DB와 로그인은 아직 서로 건드리지 않기</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="timeline-card">
+          <div class="phase">1단계</div>
+          <div>
+            <h3>하나의 포털 화면 만들기</h3>
+            <p>사용자는 한 앱처럼 느끼지만, 안쪽은 아직 따로일 수 있어요.</p>
+            <ul>
+              <li>공통 홈에서 “건강 코칭 / 생산성 관리” 선택</li>
+              <li>상단 메뉴, 공통 브랜딩, 진입 화면 통일</li>
+              <li>이 단계에서는 화면 경험이 핵심</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="timeline-card">
+          <div class="phase">2단계</div>
+          <div>
+            <h3>계정 체계 정리</h3>
+            <p>같은 사람을 두 앱에서 어떻게 같은 사용자로 볼지 규칙을 만들어요.</p>
+            <ul>
+              <li>이메일만으로 같은 사람 판단하지 않기</li>
+              <li>공통 사용자 ID 또는 계정 연결표 설계</li>
+              <li>권한과 역할 이름도 함께 맞추기</li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="timeline-card">
+          <div class="phase">3단계</div>
+          <div>
+            <h3>코드 통합은 그 다음</h3>
+            <p>이때도 “한 폴더에 몽땅”이 아니라, 역할을 나눈 큰 저장소 구조가 좋아요.</p>
+            <ul>
+              <li>공통 UI 패키지 만들기</li>
+              <li>포털, 건강 웹, Just Do It 웹을 나눠 보관</li>
+              <li>필요할 때만 하나의 모노레포로 묶기</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">미래 구조</div>
+          <h2>나중에 합친다면 이런 식의 “큰 서랍장” 구조가 안전해요.</h2>
+        </div>
+        <p>
+          핵심은 “한 저장소”와 “한 앱 폴더”를 구분하는 거예요.
+          하나의 집 안에서도 방은 나눠야 하듯이, 저장소도 역할별 구역이 필요해요.
+        </p>
+      </div>
+
+      <div class="folders">
+        <div class="folder-tree">
+<pre>workspace/
+├─ apps/
+│  ├─ portal/         # 다나아 + Just Do It 통합 입구
+│  ├─ health-web/     # 다나아 웹 화면
+│  └─ justdoit-web/   # Just Do It 웹 화면
+├─ services/
+│  ├─ danaa-api/      # 다나아 FastAPI 서버
+│  └─ integration-api/# 계정/연결 어댑터
+├─ packages/
+│  ├─ ui/             # 공통 버튼, 카드, 화면 조각
+│  ├─ auth-contract/  # 로그인/계정 규칙
+│  └─ shared-types/   # 공통 타입
+└─ docs/</pre>
+        </div>
+
+        <div class="folder-note">
+          <article class="panel">
+            <span class="panel-label">핵심 메시지</span>
+            <h3>한 저장소는 가능</h3>
+            <p>
+              하지만 그 안에서도 <strong>앱 / 서비스 / 공통 패키지</strong>를 나누는 게 맞아요.
+              방이 있는 집처럼 생각하면 쉬워요.
+            </p>
+          </article>
+
+          <article class="panel">
+            <span class="panel-label">비추천</span>
+            <h3>모든 코드를 한 덩어리 폴더에 넣기</h3>
+            <p>
+              이 방식은 처음엔 빨라 보여도, 나중에 로그인, 데이터, 배포가 섞여서 더 어려워질 가능성이 큽니다.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">아주 쉽게</div>
+          <h2>비유로 보면 이렇게 이해하면 돼요.</h2>
+        </div>
+        <p>코딩을 몰라도, “물건을 정리하는 방식”으로 이해할 수 있게 바꾼 설명이에요.</p>
+      </div>
+
+      <div class="legend">
+        <article class="compare-card">
+          <h3>폴더</h3>
+          <p>파일을 넣는 정리함이에요. 폴더를 바꾼다고 앱이 예뻐지진 않지만, 찾기 쉬워져요.</p>
+        </article>
+        <article class="compare-card">
+          <h3>HTML</h3>
+          <p>공책 안에 들어가는 글, 제목, 버튼 같은 실제 물건이에요.</p>
+        </article>
+        <article class="compare-card">
+          <h3>CSS</h3>
+          <p>공책에 색을 칠하고 간격을 맞추는 꾸미기 도구예요.</p>
+        </article>
+        <article class="compare-card">
+          <h3>포털</h3>
+          <p>두 공책을 한 번에 넣어두는 큰 바인더예요. 입구는 하나지만 안쪽은 나눌 수 있어요.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">FAQ</div>
+          <h2>정말 자주 헷갈리는 질문</h2>
+        </div>
+        <p>짧게 보면 더 쉽게 정리돼요.</p>
+      </div>
+
+      <div class="faq">
+        <details class="faq-card" open>
+          <summary>Q. 결국 나중에 하나의 폴더에 다 넣어야 하나요?</summary>
+          <div class="faq-body">
+            아니요. <strong>하나의 저장소</strong>로 모을 수는 있어도, 그 안에서 역할별 폴더를 나누는 게 보통 더 좋습니다.
+            지금 당장은 아예 따로 두고 개발해도 됩니다.
+          </div>
+        </details>
+
+        <details class="faq-card">
+          <summary>Q. 지금부터 따로따로 만들어도 괜찮나요?</summary>
+          <div class="faq-body">
+            네. 오히려 지금은 그게 더 안전합니다. 다만 나중 통합을 위해 이름, 메뉴, 사용자 흐름은 미리 생각해두면 좋아요.
+          </div>
+        </details>
+
+        <details class="faq-card">
+          <summary>Q. 왜 DB는 바로 합치면 안 되나요?</summary>
+          <div class="faq-body">
+            건강 데이터는 더 민감하고, Just Do It은 Supabase 인증과 RLS 규칙에 많이 묶여 있어요. 둘을 너무 일찍 합치면 로그인과 권한이 꼬일 수 있어요.
+          </div>
+        </details>
+
+        <details class="faq-card">
+          <summary>Q. 그럼 지금 제일 먼저 해야 할 건 뭔가요?</summary>
+          <div class="faq-body">
+            제일 먼저는 <strong>공통 포털 화면의 모습</strong>과 <strong>공통 메뉴 흐름</strong>을 정하는 거예요. 코드 통합보다 먼저 사용자 경험을 맞추는 게 더 중요합니다.
+          </div>
+        </details>
+      </div>
+
+      <div class="footer-note">
+        한 줄 결론: <strong>다나아와 Just Do It은 지금은 따로 잘 만들고, 나중에 하나의 바인더(포털)로 연결한 뒤, 정말 필요할 때만 저장소 통합을 검토하는 것이 가장 안전합니다.</strong>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

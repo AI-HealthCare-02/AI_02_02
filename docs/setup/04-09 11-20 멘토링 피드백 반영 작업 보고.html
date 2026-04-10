@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>멘토링 피드백 반영 작업 보고 — 다나아 프로젝트</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap');
+
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --text:#1f2937;
+      --sub:#6b7280;
+      --line:#e5e7eb;
+      --primary:#2563eb;
+      --primary-soft:#eff6ff;
+      --primary-dark:#1d4ed8;
+      --green:#059669;
+      --green-soft:#ecfdf5;
+      --orange:#d97706;
+      --orange-soft:#fff7ed;
+      --purple:#7c3aed;
+      --purple-soft:#f5f3ff;
+      --red:#dc2626;
+      --red-soft:#fef2f2;
+      --slate-900:#0f172a;
+      --slate-800:#1e293b;
+      --slate-700:#334155;
+      --slate-200:#e2e8f0;
+      --shadow:0 10px 30px rgba(15, 23, 42, .08);
+      --shadow-lg:0 20px 50px rgba(15, 23, 42, .12);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:'Noto Sans KR',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#f8fafc 0%, #f6f7fb 100%);
+      color:var(--text);
+      line-height:1.65;
+    }
+    .wrap{
+      max-width:1180px;
+      margin:0 auto;
+      padding:32px 20px 56px;
+    }
+
+    /* ============= HERO ============= */
+    .hero{
+      background:linear-gradient(135deg,#1d4ed8 0%, #3b82f6 55%, #60a5fa 100%);
+      color:#fff;
+      border-radius:26px;
+      padding:36px 30px;
+      box-shadow:var(--shadow-lg);
+      margin-bottom:22px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero::before{
+      content:"";
+      position:absolute;
+      right:-60px; top:-60px;
+      width:220px; height:220px;
+      border-radius:50%;
+      background:rgba(255,255,255,.08);
+    }
+    .hero::after{
+      content:"";
+      position:absolute;
+      right:40px; bottom:-40px;
+      width:120px; height:120px;
+      border-radius:50%;
+      background:rgba(255,255,255,.06);
+    }
+    .hero-tag{
+      display:inline-block;
+      background:rgba(255,255,255,.18);
+      border:1px solid rgba(255,255,255,.28);
+      padding:5px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      margin-bottom:14px;
+      letter-spacing:.04em;
+    }
+    .hero h1{
+      margin:0 0 12px;
+      font-size:34px;
+      line-height:1.25;
+      font-weight:900;
+      position:relative;
+    }
+    .hero p{
+      margin:0;
+      opacity:.95;
+      font-size:15px;
+      max-width:720px;
+      position:relative;
+    }
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:20px;
+      position:relative;
+    }
+    .meta .chip{
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.22);
+      padding:8px 13px;
+      border-radius:999px;
+      font-size:12.5px;
+      font-weight:600;
+      backdrop-filter: blur(10px);
+    }
+    .meta .chip.ok{
+      background:rgba(16,185,129,.25);
+      border-color:rgba(16,185,129,.45);
+    }
+
+    /* ============= LINKBAR ============= */
+    .linkbar{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px 20px;
+      margin-bottom:22px;
+      box-shadow:var(--shadow);
+      display:grid;
+      gap:8px;
+    }
+    .linkbar b{
+      display:block;
+      font-size:13px;
+      color:var(--sub);
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+    .linkbar .refs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:4px;
+    }
+    .ref-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:var(--primary-soft);
+      color:var(--primary-dark);
+      border:1px solid #dbeafe;
+      padding:7px 13px;
+      border-radius:10px;
+      font-size:12.5px;
+      font-weight:600;
+      text-decoration:none;
+    }
+    .ref-pill::before{
+      content:"📄";
+      font-size:12px;
+    }
+    .ref-pill.meeting::before{ content:"🗒️"; }
+    .ref-pill.decision::before{ content:"⚖️"; }
+    .ref-pill.flow::before{ content:"🔀"; }
+
+    /* ============= GRID ============= */
+    .grid{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:20px;
+    }
+
+    /* ============= CARD (공통) ============= */
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:24px 26px;
+      box-shadow:var(--shadow);
+      margin-bottom:20px;
+    }
+    .card h2{
+      margin:0 0 6px;
+      font-size:22px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .card h2 .num{
+      display:inline-flex;
+      justify-content:center;
+      align-items:center;
+      width:30px; height:30px;
+      background:linear-gradient(135deg,#2563eb,#60a5fa);
+      color:#fff;
+      border-radius:10px;
+      font-size:14px;
+      font-weight:800;
+    }
+    .card-sub{
+      color:var(--sub);
+      font-size:13.5px;
+      margin:0 0 18px;
+    }
+    .card h3{
+      margin:22px 0 10px;
+      font-size:16px;
+      font-weight:800;
+    }
+
+    /* ============= 요약 박스 ============= */
+    .summary-box{
+      background:linear-gradient(135deg,#f0f9ff 0%, #ecfdf5 100%);
+      border:1px solid #bae6fd;
+      border-radius:16px;
+      padding:18px 20px;
+      color:#0c4a6e;
+      font-size:14.5px;
+    }
+    .summary-box b{color:var(--primary-dark)}
+
+    /* ============= MAPPING CARD (요청 → 작업) ============= */
+    .map-row{
+      display:grid;
+      grid-template-columns: 1fr auto 1.3fr;
+      gap:14px;
+      align-items:stretch;
+      margin-top:12px;
+    }
+    .map-box{
+      border-radius:14px;
+      padding:14px 16px;
+      font-size:13.5px;
+      border:1px solid var(--line);
+    }
+    .map-box.req{
+      background:#fefce8;
+      border-color:#fde68a;
+    }
+    .map-box.work{
+      background:#ecfdf5;
+      border-color:#a7f3d0;
+    }
+    .map-box .label{
+      font-size:10.5px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--sub);
+      margin-bottom:6px;
+    }
+    .map-box.req .label{color:#a16207}
+    .map-box.work .label{color:#047857}
+    .map-box strong{
+      display:block;
+      font-size:14.5px;
+      font-weight:800;
+      color:var(--text);
+      margin-bottom:4px;
+    }
+    .map-box p{
+      margin:0;
+      font-size:13px;
+      color:#475569;
+    }
+    .map-arrow{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      color:var(--primary);
+      font-weight:900;
+    }
+    .map-footer{
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px dashed var(--line);
+      font-size:11.5px;
+      color:var(--sub);
+    }
+    .map-footer .doc{
+      display:inline-block;
+      background:var(--primary-soft);
+      color:var(--primary-dark);
+      padding:3px 8px;
+      border-radius:6px;
+      margin:2px 4px 2px 0;
+      font-weight:600;
+    }
+
+    /* ============= TIMELINE (Day1 / Day2) ============= */
+    .day-card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px 20px;
+      margin-top:14px;
+    }
+    .day-card.d1{ background:#fffbeb; border-color:#fde68a;}
+    .day-card.d2{ background:#eff6ff; border-color:#bfdbfe;}
+    .day-head{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:16px;
+      font-weight:800;
+      margin-bottom:4px;
+    }
+    .day-head .icon{
+      font-size:20px;
+    }
+    .day-sub{
+      font-size:12.5px;
+      color:var(--sub);
+      margin-bottom:12px;
+    }
+    .stage-list{
+      display:grid;
+      gap:10px;
+    }
+    .stage{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 14px;
+      position:relative;
+      padding-left:46px;
+    }
+    .stage::before{
+      content:attr(data-num);
+      position:absolute;
+      left:12px; top:12px;
+      width:24px; height:24px;
+      background:var(--primary);
+      color:#fff;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:800;
+    }
+    .day-card.d1 .stage::before{ background:var(--orange);}
+    .day-card.d2 .stage::before{ background:var(--primary);}
+    .stage .title{
+      font-size:13.5px;
+      font-weight:800;
+      color:var(--text);
+    }
+    .stage .desc{
+      font-size:12.5px;
+      color:var(--sub);
+      margin-top:3px;
+    }
+    .stage .why{
+      margin-top:6px;
+      font-size:11.5px;
+      color:var(--primary-dark);
+      background:var(--primary-soft);
+      padding:5px 9px;
+      border-radius:6px;
+      display:inline-block;
+    }
+
+    /* ============= BEFORE / AFTER FLOW ============= */
+    .flow-wrap{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin-top:14px;
+    }
+    .flow-box{
+      border:2px dashed var(--line);
+      border-radius:16px;
+      padding:16px 14px;
+      background:#fafafa;
+    }
+    .flow-box.before{ border-color:#fecaca; background:#fef2f2;}
+    .flow-box.after{ border-color:#bbf7d0; background:#f0fdf4;}
+    .flow-head{
+      font-size:13px;
+      font-weight:800;
+      margin-bottom:12px;
+      text-align:center;
+      padding:5px 0;
+      border-radius:8px;
+    }
+    .flow-box.before .flow-head{ background:#fee2e2; color:#991b1b;}
+    .flow-box.after .flow-head{ background:#d1fae5; color:#065f46;}
+    .node-chain{
+      display:grid;
+      gap:8px;
+    }
+    .node{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:9px 11px;
+      font-size:12px;
+      font-weight:700;
+      text-align:center;
+      position:relative;
+    }
+    .node.shell{ background:#e0f2fe; border-color:#7dd3fc; color:#075985;}
+    .node.graph{ background:#dcfce7; border-color:#86efac; color:#166534;}
+    .node.gpt{ background:#1e293b; color:#fff; border-color:#0f172a;}
+    .node + .node::before{
+      content:"↓";
+      position:absolute;
+      top:-9px; left:50%;
+      transform:translateX(-50%);
+      font-size:11px;
+      color:var(--sub);
+    }
+    .subgraph{
+      background:#fff;
+      border:1.5px dashed #86efac;
+      border-radius:10px;
+      padding:8px;
+      margin:4px 0;
+    }
+    .subgraph-label{
+      font-size:9.5px;
+      font-weight:800;
+      color:#166534;
+      text-align:center;
+      margin-bottom:5px;
+      letter-spacing:.04em;
+    }
+    .subgraph .node{
+      background:#f0fdf4;
+      font-size:10.5px;
+      padding:6px 8px;
+      margin-top:3px;
+      border-color:#bbf7d0;
+    }
+    .subgraph .node:first-child{ margin-top:0;}
+
+    .legend{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+      padding:10px 14px;
+      background:#f8fafc;
+      border:1px solid var(--line);
+      border-radius:10px;
+      font-size:11.5px;
+    }
+    .legend-item{
+      display:flex;
+      align-items:center;
+      gap:5px;
+    }
+    .legend-sq{
+      width:12px; height:12px;
+      border-radius:3px;
+    }
+    .legend-sq.shell{ background:#7dd3fc;}
+    .legend-sq.graph{ background:#86efac;}
+    .legend-sq.gpt{ background:#1e293b;}
+
+    /* ============= 상세 플로우차트 (설명 포함) ============= */
+    .flow-section{
+      margin-top:22px;
+    }
+    .flow-title{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:15px;
+      font-weight:800;
+      margin:24px 0 16px;
+      padding:12px 16px;
+      border-radius:12px;
+    }
+    .flow-title .tag{
+      font-size:10px;
+      font-weight:800;
+      padding:3px 8px;
+      border-radius:6px;
+      background:rgba(255,255,255,.7);
+      letter-spacing:.06em;
+    }
+    .flow-title.before{
+      background:linear-gradient(90deg,#fef2f2,#fee2e2);
+      color:#991b1b;
+      border-left:4px solid #dc2626;
+    }
+    .flow-title.after{
+      background:linear-gradient(90deg,#f0fdf4,#dcfce7);
+      color:#166534;
+      border-left:4px solid #059669;
+    }
+    .flow-title.zoom{
+      background:linear-gradient(90deg,#faf5ff,#ede9fe);
+      color:#6b21a8;
+      border-left:4px solid #7c3aed;
+    }
+    .flow-intro{
+      background:#f8fafc;
+      border:1px dashed var(--line);
+      border-radius:10px;
+      padding:12px 14px;
+      font-size:12.5px;
+      color:var(--slate-700);
+      margin-bottom:16px;
+      line-height:1.6;
+    }
+
+    /* 플로우 단계 박스 */
+    .flow-steps{
+      display:grid;
+      gap:20px;
+      max-width:760px;
+      margin:0 auto;
+      padding:6px 0;
+    }
+    .flow-step{
+      background:#fff;
+      border:1.5px solid var(--line);
+      border-radius:14px;
+      padding:14px 16px;
+      display:grid;
+      grid-template-columns:44px 1fr;
+      gap:14px;
+      align-items:center;
+      position:relative;
+      box-shadow:0 2px 6px rgba(15,23,42,.04);
+    }
+    .flow-step::after{
+      content:"";
+      position:absolute;
+      bottom:-17px;
+      left:50%;
+      transform:translateX(-50%);
+      width:2px;
+      height:14px;
+      background:linear-gradient(180deg,#94a3b8,transparent);
+    }
+    .flow-step::before{
+      content:"▼";
+      position:absolute;
+      bottom:-16px;
+      left:50%;
+      transform:translateX(-50%);
+      color:#94a3b8;
+      font-size:12px;
+      z-index:2;
+    }
+    .flow-step:last-child::after,
+    .flow-step:last-child::before{ display:none; }
+
+    .step-num{
+      width:44px;height:44px;
+      background:linear-gradient(135deg,var(--primary),#60a5fa);
+      color:#fff;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-size:15px;
+    }
+    .step-body .step-title{
+      font-weight:800;
+      font-size:14px;
+      color:var(--text);
+      margin-bottom:4px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .step-body .step-title .code-name{
+      font-family:'Courier New',monospace;
+      font-size:11.5px;
+      background:#f1f5f9;
+      color:#334155;
+      padding:2px 7px;
+      border-radius:5px;
+      font-weight:700;
+    }
+    .step-body .step-desc{
+      font-size:12.5px;
+      color:var(--sub);
+      line-height:1.6;
+    }
+
+    /* 단계별 색상 변형 */
+    .flow-step.safety{ border-color:#7dd3fc; background:#f0f9ff; }
+    .flow-step.safety .step-num{ background:linear-gradient(135deg,#0284c7,#0ea5e9);}
+    .flow-step.prep{ border-color:#86efac; background:#f0fdf4; }
+    .flow-step.prep .step-num{ background:linear-gradient(135deg,#059669,#10b981);}
+    .flow-step.prep-bad{ border-color:#fca5a5; background:#fef2f2; }
+    .flow-step.prep-bad .step-num{ background:linear-gradient(135deg,#dc2626,#ef4444);}
+    .flow-step.gpt{ border-color:#334155; background:#0f172a; color:#fff; }
+    .flow-step.gpt .step-title{ color:#fff; }
+    .flow-step.gpt .step-desc{ color:#cbd5e1; }
+    .flow-step.gpt .step-num{ background:linear-gradient(135deg,#1e293b,#475569);}
+    .flow-step.gpt .step-title .code-name{ background:#334155; color:#f1f5f9; }
+
+    /* 분기 단계 (조기 종료) */
+    .flow-step.branch{
+      background:#fffbeb;
+      border-color:#fde68a;
+    }
+    .flow-step.branch .step-num{
+      background:linear-gradient(135deg,#d97706,#f59e0b);
+    }
+
+    .branches{
+      display:grid;
+      gap:10px;
+      margin:-12px 0 22px 58px;
+      padding:12px 0 12px 18px;
+      border-left:2.5px dashed #fbbf24;
+      position:relative;
+    }
+    .branch-item{
+      background:#fef2f2;
+      border:1px solid #fecaca;
+      border-radius:10px;
+      padding:10px 13px;
+      font-size:12.5px;
+      position:relative;
+    }
+    .branch-item::before{
+      content:"";
+      position:absolute;
+      left:-20px; top:50%;
+      width:16px; height:2px;
+      background:#fbbf24;
+    }
+    .branch-cond{
+      display:inline-block;
+      background:#dc2626;
+      color:#fff;
+      padding:2px 9px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+      margin-right:8px;
+      vertical-align:middle;
+    }
+    .branch-result{
+      color:#991b1b;
+      font-weight:700;
+    }
+    .branch-desc{
+      display:block;
+      margin-top:4px;
+      color:#7c2d12;
+      font-size:11.5px;
+      font-weight:500;
+      padding-left:2px;
+    }
+
+    /* 그래프 확대 박스 */
+    .graph-zoom{
+      background:linear-gradient(135deg,#f0fdf4 0%, #ecfdf5 100%);
+      border:2.5px dashed #86efac;
+      border-radius:18px;
+      padding:22px 24px;
+      margin:18px auto 0;
+      max-width:760px;
+      position:relative;
+    }
+    .graph-zoom::before{
+      content:"🔍 ZOOM IN";
+      position:absolute;
+      top:-13px; left:24px;
+      background:#059669;
+      color:#fff;
+      padding:4px 12px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.06em;
+    }
+    .graph-zoom-title{
+      font-size:14px;
+      font-weight:900;
+      color:#166534;
+      margin-bottom:4px;
+      text-align:center;
+    }
+    .graph-zoom-sub{
+      font-size:12px;
+      color:#059669;
+      text-align:center;
+      margin-bottom:18px;
+    }
+    .graph-nodes{
+      display:grid;
+      gap:16px;
+    }
+    .graph-node{
+      background:#fff;
+      border:1.5px solid #86efac;
+      border-radius:12px;
+      padding:13px 15px;
+      display:grid;
+      grid-template-columns:38px 1fr;
+      gap:12px;
+      align-items:center;
+      position:relative;
+      box-shadow:0 2px 6px rgba(5,150,105,.08);
+    }
+    .graph-node::after{
+      content:"";
+      position:absolute;
+      bottom:-13px; left:38px;
+      width:2px; height:10px;
+      background:#059669;
+    }
+    .graph-node::before{
+      content:"▼";
+      position:absolute;
+      bottom:-12px; left:33px;
+      color:#059669;
+      font-size:11px;
+      z-index:2;
+    }
+    .graph-node:last-child::after,
+    .graph-node:last-child::before{ display:none; }
+
+    .gnode-num{
+      width:38px;height:38px;
+      background:#059669;
+      color:#fff;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-size:13px;
+    }
+    .gnode-body .gnode-name{
+      font-family:'Courier New',monospace;
+      font-size:13px;
+      font-weight:800;
+      color:#166534;
+      margin-bottom:3px;
+    }
+    .gnode-body .gnode-desc{
+      font-size:11.5px;
+      color:#475569;
+      line-height:1.6;
+    }
+    .gnode-body .gnode-why{
+      display:block;
+      margin-top:4px;
+      font-size:10.5px;
+      color:#059669;
+      background:#dcfce7;
+      padding:3px 8px;
+      border-radius:5px;
+      font-weight:600;
+    }
+
+    /* 변경 요약 박스 */
+    .change-summary{
+      background:#fff;
+      border:2px solid #bae6fd;
+      border-radius:14px;
+      padding:16px 18px;
+      margin-top:18px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .change-col{
+      padding:10px 12px;
+      border-radius:10px;
+    }
+    .change-col.kept{ background:#f0f9ff; border-left:4px solid #0284c7; }
+    .change-col.changed{ background:#f0fdf4; border-left:4px solid #059669; }
+    .change-col .ctitle{
+      font-size:12px;
+      font-weight:800;
+      margin-bottom:6px;
+    }
+    .change-col.kept .ctitle{ color:#075985; }
+    .change-col.changed .ctitle{ color:#166534; }
+    .change-col .cdesc{
+      font-size:11.5px;
+      color:var(--slate-700);
+      line-height:1.6;
+    }
+    .change-col .cnum{
+      font-size:22px;
+      font-weight:900;
+      margin-top:6px;
+    }
+    .change-col.kept .cnum{ color:#0284c7; }
+    .change-col.changed .cnum{ color:#059669; }
+
+    /* ============= 부분 적용 의사결정 박스 ============= */
+    .decision-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    .decision-box{
+      border-radius:14px;
+      padding:16px;
+      border:1.5px solid;
+    }
+    .decision-box.out{
+      background:#eff6ff;
+      border-color:#93c5fd;
+    }
+    .decision-box.in{
+      background:#f0fdf4;
+      border-color:#86efac;
+    }
+    .decision-box .dec-head{
+      font-size:13.5px;
+      font-weight:800;
+      margin-bottom:8px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .decision-box.out .dec-head{color:#1e40af}
+    .decision-box.in .dec-head{color:#166534}
+    .decision-box ul{
+      margin:6px 0 10px;
+      padding-left:20px;
+      font-size:12.5px;
+      color:var(--slate-700);
+    }
+    .decision-box li{margin-bottom:4px}
+    .decision-box .why-box{
+      background:rgba(255,255,255,.7);
+      border-left:3px solid;
+      padding:8px 10px;
+      font-size:12px;
+      font-weight:600;
+      border-radius:4px;
+    }
+    .decision-box.out .why-box{
+      border-color:#2563eb;
+      color:#1e40af;
+    }
+    .decision-box.in .why-box{
+      border-color:#059669;
+      color:#166534;
+    }
+
+    /* ============= 용어 해설 카드 ============= */
+    .term-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-top:14px;
+    }
+    .term-card{
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px 16px;
+      border-left:4px solid var(--primary);
+    }
+    .term-card .term-name{
+      font-size:14px;
+      font-weight:800;
+      color:var(--primary-dark);
+      margin-bottom:4px;
+    }
+    .term-card .term-name .eng{
+      font-size:11px;
+      color:var(--sub);
+      font-weight:500;
+      margin-left:4px;
+    }
+    .term-card .term-desc{
+      font-size:12.5px;
+      color:var(--slate-700);
+      margin-bottom:6px;
+    }
+    .term-card .term-analogy{
+      font-size:11.5px;
+      color:#7c3aed;
+      background:#faf5ff;
+      padding:6px 10px;
+      border-radius:6px;
+      border-left:3px solid #c4b5fd;
+    }
+    .term-card .term-analogy::before{
+      content:"💡 비유: ";
+      font-weight:700;
+    }
+
+    /* ============= 검증 테이블 ============= */
+    .verify-table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      margin-top:12px;
+      font-size:13px;
+    }
+    .verify-table th{
+      background:var(--slate-800);
+      color:#fff;
+      padding:10px 12px;
+      text-align:left;
+      font-weight:700;
+      font-size:12px;
+    }
+    .verify-table th:first-child{border-radius:10px 0 0 10px;}
+    .verify-table th:last-child{border-radius:0 10px 10px 0;}
+    .verify-table td{
+      padding:11px 12px;
+      border-bottom:1px solid var(--line);
+      background:#fff;
+    }
+    .verify-table tr:last-child td{border-bottom:none}
+    .verify-status{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      padding:3px 9px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:800;
+    }
+    .verify-status.pass{background:#d1fae5;color:#065f46}
+    .verify-status.warn{background:#fef3c7;color:#92400e}
+
+    /* ============= 사이드 카드 ============= */
+    .aside-card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:22px 22px;
+      box-shadow:var(--shadow);
+      margin-bottom:20px;
+    }
+    .aside-card h2{
+      margin:0 0 14px;
+      font-size:18px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .aside-card h2 .icon{
+      font-size:20px;
+    }
+
+    /* 포트폴리오 메시지 */
+    .msg-list{
+      display:grid;
+      gap:10px;
+    }
+    .msg-item{
+      background:#faf5ff;
+      border-left:3px solid var(--purple);
+      border-radius:8px;
+      padding:10px 12px;
+      font-size:12.5px;
+      color:var(--slate-700);
+      position:relative;
+    }
+    .msg-item .msg-num{
+      display:inline-block;
+      font-size:10px;
+      font-weight:800;
+      color:var(--purple);
+      background:#ede9fe;
+      padding:2px 6px;
+      border-radius:4px;
+      margin-bottom:4px;
+    }
+    .msg-item .msg-title{
+      font-weight:800;
+      color:var(--slate-800);
+      margin-bottom:3px;
+      font-size:13px;
+    }
+
+    /* 수치 현황 */
+    .stat-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .stat-box{
+      background:linear-gradient(135deg,#eff6ff,#dbeafe);
+      border:1px solid #bfdbfe;
+      border-radius:12px;
+      padding:12px;
+      text-align:center;
+    }
+    .stat-box .num{
+      font-size:24px;
+      font-weight:900;
+      color:var(--primary-dark);
+      line-height:1;
+    }
+    .stat-box .lbl{
+      font-size:11px;
+      color:var(--sub);
+      margin-top:4px;
+      font-weight:600;
+    }
+
+    /* 타임라인 (다음 할 일) */
+    .timeline{
+      display:grid;
+      gap:12px;
+    }
+    .timeline-item{
+      position:relative;
+      padding-left:22px;
+      color:var(--slate-700);
+      font-size:12.5px;
+    }
+    .timeline-item::before{
+      content:"";
+      position:absolute;
+      left:0;
+      top:.4em;
+      width:10px;height:10px;border-radius:50%;
+      background:var(--primary);
+      border:2px solid #bfdbfe;
+    }
+    .timeline-item b{
+      display:block;
+      margin-bottom:3px;
+      color:var(--slate-800);
+      font-size:13px;
+    }
+
+    /* 인사이트 박스 */
+    .insight{
+      background:linear-gradient(135deg,#fffbeb 0%, #fef3c7 100%);
+      border:1px solid #fde68a;
+      color:#78350f;
+      border-radius:14px;
+      padding:16px 18px;
+      font-size:13px;
+      line-height:1.7;
+    }
+    .insight b{color:#92400e}
+    .insight::before{
+      content:"💬";
+      font-size:18px;
+      display:block;
+      margin-bottom:6px;
+    }
+
+    /* ============= FOOTER ============= */
+    .footer{
+      margin-top:24px;
+      padding:20px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:16px;
+      text-align:center;
+      color:var(--sub);
+      font-size:12.5px;
+      box-shadow:var(--shadow);
+    }
+    .footer b{color:var(--slate-700)}
+
+    /* ============= RESPONSIVE ============= */
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      .hero h1{font-size:28px}
+      .map-row{grid-template-columns:1fr}
+      .map-arrow{transform:rotate(90deg);padding:4px 0;}
+      .decision-grid{grid-template-columns:1fr}
+      .term-grid{grid-template-columns:1fr}
+      .stat-grid{grid-template-columns:1fr 1fr}
+      .change-summary{grid-template-columns:1fr}
+    }
+    @media (max-width: 560px){
+      .hero{padding:28px 22px}
+      .hero h1{font-size:24px}
+      .card{padding:20px 18px}
+      .flow-step{grid-template-columns:36px 1fr;gap:10px;padding:12px 13px;}
+      .step-num{width:36px;height:36px;font-size:13px;}
+      .graph-zoom{padding:18px 16px;}
+      .graph-node{grid-template-columns:32px 1fr;gap:10px;padding:11px 12px;}
+      .gnode-num{width:32px;height:32px;font-size:11px;}
+      .branches{margin-left:46px;padding-left:14px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ================== HERO ================== -->
+    <section class="hero">
+      <span class="hero-tag">📋 팀·멘토 공유용 작업 보고서</span>
+      <h1>멘토링 피드백 → 실제 작업 반영 보고</h1>
+      <p>2026-04-09 오전 멘토링 회의에서 받은 4가지 핵심 요청을,
+        2일간(4/8~4/9) 어떻게 반영했는지 정리한 문서입니다.
+        "설명 가능한 구조"라는 방향성에 맞춰, 내부 리팩토링 → LangGraph 부분 적용까지의 과정을 담았습니다.</p>
+      <div class="meta">
+        <span class="chip">🗓️ 작업 기간 4/8 ~ 4/9</span>
+        <span class="chip">🌿 브랜치 kwanju</span>
+        <span class="chip">🧩 LangGraph 부분 적용</span>
+        <span class="chip ok">✅ 단위 테스트 12/12 PASS</span>
+        <span class="chip ok">🌓 Shadow 모드 ON</span>
+      </div>
+    </section>
+
+    <!-- ================== LINK BAR ================== -->
+    <section class="linkbar">
+      <b>참고 문서</b>
+      <div class="refs">
+        <span class="ref-pill meeting">팀 회의록 (team_meeting_minutes.html)</span>
+        <span class="ref-pill decision">04-09 LangGraph 부분 적용 결정 기록.md</span>
+        <span class="ref-pill flow">04-09 채팅 흐름 전후 비교.md</span>
+        <span class="ref-pill">04-09 ChatPreparationGraph 상태 노드 명세.md</span>
+        <span class="ref-pill">04-09 LangGraph 롤아웃 전략.md</span>
+        <span class="ref-pill">04-08 채팅 3트랙 구현 기록.md</span>
+      </div>
+    </section>
+
+    <!-- ================== MAIN + ASIDE GRID ================== -->
+    <div class="grid">
+      <main>
+
+        <!-- ============ 한눈에 보는 요약 ============ -->
+        <section class="card">
+          <h2><span class="num">🎯</span> 한눈에 보는 작업 요약</h2>
+          <p class="card-sub">회의록의 피드백이 어떻게 반영됐는지 핵심만 먼저 정리합니다.</p>
+          <div class="summary-box">
+            멘토님은 회의에서 <b>"기능을 더 붙이는 단계가 아니라, 구조를 정리하고 설명 가능한 코드로 다듬는 단계"</b>라는 방향을 제시했습니다.
+            이틀간 작업의 핵심은 <b>chat.py 내부 구조를 정리(Day 1)</b>한 뒤,
+            그 위에 <b>LangGraph를 준비 구간에만 안전하게 부분 적용(Day 2)</b>한 것입니다.
+            기능을 새로 붙이지 않고, "왜 이렇게 설계했는지"를 설명할 수 있는 구조로 다듬는 데 집중했습니다.
+          </div>
+        </section>
+
+        <!-- ============ 멘토링 요청 → 실제 작업 매핑 ============ -->
+        <section class="card">
+          <h2><span class="num">1</span> 멘토링 요청 → 실제 작업 매핑</h2>
+          <p class="card-sub">회의에서 제시된 4가지 요청을 각각 어떤 작업으로 반영했는지 한눈에 비교합니다.</p>
+
+          <!-- 매핑 카드 1: chat.py 흐름도 -->
+          <h3>① chat.py 흐름도 작성</h3>
+          <div class="map-row">
+            <div class="map-box req">
+              <div class="label">🎤 멘토 요청</div>
+              <strong>chat.py 흐름도 작성</strong>
+              <p>현재 chat.py 내부 함수 흐름을 flowchart 형태로 정리</p>
+            </div>
+            <div class="map-arrow">→</div>
+            <div class="map-box work">
+              <div class="label">✅ 실제 반영</div>
+              <strong>chat.py 단일 파일 → 5개 패키지 분리 + 흐름 다이어그램</strong>
+              <p>service / streaming / persistence / prompting / enrich 역할별 분리.
+                Before/After mermaid 다이어그램까지 문서화 완료.</p>
+            </div>
+          </div>
+          <div class="map-footer">
+            근거:
+            <span class="doc">04-08 14-19 채팅 3트랙 구현 기록.md</span>
+            <span class="doc">04-09 10-50 채팅 흐름 전후 비교.md</span>
+          </div>
+
+          <!-- 매핑 카드 2: content_filter -->
+          <h3>② content_filter.py 리팩토링</h3>
+          <div class="map-row">
+            <div class="map-box req">
+              <div class="label">🎤 멘토 요청</div>
+              <strong>하드코딩·정규식 기반 필터 개선</strong>
+              <p>if-else가 많고 정규표현식 기반이라 유지보수성과 우회 공격에 약함</p>
+            </div>
+            <div class="map-arrow">→</div>
+            <div class="map-box work">
+              <div class="label">✅ 실제 반영</div>
+              <strong>reason_codes enum 전환 + normalize option C</strong>
+              <p>reason_codes를 문자열 → enum으로 교체해 오타·타입 실수 차단.
+                normalize 함수는 의료 수치(예: 혈당 120mg/dL)는 보호하고, 우회용 특수문자만 정리.</p>
+            </div>
+          </div>
+          <div class="map-footer">
+            근거:
+            <span class="doc">04-08 14-19 reason codes 인벤토리.md</span>
+            <span class="doc">04-08 14-19 normalize 골든셋 및 금지조건.md</span>
+          </div>
+
+          <!-- 매핑 카드 3: LangGraph -->
+          <h3>③ LangGraph 샘플 코드 검토</h3>
+          <div class="map-row">
+            <div class="map-box req">
+              <div class="label">🎤 멘토 요청</div>
+              <strong>LangGraph 기반 리팩토링 방향 준비</strong>
+              <p>리팩토링 예시를 검토하고 다음 회의에서 함께 설명 예정</p>
+            </div>
+            <div class="map-arrow">→</div>
+            <div class="map-box work">
+              <div class="label">✅ 실제 반영</div>
+              <strong>ChatPreparationGraph 5개 노드 부분 적용</strong>
+              <p>전체 전환이 아니라 <b>준비 구간(pre-LLM preparation)</b>만 그래프로 분리.
+                off / shadow / partial 3단계 롤아웃 모드로 안전하게 적용.</p>
+            </div>
+          </div>
+          <div class="map-footer">
+            근거:
+            <span class="doc">04-09 10-50 LangGraph 부분 적용 결정 기록.md</span>
+            <span class="doc">ChatPreparationGraph 상태 노드 명세.md</span>
+            <span class="doc">LangGraph 롤아웃 전략.md</span>
+          </div>
+
+          <!-- 매핑 카드 4: 설명 가능한 구조 -->
+          <h3>④ "설명 가능한 구조"로 다듬기</h3>
+          <div class="map-row">
+            <div class="map-box req">
+              <div class="label">🎤 멘토 요청</div>
+              <strong>면접·포트폴리오에서 설계 이유를 말할 수 있는 수준까지</strong>
+              <p>단순히 AI로 코드를 만든 것이 아니라, 왜 이렇게 설계했는지 말할 수 있어야 함</p>
+            </div>
+            <div class="map-arrow">→</div>
+            <div class="map-box work">
+              <div class="label">✅ 실제 반영</div>
+              <strong>그래프 밖/안 경계 명시 + 의사결정 문서 작성</strong>
+              <p>의료 안전이 중요한 경로(content_filter, DB write, SSE)는 "명시적 셸"로 유지.
+                면접 설명 스크립트와 PR 리뷰 게이트까지 함께 문서화.</p>
+            </div>
+          </div>
+          <div class="map-footer">
+            근거:
+            <span class="doc">04-09 10-50 LangGraph 면접 설명 스크립트.md</span>
+            <span class="doc">04-09 10-50 LangGraph PR 리뷰 게이트.md</span>
+            <span class="doc">04-09 10-50 LangGraph 개발 안전 체크리스트.md</span>
+          </div>
+        </section>
+
+        <!-- ============ 작업 타임라인 ============ -->
+        <section class="card">
+          <h2><span class="num">2</span> 작업 타임라인 (이틀치)</h2>
+          <p class="card-sub">Day 1에서 구조를 먼저 정리한 뒤, Day 2에서 그 위에 LangGraph를 얹는 순서로 진행했습니다.</p>
+
+          <!-- Day 1 -->
+          <div class="day-card d1">
+            <div class="day-head"><span class="icon">📅</span> Day 1 (2026-04-08) — "집 구조 정리"</div>
+            <div class="day-sub">LangGraph를 넣기 전에 내부 경계부터 깨끗하게 정리</div>
+            <div class="stage-list">
+              <div class="stage" data-num="1">
+                <div class="title">reason_codes를 문자열 → enum으로 전환</div>
+                <div class="desc">필터 사유 코드를 타입 안정성 있는 enum으로 교체해 오타·분기 실수 차단.</div>
+                <div class="why">🧠 왜? 분기 membership 검사의 타입 안정성 확보</div>
+              </div>
+              <div class="stage" data-num="2">
+                <div class="title">normalize() 함수 option C 반영</div>
+                <div class="desc">zero-width 제거, NFKC 정규화, 의료 수치·단위 보호, 우회용 구두점만 정리. golden snapshot 테스트로 회귀 방지.</div>
+                <div class="why">🧠 왜? "공격적 정리"가 아니라 "의료 수치는 보호하면서 우회만 차단"</div>
+              </div>
+              <div class="stage" data-num="3">
+                <div class="title">chat.py → 5개 파일로 패키지 분리</div>
+                <div class="desc">backend/services/chat/ 아래 service.py / streaming.py / persistence.py / prompting.py / enrich.py 로 역할 분리.
+                  외부 API surface(ChatService 등)는 그대로 유지.</div>
+                <div class="why">🧠 왜? 이후 LangGraph를 "어디에 얹을지" 명확히 정의하기 위한 전제</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day 2 -->
+          <div class="day-card d2">
+            <div class="day-head"><span class="icon">📅</span> Day 2 (2026-04-09) — "LangGraph 부분 적용"</div>
+            <div class="day-sub">정리된 구조 위에 준비 구간만 그래프로 분리</div>
+            <div class="stage-list">
+              <div class="stage" data-num="1">
+                <div class="title">backend/services/chat_graph/ 패키지 신규 생성</div>
+                <div class="desc">state.py (상태 타입), nodes.py (5개 노드), graph.py (컴파일된 그래프), adapter.py (legacy/graph 경로 선택) 4개 파일.</div>
+                <div class="why">🧠 왜? 기존 chat/ 패키지와 명확히 분리해 "새로 추가된 그래프 경로"를 한눈에 볼 수 있게</div>
+              </div>
+              <div class="stage" data-num="2">
+                <div class="title">ChatPreparationGraph 5개 노드 설계</div>
+                <div class="desc">decide_rag → run_rag → decide_user_context → build_user_context → assemble_prompt_layers 순서.
+                  각 노드는 상태를 받고 결과를 반환하는 단순 함수.</div>
+                <div class="why">🧠 왜? RAG·UserContext·프롬프트 조립이 가장 복잡한 구간이므로 여기부터 그래프로 시각화</div>
+              </div>
+              <div class="stage" data-num="3">
+                <div class="title">adapter.py 로 legacy / graph 경로 분기 구현</div>
+                <div class="desc">feature flag 기반으로 두 경로를 선택. 기존 ChatService는 adapter만 호출하면 되도록 접점 최소화.</div>
+                <div class="why">🧠 왜? graph 코드 도입으로 기존 경로가 깨지지 않게 격리</div>
+              </div>
+              <div class="stage" data-num="4">
+                <div class="title">off / shadow / partial 3단계 롤아웃 모드</div>
+                <div class="desc">off = 미사용, shadow = 기존 경로로 답변하되 그래프 함께 돌려 결과 비교, partial = 일부 사용자만 그래프 적용(1%→5%→...→100%).</div>
+                <div class="why">🧠 왜? 의료 서비스는 한 번에 바꾸면 안 되므로 점진 전환 + 관찰</div>
+              </div>
+              <div class="stage" data-num="5">
+                <div class="title">타임아웃·예외 시 legacy fallback 안전망</div>
+                <div class="desc">graph 경로가 250ms 이내 응답 못 하거나 예외 발생 시 즉시 기존 경로로 자동 복구.</div>
+                <div class="why">🧠 왜? 사용자 체감 first-token latency(첫 글자까지의 시간)가 악화되지 않도록 방어</div>
+              </div>
+              <div class="stage" data-num="6">
+                <div class="title">unit 테스트 8개 + 벤치마크 스크립트 추가</div>
+                <div class="desc">parity / mode_switch / logging / prompt_layers 4개 영역에서 LangGraph 관련 테스트 추가. 모두 PASS.</div>
+                <div class="why">🧠 왜? 레거시 결과와 그래프 결과가 100% 일치하는지 자동 검증</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ Before / After 상세 순서도 ============ -->
+        <section class="card">
+          <h2><span class="num">3</span> 채팅 흐름 상세 순서도 (Before / After)</h2>
+          <p class="card-sub">가장 중요한 핵심 변화. 사용자가 메시지를 보내는 순간부터 AI 응답이 돌아올 때까지의 흐름을, 각 단계 설명과 조건 분기까지 포함해 그렸습니다.</p>
+
+          <!-- ============ BEFORE 순서도 ============ -->
+          <div class="flow-section">
+            <div class="flow-title before">
+              <span class="tag">BEFORE</span>
+              📉 기존 흐름 — prep 구간이 하나의 덩어리
+            </div>
+            <div class="flow-intro">
+              기존 구조는 모든 처리가 <b>service.py 안에서 순차적으로</b> 일어납니다.
+              특히 ⑥번 준비 구간은 RAG 검색, 사용자 맥락 생성, 프롬프트 조립이 <b>한 덩어리로 뒤섞여</b> 있어서
+              "어디가 복잡한지", "어디만 바꾸면 되는지"를 말로 설명하기 어려웠습니다.
+            </div>
+
+            <div class="flow-steps">
+              <div class="flow-step safety">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">요청 검증 <span class="code-name">_validate_request</span></div>
+                  <div class="step-desc">user_id 존재 여부, OpenAI 키 설정, 오늘 대화 횟수(기본 20건 제한) 확인. 실패 시 즉시 error 이벤트 후 종료.</div>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">접근·동의 확인 <span class="code-name">_validate_chat_access</span></div>
+                  <div class="step-desc">HealthProfile 조회 + AI 채팅 동의 여부 확인. 동의가 없으면 ai_consent_required 에러 반환.</div>
+                </div>
+              </div>
+
+              <div class="flow-step branch">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Content Filter 검사 <span class="code-name">content_filter.check_message</span></div>
+                  <div class="step-desc">메시지에 위기 표현·차단 표현·의료 단정 표현이 있는지 검사. 결과에 따라 3가지로 분기됩니다.</div>
+                </div>
+              </div>
+
+              <!-- 분기 3가지 -->
+              <div class="branches">
+                <div class="branch-item">
+                  <span class="branch-cond">분기 A</span>
+                  <span class="branch-result">CRISIS (자해/위기)</span>
+                  <span class="branch-desc">→ 위기 전용 고정 응답(상담 번호 포함) + 24시간 쿨다운 설정 후 흐름 종료</span>
+                </div>
+                <div class="branch-item">
+                  <span class="branch-cond">분기 B</span>
+                  <span class="branch-result">BLOCK (부적절 표현)</span>
+                  <span class="branch-desc">→ content_blocked 에러 이벤트 전송 후 흐름 종료</span>
+                </div>
+                <div class="branch-item">
+                  <span class="branch-cond">분기 C</span>
+                  <span class="branch-result">ALLOW (통과)</span>
+                  <span class="branch-desc">→ 아래 4번 단계로 계속 진행</span>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                  <div class="step-title">세션 준비 + 사용자 메시지 저장 <span class="code-name">_prepare_session</span></div>
+                  <div class="step-desc">대화 세션(ChatSession)을 찾거나 새로 만들고, 사용자가 보낸 메시지를 DB에 저장합니다.</div>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">5</div>
+                <div class="step-body">
+                  <div class="step-title">건강 질문 대상 계산 + 최근 대화 불러오기</div>
+                  <div class="step-desc">오늘 사용자에게 물어볼 건강 질문 묶음(eligible_bundles)을 계산하고, 최근 대화 10건을 불러옵니다.</div>
+                </div>
+              </div>
+
+              <div class="flow-step prep-bad">
+                <div class="step-num">6</div>
+                <div class="step-body">
+                  <div class="step-title">⚠️ 프롬프트 준비 — 단일 덩어리 <span class="code-name">_build_openai_messages</span></div>
+                  <div class="step-desc">RAG 검색 여부 판단 → 자료 검색 → 사용자 맥락 판단 → 맥락 생성 → 프롬프트 레이어 조립이 <b>한 함수 안에서 뒤섞여</b> 실행됨. 어디가 복잡한지 말로 설명하기 어려운 구간.</div>
+                </div>
+              </div>
+
+              <div class="flow-step gpt">
+                <div class="step-num">7</div>
+                <div class="step-body">
+                  <div class="step-title">OpenAI 스트리밍 호출 <span class="code-name">_stream_openai</span></div>
+                  <div class="step-desc">gpt-4o-mini 모델에 메시지를 전송하고, 응답을 한 토큰씩 받아오면서 클라이언트에 SSE로 흘려보냅니다.</div>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">8</div>
+                <div class="step-body">
+                  <div class="step-title">응답 저장 + done 이벤트 <span class="code-name">_save_response</span></div>
+                  <div class="step-desc">GPT가 만든 전체 응답을 ChatMessage로 저장하고, 건강 질문 데이터와 함께 done 이벤트를 마지막으로 전송.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ AFTER 순서도 ============ -->
+          <div class="flow-section">
+            <div class="flow-title after">
+              <span class="tag">AFTER</span>
+              📈 부분 적용 후 흐름 — prep만 그래프로 분리
+            </div>
+            <div class="flow-intro">
+              <b>1~5번과 7~8번은 그대로 유지</b>합니다(의료 안전이 걸린 경로니까).
+              오직 <b>6번 prep 구간만 LangGraph로 분리</b>해서, 어떤 판단이 어떤 순서로 일어나는지를 5개 노드로 명확히 나눴습니다.
+              실제 응답 경로는 adapter가 feature flag를 보고 legacy/graph 중 하나를 고릅니다.
+            </div>
+
+            <div class="flow-steps">
+              <div class="flow-step safety">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">요청 검증 <span class="code-name">변경 없음</span></div>
+                  <div class="step-desc">기존과 동일. 그래프 밖에 남김.</div>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">접근·동의 확인 <span class="code-name">변경 없음</span></div>
+                  <div class="step-desc">기존과 동일. 그래프 밖에 남김.</div>
+                </div>
+              </div>
+
+              <div class="flow-step branch">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Content Filter 검사 <span class="code-name">enum 기반으로 강화</span></div>
+                  <div class="step-desc">reason_codes를 enum으로 교체, normalize 함수 option C 반영. 분기 로직은 그대로지만 안정성이 개선됨.</div>
+                </div>
+              </div>
+
+              <!-- 분기: 그래프 밖에서 처리 -->
+              <div class="branches">
+                <div class="branch-item">
+                  <span class="branch-cond">분기 A</span>
+                  <span class="branch-result">CRISIS</span>
+                  <span class="branch-desc">→ 위기 전용 고정 응답 (그래프 밖에서 처리 · 의료 안전)</span>
+                </div>
+                <div class="branch-item">
+                  <span class="branch-cond">분기 B</span>
+                  <span class="branch-result">BLOCK</span>
+                  <span class="branch-desc">→ 차단 에러 이벤트 (그래프 밖에서 처리)</span>
+                </div>
+                <div class="branch-item">
+                  <span class="branch-cond">분기 C</span>
+                  <span class="branch-result">ALLOW</span>
+                  <span class="branch-desc">→ 4번 단계 계속 진행</span>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                  <div class="step-title">세션 준비 + 사용자 메시지 저장 <span class="code-name">변경 없음</span></div>
+                  <div class="step-desc">DB 쓰기 경로는 운영 계약이 걸려 있어 그래프 밖에 유지.</div>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">5</div>
+                <div class="step-body">
+                  <div class="step-title">건강 질문 대상 + 최근 대화 불러오기 <span class="code-name">변경 없음</span></div>
+                  <div class="step-desc">기존과 동일.</div>
+                </div>
+              </div>
+
+              <div class="flow-step prep">
+                <div class="step-num">6</div>
+                <div class="step-body">
+                  <div class="step-title">🧩 프롬프트 준비 — LangGraph로 분리 <span class="code-name">chat_graph.adapter</span></div>
+                  <div class="step-desc">adapter가 feature flag(off/shadow/partial)를 확인해 <b>legacy 경로 또는 graph 경로</b>를 선택. 실패하면 즉시 legacy로 자동 복구. 아래 ZOOM IN 박스에서 그래프 내부를 확인하세요.</div>
+                </div>
+              </div>
+
+              <div class="flow-step gpt">
+                <div class="step-num">7</div>
+                <div class="step-body">
+                  <div class="step-title">OpenAI 스트리밍 호출 <span class="code-name">변경 없음</span></div>
+                  <div class="step-desc">SSE 스트리밍 계약 유지. 그래프 밖에 남김.</div>
+                </div>
+              </div>
+
+              <div class="flow-step safety">
+                <div class="step-num">8</div>
+                <div class="step-body">
+                  <div class="step-title">응답 저장 + done 이벤트 <span class="code-name">변경 없음</span></div>
+                  <div class="step-desc">기존과 동일.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============ GRAPH ZOOM IN ============ -->
+            <div class="graph-zoom">
+              <div class="graph-zoom-title">🧩 ChatPreparationGraph 내부 — 6번 단계 확대</div>
+              <div class="graph-zoom-sub">5개 노드가 START → END 까지 순차 실행됩니다</div>
+
+              <div class="graph-nodes">
+                <div class="graph-node">
+                  <div class="gnode-num">1</div>
+                  <div class="gnode-body">
+                    <div class="gnode-name">decide_rag</div>
+                    <div class="gnode-desc">이 질문에 RAG(참고 자료 검색)가 필요한지 판단. 라이프스타일 질문이나 사실 확인 질문이면 true.</div>
+                    <span class="gnode-why">입력: 메시지, 라우팅 정보 / 출력: should_run_rag (bool), topic_hint</span>
+                  </div>
+                </div>
+
+                <div class="graph-node">
+                  <div class="gnode-num">2</div>
+                  <div class="gnode-body">
+                    <div class="gnode-name">run_rag</div>
+                    <div class="gnode-desc">should_run_rag=true 인 경우에만 실제로 지식 베이스에서 참고 자료를 검색. false면 skip.</div>
+                    <span class="gnode-why">입력: 메시지, topic_hint / 출력: rag_context_text, hit_count</span>
+                  </div>
+                </div>
+
+                <div class="graph-node">
+                  <div class="gnode-num">3</div>
+                  <div class="gnode-body">
+                    <div class="gnode-name">decide_user_context</div>
+                    <div class="gnode-desc">사용자 프로필(목표, 운동 빈도, 수면 등)을 프롬프트에 넣을지 판단. 감정 우선 메시지면 skip.</div>
+                    <span class="gnode-why">입력: 라우팅, 감정 우선 플래그 / 출력: should_build_user_context (bool)</span>
+                  </div>
+                </div>
+
+                <div class="graph-node">
+                  <div class="gnode-num">4</div>
+                  <div class="gnode-body">
+                    <div class="gnode-name">build_user_context</div>
+                    <div class="gnode-desc">should_build=true 인 경우에만 사용자 프로필을 요약 문장으로 변환. 예: "체중관리 목표, 수면 6-7시간 유지".</div>
+                    <span class="gnode-why">입력: HealthProfile, topic_hint / 출력: user_context_text</span>
+                  </div>
+                </div>
+
+                <div class="graph-node">
+                  <div class="gnode-num">5</div>
+                  <div class="gnode-body">
+                    <div class="gnode-name">assemble_prompt_layers</div>
+                    <div class="gnode-desc">base 시스템 프롬프트 + RAG 레이어 + 사용자 맥락 레이어 + 필터 지시 레이어를 순서대로 쌓아서 최종 messages 배열을 완성.</div>
+                    <span class="gnode-why">입력: 위 모든 결과 / 출력: openai_messages (최종 프롬프트)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ 변경 요약 ============ -->
+          <div class="change-summary">
+            <div class="change-col kept">
+              <div class="ctitle">🛡️ 그대로 유지된 단계</div>
+              <div class="cdesc">1, 2, 3, 4, 5, 7, 8번 (총 7단계)<br>의료 안전·DB 쓰기·SSE 계약이 걸린 경로</div>
+              <div class="cnum">7 / 8</div>
+            </div>
+            <div class="change-col changed">
+              <div class="ctitle">🧩 그래프로 분리된 단계</div>
+              <div class="cdesc">6번 prep 구간 1개만<br>→ 5개 노드로 내부 세분화</div>
+              <div class="cnum">1 / 8 → 5 nodes</div>
+            </div>
+          </div>
+
+          <div class="legend" style="margin-top:18px;">
+            <div class="legend-item"><span class="legend-sq" style="background:#0ea5e9;"></span> 안전 경로 (legacy 유지 · 의료 안전)</div>
+            <div class="legend-item"><span class="legend-sq" style="background:#f59e0b;"></span> 분기점 (content_filter 결과 따라)</div>
+            <div class="legend-item"><span class="legend-sq" style="background:#dc2626;"></span> 조기 종료 경로 (위기·차단·동의)</div>
+            <div class="legend-item"><span class="legend-sq" style="background:#10b981;"></span> LangGraph 노드 (새로 분리)</div>
+            <div class="legend-item"><span class="legend-sq" style="background:#1e293b;"></span> GPT 호출 (OpenAI API)</div>
+          </div>
+        </section>
+
+        <!-- ============ 왜 부분 적용인가? ============ -->
+        <section class="card">
+          <h2><span class="num">4</span> 왜 전체 전환이 아니라 부분 적용인가?</h2>
+          <p class="card-sub">이 결정이 이번 작업의 포트폴리오 핵심 포인트입니다.</p>
+
+          <div class="summary-box" style="background:linear-gradient(135deg,#fef3c7,#fef9c3);border-color:#fde68a;color:#78350f;">
+            <b>핵심 원칙</b>: "안전이 중요한 곳은 그대로, 복잡성이 몰린 곳만 그래프로."
+            의료 서비스 특성상 회귀 위험을 0으로 관리해야 하는 경로가 있고,
+            그 경로를 그래프 안으로 넣으면 설명력은 늘어나지만 운영 리스크가 커집니다.
+          </div>
+
+          <div class="decision-grid">
+            <!-- 그래프 밖 -->
+            <div class="decision-box out">
+              <div class="dec-head">🛡️ 그래프 밖 (legacy 유지)</div>
+              <ul>
+                <li>content_filter (위험 표현 차단)</li>
+                <li>crisis / block / consent early return</li>
+                <li>DB write (세션·메시지 저장)</li>
+                <li>SSE 스트리밍 (응답 전달)</li>
+                <li>cooldown (위기 쿨다운)</li>
+              </ul>
+              <div class="why-box">의료 안전 — 회귀 위험 0으로 관리, 운영 계약 안정성</div>
+            </div>
+
+            <!-- 그래프 안 -->
+            <div class="decision-box in">
+              <div class="dec-head">🧩 그래프 안 (새로 분리)</div>
+              <ul>
+                <li>decide_rag (RAG 사용 여부 판단)</li>
+                <li>run_rag (참고 자료 검색)</li>
+                <li>decide_user_context (사용자 맥락 빌드 여부)</li>
+                <li>build_user_context (사용자 프로필 요약)</li>
+                <li>assemble_prompt_layers (프롬프트 레이어 조립)</li>
+              </ul>
+              <div class="why-box">실제 복잡성이 몰린 곳 — 그래프 시각화가 설명력을 높임</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 용어 해설 ============ -->
+        <section class="card">
+          <h2><span class="num">5</span> 용어 해설 (코딩 초심자용)</h2>
+          <p class="card-sub">회의록과 문서에 자주 나오는 기술 용어를 일상 비유로 풀어 설명합니다.</p>
+
+          <div class="term-grid">
+            <div class="term-card">
+              <div class="term-name">LangGraph</div>
+              <div class="term-desc">AI 흐름을 노드(단계)와 엣지(연결선)로 관리하는 도구. 상태가 한 노드에서 다음 노드로 넘어가며 처리됩니다.</div>
+              <div class="term-analogy">요리 레시피를 단계별 카드로 정리하는 것. 각 카드가 노드, 카드 순서가 엣지.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">ChatPreparationGraph</div>
+              <div class="term-desc">다나아에서 만든 LangGraph 기반 "준비 전용" 그래프. GPT에게 메시지 보내기 직전까지의 5개 단계만 담당.</div>
+              <div class="term-analogy">주방장에게 주문 넘기기 전에 재료 준비 팀장이 5단계로 준비하는 것.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">RAG <span class="eng">Retrieval-Augmented Generation</span></div>
+              <div class="term-desc">질문에 맞는 참고 자료를 미리 찾아서 GPT 프롬프트에 끼워 넣는 기법. 지식의 정확성을 높입니다.</div>
+              <div class="term-analogy">시험 볼 때 교과서를 오픈북으로 쓰는 것과 같습니다.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">SSE <span class="eng">Server-Sent Events</span></div>
+              <div class="term-desc">서버가 클라이언트에게 글자를 한 조각씩 실시간으로 흘려보내는 방식. ChatGPT의 "타이핑 효과"가 SSE입니다.</div>
+              <div class="term-analogy">전화기로 상대가 말하는 걸 실시간으로 듣는 것. 편지(전체 응답 대기)가 아닙니다.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">Shadow 모드</div>
+              <div class="term-desc">사용자는 기존 경로로 답변을 받지만, 백그라운드로 새 경로(그래프)도 함께 돌려서 두 결과를 조용히 비교합니다.</div>
+              <div class="term-analogy">신입 직원에게 같은 업무를 시키고 선배 결과와 몰래 비교해 실력 검증하는 것.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">Partial 모드</div>
+              <div class="term-desc">일부 사용자에게만 새 경로를 적용. 1% → 5% → 10% → 50% → 100% 순서로 점진 전환합니다.</div>
+              <div class="term-analogy">새 메뉴를 전체 매장에 한 번에 도입하지 않고 1호점부터 천천히 확장하는 것.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">Parity <span class="eng">동등성</span></div>
+              <div class="term-desc">두 경로의 결과가 완전히 똑같은지 비교하는 것. 프롬프트 해시·메시지 개수·RAG 히트 수 등 30여 가지 항목을 검증합니다.</div>
+              <div class="term-analogy">사본과 원본이 모든 페이지에서 동일한지 한 장씩 대조하는 것.</div>
+            </div>
+
+            <div class="term-card">
+              <div class="term-name">Fallback <span class="eng">자동 복구</span></div>
+              <div class="term-desc">새 경로(그래프)가 느리거나 실패하면 즉시 기존 경로(legacy)로 자동 복구. 사용자는 전혀 눈치채지 못합니다.</div>
+              <div class="term-analogy">엘리베이터 고장 시 자동으로 계단 안내로 전환되는 것.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 현재 검증 상태 ============ -->
+        <section class="card">
+          <h2><span class="num">6</span> 현재 검증 상태</h2>
+          <p class="card-sub">자동 테스트와 shadow 모드 활성화까지 완료된 상태입니다.</p>
+
+          <table class="verify-table">
+            <thead>
+              <tr>
+                <th style="width:55%">검증 항목</th>
+                <th style="width:25%">건수</th>
+                <th style="width:20%">상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>LangGraph parity 테스트 (legacy vs graph 결과 동등성)</td>
+                <td>1 / 1</td>
+                <td><span class="verify-status pass">✓ PASS</span></td>
+              </tr>
+              <tr>
+                <td>Mode switch 테스트 (off / shadow / partial / fallback)</td>
+                <td>5 / 5</td>
+                <td><span class="verify-status pass">✓ PASS</span></td>
+              </tr>
+              <tr>
+                <td>Logging 가드 (원본 메시지·프롬프트 로그 노출 방지)</td>
+                <td>1 / 1</td>
+                <td><span class="verify-status pass">✓ PASS</span></td>
+              </tr>
+              <tr>
+                <td>Prompt layers 해시 일치 검증</td>
+                <td>1 / 1</td>
+                <td><span class="verify-status pass">✓ PASS</span></td>
+              </tr>
+              <tr>
+                <td>SSE 안전 경로 (crisis / block / consent / stream_failure)</td>
+                <td>4 / 4</td>
+                <td><span class="verify-status pass">✓ PASS</span></td>
+              </tr>
+              <tr>
+                <td>.env 에 Shadow 모드 활성화 (SHADOW_SAMPLE_RATE=1.0)</td>
+                <td>—</td>
+                <td><span class="verify-status pass">✓ ON</span></td>
+              </tr>
+              <tr>
+                <td>Integration 테스트 일부 (로컬 postgres 부재)</td>
+                <td>—</td>
+                <td><span class="verify-status warn">⚠ 미검증</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+      </main>
+
+      <!-- ================== SIDE ================== -->
+      <aside>
+
+        <!-- ============ 포트폴리오 핵심 메시지 ============ -->
+        <section class="aside-card">
+          <h2><span class="icon">💼</span> 포트폴리오 핵심 메시지</h2>
+          <div class="msg-list">
+            <div class="msg-item">
+              <span class="msg-num">MSG 1</span>
+              <div class="msg-title">구조 리팩토링이 LangGraph의 전제</div>
+              단일 chat.py를 5개 파일로 분리한 뒤에야, LangGraph를 "어디에 얹을지" 명확해졌습니다.
+            </div>
+            <div class="msg-item">
+              <span class="msg-num">MSG 2</span>
+              <div class="msg-title">"모두 또는 무"가 아닌 부분 적용</div>
+              실제 복잡성이 몰린 준비 구간에만 적용. 의료 안전 경로는 명시적 셸로 유지해 회귀 위험 0으로 관리.
+            </div>
+            <div class="msg-item">
+              <span class="msg-num">MSG 3</span>
+              <div class="msg-title">5개 노드로 복잡성 시각화</div>
+              RAG → UserContext → prompt 조립을 그래프로 표현해 면접·코드 리뷰에서 "왜 이 경계인가"를 설명 가능.
+            </div>
+            <div class="msg-item">
+              <span class="msg-num">MSG 4</span>
+              <div class="msg-title">3단계 운영 안전성</div>
+              off / shadow / partial 모드와 즉시 롤백 조건을 정의해 의료 서비스의 신뢰도 보장.
+            </div>
+            <div class="msg-item">
+              <span class="msg-num">MSG 5</span>
+              <div class="msg-title">기술 결정마다 근거 문서</div>
+              설계 기록 · 테스트 계획 · PR 게이트 · 면접 스크립트 7개 문서로 의사결정 투명성 확보.
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 수치 현황 ============ -->
+        <section class="aside-card">
+          <h2><span class="icon">📊</span> 수치 현황</h2>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <div class="num">5</div>
+              <div class="lbl">LangGraph 노드</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">3</div>
+              <div class="lbl">Rollout 모드</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">12</div>
+              <div class="lbl">단위 테스트 PASS</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">0</div>
+              <div class="lbl">Parity mismatch</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">9</div>
+              <div class="lbl">수정된 백엔드 파일</div>
+            </div>
+            <div class="stat-box">
+              <div class="num">7</div>
+              <div class="lbl">신규 문서</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 다음 회의까지 할 일 ============ -->
+        <section class="aside-card">
+          <h2><span class="icon">📅</span> 다음 회의까지 할 일</h2>
+          <div class="timeline">
+            <div class="timeline-item">
+              <b>1순위 — Shadow parity 로그 수집</b>
+              최소 1,000건 이상, mismatch 0건, fallback 0.1% 미만 확인
+            </div>
+            <div class="timeline-item">
+              <b>2순위 — Partial 승급 기준 확인</b>
+              1% → 5% → 10% 단계별 최소 24시간 관찰
+            </div>
+            <div class="timeline-item">
+              <b>3순위 — Integration 테스트 환경 복구</b>
+              로컬 postgres:5432 연결 후 branch flow 전체 검증
+            </div>
+            <div class="timeline-item">
+              <b>4순위 — 면접 설명 스크립트 리허설</b>
+              graph 경계를 흐름도와 함께 말로 설명할 수 있게 준비
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 핵심 인사이트 ============ -->
+        <section class="aside-card">
+          <h2><span class="icon">✨</span> 핵심 인사이트</h2>
+          <div class="insight">
+            멘토님 말씀대로, 지금은 <b>기능을 더 붙이는 단계</b>가 아니라
+            <b>구조를 정리하고 설명 가능한 코드로 다듬는 단계</b>입니다.
+            이틀간 작업의 본질은 "LangGraph를 넣은 것"이 아니라,
+            <b>LangGraph를 안전하게 prep 구간에만 끼워 넣는 운영 구조</b>를 만든 것입니다.
+            다음 단계는 shadow 로그로 실제 parity를 증명하는 것입니다.
+          </div>
+        </section>
+
+      </aside>
+    </div>
+
+    <!-- ================== FOOTER ================== -->
+    <div class="footer">
+      <b>다나아 (DA-NA-A)</b> · 만성질환 생활습관 AI 건강관리 서비스<br>
+      작성일 2026-04-09 · 작성 맥락: 멘토링 회의 직후 팀·멘토 공유용 보고서<br>
+      브랜치 kwanju · LangGraph 부분 적용 · 단위 테스트 12/12 PASS · Shadow 모드 ON
+    </div>
+
+  </div>
+</body>
+</html>
