@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, Moon, Utensils, Dumbbell, Droplets, Sunrise, Sun, Leaf, UtensilsCrossed, Footprints, Target, Smile, ClipboardList, CircleCheck } from 'lucide-react';
 import Tutorial from '../../../components/Tutorial';
+import { getToken } from '../../../hooks/useApi';
 
 /* ── API 설정 ── */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
-const AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
+const DEV_AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
 
 /* ── 유틸 ── */
 const todayKey = () => {
@@ -129,12 +130,14 @@ export default function ChatPage() {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      const authToken = getToken() || DEV_AUTH_TOKEN;
       const res = await fetch(`${API_BASE}/api/v1/chat/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(AUTH_TOKEN ? { 'Authorization': `Bearer ${AUTH_TOKEN}` } : {}),
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({ message: text, session_id: sessionId }),
         signal: controller.signal,
       });

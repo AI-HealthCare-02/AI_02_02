@@ -46,7 +46,7 @@ async def signup(
     auth_service: Annotated[AuthService, Depends(AuthService)],
 ) -> Response:
     await auth_service.signup(body)
-    return Response(content={"detail": "Signup completed successfully."}, status_code=status.HTTP_201_CREATED)
+    return Response(content={"detail": "회원가입이 성공적으로 완료되었습니다."}, status_code=status.HTTP_201_CREATED)
 
 
 @auth_router.post("/email/signup/request", response_model=EmailSignupVerificationResponse, status_code=status.HTTP_201_CREATED)

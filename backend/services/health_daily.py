@@ -139,7 +139,7 @@ class HealthDailyService:
                 update_fields.append(source_field)
 
         if update_fields:
-            await log.save(update_fields=update_fields + ["updated_at"])
+            await log.save(update_fields=list(dict.fromkeys(update_fields + ["updated_at"])))
 
         return DailyLogPatchResponse(
             daily_log=_log_to_response(log),
