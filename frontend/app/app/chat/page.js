@@ -1,12 +1,19 @@
 'use client';
 
-import { memo, useState, useEffect, useCallback, useRef } from 'react';
+import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Tutorial from '../../../components/Tutorial';
-import { getToken } from '../../../hooks/useApi';
+import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
+import { api, getToken } from '../../../hooks/useApi';
 
 /* ── API 설정 ── */
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
 const CHAT_API_PATH = '/api/v1/chat/send';
+const CHAT_API_URL = `${API_BASE}${CHAT_API_PATH}`;
+const HEALTH_ANSWER_API_URL = `${API_BASE}/api/v1/chat/health-answer`;
+const CHAT_HISTORY_API_PATH = '/api/v1/chat/history';
 const DEV_AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
+const DAILY_SCHEMA_VERSION_KEY = 'danaa_daily_schema_v';
+const DAILY_SCHEMA_VERSION = '1.7';
 
 /* ── 유틸 ── */
 const todayKey = () => {
@@ -14,33 +21,139 @@ const todayKey = () => {
   return `danaa_daily_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 
+const LEGACY_LOG_FIELD_MAP = new Map([
+  [['sleep', '_', 'duration'].join(''), 'sleep_duration_bucket'],
+  [['break', 'fast'].join(''), 'breakfast_status'],
+  [['lunch'].join(''), 'lunch_status'],
+  [['dinner'].join(''), 'dinner_status'],
+  [['veget', 'able'].join(''), 'vegetable_intake_level'],
+  [['meal', '_', 'balance'].join(''), 'meal_balance_level'],
+  [['mo', 'od'].join(''), 'mood_level'],
+]);
+
 const emptyLog = () => ({
-  sleep_quality: null, sleep_duration: null,
-  breakfast: null, lunch: null, dinner: null,
-  vegetable: null, meal_balance: null,
+  sleep_quality: null, sleep_duration_bucket: null,
+  breakfast_status: null, lunch_status: null, dinner_status: null,
+  vegetable_intake_level: null, meal_balance_level: null,
   exercise_done: null, exercise_type: null, exercise_minutes: null, walk_done: null,
-  water_cups: 0, mood: null,
+  water_cups: 0, mood_level: null,
 });
+
+function migrateStoredLog(rawLog) {
+  const nextLog = { ...emptyLog(), ...(rawLog || {}) };
+
+  LEGACY_LOG_FIELD_MAP.forEach((canonicalField, legacyField) => {
+    if (
+      nextLog[canonicalField] == null &&
+      rawLog &&
+      Object.prototype.hasOwnProperty.call(rawLog, legacyField)
+    ) {
+      nextLog[canonicalField] = rawLog[legacyField];
+    }
+    delete nextLog[legacyField];
+  });
+
+  return nextLog;
+}
+
+function isLogFieldAnswered(field, value) {
+  if (field === 'water_cups') return Number(value) > 0;
+  return value !== null && value !== undefined && value !== '';
+}
+
+function isHealthQuestionVisibleForLog(question, log) {
+  const condition = question?.condition;
+  if (!condition) return true;
+
+  if (condition.endsWith('_true')) {
+    const parentField = condition.slice(0, -5);
+    return log?.[parentField] === true;
+  }
+
+  return false;
+}
 
 const SLEEP_LABELS = { under_5: '5h 미만', between_5_6: '5~6h', between_6_7: '6~7h', between_7_8: '7~8h', over_8: '8h 이상' };
 const SLEEP_QUALITY_LABELS = { very_good: '아주 좋음', good: '좋음', normal: '보통', bad: '나쁨', very_bad: '아주 나쁨' };
 const MEAL_LABELS = { hearty: '든든히', simple: '간단히', skipped: '못먹음' };
 const EXERCISE_TYPES = { walking: '산책', running: '달리기', cycling: '자전거', swimming: '수영', gym: '헬스', home_workout: '홈트', other: '기타' };
 
-function getSleepDisplay(log) {
-  if (!log.sleep_duration) return null;
-  const map = { under_5: '<5h', between_5_6: '5.5h', between_6_7: '6.5h', between_7_8: '7.5h', over_8: '8h+' };
-  return map[log.sleep_duration] || '—';
-}
-function getMealCount(log) {
-  return [log.breakfast, log.lunch, log.dinner].filter(v => v !== null).length;
+const HEALTH_OPTION_LABELS = {
+  ...SLEEP_LABELS,
+  ...SLEEP_QUALITY_LABELS,
+  ...MEAL_LABELS,
+  ...EXERCISE_TYPES,
+  enough: '충분해요',
+  little: '조금만 먹었어요',
+  none: '거의 없어요',
+  balanced: '균형 잡혀요',
+  carb_heavy: '탄수화물 위주예요',
+  protein_veg_heavy: '단백질·채소 위주예요',
+  one: '한 번',
+  two_plus: '두 번 이상',
+  stressed: '스트레스 많아요',
+  very_stressed: '많이 지쳤어요',
+  light: '가볍게',
+  moderate: '보통',
+  heavy: '많이',
+};
+
+function getHealthOptionLabel(option) {
+  if (typeof option === 'boolean') return option ? '네' : '아니요';
+  if (typeof option === 'number') return `${option}`;
+  return HEALTH_OPTION_LABELS[option] || String(option).replaceAll('_', ' ');
 }
 
-const ChatTranscript = memo(function ChatTranscript({ messages, streamingDraft, chatEndRef }) {
+function normalizeHealthQuestions(rawQuestions) {
+  if (!Array.isArray(rawQuestions)) return [];
+
+  return rawQuestions
+    .map((bundle) => {
+      const questions = Array.isArray(bundle?.questions)
+        ? bundle.questions
+            .filter((question) => question && typeof question.field === 'string')
+            .map((question) => ({
+              field: question.field,
+              text: question.text || question.field,
+              options: Array.isArray(question.options) ? question.options : [],
+              inputType: question.input_type || 'select',
+              condition: question.condition || null,
+            }))
+        : [];
+
+      if (!bundle?.bundle_key || questions.length === 0) return null;
+
+      return {
+        bundleKey: bundle.bundle_key,
+        name: bundle.name || bundle.bundle_key,
+        questions,
+      };
+    })
+    .filter(Boolean);
+}
+
+function getSleepDisplay(log) {
+  if (!log.sleep_duration_bucket) return null;
+  const map = { under_5: '<5h', between_5_6: '5.5h', between_6_7: '6.5h', between_7_8: '7.5h', over_8: '8h+' };
+  return map[log.sleep_duration_bucket] || '—';
+}
+function getMealCount(log) {
+  return [log.breakfast_status, log.lunch_status, log.dinner_status].filter(v => v !== null).length;
+}
+
+const ChatTranscript = memo(function ChatTranscript({
+  messages,
+  streamingDraft,
+  chatEndRef,
+  onSubmitHealthAnswer,
+}) {
   return (
     <>
-      {messages.map((msg, idx) => (
-        <div key={idx} className="max-w-[840px] mx-auto mb-3.5">
+      {messages.map((msg) => {
+        const primaryHealthQuestion = Array.isArray(msg.healthQuestions) ? msg.healthQuestions[0] : null;
+
+        return (
+        <div key={msg.id ?? `${msg.role}-${msg.ts ?? 'message'}`} className="max-w-[840px] mx-auto mb-3.5">
           {msg.role === 'user' ? (
             <div className="flex justify-end">
               <div>
@@ -59,11 +172,22 @@ const ChatTranscript = memo(function ChatTranscript({ messages, streamingDraft, 
                   {msg.streaming && <span className="inline-block w-[2px] h-[14px] bg-nature-900 ml-0.5 animate-pulse align-middle"></span>}
                 </div>
                 {msg.ts && <div className="text-[11px] text-neutral-300 mt-0.5">{msg.ts}</div>}
+                {!msg.isError && !msg.streaming && primaryHealthQuestion && (
+                  <div className="mt-3 max-w-[560px]">
+                    <InlineHealthQuestionCard
+                      bundleKey={primaryHealthQuestion.bundleKey}
+                      bundleName={primaryHealthQuestion.name}
+                      questions={primaryHealthQuestion.questions}
+                      onSubmit={onSubmitHealthAnswer}
+                      formatOptionLabel={getHealthOptionLabel}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
-      ))}
+      )})}
       {streamingDraft && (
         <div className="max-w-[840px] mx-auto mb-3.5">
           <div className="flex gap-2.5">
@@ -99,6 +223,8 @@ export default function ChatPage() {
   const [streamingDraft, setStreamingDraft] = useState(null);
   const [inputText, setInputText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyPolicyNotice, setHistoryPolicyNotice] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const chatScrollRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -109,6 +235,86 @@ export default function ChatPage() {
   const pendingDraftDeltaRef = useRef('');
   const scrollFrameRef = useRef(null);
   const scrollCountRef = useRef(0);
+  const nextMessageIdRef = useRef(1);
+
+  const createLocalMessageId = useCallback(() => {
+    const nextId = nextMessageIdRef.current;
+    nextMessageIdRef.current += 1;
+    return `local-${nextId}`;
+  }, []);
+
+  const resetConversation = useCallback(() => {
+    if (isStreaming && abortRef.current) {
+      abortRef.current.abort();
+    }
+    draftMessageRef.current = null;
+    pendingDraftDeltaRef.current = '';
+    setStreamingDraft(null);
+    setMessages([]);
+    setSessionId(null);
+    setInputText('');
+    setIsStreaming(false);
+    setIsHistoryLoading(false);
+    setHistoryPolicyNotice(false);
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('session_id')) {
+      window.history.replaceState(window.history.state, '', '/app/chat');
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('danaa:conversation-active', { detail: { id: null } }));
+    }
+  }, [isStreaming]);
+
+  const loadSessionHistory = useCallback(async (targetSessionId, options = {}) => {
+    if (!targetSessionId || isStreaming) return false;
+
+    const { clearQuery = false } = options;
+
+    setIsHistoryLoading(true);
+    try {
+      const response = await api(`${CHAT_HISTORY_API_PATH}?session_id=${targetSessionId}&limit=50`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const nextMessages = Array.isArray(payload?.messages)
+        ? payload.messages.map((message) => ({
+            id: message.id ?? createLocalMessageId(),
+            role: message.role,
+            content: message.content,
+            ts: new Date(message.created_at).toLocaleTimeString('ko-KR', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            streaming: false,
+            status: 'completed',
+            isError: false,
+            healthQuestions: [],
+          }))
+        : [];
+
+      draftMessageRef.current = null;
+      pendingDraftDeltaRef.current = '';
+      setStreamingDraft(null);
+      setMessages(nextMessages);
+      setSessionId(targetSessionId);
+      setInputText('');
+      setActiveCard(null);
+      setHistoryPolicyNotice(nextMessages.length > 0);
+      if (clearQuery && typeof window !== 'undefined') {
+        window.history.replaceState(window.history.state, '', '/app/chat');
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('danaa:conversation-active', { detail: { id: targetSessionId } }));
+      }
+      return true;
+    } catch (error) {
+      console.error('chat_history_load_failed', error);
+      return false;
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [createLocalMessageId, isStreaming]);
 
   // 자동 스크롤
   function scheduleAutoScroll(behavior) {
@@ -138,7 +344,12 @@ export default function ChatPage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(todayKey());
-      if (saved) setLog(prev => ({ ...emptyLog(), ...JSON.parse(saved) }));
+      if (saved) {
+        const migratedLog = migrateStoredLog(JSON.parse(saved));
+        setLog(migratedLog);
+        localStorage.setItem(todayKey(), JSON.stringify(migratedLog));
+        localStorage.setItem(DAILY_SCHEMA_VERSION_KEY, DAILY_SCHEMA_VERSION);
+      }
       const ob = localStorage.getItem('danaa_onboarding');
       if (ob) setOnboarding(JSON.parse(ob));
       const rk = localStorage.getItem('danaa_risk');
@@ -150,6 +361,39 @@ export default function ChatPage() {
     } catch {}
     setLoaded(true);
   }, []);
+
+  useEffect(() => {
+    const handleLoadSession = (event) => {
+      const targetSessionId = Number(event?.detail?.id);
+      if (!targetSessionId) return;
+      loadSessionHistory(targetSessionId);
+    };
+
+    window.addEventListener('danaa:load-session', handleLoadSession);
+    window.__danaa_newChat = resetConversation;
+
+    return () => {
+      window.removeEventListener('danaa:load-session', handleLoadSession);
+      if (window.__danaa_newChat === resetConversation) {
+        delete window.__danaa_newChat;
+      }
+    };
+  }, [loadSessionHistory, resetConversation]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const requestedSessionId = Number(new URLSearchParams(window.location.search).get('session_id'));
+    if (!requestedSessionId || isStreaming || isHistoryLoading || sessionId === requestedSessionId) {
+      return;
+    }
+
+    (async () => {
+      await loadSessionHistory(requestedSessionId, { clearQuery: true });
+    })();
+
+    return undefined;
+  }, [isHistoryLoading, isStreaming, loadSessionHistory, sessionId]);
 
   /* ── SSE 파싱 유틸 ── */
   function parseLegacySSE(text) {
@@ -294,18 +538,78 @@ export default function ChatPage() {
     return true;
   }
 
-  /* ── 메시지 전송 ── */
-  const sendMessage = useCallback(async () => {
-    const text = inputText.trim();
-    if (!text || isStreaming) return;
+  const submitHealthAnswer = useCallback(async (bundleKey, answers) => {
+    const authToken = getToken() || DEV_AUTH_TOKEN;
+    const response = await fetch(HEALTH_ANSWER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        bundle_key: bundleKey,
+        answers,
+      }),
+    });
 
-    const userMsg = { role: 'user', content: text, ts: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) };
-    const aiMsg = { role: 'assistant', content: '', ts: null, streaming: true, status: 'streaming', isError: false };
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {}
+
+    if (!response.ok) {
+      const detail = payload?.detail;
+      throw new Error(typeof detail === 'string' ? detail : '저장 중 문제가 생겼어요.');
+    }
+
+    const savedFields = Array.isArray(payload?.saved_fields) ? payload.saved_fields : [];
+    if (savedFields.length > 0) {
+      setLog((prev) => {
+        const savedPatch = Object.fromEntries(
+          savedFields
+            .filter((field) => Object.prototype.hasOwnProperty.call(answers, field))
+            .map((field) => [field, answers[field]]),
+        );
+        const nextLog = migrateStoredLog({ ...prev, ...savedPatch });
+        try {
+          localStorage.setItem(todayKey(), JSON.stringify(nextLog));
+          localStorage.setItem(DAILY_SCHEMA_VERSION_KEY, DAILY_SCHEMA_VERSION);
+        } catch {}
+        return nextLog;
+      });
+    }
+
+    return payload;
+  }, []);
+
+  /* ── 메시지 전송 ── */
+const sendMessage = useCallback(async () => {
+    const text = inputText.trim();
+    if (!text || isStreaming || isHistoryLoading) return;
+
+    const userMsg = {
+      id: createLocalMessageId(),
+      role: 'user',
+      content: text,
+      ts: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+    };
+    const aiMsg = {
+      id: createLocalMessageId(),
+      role: 'assistant',
+      content: '',
+      ts: null,
+      streaming: true,
+      status: 'streaming',
+      isError: false,
+      healthQuestions: [],
+    };
 
     setMessages(prev => [...prev, userMsg]);
     draftMessageRef.current = aiMsg;
     setStreamingDraft(aiMsg);
     setInputText('');
+    setHistoryPolicyNotice(false);
     setIsStreaming(true);
     streamPerfRef.current = {
       requestStartedAt: typeof performance !== 'undefined' ? performance.now() : null,
@@ -321,7 +625,7 @@ export default function ChatPage() {
       abortRef.current = controller;
 
       const authToken = getToken() || DEV_AUTH_TOKEN;
-      const res = await fetch(CHAT_API_PATH, {
+      const res = await fetch(CHAT_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -362,7 +666,7 @@ export default function ChatPage() {
         if (streamState.phase !== 'streaming') return;
         if (!streamState.firstTokenSeen) {
           markTerminal('failed', {
-            content: messageText || '?꾩옱 AI ?쒕쾭? ?곌껐?????놁뼱?? ?좎떆 ???ㅼ떆 ?쒕룄??二쇱꽭??',
+            content: messageText || '현재 AI 서버와 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
             isError: true,
           });
           return;
@@ -382,8 +686,16 @@ export default function ChatPage() {
           return;
         }
         if (evt.event === 'done') {
-          if (evt.data.session_id) setSessionId(evt.data.session_id);
-          markTerminal('completed');
+          if (evt.data.session_id) {
+            setSessionId(evt.data.session_id);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('danaa:conversation-active', { detail: { id: evt.data.session_id } }));
+              window.dispatchEvent(new CustomEvent('danaa:conversation-refresh'));
+            }
+          }
+          markTerminal('completed', {
+            healthQuestions: normalizeHealthQuestions(evt.data.health_questions),
+          });
           return;
         }
         if (evt.event === 'error') {
@@ -448,7 +760,7 @@ export default function ChatPage() {
         streamPerfRef.current.result = 'failed';
       }
       finalizeAssistantDraft('failed', {
-        content: '?꾩옱 AI ?쒕쾭???곌껐?????놁뼱?? ?좎떆 ???ㅼ떆 ?쒕룄?댁＜?몄슂.',
+        content: '현재 AI 서버와 연결할 수 없어요. 잠시 후 다시 시도해주세요.',
         isError: true,
       });
       return;
@@ -485,19 +797,60 @@ export default function ChatPage() {
       setIsStreaming(false);
       abortRef.current = null;
     }
-  }, [inputText, isStreaming, sessionId]);
+  }, [createLocalMessageId, inputText, isHistoryLoading, isStreaming, sessionId]);
 
   // localStorage 저장
   const save = useCallback((next) => {
-    setLog(next);
-    try { localStorage.setItem(todayKey(), JSON.stringify(next)); } catch {}
+    const migratedNext = migrateStoredLog(next);
+    setLog(migratedNext);
+    try {
+      localStorage.setItem(todayKey(), JSON.stringify(migratedNext));
+      localStorage.setItem(DAILY_SCHEMA_VERSION_KEY, DAILY_SCHEMA_VERSION);
+    } catch {}
   }, []);
 
   const update = useCallback((field, value) => {
     save({ ...log, [field]: value });
   }, [log, save]);
 
-  const hasAnyData = loaded && (log.sleep_duration || log.breakfast !== null || log.exercise_done !== null || log.water_cups > 0);
+  const pendingHealthSummary = useMemo(() => {
+    for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
+      const bundle = Array.isArray(messages[idx]?.healthQuestions) ? messages[idx].healthQuestions[0] : null;
+      if (!bundle) continue;
+
+      const pendingQuestions = (bundle.questions || [])
+        .filter((question) => isHealthQuestionVisibleForLog(question, log))
+        .filter((question) => !isLogFieldAnswered(question.field, log[question.field]))
+        .slice(0, 3);
+
+      if (pendingQuestions.length > 0) {
+        return {
+          bundleName: bundle.name,
+          questions: pendingQuestions,
+        };
+      }
+    }
+
+    return null;
+  }, [log, messages]);
+
+  const scrollToLatestHealthCard = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const cards = document.querySelectorAll('[data-inline-health-card="true"]');
+    const target = cards[cards.length - 1];
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
+  const hasAnyData =
+    loaded &&
+    (
+      isLogFieldAnswered('sleep_duration_bucket', log.sleep_duration_bucket) ||
+      isLogFieldAnswered('breakfast_status', log.breakfast_status) ||
+      log.exercise_done !== null ||
+      isLogFieldAnswered('water_cups', log.water_cups)
+    );
 
   /* ── 카드 값 계산 ── */
   const sleepVal = getSleepDisplay(log);
@@ -515,13 +868,13 @@ export default function ChatPage() {
 
   /* ── 브리핑 자동 생성 ── */
   const briefings = [];
-  if (log.sleep_duration) {
+  if (log.sleep_duration_bucket) {
     const q = log.sleep_quality;
     const sub = q ? SLEEP_QUALITY_LABELS[q] : '';
-    briefings.push({ icon: '💤', text: `수면 ${SLEEP_LABELS[log.sleep_duration]}`, sub: sub || '기록됨' });
+    briefings.push({ icon: '💤', text: `수면 ${SLEEP_LABELS[log.sleep_duration_bucket]}`, sub: sub || '기록됨' });
   }
-  if (log.breakfast !== null) {
-    briefings.push({ icon: '🍽️', text: `아침 — ${MEAL_LABELS[log.breakfast]}`, sub: log.breakfast === 'hearty' ? '좋아요! 👏' : log.breakfast === 'skipped' ? '내일은 꼭!' : '기록됨' });
+  if (log.breakfast_status !== null) {
+    briefings.push({ icon: '🍽️', text: `아침 — ${MEAL_LABELS[log.breakfast_status]}`, sub: log.breakfast_status === 'hearty' ? '좋아요! 👏' : log.breakfast_status === 'skipped' ? '내일은 꼭!' : '기록됨' });
   }
   if (log.exercise_done !== null) {
     briefings.push({ icon: '🏃', text: log.exercise_done ? `운동 ${log.exercise_type ? EXERCISE_TYPES[log.exercise_type] : ''} ${log.exercise_minutes ? log.exercise_minutes + '분' : ''}`.trim() : '운동 — 안 했어요', sub: log.exercise_done ? '잘했어요! 💪' : '내일은 해봐요' });
@@ -567,7 +920,7 @@ export default function ChatPage() {
                           <br />
                         </>}
                         오늘의 건강 기록부터 시작해볼까요?<br />
-                        <span className="text-neutral-400">오른쪽 패널에서 수면, 식사, 운동, 수분을 기록할 수 있어요.</span>
+                        <span className="text-neutral-400">답변 아래 카드로 기록하고, 오른쪽 패널에서는 오늘 기록을 요약해서 볼 수 있어요.</span>
                       </div>
                       <div className="text-[11px] text-neutral-300 mt-0.5">지금</div>
                     </div>
@@ -621,8 +974,16 @@ export default function ChatPage() {
             )}
 
             {/* ── 채팅 메시지 ── */}
-            {messages.map((msg, idx) => (
-              <div key={idx} className="max-w-[840px] mx-auto mb-3.5">
+            {historyPolicyNotice && (
+              <div className="max-w-[840px] mx-auto mb-3.5">
+                <div className="ml-[38px] rounded-xl border border-cream-500 bg-cream-300 px-4 py-3 text-[12px] leading-[1.6] text-neutral-500">
+                  이전 대화는 텍스트만 복원돼요. 건강 질문 카드는 새 답변에서만 표시됩니다.
+                </div>
+              </div>
+            )}
+
+            {messages.map((msg) => (
+              <div key={msg.id ?? `${msg.role}-${msg.ts ?? 'message'}`} className="max-w-[840px] mx-auto mb-3.5">
                 {msg.role === 'user' ? (
                   /* 사용자 메시지 - 오른쪽 */
                   <div className="flex justify-end">
@@ -643,6 +1004,17 @@ export default function ChatPage() {
                         {msg.streaming && <span className="inline-block w-[2px] h-[14px] bg-nature-900 ml-0.5 animate-pulse align-middle"></span>}
                       </div>
                       {msg.ts && <div className="text-[11px] text-neutral-300 mt-0.5">{msg.ts}</div>}
+                      {!msg.isError && !msg.streaming && Array.isArray(msg.healthQuestions) && msg.healthQuestions[0] && (
+                        <div className="mt-3 max-w-[560px]" data-inline-health-card="true">
+                          <InlineHealthQuestionCard
+                            bundleKey={msg.healthQuestions[0].bundleKey}
+                            bundleName={msg.healthQuestions[0].name}
+                            questions={msg.healthQuestions[0].questions}
+                            onSubmit={submitHealthAnswer}
+                            formatOptionLabel={getHealthOptionLabel}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -674,13 +1046,13 @@ export default function ChatPage() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }}
-                placeholder={isStreaming ? '답변을 기다리는 중...' : '다나아에게 무엇이든 물어보세요...'}
-                disabled={isStreaming}
+                placeholder={isHistoryLoading ? '이전 대화를 불러오는 중...' : isStreaming ? '답변을 기다리는 중...' : '다나아에게 무엇이든 물어보세요...'}
+                disabled={isStreaming || isHistoryLoading}
                 className="flex-1 py-2.5 px-4 rounded-[20px] border border-cream-400 text-[13px] outline-none bg-cream-300 focus:border-nature-500 focus:ring-2 focus:ring-nature-500/10 transition-colors disabled:opacity-50"
               />
               <button
                 onClick={sendMessage}
-                disabled={isStreaming || !inputText.trim()}
+                disabled={isStreaming || isHistoryLoading || !inputText.trim()}
                 className="w-9 h-9 rounded-full bg-nature-900 text-white flex items-center justify-center text-lg cursor-pointer shrink-0 hover:bg-nature-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 →
@@ -766,7 +1138,7 @@ export default function ChatPage() {
 
               {/* ═══ 4. 미답변 질문 ═══ */}
               <div data-tutorial="unanswered">
-              <UnansweredQuestionsSection log={log} update={update} />
+              <UnansweredQuestionsSection pendingSummary={pendingHealthSummary} onJumpToHealthCard={scrollToLatestHealthCard} />
               </div>
             </div>
           </aside>
@@ -794,7 +1166,7 @@ function SleepPanel({ log, update }) {
     { key: 'very_bad', label: '😩 아주 나쁨' },
   ];
 
-  if (!log.sleep_duration && !log.sleep_quality) {
+  if (!log.sleep_duration_bucket && !log.sleep_quality) {
     return (
       <div className="bg-cream-300 rounded-lg p-4 mb-3 text-center">
         <div className="text-[13px] mb-2">😴</div>
@@ -802,7 +1174,7 @@ function SleepPanel({ log, update }) {
         <div className="text-[10px] text-neutral-400 mb-3">몇 시간 주무셨나요?</div>
         <div className="flex flex-wrap gap-1.5 justify-center">
           {durations.map(d => (
-            <button key={d.key} onClick={() => update('sleep_duration', d.key)}
+            <button key={d.key} onClick={() => update('sleep_duration_bucket', d.key)}
               className="px-2.5 py-1 rounded-full text-[11px] bg-white border border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500 transition-all">
               {d.label}
             </button>
@@ -818,9 +1190,9 @@ function SleepPanel({ log, update }) {
       <div className="text-[10px] text-neutral-400 mb-2">수면 시간</div>
       <div className="flex flex-wrap gap-1.5 mb-3">
         {durations.map(d => (
-          <button key={d.key} onClick={() => update('sleep_duration', log.sleep_duration === d.key ? null : d.key)}
+          <button key={d.key} onClick={() => update('sleep_duration_bucket', log.sleep_duration_bucket === d.key ? null : d.key)}
             className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
-              log.sleep_duration === d.key
+              log.sleep_duration_bucket === d.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
             }`}>
@@ -849,9 +1221,9 @@ function SleepPanel({ log, update }) {
 /* ═══════════ 식사 패널 ═══════════ */
 function MealPanel({ log, update }) {
   const meals = [
-    { key: 'breakfast', label: '아침', icon: '🌅' },
-    { key: 'lunch', label: '점심', icon: '☀️' },
-    { key: 'dinner', label: '저녁', icon: '🌙' },
+    { key: 'breakfast_status', label: '아침', icon: '🌅' },
+    { key: 'lunch_status', label: '점심', icon: '☀️' },
+    { key: 'dinner_status', label: '저녁', icon: '🌙' },
   ];
   const options = [
     { key: 'hearty', label: '든든히' },
@@ -892,7 +1264,7 @@ function MealPanel({ log, update }) {
               </button>
             ))}
           </div>
-          {meal.key !== 'dinner' && <div className="border-b border-black/[.04] mt-3"></div>}
+          {meal.key !== 'dinner_status' && <div className="border-b border-black/[.04] mt-3"></div>}
         </div>
       ))}
 
@@ -901,13 +1273,13 @@ function MealPanel({ log, update }) {
         <div className="flex items-center gap-1.5 mb-1.5">
           <span className="text-[12px]">🥬</span>
           <span className="text-[11px] font-medium text-nature-900">채소</span>
-          {log.vegetable && <span className="text-[10px] text-neutral-400">— {vegOptions.find(v => v.key === log.vegetable)?.label}</span>}
+          {log.vegetable_intake_level && <span className="text-[10px] text-neutral-400">— {vegOptions.find(v => v.key === log.vegetable_intake_level)?.label}</span>}
         </div>
         <div className="flex gap-1.5">
           {vegOptions.map(opt => (
-            <button key={opt.key} onClick={() => update('vegetable', log.vegetable === opt.key ? null : opt.key)}
+            <button key={opt.key} onClick={() => update('vegetable_intake_level', log.vegetable_intake_level === opt.key ? null : opt.key)}
               className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
-                log.vegetable === opt.key
+                log.vegetable_intake_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
                   : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
               }`}>
@@ -922,13 +1294,13 @@ function MealPanel({ log, update }) {
         <div className="flex items-center gap-1.5 mb-1.5">
           <span className="text-[12px]">🍱</span>
           <span className="text-[11px] font-medium text-nature-900">식사구성</span>
-          {log.meal_balance && <span className="text-[10px] text-neutral-400">— {balanceOptions.find(v => v.key === log.meal_balance)?.label}</span>}
+          {log.meal_balance_level && <span className="text-[10px] text-neutral-400">— {balanceOptions.find(v => v.key === log.meal_balance_level)?.label}</span>}
         </div>
         <div className="flex flex-wrap gap-1.5">
           {balanceOptions.map(opt => (
-            <button key={opt.key} onClick={() => update('meal_balance', log.meal_balance === opt.key ? null : opt.key)}
+            <button key={opt.key} onClick={() => update('meal_balance_level', log.meal_balance_level === opt.key ? null : opt.key)}
               className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
-                log.meal_balance === opt.key
+                log.meal_balance_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
                   : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
               }`}>
@@ -1142,33 +1514,8 @@ function HabitsSection() {
 // 백엔드 연동 시: GET /api/v1/questions/unanswered → { questions: [...], total: N, answered: N }
 // 모델: UnansweredQuestion (id, text, emoji, options: string[], field_key, answered_at)
 // 답변: POST /api/v1/questions/{id}/answer { value: string }
-function UnansweredQuestionsSection({ log, update }) {
-  const [currentIdx, setCurrentIdx] = useState(0);
-
-  // 실시간으로 log에서 미답변 필드를 계산
-  const ALL_QUESTIONS = [
-    { id: 'sleep', emoji: '😴', text: '몇 시간 주무셨나요?', options: ['5h 미만', '5~6h', '6~7h', '7~8h', '8h 이상'], field: 'sleep_duration', values: ['under_5', 'between_5_6', 'between_6_7', 'between_7_8', 'over_8'] },
-    { id: 'breakfast', emoji: '🌅', text: '아침은 드셨나요?', options: ['든든히', '간단히', '못먹음'], field: 'breakfast', values: ['hearty', 'simple', 'skipped'] },
-    { id: 'exercise', emoji: '🏃', text: '오늘 운동 하셨나요?', options: ['했어요', '못했어요'], field: 'exercise_done', values: [true, false] },
-    { id: 'veg', emoji: '🥗', text: '채소·과일 드셨나요?', options: ['충분히', '조금', '못 먹었어요'], field: 'vegetable', values: ['enough', 'little', 'none'] },
-    { id: 'balance', emoji: '🍱', text: '식사 구성은 어떠셨나요?', options: ['균형', '탄수화물 위주', '단백질·채소 위주'], field: 'meal_balance', values: ['balanced', 'carb_heavy', 'protein_veg_heavy'] },
-    { id: 'mood', emoji: '😊', text: '오늘 기분은 어떠세요?', options: ['좋아요', '보통이에요', '별로예요'], field: 'mood', values: ['good', 'normal', 'bad'] },
-  ];
-
-  const questions = ALL_QUESTIONS.filter(q => log[q.field] === null || log[q.field] === undefined);
-  const totalCount = ALL_QUESTIONS.length;
-  const answeredCount = totalCount - questions.length;
-
-  function answerQuestion(qIdx, valueIdx) {
-    const q = questions[qIdx];
-    if (q && update) {
-      update(q.field, q.values[valueIdx]);
-    }
-    if (currentIdx >= questions.length - 1 && questions.length > 1) {
-      setCurrentIdx(Math.max(0, questions.length - 2));
-    }
-  }
-  const currentQ = questions[currentIdx];
+function UnansweredQuestionsSection({ pendingSummary, onJumpToHealthCard }) {
+  const questions = pendingSummary?.questions || [];
 
   return (
     <div>
@@ -1178,71 +1525,42 @@ function UnansweredQuestionsSection({ log, update }) {
       {questions.length === 0 ? (
         <div className="bg-cream-300 rounded-xl p-4 text-center">
           <div className="text-[20px] mb-2">✅</div>
-          <div className="text-[12px] font-medium text-nature-900 mb-1">모든 질문에 답변 완료!</div>
-          <div className="text-[10px] text-neutral-400">AI 채팅에서 대화하면 새 질문이 표시돼요</div>
+          <div className="text-[12px] font-medium text-nature-900 mb-1">지금 이어서 답할 질문은 없어요</div>
+          <div className="text-[10px] text-neutral-400">새 질문이 생기면 답변 아래 카드에서 바로 기록할 수 있어요.</div>
         </div>
       ) : (
-        <>
-          {/* 진행 바 */}
-          <div className="mb-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1 h-1 bg-cream-500 rounded-full overflow-hidden mr-2">
-                <div className="h-full bg-nature-500 rounded-full transition-all" style={{ width: `${(answeredCount / totalCount) * 100}%` }}></div>
+        <div className="bg-cream-300 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-medium text-nature-900">
+                {pendingSummary?.bundleName || '오늘 기록 보완'}
               </div>
-              <span className="text-[10px] text-neutral-400">{answeredCount}/{totalCount} 완료</span>
+              <div className="text-[10px] text-neutral-400 mt-1">
+                저장은 채팅 본문 아래 카드에서 진행하고, 이 패널은 요약만 보여줘요.
+              </div>
             </div>
+            <span className="rounded-full bg-white px-2 py-1 text-[10px] text-neutral-400">
+              {questions.length}개 남음
+            </span>
           </div>
 
-          {/* 현재 질문 카드 */}
-          {currentQ && (
-            <div className="bg-cream-300 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[14px]">{currentQ.emoji}</div>
-                <div className="text-[12px] font-medium text-nature-900">{currentQ.text}</div>
+          <div className="mt-3 space-y-2">
+            {questions.map((question, index) => (
+              <div key={question.field} className="rounded-lg bg-white px-3 py-2">
+                <div className="text-[10px] text-neutral-400">질문 {index + 1}</div>
+                <div className="text-[11px] font-medium text-nature-900 mt-0.5">{question.text}</div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {currentQ.options.map((opt, optIdx) => (
-                  <button
-                    key={opt}
-                    onClick={() => answerQuestion(currentIdx, optIdx)}
-                    className="px-3 py-1.5 rounded-full text-[11px] bg-white border border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500 transition-all"
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
 
-          {/* 네비게이션 */}
-          {questions.length > 1 && (
-            <div className="flex items-center justify-between mt-2">
-              <button
-                onClick={() => { /* skip / 나중에 */ }}
-                className="text-[10px] text-neutral-400 hover:text-nature-900 transition-colors"
-              >
-                나중에 →
-              </button>
-              <div className="flex items-center gap-1">
-                {questions.map((_, i) => (
-                  <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentIdx ? 'bg-nature-900' : 'bg-neutral-300'}`}></div>
-                ))}
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
-                  disabled={currentIdx === 0}
-                  className="w-6 h-6 rounded border border-cream-500 bg-white text-[10px] text-neutral-400 flex items-center justify-center hover:bg-black/[.03] disabled:opacity-30"
-                >‹</button>
-                <button
-                  onClick={() => setCurrentIdx(Math.min(questions.length - 1, currentIdx + 1))}
-                  disabled={currentIdx === questions.length - 1}
-                  className="w-6 h-6 rounded border border-cream-500 bg-white text-[10px] text-neutral-400 flex items-center justify-center hover:bg-black/[.03] disabled:opacity-30"
-                >›</button>
-              </div>
-            </div>
-          )}
-        </>
+          <button
+            type="button"
+            onClick={onJumpToHealthCard}
+            className="mt-3 w-full rounded-lg bg-nature-900 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-800 transition-colors"
+          >
+            채팅 카드로 이동
+          </button>
+        </div>
       )}
     </div>
   );

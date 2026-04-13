@@ -156,6 +156,7 @@ def assemble_prompt_layers(state: ChatPrepState) -> dict:
     result = _build_openai_messages_from_base_prompt(
         base_system_prompt=state["base_system_prompt"],
         history=state["history_turns"],
+        message_text=state["message_text"],
         route=state["route"],
         emotional_priority=state["emotional_priority"],
         prompt_policy=state["prompt_policy"],

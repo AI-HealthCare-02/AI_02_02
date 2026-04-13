@@ -1,8 +1,14 @@
 """채팅 persistence helpers."""
 
 from fastapi import HTTPException, status
+from tortoise.functions import Count, Max
 
-from backend.dtos.chat import ChatHistoryResponse, ChatMessageDTO
+from backend.dtos.chat import (
+    ChatHistoryResponse,
+    ChatMessageDTO,
+    ChatSessionListResponse,
+    ChatSessionSummaryDTO,
+)
 from backend.models.chat import ChatMessage, ChatSession, MessageRole
 
 
@@ -64,3 +70,25 @@ async def get_history(
         ],
         has_more=has_more,
     )
+
+
+async def list_sessions(user_id: int, limit: int = 20) -> ChatSessionListResponse:
+    """현재 사용자의 최근 채팅 세션 목록 조회."""
+    rows = await (
+        ChatSession.filter(user_id=user_id, is_active=True)
+        .annotate(message_count=Count("messages__id"), latest_message_at=Max("messages__created_at"))
+        .order_by("-latest_message_at", "-id")
+        .limit(limit)
+        .values("id", "title", "created_at", "message_count", "latest_message_at")
+    )
+
+    sessions = [
+        ChatSessionSummaryDTO(
+            id=row["id"],
+            title=(row["title"] or "새 대화").strip() or "새 대화",
+            updated_at=row["latest_message_at"] or row["created_at"],
+            message_count=int(row["message_count"] or 0),
+        )
+        for row in rows
+    ]
+    return ChatSessionListResponse(sessions=sessions)

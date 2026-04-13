@@ -176,6 +176,7 @@ async def _run_legacy_prep(inputs: ChatPrepInputs) -> ChatPrepOutput:
     build_result = _build_openai_messages_from_base_prompt(
         base_system_prompt=inputs.base_system_prompt,
         history=list(inputs.history_turns),
+        message_text=inputs.message_text,
         route=inputs.route,
         emotional_priority=inputs.emotional_priority,
         prompt_policy=inputs.prompt_policy,

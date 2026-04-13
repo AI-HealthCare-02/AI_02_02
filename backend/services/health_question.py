@@ -285,17 +285,19 @@ class HealthQuestionService:
         await log.save()
 
         # UserEngagement 업데이트
-        engagement, _ = await UserEngagement.get_or_create(
-            user_id=user_id,
-            defaults={"state": EngagementState.ACTIVE},
-        )
-        cooldown_until = now + timedelta(minutes=COOLDOWN_MINUTES)
-        engagement.cooldown_until = cooldown_until
-        engagement.today_bundle_count += 1
-        engagement.last_bundle_key = bundle_key
-        engagement.last_response_at = now
-        engagement.total_responses += 1
-        await engagement.save()
+        cooldown_until = None
+        if saved_fields:
+            engagement, _ = await UserEngagement.get_or_create(
+                user_id=user_id,
+                defaults={"state": EngagementState.ACTIVE},
+            )
+            cooldown_until = now + timedelta(minutes=COOLDOWN_MINUTES)
+            engagement.cooldown_until = cooldown_until
+            engagement.today_bundle_count += 1
+            engagement.last_bundle_key = bundle_key
+            engagement.last_response_at = now
+            engagement.total_responses += 1
+            await engagement.save()
 
         return {
             "saved_fields": saved_fields,

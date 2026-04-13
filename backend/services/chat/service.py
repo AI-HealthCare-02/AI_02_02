@@ -52,6 +52,9 @@ from backend.services.chat.persistence import (
 from backend.services.chat.persistence import (
     get_history as load_history,
 )
+from backend.services.chat.persistence import (
+    list_sessions as load_sessions,
+)
 from backend.services.chat.prep_types import HistoryTurnSnapshot
 from backend.services.chat.prompting import (
     _build_openai_messages as build_openai_messages,
@@ -186,34 +189,17 @@ class ChatService:
             logger.info("chat_terminal_total", chat_req_id=chat_req_id, outcome="session_missing", first_token_emitted=False)
             return
 
-        # USER 메시지 저장과 bundles/history 조회를 병렬로 시작.
-        # USER 저장은 asyncio.create_task 로 떼어내 history 조회와 overlap 시킨다.
-        # history 는 과거 메시지만 읽으므로 USER 저장과 ordering 충돌 없음.
-        user_save_task = asyncio.create_task(
-            ChatMessage.create(session=session, role=MessageRole.USER, content=message)
-        )
+        # history는 "과거 대화"만, message_text는 "현재 질문"만 담당하게 순서를 고정한다.
+        # USER 저장과 history 조회를 겹치면 현재 질문이 history와 message_text에
+        # 동시에 들어가 prompt가 중복될 수 있어 overlap 최적화는 제거한다.
         suppress_emotional = config.CONTENT_FILTER_ROUTING_APPLY_ENABLED and filter_result.emotional_priority
-        bundles_task: asyncio.Task | None = None
+        history = await self._get_prompt_history(session)
         if not self._is_in_crisis_cooldown(user_id) and not suppress_emotional:
-            bundles_task = asyncio.create_task(self.health_question_service.get_eligible_bundles(user_id))
+            eligible_bundles = await self.health_question_service.get_eligible_bundles(user_id)
+        else:
+            eligible_bundles = []
 
-        history_awaitable = self._get_prompt_history(session)
-        try:
-            if bundles_task is not None:
-                history, eligible_bundles = await asyncio.gather(history_awaitable, bundles_task)
-            else:
-                history = await history_awaitable
-                eligible_bundles = []
-            await user_save_task  # USER 메시지 저장 완료 보장
-        except BaseException:
-            if bundles_task is not None and not bundles_task.done():
-                bundles_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await bundles_task
-            if not user_save_task.done():
-                with suppress(BaseException):
-                    await user_save_task
-            raise
+        await ChatMessage.create(session=session, role=MessageRole.USER, content=message)
 
         base_system_prompt = await self._build_system_prompt(profile, eligible_bundles)
         prep_started_at = time.perf_counter()
@@ -357,9 +343,10 @@ class ChatService:
         return await prepare_session(user_id, message, session_id)
 
     async def _get_prompt_history(self, session: ChatSession) -> list[HistoryTurnSnapshot]:
-        query = ChatMessage.filter(session=session).order_by("created_at").limit(MAX_HISTORY_MESSAGES)
+        query = ChatMessage.filter(session=session).order_by("-created_at", "-id").limit(MAX_HISTORY_MESSAGES)
         if not hasattr(query, "values"):
-            messages = await query.all()
+            messages = list(await query.all())
+            messages.reverse()
             return [
                 HistoryTurnSnapshot(
                     role=str(message.role.value if hasattr(message.role, "value") else message.role),
@@ -367,8 +354,8 @@ class ChatService:
                 )
                 for message in messages
             ]
-
-        rows = await query.values("role", "content")
+        rows = list(await query.values("role", "content"))
+        rows.reverse()
         return [
             HistoryTurnSnapshot(
                 role=str(row["role"].value if hasattr(row["role"], "value") else row["role"]),
@@ -414,6 +401,7 @@ class ChatService:
             filter_result,
             rag_result,
             user_context,
+            message_text=message_text,
             base_system_prompt=base_system_prompt,
         )
 
@@ -446,6 +434,9 @@ class ChatService:
         before_id: int | None = None,
     ):
         return await load_history(user_id, session_id, limit=limit, before_id=before_id)
+
+    async def get_sessions(self, user_id: int, limit: int = 20):
+        return await load_sessions(user_id, limit=limit)
 
     async def save_health_answer(
         self,
