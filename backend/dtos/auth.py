@@ -52,6 +52,20 @@ class TokenRefreshResponse(LoginResponse):
     ...
 
 
+class PasswordChangeRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "current_password": "OldPassword123!",
+                "new_password": "NewPassword123!",
+            }
+        }
+    }
+
+    current_password: Annotated[str, Field(min_length=8)]
+    new_password: Annotated[str, Field(min_length=8), AfterValidator(validate_password)]
+
+
 class EmailSignupVerificationRequest(BaseModel):
     model_config = {
         "json_schema_extra": {
@@ -75,6 +89,32 @@ class EmailSignupConfirmRequest(BaseModel):
         "json_schema_extra": {
             "example": {
                 "email": "signup@example.com",
+                "code": "123456",
+            }
+        }
+    }
+
+    email: EmailStr
+    code: Annotated[str, Field(min_length=6, max_length=6)]
+
+
+class AccountEmailVerificationRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "email": "member@example.com",
+            }
+        }
+    }
+
+    email: Annotated[EmailStr, Field(max_length=40)]
+
+
+class AccountEmailConfirmRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "email": "member@example.com",
                 "code": "123456",
             }
         }
@@ -144,11 +184,15 @@ class EmailLinkConfirmResponse(BaseModel):
 
 class EmailSignupVerificationResponse(BaseModel):
     detail: str
+    email_sent: bool
+    delivery_mode: str
     dev_verification_code: str | None = None
 
 
 class EmailLinkVerificationResponse(BaseModel):
     detail: str
+    email_sent: bool
+    delivery_mode: str
     link_token: str | None = None
     conflict_account_type: str | None = None
     can_transfer: bool = False

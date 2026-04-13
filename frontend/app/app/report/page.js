@@ -4,91 +4,79 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ClipboardList, TrendingUp, BarChart3 as BarChart3Icon, Target } from 'lucide-react';
 
-/* ── 위험도 레벨 설정 ── */
+import { api } from '../../../hooks/useApi';
+
 const LEVELS = [
   { key: 'LOW', label: '낮음', color: '#4CAF50', max: 3 },
   { key: 'SLIGHT', label: '약간', color: '#8BC34A', max: 8 },
   { key: 'MODERATE', label: '보통', color: '#FFC107', max: 12 },
   { key: 'HIGH', label: '높음', color: '#FF7043', max: 20 },
-  { key: 'VERY_HIGH', label: '매우높음', color: '#E53935', max: 26 },
+  { key: 'VERY_HIGH', label: '매우 높음', color: '#E53935', max: 26 },
 ];
 
 function getScorePosition(score) {
-  // 0~26 → 0%~100%
   return Math.min(100, Math.max(0, (score / 26) * 100));
 }
 
 function getCurrentLevel(score) {
-  for (const lv of LEVELS) {
-    if (score <= lv.max) return lv;
+  for (const level of LEVELS) {
+    if (score <= level.max) return level;
   }
   return LEVELS[4];
 }
 
-function generateInsight(risk, onboarding) {
-  if (!risk || !onboarding) return null;
-  const bd = risk.breakdown;
-  if (!bd) return '현재 생활습관이 좋은 편이에요! 꾸준히 유지해주세요.';
-  const tips = [];
-  if (bd.activity > 0) tips.push('운동량을 주 3회 이상으로 늘리면 위험도를 낮출 수 있어요.');
-  if (bd.vegetable > 0) tips.push('채소·과일 섭취를 늘려보세요.');
-  if (bd.family > 0) tips.push('가족력이 있으므로 정기 검진이 중요합니다.');
-  if (bd.bmi > 0) tips.push('적정 체중 유지가 위험도 감소에 도움돼요.');
-  if (tips.length === 0) tips.push('현재 생활습관이 좋은 편이에요! 꾸준히 유지해주세요.');
-  return tips.join(' ');
-}
-
 export default function ReportPage() {
-  const [risk, setRisk] = useState(null);
-  const [onboarding, setOnboarding] = useState(null);
+  const [status, setStatus] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const r = localStorage.getItem('danaa_risk');
-      const o = localStorage.getItem('danaa_onboarding');
-      if (r) setRisk(JSON.parse(r));
-      if (o) setOnboarding(JSON.parse(o));
-    } catch {}
-    setLoaded(true);
+    async function loadStatus() {
+      try {
+        const res = await api('/api/v1/onboarding/status');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.is_completed) {
+            setStatus(data);
+          }
+        }
+      } catch {}
+      setLoaded(true);
+    }
+
+    loadStatus();
   }, []);
 
-  if (!loaded) return (
-    <>
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
-        <span className="text-[14px] font-medium text-nature-900">리포트</span>
-      </header>
-      <div className="flex-1 px-6 py-6">
-        <div className="max-w-[840px] mx-auto space-y-4 animate-pulse">
-          <div className="h-6 bg-cream-400 rounded w-1/4"></div>
-          <div className="bg-cream-300 rounded-xl p-6 space-y-3">
-            <div className="h-4 bg-cream-400 rounded w-1/2"></div>
-            <div className="h-8 bg-cream-400 rounded w-full"></div>
-            <div className="h-4 bg-cream-400 rounded w-3/4"></div>
-          </div>
-          <div className="bg-cream-300 rounded-xl p-6 space-y-3">
-            <div className="h-4 bg-cream-400 rounded w-1/3"></div>
-            <div className="h-20 bg-cream-400 rounded w-full"></div>
+  if (!loaded) {
+    return (
+      <>
+        <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+          <span className="text-[14px] font-medium text-nature-900">리포트</span>
+        </header>
+        <div className="flex-1 px-6 py-6">
+          <div className="max-w-[840px] mx-auto space-y-4 animate-pulse">
+            <div className="h-6 bg-cream-400 rounded w-1/4"></div>
+            <div className="bg-cream-300 rounded-xl p-6 space-y-3">
+              <div className="h-4 bg-cream-400 rounded w-1/2"></div>
+              <div className="h-8 bg-cream-400 rounded w-full"></div>
+              <div className="h-4 bg-cream-400 rounded w-3/4"></div>
+            </div>
           </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
 
-  const hasOnboarding = !!risk;
-  const score = risk?.score ?? 0;
+  const hasOnboarding = Boolean(status?.is_completed);
+  const score = status?.initial_findrisc_score ?? 0;
   const level = getCurrentLevel(score);
-  const insight = generateInsight(risk, onboarding);
 
   return (
     <>
-      {/* 헤더 */}
       <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
         <span className="text-[14px] font-medium text-nature-900">리포트</span>
         <div className="flex-1"></div>
       </header>
 
-      {/* 서브 탭 */}
       <div className="flex border-b border-cream-500 bg-white shrink-0">
         <div className="px-5 py-2.5 text-[14px] font-medium transition-colors relative text-nature-900 cursor-default">
           대시보드
@@ -99,11 +87,9 @@ export default function ReportPage() {
         </Link>
       </div>
 
-      {/* 콘텐츠 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
         <div className="max-w-[840px] mx-auto">
           <div className="bg-white shadow-float rounded-xl overflow-hidden">
-            {/* 리포트 헤더 */}
             <div className="px-7 py-5 border-b border-black/[.04]">
               <div className="flex items-baseline gap-3">
                 <span className="text-[16px] font-semibold text-nature-900">DA-NA-A</span>
@@ -111,10 +97,7 @@ export default function ReportPage() {
               </div>
             </div>
 
-            {/* 리포트 본문 */}
             <div className="px-7 py-5 flex flex-col gap-0">
-
-              {/* ══ 온보딩 안 했을 때 ══ */}
               {!hasOnboarding && (
                 <div className="text-center py-10">
                   <div className="mb-4"><ClipboardList size={40} className="text-neutral-300 mx-auto" /></div>
@@ -126,26 +109,21 @@ export default function ReportPage() {
                 </div>
               )}
 
-              {/* ══ 온보딩 완료 후 ══ */}
               {hasOnboarding && (
                 <>
-                  {/* 1. 위험도 정보 */}
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">위험도 정보</div>
                   <div className="bg-cream-300 rounded-xl p-[18px_20px] mb-3.5">
                     <div className="flex gap-4 items-center">
-                      {/* 점수 박스 */}
                       <div className="bg-white border border-cream-500 rounded-lg px-5 py-3.5 text-center min-w-[80px]">
                         <div className="text-[11px] text-neutral-400 mb-1">점수</div>
                         <div className="text-[34px] font-semibold text-nature-500 leading-none">{score}</div>
                         <div className="text-[12px] text-neutral-400 mt-1">/26</div>
                       </div>
-                      {/* 그래프 영역 */}
                       <div className="flex-1">
                         <div className="flex justify-end mb-2">
                           <span className="text-[11px] px-3 py-1 border border-cream-500 rounded-lg text-neutral-400 bg-white">{level.label} 구간</span>
                         </div>
-                        <div className="text-[11px] text-neutral-400 mb-2">FINDRISC 위험도 지표</div>
-                        {/* 그라데이션 바 */}
+                        <div className="text-[11px] text-neutral-400 mb-2">FINDRISC 위험도 지수</div>
                         <div className="relative h-[10px] rounded-[5px] mb-1.5" style={{ background: 'linear-gradient(to right, #4CAF50, #8BC34A, #FFC107, #FF7043, #E53935)' }}>
                           <div
                             className="absolute top-[-3px] w-4 h-4 rounded-full border-[2.5px] border-white shadow-md"
@@ -153,9 +131,9 @@ export default function ReportPage() {
                           ></div>
                         </div>
                         <div className="flex justify-between text-[11px]">
-                          {LEVELS.map(lv => (
-                            <span key={lv.key} style={{ color: lv.color }} className={lv.key === level.key ? 'font-bold' : ''}>
-                              {lv.key === level.key ? `▶ ${lv.label}` : lv.label}
+                          {LEVELS.map((item) => (
+                            <span key={item.key} style={{ color: item.color }} className={item.key === level.key ? 'font-bold' : ''}>
+                              {item.key === level.key ? `• ${item.label}` : item.label}
                             </span>
                           ))}
                         </div>
@@ -163,49 +141,37 @@ export default function ReportPage() {
                     </div>
                   </div>
 
-                  {/* 2. AI 인사이트 */}
-                  {insight && (
-                    <div className="bg-cream-300 rounded-xl p-4 mb-3.5">
-                      <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-1.5">AI 인사이트</div>
-                      <div className="text-[14px] text-neutral-400 leading-[1.8]">{insight}</div>
+                  <div className="bg-cream-300 rounded-xl p-4 mb-3.5">
+                    <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-1.5">요약</div>
+                    <div className="text-[14px] text-neutral-400 leading-[1.8]">
+                      그룹: {status.user_group || '-'} / BMI: {status.bmi ?? '-'} / 초기 위험도: {status.initial_risk_level || '-'}
                     </div>
-                  )}
+                  </div>
 
-                  {/* 3. 위험도 추이 — 데이터 없음 */}
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">위험도 추이</div>
                   <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
                     <div className="mb-2"><TrendingUp size={24} className="text-neutral-300 mx-auto" /></div>
                     <div className="text-[13px] text-nature-900 mb-1">아직 추이 데이터가 없어요</div>
-                    <div className="text-[11px] text-neutral-400">2주 이상 건강 기록을 쌓으면 위험도 변화 추이를 볼 수 있어요</div>
+                    <div className="text-[11px] text-neutral-400">건강 기록이 쌓이면 변화 추이를 여기에 보여줍니다.</div>
                   </div>
 
-                  {/* 5. 항목별 트렌드 — 데이터 없음 */}
-                  <div className="text-[13px] font-semibold text-nature-900 mb-2.5">항목별 트렌드</div>
+                  <div className="text-[13px] font-semibold text-nature-900 mb-2.5">목표별 그래프</div>
                   <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
                     <div className="mb-2"><BarChart3Icon size={24} className="text-neutral-300 mx-auto" /></div>
                     <div className="text-[13px] text-nature-900 mb-1">건강 기록을 시작해보세요</div>
-                    <div className="text-[11px] text-neutral-400 mb-3">매일 수면, 식사, 운동, 수분을 기록하면 트렌드가 표시돼요</div>
-                    <Link href="/app/chat" className="text-[12px] text-nature-500 hover:underline">AI 채팅에서 기록 시작 →</Link>
+                    <div className="text-[11px] text-neutral-400 mb-3">수면, 식사, 운동, 수분 기록이 쌓이면 그래프가 표시됩니다.</div>
+                    <Link href="/app/chat" className="text-[12px] text-nature-500 hover:underline">AI 채팅에서 기록 시작</Link>
                   </div>
 
-                  {/* 6. 챌린지 이행 — 데이터 없음 */}
-                  <div className="text-[13px] font-semibold text-nature-900 mb-2.5">챌린지 이행</div>
+                  <div className="text-[13px] font-semibold text-nature-900 mb-2.5">챌린지 진행</div>
                   <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
                     <div className="mb-2"><Target size={24} className="text-neutral-300 mx-auto" /></div>
                     <div className="text-[13px] text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
-                    <div className="text-[11px] text-neutral-400 mb-3">챌린지에 참여하면 이행 상황이 표시돼요</div>
-                    <Link href="/app/challenge" className="text-[12px] text-nature-500 hover:underline">챌린지 둘러보기 →</Link>
-                  </div>
-
-                  {/* 상세 리포트 링크 */}
-                  <div className="text-right mt-3.5">
-                    <Link href="/app/report/detail" className="text-[12px] text-nature-500 cursor-pointer hover:underline">
-                      상세 리포트에서 자세히 보기 →
-                    </Link>
+                    <div className="text-[11px] text-neutral-400 mb-3">챌린지에 참여하면 진행 상황이 여기에 표시됩니다.</div>
+                    <Link href="/app/challenge" className="text-[12px] text-nature-500 hover:underline">챌린지 둘러보기</Link>
                   </div>
                 </>
               )}
-
             </div>
           </div>
         </div>

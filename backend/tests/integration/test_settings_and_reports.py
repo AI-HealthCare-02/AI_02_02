@@ -5,8 +5,10 @@ from starlette import status
 from tortoise.contrib.test import TestCase
 
 from backend.main import app
+from backend.models.email_signup_sessions import EmailSignupSession
 from backend.models.health import DailyHealthLog
 from backend.models.users import User
+from backend.utils.security import verify_password
 
 PASSWORD = "Test1234!@"
 CONSENT_DATA = {
@@ -91,6 +93,74 @@ class TestSettingsAndReports(TestCase):
 
         assert r.status_code == status.HTTP_200_OK
         assert r.json()["health_data_consent"] is False
+
+    async def test_account_email_verification_updates_user_email(self):
+        email = "social-missing-email@test.com"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await User.create(
+                provider="kakao",
+                provider_user_id="kakao-user-1",
+                email=None,
+                hashed_password=None,
+                name="Social User",
+            )
+            login_user = await User.get(provider_user_id="kakao-user-1")
+            login = await c.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+            assert login.status_code != status.HTTP_200_OK
+
+            from backend.services.jwt import JwtService
+
+            token = JwtService().issue_jwt_pair(login_user)["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+
+            request_res = await c.post(
+                "/api/v1/auth/email/account/request",
+                json={"email": email},
+                headers=headers,
+            )
+            assert request_res.status_code == status.HTTP_201_CREATED
+
+            session = await EmailSignupSession.filter(user_id=login_user.id, email=email).order_by("-created_at").first()
+            assert session is not None
+
+            confirm_res = await c.post(
+                "/api/v1/auth/email/account/confirm",
+                json={"email": email, "code": request_res.json()["dev_verification_code"]},
+                headers=headers,
+            )
+
+        assert confirm_res.status_code == status.HTTP_200_OK
+        updated = await User.get(id=login_user.id)
+        assert updated.email == email
+        assert updated.email_verified is True
+
+    async def test_password_change_updates_hashed_password(self):
+        email = "password_change@test.com"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            await c.post("/api/v1/auth/signup", json={
+                "email": email,
+                "password": PASSWORD,
+                "name": "Password User",
+                "gender": "MALE",
+                "birth_date": "1990-01-01",
+                "phone_number": "010-4444-5555",
+            })
+            login = await c.post("/api/v1/auth/login", json={"email": email, "password": PASSWORD})
+            headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+            change_res = await c.post(
+                "/api/v1/auth/password/change",
+                json={
+                    "current_password": PASSWORD,
+                    "new_password": "NewPassword123!",
+                },
+                headers=headers,
+            )
+
+        assert change_res.status_code == status.HTTP_200_OK
+        user = await User.get(email=email)
+        assert user.hashed_password != PASSWORD
+        assert verify_password("NewPassword123!", user.hashed_password)
 
     async def test_onboarding_status_includes_profile_summary(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

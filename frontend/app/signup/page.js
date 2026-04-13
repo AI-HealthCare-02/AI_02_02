@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle, Eye, EyeOff, Mail } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
 
@@ -42,12 +42,12 @@ export default function SignupPage() {
       return '생년월일을 입력해주세요.';
     }
     return null;
-  }, [form.email, form.password, form.name, form.birthDate]);
+  }, [form.birthDate, form.email, form.name, form.password]);
 
   const sendEmailCode = useCallback(async () => {
-    const err = validateRequiredFields();
-    if (err) {
-      setError(err);
+    const validationError = validateRequiredFields();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -66,7 +66,6 @@ export default function SignupPage() {
           birth_date: form.birthDate,
         }),
       });
-
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -75,7 +74,11 @@ export default function SignupPage() {
       }
 
       setEmailSent(true);
-      setMessage('인증코드를 발송했습니다. 이메일을 확인해주세요.');
+      if (data.delivery_mode === 'dev-code' && data.dev_verification_code) {
+        setMessage(`${data.detail} 개발용 인증코드: ${data.dev_verification_code}`);
+      } else {
+        setMessage(data.detail || '인증코드를 발송했습니다. 이메일을 확인해주세요.');
+      }
     } catch {
       setError('인증코드 발송에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
@@ -102,7 +105,6 @@ export default function SignupPage() {
           code: emailCode,
         }),
       });
-
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {

@@ -35,7 +35,9 @@ class UserInfoResponse(BaseSerializerModel):
     id: int
     name: str | None = None
     email: str | None = None
+    email_verified: bool = False
     phone_number: str | None = None
     birthday: date | None = None
     gender: Gender | None = None
+    provider: str | None = None
     created_at: datetime

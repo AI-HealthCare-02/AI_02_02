@@ -184,6 +184,7 @@ class OnboardingService:
                 initial_risk_level=findrisc.risk_level,
             )
             await User.filter(id=user_id).update(
+                gender=data.gender,
                 onboarding_completed=True,
                 onboarding_completed_at=now,
                 updated_at=now,
@@ -213,5 +214,7 @@ class OnboardingService:
                 gender=profile.gender if profile else None,
                 age_range=profile.age_range if profile else None,
                 bmi=profile.bmi if profile else None,
+                initial_findrisc_score=profile.initial_findrisc_score if profile else None,
+                initial_risk_level=profile.initial_risk_level if profile else None,
             )
         return OnboardingStatusResponse(is_completed=False)

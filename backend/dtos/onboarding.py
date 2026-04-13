@@ -197,3 +197,5 @@ class OnboardingStatusResponse(BaseModel):
     gender: str | None = None
     age_range: str | None = None
     bmi: float | None = None
+    initial_findrisc_score: int | None = None
+    initial_risk_level: str | None = None
