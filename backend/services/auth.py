@@ -11,8 +11,8 @@ from tortoise.transactions import in_transaction
 
 from backend.core import config
 from backend.core.config import Env
-from backend.core.logger import setup_logger
 from backend.core.jwt.tokens import AccessToken, RefreshToken
+from backend.core.logger import setup_logger
 from backend.dtos.auth import (
     AccountEmailConfirmRequest,
     AccountEmailVerificationRequest,
@@ -62,6 +62,105 @@ class AuthService:
     @staticmethod
     def _is_social_account(user: User) -> bool:
         return bool(user.provider)
+
+    @staticmethod
+    def _build_social_user_update_payload(
+        *,
+        social_user: User,
+        email: str | None,
+        name: str | None,
+        gender: Gender | None,
+        birthday: date | None,
+        phone_number: str | None,
+    ) -> dict:
+        payload = {}
+        if email and social_user.email != email:
+            payload["email"] = email
+        if email and not social_user.email_verified:
+            payload["email_verified"] = True
+            payload["email_verified_at"] = datetime.now(tz=config.TIMEZONE)
+        if name and not social_user.name:
+            payload["name"] = name
+        if phone_number and not social_user.phone_number:
+            payload["phone_number"] = phone_number
+        if gender and not social_user.gender:
+            payload["gender"] = gender
+        if birthday and not social_user.birthday:
+            payload["birthday"] = birthday
+        return payload
+
+    async def _sync_existing_social_user(
+        self,
+        *,
+        social_user: User,
+        email: str | None,
+        name: str | None,
+        gender: Gender | None,
+        birthday: date | None,
+        phone_number: str | None,
+    ) -> User:
+        payload = self._build_social_user_update_payload(
+            social_user=social_user,
+            email=email,
+            name=name,
+            gender=gender,
+            birthday=birthday,
+            phone_number=phone_number,
+        )
+        if payload:
+            await self.user_repo.update_instance(social_user, payload)
+            await social_user.refresh_from_db()
+        return social_user
+
+    async def _link_social_account_to_existing_user(
+        self,
+        *,
+        existing_user: User,
+        provider: str,
+        provider_user_id: str,
+        email: str | None,
+        name: str | None,
+        gender: Gender | None,
+        birthday: date | None,
+        phone_number: str | None,
+    ) -> User:
+        await self.user_repo.update_instance(
+            existing_user,
+            {
+                "provider": provider,
+                "provider_user_id": provider_user_id,
+                "email": email,
+                "name": existing_user.name or name or "Kakao User",
+                "phone_number": existing_user.phone_number or phone_number,
+                "gender": existing_user.gender or gender,
+                "birthday": existing_user.birthday or birthday,
+            },
+        )
+        return existing_user
+
+    async def _create_social_user(
+        self,
+        *,
+        provider: str,
+        provider_user_id: str,
+        email: str | None,
+        name: str | None,
+        gender: Gender | None,
+        birthday: date | None,
+        phone_number: str | None,
+    ) -> User:
+        return await self.user_repo.create_user(
+            provider=provider,
+            provider_user_id=provider_user_id,
+            email=email,
+            email_verified=bool(email),
+            email_verified_at=datetime.now(tz=config.TIMEZONE) if email else None,
+            hashed_password=None,
+            name=name or "Kakao User",
+            phone_number=phone_number,
+            gender=gender,
+            birthday=birthday,
+        )
 
     def _send_verification_email(self, *, kind: str, to_email: str, code: str) -> bool:
         if not (
@@ -473,24 +572,14 @@ class AuthService:
     ) -> User:
         social_user = await self.user_repo.get_user_by_provider(provider, provider_user_id)
         if social_user:
-            payload = {}
-            if email and social_user.email != email:
-                payload["email"] = email
-            if email and not social_user.email_verified:
-                payload["email_verified"] = True
-                payload["email_verified_at"] = datetime.now(tz=config.TIMEZONE)
-            if name and not social_user.name:
-                payload["name"] = name
-            if phone_number and not social_user.phone_number:
-                payload["phone_number"] = phone_number
-            if gender and not social_user.gender:
-                payload["gender"] = gender
-            if birthday and not social_user.birthday:
-                payload["birthday"] = birthday
-            if payload:
-                await self.user_repo.update_instance(social_user, payload)
-                await social_user.refresh_from_db()
-            return social_user
+            return await self._sync_existing_social_user(
+                social_user=social_user,
+                email=email,
+                name=name,
+                gender=gender,
+                birthday=birthday,
+                phone_number=phone_number,
+            )
 
         existing_user = None
         if email:
@@ -498,31 +587,25 @@ class AuthService:
 
         async with in_transaction():
             if existing_user:
-                await self.user_repo.update_instance(
-                    existing_user,
-                    {
-                        "provider": provider,
-                        "provider_user_id": provider_user_id,
-                        "email": email,
-                        "name": existing_user.name or name or "Kakao User",
-                        "phone_number": existing_user.phone_number or phone_number,
-                        "gender": existing_user.gender or gender,
-                        "birthday": existing_user.birthday or birthday,
-                    },
+                return await self._link_social_account_to_existing_user(
+                    existing_user=existing_user,
+                    provider=provider,
+                    provider_user_id=provider_user_id,
+                    email=email,
+                    name=name,
+                    gender=gender,
+                    birthday=birthday,
+                    phone_number=phone_number,
                 )
-                return existing_user
 
-            return await self.user_repo.create_user(
+            return await self._create_social_user(
                 provider=provider,
                 provider_user_id=provider_user_id,
                 email=email,
-                email_verified=bool(email),
-                email_verified_at=datetime.now(tz=config.TIMEZONE) if email else None,
-                hashed_password=None,
-                name=name or "Kakao User",
-                phone_number=phone_number,
+                name=name,
                 gender=gender,
                 birthday=birthday,
+                phone_number=phone_number,
             )
 
     async def authenticate(self, data: LoginRequest) -> User:
