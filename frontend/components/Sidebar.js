@@ -85,13 +85,15 @@ export default function Sidebar() {
 
   useEffect(() => {
     const handler = (event) => {
-      if (event.detail?.id) {
-        setActiveSessionId(event.detail.id);
-      }
+      setActiveSessionId(event.detail?.id ?? null);
     };
 
     window.addEventListener('danaa:conversation-update', handler);
-    return () => window.removeEventListener('danaa:conversation-update', handler);
+    window.addEventListener('danaa:conversation-active', handler);
+    return () => {
+      window.removeEventListener('danaa:conversation-update', handler);
+      window.removeEventListener('danaa:conversation-active', handler);
+    };
   }, []);
 
   const handleConversationClick = (conversation) => {

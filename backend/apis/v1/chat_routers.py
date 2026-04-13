@@ -73,17 +73,37 @@ async def get_history(
     )
 
 
+@chat_router.get("/sessions")
+@limiter.limit("60/minute")
+async def get_sessions(
+    request: Request,
+    user: Annotated[User, Depends(get_request_user)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+    limit: int = Query(20, ge=1, le=50),
+) -> Response:
+    """현재 사용자의 최근 채팅 세션 목록 조회."""
+    del request
+    result = await chat_service.get_sessions(user_id=user.id, limit=limit)
+    return Response(
+        content=result.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @chat_router.post("/health-answer")
+@limiter.limit("20/minute")
 async def submit_health_answer(
-    request: HealthAnswerRequest,
+    request: Request,
+    body: HealthAnswerRequest,
     user: Annotated[User, Depends(get_request_user)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> Response:
     """건강질문 응답 제출."""
+    del request
     result = await chat_service.save_health_answer(
         user_id=user.id,
-        bundle_key=request.bundle_key,
-        answers=request.answers,
+        bundle_key=body.bundle_key,
+        answers=body.answers,
     )
     return Response(
         content=result.model_dump(mode="json"),

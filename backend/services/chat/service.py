@@ -52,6 +52,9 @@ from backend.services.chat.persistence import (
 from backend.services.chat.persistence import (
     get_history as load_history,
 )
+from backend.services.chat.persistence import (
+    list_sessions as load_sessions,
+)
 from backend.services.chat.prep_types import HistoryTurnSnapshot
 from backend.services.chat.prompting import (
     _build_openai_messages as build_openai_messages,
@@ -357,9 +360,10 @@ class ChatService:
         return await prepare_session(user_id, message, session_id)
 
     async def _get_prompt_history(self, session: ChatSession) -> list[HistoryTurnSnapshot]:
-        query = ChatMessage.filter(session=session).order_by("created_at").limit(MAX_HISTORY_MESSAGES)
+        query = ChatMessage.filter(session=session).order_by("-created_at", "-id").limit(MAX_HISTORY_MESSAGES)
         if not hasattr(query, "values"):
-            messages = await query.all()
+            messages = list(await query.all())
+            messages.reverse()
             return [
                 HistoryTurnSnapshot(
                     role=str(message.role.value if hasattr(message.role, "value") else message.role),
@@ -367,8 +371,8 @@ class ChatService:
                 )
                 for message in messages
             ]
-
-        rows = await query.values("role", "content")
+        rows = list(await query.values("role", "content"))
+        rows.reverse()
         return [
             HistoryTurnSnapshot(
                 role=str(row["role"].value if hasattr(row["role"], "value") else row["role"]),
@@ -414,6 +418,7 @@ class ChatService:
             filter_result,
             rag_result,
             user_context,
+            message_text=message_text,
             base_system_prompt=base_system_prompt,
         )
 
@@ -446,6 +451,9 @@ class ChatService:
         before_id: int | None = None,
     ):
         return await load_history(user_id, session_id, limit=limit, before_id=before_id)
+
+    async def get_sessions(self, user_id: int, limit: int = 20):
+        return await load_sessions(user_id, limit=limit)
 
     async def save_health_answer(
         self,

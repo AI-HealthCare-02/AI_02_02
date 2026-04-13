@@ -39,6 +39,21 @@ class ChatHistoryResponse(BaseModel):
     has_more: bool
 
 
+class ChatSessionSummaryDTO(BaseModel):
+    """왼쪽 사이드바에 표시할 채팅 세션 요약."""
+
+    id: int
+    title: str
+    updated_at: datetime
+    message_count: int
+
+
+class ChatSessionListResponse(BaseModel):
+    """현재 사용자의 최근 채팅 세션 목록."""
+
+    sessions: list[ChatSessionSummaryDTO]
+
+
 class HealthAnswerResponse(BaseModel):
     """건강질문 답변 결과."""
 

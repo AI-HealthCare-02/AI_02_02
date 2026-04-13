@@ -48,6 +48,31 @@ HEALTH_QUESTION_INSTRUCTION = """
 {questions}
 """
 
+PHASE1_SCOPE_BLOCK = """
+
+## 답변 범위
+- 수면, 식사, 운동, 수분, 스트레스, 기분 같은 일상 건강과 생활습관 중심으로 답합니다.
+- 의료 진단, 처방, 치료 권유, 특정 약물 용량 안내, 응급 처치, 실시간 정보 조회는 하지 않습니다.
+- 날씨, 뉴스, 주가, 스포츠처럼 실시간 정보가 필요한 질문은 직접 확인이 필요하다고 짧게 안내합니다.
+"""
+
+PHASE1_FALLBACK_EXAMPLE_BLOCK = """
+
+## 예시
+사용자: 오늘 서울 날씨 어때?
+답변: 저는 실시간 날씨는 직접 볼 수 없어요. 날씨 앱이나 기상 정보를 먼저 확인해 주세요. 대신 오늘 컨디션에 맞는 운동 강도는 같이 정리해드릴 수 있어요.
+"""
+
+PHASE1_HEALTH_QUESTION_INSTRUCTION = """
+## 건강 질문 전달
+아래 건강질문 후보가 있더라도 사용자가 건강, 생활습관, 오늘 컨디션을 이야기했을 때만 답변 끝에 자연스럽게 이어 물어보세요.
+흐름과 무관한 일반 질문이거나 범위 밖 질문이면 건강 질문은 생략하세요.
+사용자가 감정적으로 많이 흔들린 상황이면 질문보다 공감을 먼저 하고, 질문은 생략하거나 아주 가볍게만 다룹니다.
+
+질문 목록:
+{questions}
+"""
+
 ROUTE_INSTRUCTIONS: dict[MessageRoute, str] = {
     MessageRoute.HEALTH_SPECIFIC: (
         "\n\n## 추가 지시(구체적 건강 수치)\n"
@@ -169,13 +194,17 @@ def _build_cached_system_prompt(user_group_key: str, eligible_bundles_key: tuple
                     continue
                 question_texts.append(f"- {question['text']}")
         if question_texts:
-            health_instruction = HEALTH_QUESTION_INSTRUCTION.format(
+            health_instruction = PHASE1_HEALTH_QUESTION_INSTRUCTION.format(
                 questions="\n".join(question_texts)
             )
 
-    return SYSTEM_PROMPT_TEMPLATE.format(
-        user_group=user_group_key,
-        health_question_instruction=health_instruction,
+    return (
+        SYSTEM_PROMPT_TEMPLATE.format(
+            user_group=user_group_key,
+            health_question_instruction=health_instruction,
+        )
+        + PHASE1_SCOPE_BLOCK
+        + PHASE1_FALLBACK_EXAMPLE_BLOCK
     )
 
 
@@ -188,6 +217,7 @@ def _build_openai_messages_from_base_prompt(
     rag_context_text: str | None = None,
     user_context_text: str | None = None,
     flags: PrepFlags | None = None,
+    message_text: str | None = None,
 ) -> PromptBuildResult:
     user_context_layer = _user_context_layer_text(user_context_text, flags)
     route_layer = _route_layer_text(route, emotional_priority, flags)
@@ -207,6 +237,8 @@ def _build_openai_messages_from_base_prompt(
         role = msg.role if not isinstance(msg.role, MessageRole) else msg.role.value
         if role != MessageRole.SYSTEM.value:
             messages.append({"role": role, "content": msg.content})
+    if message_text:
+        messages.append({"role": MessageRole.USER.value, "content": message_text})
 
     return PromptBuildResult(
         openai_messages=tuple(messages),
@@ -232,12 +264,14 @@ async def _build_openai_messages(
     filter_result: FilterResult | None = None,
     rag_result=None,
     user_context=None,
+    message_text: str | None = None,
     base_system_prompt: str | None = None,
 ) -> list[dict[str, str]]:
     system_prompt = base_system_prompt or await _build_system_prompt(profile, eligible_bundles)
     build_result = _build_openai_messages_from_base_prompt(
         base_system_prompt=system_prompt,
         history=history,
+        message_text=message_text,
         route=filter_result.message_route if filter_result else None,
         emotional_priority=filter_result.emotional_priority if filter_result else False,
         prompt_policy=_prompt_policy_from_filter_result(filter_result),
