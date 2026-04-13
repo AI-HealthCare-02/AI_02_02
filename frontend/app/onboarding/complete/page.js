@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api } from '../../../hooks/useApi';
+
+import { api, setToken } from '../../../hooks/useApi';
+
+const REQUEST_TIMEOUT_MS = 15000;
 
 const RELATION_MAP = ['diagnosed', 'prediabetes', 'family', 'curious'];
 const GENDER_MAP = ['MALE', 'FEMALE'];
@@ -63,21 +66,63 @@ function calculateSummary(saved) {
   };
 }
 
+async function apiWithTimeout(path, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await api(path, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('요청이 너무 오래 걸립니다. 백엔드 컨테이너와 네트워크 상태를 확인해주세요.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 export default function OnboardingComplete() {
   const [savedData, setSavedData] = useState(null);
   const [submitState, setSubmitState] = useState('idle');
   const [error, setError] = useState('');
+  const [progressLabel, setProgressLabel] = useState('준비 중입니다.');
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem('danaa_onboarding');
       if (raw) {
         setSavedData(JSON.parse(raw));
+      } else {
+        setSavedData({});
       }
     } catch {
       setSavedData({});
     }
   }, []);
+
+  useEffect(() => {
+    if (submitState !== 'submitting') return undefined;
+
+    let cancelled = false;
+    const intervalId = window.setInterval(async () => {
+      try {
+        const statusRes = await api('/api/v1/onboarding/status');
+        if (!statusRes.ok) return;
+        const status = await statusRes.json();
+        if (!status.is_completed || cancelled) return;
+
+        setProgressLabel('저장이 완료되었습니다. 아래 버튼을 눌러 메인으로 이동해주세요.');
+        setSubmitState('done');
+        window.clearInterval(intervalId);
+      } catch {}
+    }, 1000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [submitState]);
 
   useEffect(() => {
     if (!savedData || submitState !== 'idle') return;
@@ -89,7 +134,8 @@ export default function OnboardingComplete() {
       setError('');
 
       try {
-        await api('/api/v1/auth/consent', {
+        setProgressLabel('약관 동의 정보를 저장하고 있습니다.');
+        const consentRes = await apiWithTimeout('/api/v1/auth/consent', {
           method: 'POST',
           body: JSON.stringify({
             terms_of_service: true,
@@ -99,19 +145,43 @@ export default function OnboardingComplete() {
             marketing_consent: false,
           }),
         });
-
-        const surveyPayload = buildSurveyPayload(savedData);
-        const surveyRes = await api('/api/v1/onboarding/survey', {
-          method: 'POST',
-          body: JSON.stringify(surveyPayload),
-        });
-
-        if (!surveyRes.ok && surveyRes.status !== 409) {
-          const data = await surveyRes.json().catch(() => ({}));
-          throw new Error(data.detail || '온보딩 저장에 실패했습니다.');
+        if (!consentRes.ok) {
+          const data = await consentRes.json().catch(() => ({}));
+          throw new Error(data.detail || '온보딩 동의 저장에 실패했습니다.');
         }
 
+        setProgressLabel('설문 결과를 저장하고 있습니다.');
+        const surveyRes = await apiWithTimeout('/api/v1/onboarding/survey', {
+          method: 'POST',
+          body: JSON.stringify(buildSurveyPayload(savedData)),
+        });
+        const surveyData = await surveyRes.json().catch(() => ({}));
+
+        if (!surveyRes.ok && surveyRes.status !== 409) {
+          throw new Error(surveyData.detail || '온보딩 저장에 실패했습니다.');
+        }
+
+        if (surveyData.access_token) {
+          setToken(surveyData.access_token);
+        }
+
+        try {
+          localStorage.setItem('danaa_onboarding', JSON.stringify(savedData));
+          localStorage.setItem('danaa_tutorial_pending', 'true');
+          if (surveyData.user_group || surveyData.initial_findrisc_score || surveyData.initial_risk_level) {
+            localStorage.setItem(
+              'danaa_risk',
+              JSON.stringify({
+                group: surveyData.user_group || null,
+                score: surveyData.initial_findrisc_score || null,
+                level: surveyData.initial_risk_level || null,
+              }),
+            );
+          }
+        } catch {}
+
         if (!cancelled) {
+          setProgressLabel('저장이 완료되었습니다. 아래 버튼을 눌러 메인으로 이동해주세요.');
           setSubmitState('done');
         }
       } catch (err) {
@@ -158,13 +228,13 @@ export default function OnboardingComplete() {
 
         {submitState === 'submitting' && (
           <div className="rounded-xl px-5 py-3.5 mb-6 bg-cream-300 text-[14px] text-nature-900">
-            서버에 온보딩 결과를 저장 중입니다.
+            {progressLabel}
           </div>
         )}
 
         {submitState === 'done' && (
           <div className="rounded-xl px-5 py-3.5 mb-6 bg-nature-50 text-[14px] text-nature-700">
-            저장이 완료되었습니다. 다음 로그인부터는 메인 화면으로 이동합니다.
+            {progressLabel}
           </div>
         )}
 

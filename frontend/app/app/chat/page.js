@@ -395,6 +395,42 @@ export default function ChatPage() {
     return undefined;
   }, [isHistoryLoading, isStreaming, loadSessionHistory, sessionId]);
 
+  useEffect(() => {
+    async function syncOnboardingState() {
+      try {
+        const statusRes = await api('/api/v1/onboarding/status');
+        if (!statusRes.ok) return;
+        const status = await statusRes.json();
+        if (status.is_completed) {
+          setOnboarding(status);
+          setRisk({
+            group: status.user_group || null,
+            level: status.initial_risk_level || null,
+            score: status.initial_findrisc_score || null,
+          });
+          const tutorialPending = localStorage.getItem('danaa_tutorial_pending') === 'true';
+          const tutorialDone = localStorage.getItem('danaa_tutorial_done') === 'true';
+          if (tutorialPending || !tutorialDone) {
+            setShowTutorial(false);
+            window.setTimeout(() => {
+              const stillPending = localStorage.getItem('danaa_tutorial_pending') === 'true';
+              const stillDone = localStorage.getItem('danaa_tutorial_done') === 'true';
+              if (stillPending || !stillDone) {
+                setTutorialKey((prev) => prev + 1);
+                setShowTutorial(true);
+              }
+            }, 300);
+          }
+        } else {
+          setOnboarding(null);
+          setRisk(null);
+        }
+      } catch {}
+    }
+
+    syncOnboardingState();
+  }, []);
+
   /* ── SSE 파싱 유틸 ── */
   function parseLegacySSE(text) {
     const events = [];
@@ -888,7 +924,17 @@ const sendMessage = useCallback(async () => {
   return (
     <>
       {/* 튜토리얼 */}
-      {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} />}
+      {showTutorial && (
+        <Tutorial
+          key={tutorialKey}
+          onComplete={() => {
+            try {
+              localStorage.removeItem('danaa_tutorial_pending');
+            } catch {}
+            setShowTutorial(false);
+          }}
+        />
+      )}
 
       {/* 헤더 */}
       <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">

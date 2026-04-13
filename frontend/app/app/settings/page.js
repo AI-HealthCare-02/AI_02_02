@@ -1,292 +1,536 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { User as UserIcon, Bell, Database, Lock, FileText, Check } from 'lucide-react';
-import { api } from '../../../hooks/useApi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Bell, Check, Database, FileText, Lock, User as UserIcon } from 'lucide-react';
+import { api, clearToken } from '../../../hooks/useApi';
 
-const TERMS_TEXT = `다나아 서비스 이용약관\n\n제1조 (목적) 이 약관은 다나아 서비스의 이용 조건 및 절차, 이용자와 서비스 제공자의 권리·의무를 규정합니다.\n\n제2조 (서비스 내용) 다나아는 AI 기반 건강 생활습관 코칭 서비스를 제공합니다.\n\n제3조 (개인정보) 서비스 이용을 위해 수집되는 개인정보는 건강 기록, 생활습관 데이터에 한정되며, 관련 법률에 따라 보호됩니다.\n\n제4조 (면책) 다나아는 의료 진단 서비스가 아니며, 제공되는 정보는 참고용입니다.`;
-const PRIVACY_TEXT = `다나아 개인정보 처리방침\n\n1. 수집하는 개인정보: 이메일, 성별, 연령대, 건강 기록(수면/식사/운동/수분), 당뇨 위험도 점수\n\n2. 수집 목적: AI 건강 코칭 서비스 제공, 맞춤 리포트 생성\n\n3. 보관 기간: 회원 탈퇴 시까지 (탈퇴 후 30일 이내 파기)\n\n4. 제3자 제공: 동의 없이 외부에 제공하지 않습니다.\n\n5. 이용자 권리: 열람, 수정, 삭제, 동의 철회를 언제든 요청할 수 있습니다.`;
+const TERMS_TEXT = `다나아 서비스 이용약관
 
-/** 전화번호 자동 포맷 */
-function formatPhone(val) {
-  const nums = val.replace(/\D/g, '').slice(0, 11);
-  if (nums.length <= 3) return nums;
-  if (nums.length <= 7) return `${nums.slice(0, 3)}-${nums.slice(3)}`;
-  return `${nums.slice(0, 3)}-${nums.slice(3, 7)}-${nums.slice(7)}`;
+본 서비스는 건강 관리 지원을 위한 참고용 정보를 제공합니다.
+의학적 진단이나 처방을 대체하지 않으며, 필요한 경우 전문가 상담이 필요합니다.`;
+
+const PRIVACY_TEXT = `개인정보 처리방침
+
+회원 정보, 온보딩 설문, 건강 기록은 서비스 제공과 개인화된 기능 제공을 위해 저장됩니다.
+사용자는 설정 화면에서 일부 동의 상태를 변경할 수 있습니다.`;
+
+function formatPhone(value) {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+  return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
 }
 
-/** 토글 스위치 컴포넌트 */
 function Toggle({ value, onChange, disabled = false }) {
   return (
     <button
+      type="button"
       onClick={() => !disabled && onChange(!value)}
       disabled={disabled}
-      className={`w-[42px] h-[24px] rounded-full relative transition-colors duration-200 shrink-0 ${
-        disabled ? 'bg-cream-500 opacity-50 cursor-not-allowed'
-          : value ? 'bg-nature-500' : 'bg-cream-500'
+      className={`relative h-6 w-11 rounded-full transition-colors ${
+        disabled ? 'cursor-not-allowed bg-cream-500 opacity-50' : value ? 'bg-nature-500' : 'bg-cream-500'
       }`}
     >
-      <div className={`w-[20px] h-[20px] bg-white rounded-full shadow absolute top-[2px] transition-all duration-200 ${
-        value ? 'left-[20px]' : 'left-[2px]'
-      }`} />
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+          value ? 'left-[22px]' : 'left-0.5'
+        }`}
+      />
     </button>
   );
 }
 
+function PasswordModal({ onClose, onSubmit, saving, message }) {
+  const [form, setForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  const submit = () => {
+    if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
+      onSubmit({ error: '비밀번호를 모두 입력해주세요.' });
+      return;
+    }
+    if (form.newPassword !== form.confirmPassword) {
+      onSubmit({ error: '새 비밀번호 확인이 일치하지 않습니다.' });
+      return;
+    }
+    onSubmit({
+      current_password: form.currentPassword,
+      new_password: form.newPassword,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={onClose}>
+      <div className="w-full max-w-[420px] rounded-2xl bg-white shadow-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-cream-500 px-5 py-4">
+          <h3 className="text-[16px] font-semibold text-nature-900">비밀번호 변경</h3>
+          <button type="button" onClick={onClose} className="text-[18px] text-neutral-400 hover:text-nature-900">
+            ×
+          </button>
+        </div>
+        <div className="space-y-3 px-5 py-4">
+          <div>
+            <label className="mb-1 block text-[12px] text-neutral-400">현재 비밀번호</label>
+            <input
+              type="password"
+              value={form.currentPassword}
+              onChange={(e) => setForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+              className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[12px] text-neutral-400">새 비밀번호</label>
+            <input
+              type="password"
+              value={form.newPassword}
+              onChange={(e) => setForm((prev) => ({ ...prev, newPassword: e.target.value }))}
+              className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[12px] text-neutral-400">새 비밀번호 확인</label>
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+              className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+            />
+          </div>
+          {message && (
+            <div
+              className={`rounded-lg px-3 py-2 text-[12px] ${
+                message.type === 'success'
+                  ? 'bg-nature-50 text-nature-700'
+                  : 'bg-red-50 text-red-600'
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 border-t border-cream-500 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-cream-500 py-2.5 text-[14px] text-neutral-500 hover:bg-cream-300"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={saving}
+            className="flex-1 rounded-lg bg-nature-500 py-2.5 text-[14px] font-medium text-white hover:bg-nature-600 disabled:opacity-50"
+          >
+            {saving ? '변경 중...' : '변경하기'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TextModal({ title, text, onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={onClose}>
+      <div className="flex max-h-[70vh] w-full max-w-[520px] flex-col rounded-2xl bg-white shadow-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-cream-500 px-5 py-4">
+          <h3 className="text-[16px] font-semibold text-nature-900">{title}</h3>
+          <button type="button" onClick={onClose} className="text-[18px] text-neutral-400 hover:text-nature-900">
+            ×
+          </button>
+        </div>
+        <div className="overflow-y-auto px-5 py-4">
+          <pre className="whitespace-pre-wrap font-inherit text-[13px] leading-7 text-neutral-600">{text}</pre>
+        </div>
+        <div className="border-t border-cream-500 px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg bg-nature-500 py-2.5 text-[14px] font-medium text-white hover:bg-nature-600"
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
-  const [modal, setModal] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [modal, setModal] = useState(null);
 
-  // 프로필 (읽기 전용 — 온보딩 기반)
-  const [profileInfo, setProfileInfo] = useState({ group: '—', bmi: '—' });
-
-  // 프로필 수정 폼
-  // 백엔드 연동: GET /api/v1/users/me → 폼 채우기
-  // 백엔드 연동: PATCH /api/v1/users/me → 저장
+  const [profileInfo, setProfileInfo] = useState({ group: '-', bmi: '-' });
   const [userForm, setUserForm] = useState({
     name: '',
     email: '',
     birthday: '',
     gender: '',
     phone_number: '',
+    provider: '',
+    email_verified: false,
   });
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMsg, setProfileMsg] = useState(null); // { type: 'success' | 'error', text: '' }
-
-  // 알림 설정
-  // 백엔드 연동: GET /api/v1/settings → 토글 상태
-  // 백엔드 연동: PATCH /api/v1/settings → 변경
   const [notifications, setNotifications] = useState({
     chat_notification: true,
     challenge_reminder: true,
     weekly_report: true,
   });
-
-  // 건강 데이터 수집 동의
   const [dataConsent, setDataConsent] = useState(true);
 
-  // ── 초기 데이터 로드 ──
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
+
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [consentMessage, setConsentMessage] = useState(null);
+
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailConfirming, setEmailConfirming] = useState(false);
+  const [emailRequested, setEmailRequested] = useState(false);
+  const [emailMessage, setEmailMessage] = useState(null);
+
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState(null);
+
+  const canEditEmail = useMemo(
+    () => !userForm.email || !userForm.email_verified,
+    [userForm.email, userForm.email_verified],
+  );
+
   useEffect(() => {
     async function loadData() {
-      // 1. 프로필 정보 (API 우선, fallback localStorage)
       try {
-        const res = await api('/api/v1/users/me');
-        if (res.ok) {
-          const user = await res.json();
-          setUserForm({
-            name: user.name || '',
-            email: user.email || '',
-            birthday: user.birthday || '',
-            gender: user.gender || '',
-            phone_number: user.phone_number ? formatPhone(user.phone_number) : '',
-          });
-        } else {
-          throw new Error('API unavailable');
-        }
+        const [userRes, onboardingRes, settingsRes, consentRes] = await Promise.all([
+          api('/api/v1/users/me'),
+          api('/api/v1/onboarding/status'),
+          api('/api/v1/settings'),
+          api('/api/v1/auth/consent'),
+        ]);
+
+        const user = userRes.ok ? await userRes.json() : {};
+        const onboarding = onboardingRes.ok ? await onboardingRes.json() : {};
+        const settings = settingsRes.ok ? await settingsRes.json() : {};
+        const consent = consentRes.ok ? await consentRes.json() : {};
+
+        setUserForm({
+          name: user.name || '',
+          email: user.email || '',
+          birthday: user.birthday || '',
+          gender: user.gender || onboarding.gender || '',
+          phone_number: user.phone_number ? formatPhone(user.phone_number) : '',
+          provider: user.provider || '',
+          email_verified: Boolean(user.email_verified),
+        });
+        setEmailDraft(user.email || '');
+        setProfileInfo({
+          group: onboarding.user_group || '-',
+          bmi: onboarding.bmi ? String(onboarding.bmi) : '-',
+        });
+        setNotifications({
+          chat_notification: settings.chat_notification ?? true,
+          challenge_reminder: settings.challenge_reminder ?? true,
+          weekly_report: settings.weekly_report ?? true,
+        });
+        setDataConsent(consent.health_data_consent ?? true);
       } catch {
-        // localStorage fallback
-        try {
-          const ob = localStorage.getItem('danaa_onboarding');
-          if (ob) {
-            const data = JSON.parse(ob);
-            setUserForm(prev => ({
-              ...prev,
-              name: data.name || '',
-              gender: data.gender === '남성' ? 'MALE' : data.gender === '여성' ? 'FEMALE' : '',
-            }));
-          }
-        } catch {}
+        setProfileMessage({ type: 'error', text: '설정 정보를 불러오지 못했습니다.' });
+      } finally {
+        setLoaded(true);
       }
-
-      // 2. 설정 (API 우선, fallback 기본값)
-      try {
-        const res = await api('/api/v1/settings');
-        if (res.ok) {
-          const settings = await res.json();
-          setNotifications({
-            chat_notification: settings.chat_notification ?? true,
-            challenge_reminder: settings.challenge_reminder ?? true,
-            weekly_report: settings.weekly_report ?? true,
-          });
-        }
-      } catch {}
-
-      // 3. 온보딩 기반 프로필 정보 (그룹, BMI)
-      try {
-        const rk = localStorage.getItem('danaa_risk');
-        const ob = localStorage.getItem('danaa_onboarding');
-        if (rk) {
-          const risk = JSON.parse(rk);
-          setProfileInfo(prev => ({ ...prev, group: `${risk.group || ''}. ${risk.groupLabel || ''}` }));
-        }
-        if (ob) {
-          const data = JSON.parse(ob);
-          const height = data.height || 170;
-          const weight = data.weight || 70;
-          const bmi = (weight / ((height / 100) ** 2)).toFixed(1);
-          setProfileInfo(prev => ({ ...prev, bmi }));
-        }
-      } catch {}
-
-      setLoaded(true);
     }
+
     loadData();
   }, []);
 
-  // ── 프로필 저장 ──
   const saveProfile = useCallback(async () => {
     setProfileSaving(true);
-    setProfileMsg(null);
+    setProfileMessage(null);
 
     try {
-      const body = {
-        name: userForm.name || undefined,
-        birthday: userForm.birthday || undefined,
-        gender: userForm.gender || undefined,
-        phone_number: userForm.phone_number?.replace(/\D/g, '') || undefined,
-      };
-
-      const res = await api('/api/v1/users/me', {
+      const response = await api('/api/v1/users/me', {
         method: 'PATCH',
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          name: userForm.name || undefined,
+          birthday: userForm.birthday || undefined,
+          gender: userForm.gender || undefined,
+          phone_number: userForm.phone_number ? userForm.phone_number.replace(/\D/g, '') : undefined,
+        }),
       });
 
-      if (res.ok) {
-        setProfileMsg({ type: 'success', text: '프로필이 저장되었습니다.' });
-      } else {
-        const err = await res.json().catch(() => ({}));
-        setProfileMsg({ type: 'error', text: err.detail || '저장에 실패했습니다.' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setProfileMessage({ type: 'error', text: data.detail || '개인정보 저장에 실패했습니다.' });
+        return;
       }
+
+      setUserForm((prev) => ({
+        ...prev,
+        name: data.name || prev.name,
+        birthday: data.birthday || '',
+        gender: data.gender || prev.gender,
+        phone_number: data.phone_number ? formatPhone(data.phone_number) : '',
+      }));
+      setProfileMessage({ type: 'success', text: '개인정보를 저장했습니다.' });
     } catch {
-      setProfileMsg({ type: 'error', text: '서버에 연결할 수 없습니다. 나중에 다시 시도해주세요.' });
+      setProfileMessage({ type: 'error', text: '개인정보 저장 중 오류가 발생했습니다.' });
     } finally {
       setProfileSaving(false);
-      setTimeout(() => setProfileMsg(null), 3000);
     }
   }, [userForm]);
 
-  // ── 알림 토글 변경 ──
-  const toggleNotification = useCallback(async (key, newValue) => {
-    // 즉시 UI 반영
-    setNotifications(prev => ({ ...prev, [key]: newValue }));
+  const toggleNotification = useCallback(async (key, value) => {
+    setNotifications((prev) => ({ ...prev, [key]: value }));
 
-    // API 호출 (백엔드 연결 시 자동 저장, 미연결 시 로컬만 반영)
     try {
-      const res = await api('/api/v1/settings', {
+      const response = await api('/api/v1/settings', {
         method: 'PATCH',
-        body: JSON.stringify({ [key]: newValue }),
+        body: JSON.stringify({ [key]: value }),
       });
-      // 서버 응답이 실패면 롤백
-      if (!res.ok) {
-        setNotifications(prev => ({ ...prev, [key]: !newValue }));
+      if (!response.ok) {
+        setNotifications((prev) => ({ ...prev, [key]: !value }));
       }
     } catch {
-      // 네트워크 에러 (백엔드 미연결) — 로컬 상태 유지, 롤백 안 함
+      setNotifications((prev) => ({ ...prev, [key]: !value }));
     }
   }, []);
 
-  // ── 로딩 스켈레톤 ──
-  if (!loaded) return (
-    <>
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
-        <span className="text-[14px] font-medium text-nature-900">설정</span>
-      </header>
-      <div className="flex-1 px-6 py-6">
-        <div className="max-w-[720px] mx-auto space-y-4 animate-pulse">
-          <div className="bg-cream-300 rounded-lg p-6 space-y-3">
-            <div className="h-4 bg-cream-400 rounded w-1/4"></div>
-            <div className="h-10 bg-cream-400 rounded w-full"></div>
-            <div className="h-10 bg-cream-400 rounded w-full"></div>
-          </div>
-          <div className="bg-cream-300 rounded-lg p-6 space-y-3">
-            <div className="h-4 bg-cream-400 rounded w-1/4"></div>
-            <div className="h-8 bg-cream-400 rounded w-full"></div>
-            <div className="h-8 bg-cream-400 rounded w-full"></div>
+  const updateConsent = useCallback(async (value) => {
+    setDataConsent(value);
+    setConsentSaving(true);
+    setConsentMessage(null);
+
+    try {
+      const response = await api('/api/v1/auth/consent', {
+        method: 'PATCH',
+        body: JSON.stringify({ health_data_consent: value }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setDataConsent(!value);
+        setConsentMessage({ type: 'error', text: data.detail || '동의 상태 변경에 실패했습니다.' });
+        return;
+      }
+      setConsentMessage({
+        type: 'success',
+        text: value
+          ? '건강데이터 수집 동의를 다시 켰습니다.'
+          : '건강데이터 수집 동의를 껐습니다. 현재는 동의 정보만 DB에 반영되고, 기존 데이터 삭제는 하지 않습니다.',
+      });
+    } catch {
+      setDataConsent(!value);
+      setConsentMessage({ type: 'error', text: '동의 상태 변경 중 오류가 발생했습니다.' });
+    } finally {
+      setConsentSaving(false);
+    }
+  }, []);
+
+  const requestEmailVerification = useCallback(async () => {
+    if (!emailDraft || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDraft)) {
+      setEmailMessage({ type: 'error', text: '올바른 이메일 주소를 입력해주세요.' });
+      return;
+    }
+
+    setEmailSending(true);
+    setEmailMessage(null);
+
+    try {
+      const response = await api('/api/v1/auth/email/account/request', {
+        method: 'POST',
+        body: JSON.stringify({ email: emailDraft }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setEmailMessage({ type: 'error', text: data.detail || '인증 메일 발송에 실패했습니다.' });
+        return;
+      }
+      setEmailRequested(true);
+      setEmailMessage({
+        type: 'success',
+        text:
+          data.delivery_mode === 'dev-code' && data.dev_verification_code
+            ? `인증코드를 발급했습니다. 개발용 코드: ${data.dev_verification_code}`
+            : (data.detail || '인증 메일을 보냈습니다. 받은 메일함을 확인해주세요.'),
+      });
+    } catch {
+      setEmailMessage({ type: 'error', text: '인증 메일 발송 중 오류가 발생했습니다.' });
+    } finally {
+      setEmailSending(false);
+    }
+  }, [emailDraft]);
+
+  const confirmEmailVerification = useCallback(async () => {
+    if (emailCode.length !== 6) {
+      setEmailMessage({ type: 'error', text: '6자리 인증코드를 입력해주세요.' });
+      return;
+    }
+
+    setEmailConfirming(true);
+    setEmailMessage(null);
+
+    try {
+      const response = await api('/api/v1/auth/email/account/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ email: emailDraft, code: emailCode }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setEmailMessage({ type: 'error', text: data.detail || '이메일 인증에 실패했습니다.' });
+        return;
+      }
+
+      const nextUser = data.user || {};
+      setUserForm((prev) => ({
+        ...prev,
+        email: nextUser.email || emailDraft,
+        email_verified: Boolean(nextUser.email_verified ?? true),
+      }));
+      setEmailDraft(nextUser.email || emailDraft);
+      setEmailRequested(false);
+      setEmailCode('');
+      setEmailMessage({ type: 'success', text: '이메일 인증이 완료되었습니다.' });
+    } catch {
+      setEmailMessage({ type: 'error', text: '이메일 인증 중 오류가 발생했습니다.' });
+    } finally {
+      setEmailConfirming(false);
+    }
+  }, [emailCode, emailDraft]);
+
+  const submitPasswordChange = useCallback(async (payload) => {
+    if (payload?.error) {
+      setPasswordMessage({ type: 'error', text: payload.error });
+      return;
+    }
+
+    setPasswordSaving(true);
+    setPasswordMessage(null);
+
+    try {
+      const response = await api('/api/v1/auth/password/change', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPasswordMessage({ type: 'error', text: data.detail || '비밀번호 변경에 실패했습니다.' });
+        return;
+      }
+      setPasswordMessage({ type: 'success', text: '비밀번호를 변경했습니다.' });
+      window.setTimeout(() => setModal(null), 900);
+    } catch {
+      setPasswordMessage({ type: 'error', text: '비밀번호 변경 중 오류가 발생했습니다.' });
+    } finally {
+      setPasswordSaving(false);
+    }
+  }, []);
+
+  if (!loaded) {
+    return (
+      <>
+        <header className="flex h-12 items-center border-b border-black/[.04] bg-white/90 px-4 backdrop-blur-xl">
+          <span className="text-[14px] font-medium text-nature-900">설정</span>
+        </header>
+        <div className="flex-1 px-6 py-6">
+          <div className="mx-auto max-w-[720px] animate-pulse space-y-4">
+            <div className="rounded-xl bg-cream-300 p-6">
+              <div className="h-4 w-1/4 rounded bg-cream-400" />
+            </div>
           </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
 
   return (
     <>
-      {/* 헤더 */}
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+      <header className="flex h-12 items-center border-b border-black/[.04] bg-white/90 px-4 backdrop-blur-xl">
         <span className="text-[14px] font-medium text-nature-900">설정</span>
       </header>
 
-      {/* 설정 콘텐츠 */}
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="max-w-[720px] mx-auto">
-
-          {/* ── 프로필 (읽기 전용) ── */}
-          <div className="bg-white shadow-soft rounded-lg mb-4">
-            <div className="px-4 py-3 border-b border-black/[.04]">
-              <h3 className="text-[14px] font-semibold text-nature-900 flex items-center gap-1.5"><UserIcon size={16} /> 프로필</h3>
+        <div className="mx-auto max-w-[720px]">
+          <section className="mb-4 rounded-xl bg-white shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3">
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
+                <UserIcon size={16} />
+                프로필
+              </h3>
             </div>
             <div className="divide-y divide-black/[.04]">
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">그룹 분류</div>
-                  <div className="text-[12px] text-neutral-300 mt-0.5">설문 기반 자동 분류</div>
+                  <div className="mt-0.5 text-[12px] text-neutral-300">온보딩 설문 기준</div>
                 </div>
-                <div className="text-[13px] text-neutral-400">{profileInfo.group}</div>
+                <div className="text-[13px] text-neutral-500">{profileInfo.group}</div>
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="text-[13px] font-medium text-nature-900">BMI</div>
-                <div className="text-[13px] text-neutral-400">{profileInfo.bmi}</div>
+                <div className="text-[13px] text-neutral-500">{profileInfo.bmi}</div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── 내 정보 수정 ── */}
-          <div className="bg-white shadow-soft rounded-lg mb-4">
-            <div className="px-4 py-3 border-b border-black/[.04]">
-              <h3 className="text-[14px] font-semibold text-nature-900 flex items-center gap-1.5"><UserIcon size={16} /> 내 정보</h3>
+          <section className="mb-4 rounded-xl bg-white shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3">
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
+                <UserIcon size={16} />
+                개인정보
+              </h3>
             </div>
-            <div className="px-4 py-4 space-y-3">
-              {/* 이름 */}
+            <div className="space-y-3 px-4 py-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[12px] text-neutral-400 mb-1 block">이름</label>
+                  <label className="mb-1 block text-[12px] text-neutral-400">이름</label>
                   <input
                     type="text"
                     value={userForm.name}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
-                    maxLength={20}
-                    placeholder="홍길동"
-                    className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 transition-colors"
+                    onChange={(e) => setUserForm((prev) => ({ ...prev, name: e.target.value }))}
+                    className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] text-neutral-400 mb-1 block">이메일</label>
+                  <label className="mb-1 block text-[12px] text-neutral-400">이메일</label>
                   <input
                     type="email"
-                    value={userForm.email}
-                    disabled
-                    className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none bg-cream-300 text-neutral-400"
+                    value={canEditEmail ? emailDraft : userForm.email}
+                    onChange={(e) => {
+                      setEmailDraft(e.target.value);
+                      setEmailRequested(false);
+                      setEmailCode('');
+                      setEmailMessage(null);
+                    }}
+                    disabled={!canEditEmail}
+                    placeholder="email@example.com"
+                    className={`w-full rounded-lg border px-3 py-2.5 text-[14px] outline-none ${
+                      canEditEmail
+                        ? 'border-cream-500 focus:border-nature-500'
+                        : 'border-cream-500 bg-cream-300 text-neutral-400'
+                    }`}
                   />
                 </div>
               </div>
 
-              {/* 생년월일 + 성별 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[12px] text-neutral-400 mb-1 block">생년월일</label>
+                  <label className="mb-1 block text-[12px] text-neutral-400">생년월일</label>
                   <input
                     type="date"
                     value={userForm.birthday}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, birthday: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 transition-colors"
+                    onChange={(e) => setUserForm((prev) => ({ ...prev, birthday: e.target.value }))}
+                    className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] text-neutral-400 mb-1 block">성별</label>
+                  <label className="mb-1 block text-[12px] text-neutral-400">성별</label>
                   <select
                     value={userForm.gender}
-                    onChange={(e) => setUserForm(prev => ({ ...prev, gender: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 transition-colors bg-white"
+                    onChange={(e) => setUserForm((prev) => ({ ...prev, gender: e.target.value }))}
+                    className="w-full rounded-lg border border-cream-500 bg-white px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
                   >
                     <option value="">선택</option>
                     <option value="MALE">남성</option>
@@ -295,194 +539,221 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* 전화번호 */}
               <div>
-                <label className="text-[12px] text-neutral-400 mb-1 block">전화번호</label>
+                <label className="mb-1 block text-[12px] text-neutral-400">전화번호</label>
                 <input
                   type="tel"
                   value={userForm.phone_number}
-                  onChange={(e) => setUserForm(prev => ({ ...prev, phone_number: formatPhone(e.target.value) }))}
+                  onChange={(e) => setUserForm((prev) => ({ ...prev, phone_number: formatPhone(e.target.value) }))}
                   placeholder="010-1234-5678"
-                  className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 transition-colors"
+                  className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
                 />
               </div>
 
-              {/* 저장 버튼 + 메시지 */}
-              <div className="flex items-center gap-3 pt-1">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
+                  type="button"
                   onClick={saveProfile}
                   disabled={profileSaving}
-                  className="px-5 py-2 bg-nature-500 text-white text-[13px] font-medium rounded-lg hover:bg-nature-600 transition-colors disabled:opacity-50"
+                  className="rounded-lg bg-nature-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-nature-600 disabled:opacity-50"
                 >
-                  {profileSaving ? '저장 중...' : '프로필 저장'}
+                  {profileSaving ? '저장 중...' : '개인정보 저장'}
                 </button>
-                {profileMsg && (
-                  <span className={`text-[12px] flex items-center gap-1 ${
-                    profileMsg.type === 'success' ? 'text-success' : 'text-danger'
-                  }`}>
-                    {profileMsg.type === 'success' && <Check size={14} />}
-                    {profileMsg.text}
+                {profileMessage && (
+                  <span className={`flex items-center gap-1 text-[12px] ${profileMessage.type === 'success' ? 'text-success' : 'text-danger'}`}>
+                    {profileMessage.type === 'success' && <Check size={14} />}
+                    {profileMessage.text}
                   </span>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* ── 알림 ── */}
-          <div className="bg-white shadow-soft rounded-lg mb-4">
-            <div className="px-4 py-3 border-b border-black/[.04]">
-              <h3 className="text-[14px] font-semibold text-nature-900 flex items-center gap-1.5"><Bell size={16} /> 알림</h3>
+              <div className="rounded-xl border border-cream-500 bg-cream-200/40 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-[13px] font-medium text-nature-900">이메일 인증</div>
+                  <div className="text-[12px] text-neutral-400">
+                    {userForm.email_verified ? '인증 완료' : '미인증'}
+                  </div>
+                </div>
+                <div className="mt-1 text-[12px] text-neutral-400">
+                  일반 회원가입 이메일은 자동으로 표시됩니다. 소셜 로그인에서 이메일을 받지 못한 경우 여기서 인증할 수 있습니다.
+                </div>
+                {canEditEmail && (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={requestEmailVerification}
+                        disabled={emailSending}
+                        className="rounded-lg border border-nature-500 px-4 py-2 text-[13px] font-medium text-nature-600 hover:bg-nature-50 disabled:opacity-50"
+                      >
+                        {emailSending ? '발송 중...' : '인증메일 보내기'}
+                      </button>
+                    </div>
+                    {emailRequested && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={emailCode}
+                          onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="인증코드 6자리"
+                          className="w-[180px] rounded-lg border border-cream-500 px-3 py-2 text-[14px] tracking-[0.2em] outline-none focus:border-nature-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={confirmEmailVerification}
+                          disabled={emailConfirming}
+                          className="rounded-lg bg-nature-500 px-4 py-2 text-[13px] font-medium text-white hover:bg-nature-600 disabled:opacity-50"
+                        >
+                          {emailConfirming ? '확인 중...' : '인증 완료'}
+                        </button>
+                      </div>
+                    )}
+                    {emailMessage && (
+                      <div className={`rounded-lg px-3 py-2 text-[12px] ${emailMessage.type === 'success' ? 'bg-nature-50 text-nature-700' : 'bg-red-50 text-red-600'}`}>
+                        {emailMessage.text}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="mb-4 rounded-xl bg-white shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3">
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
+                <Bell size={16} />
+                알림
+              </h3>
             </div>
             <div className="divide-y divide-black/[.04]">
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">채팅 알림</div>
-                  <div className="text-[12px] text-neutral-300 mt-0.5">AI 채팅에서 건강 질문 노출</div>
+                  <div className="mt-0.5 text-[12px] text-neutral-300">AI 채팅 관련 알림 설정</div>
                 </div>
                 <Toggle value={notifications.chat_notification} onChange={(v) => toggleNotification('chat_notification', v)} />
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">챌린지 리마인더</div>
-                  <div className="text-[12px] text-neutral-300 mt-0.5">매일 오후 9시 챌린지 확인 알림</div>
+                  <div className="mt-0.5 text-[12px] text-neutral-300">챌린지 참여 알림 설정</div>
                 </div>
                 <Toggle value={notifications.challenge_reminder} onChange={(v) => toggleNotification('challenge_reminder', v)} />
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">주간 리포트</div>
-                  <div className="text-[12px] text-neutral-300 mt-0.5">매주 일요일 건강 분석 요약</div>
+                  <div className="mt-0.5 text-[12px] text-neutral-300">수집한 정보를 바탕으로 주간 리포트를 받도록 설정</div>
                 </div>
                 <Toggle value={notifications.weekly_report} onChange={(v) => toggleNotification('weekly_report', v)} />
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── 데이터 ── */}
-          <div className="bg-white shadow-soft rounded-lg mb-4">
-            <div className="px-4 py-3 border-b border-black/[.04]">
-              <h3 className="text-[14px] font-semibold text-nature-900 flex items-center gap-1.5"><Database size={16} /> 데이터</h3>
+          <section className="mb-4 rounded-xl bg-white shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3">
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
+                <Database size={16} />
+                데이터
+              </h3>
             </div>
-            <div className="divide-y divide-black/[.04]">
-              <div className="flex items-center justify-between px-4 py-3">
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-[13px] font-medium text-nature-900">건강 데이터 수집 동의</div>
-                  <div className="text-[12px] text-neutral-300 mt-0.5">AI 응답 기반 건강 데이터 수집 허용</div>
+                  <div className="text-[13px] font-medium text-nature-900">건강데이터 수집 동의</div>
+                  <div className="mt-0.5 text-[12px] text-neutral-300">건강 관리 기능 제공을 위한 데이터 활용 동의입니다.</div>
                 </div>
-                <Toggle value={dataConsent} onChange={(v) => setDataConsent(v)} />
+                <Toggle value={dataConsent} onChange={updateConsent} disabled={consentSaving} />
               </div>
+              {consentMessage && (
+                <div className={`mt-3 rounded-lg px-3 py-2 text-[12px] ${consentMessage.type === 'success' ? 'bg-nature-50 text-nature-700' : 'bg-red-50 text-red-600'}`}>
+                  {consentMessage.text}
+                </div>
+              )}
             </div>
-          </div>
+          </section>
 
-          {/* ── 계정 ── */}
-          <div className="bg-white shadow-soft rounded-lg mb-4">
-            <div className="px-4 py-3 border-b border-black/[.04]">
-              <h3 className="text-[14px] font-semibold text-nature-900 flex items-center gap-1.5"><Lock size={16} /> 계정</h3>
+          <section className="mb-4 rounded-xl bg-white shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3">
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
+                <Lock size={16} />
+                계정
+              </h3>
             </div>
             <div className="divide-y divide-black/[.04]">
               <button
-                onClick={() => setModal('password')}
-                className="w-full flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-cream-300 transition-colors"
+                type="button"
+                onClick={() => {
+                  setPasswordMessage(null);
+                  setModal('password');
+                }}
+                className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"
               >
                 <div className="text-[13px] font-medium text-nature-900">비밀번호 변경</div>
-                <span className="text-[13px] text-neutral-400">변경 ›</span>
+                <span className="text-[13px] text-neutral-400">열기</span>
               </button>
               <button
+                type="button"
                 onClick={() => {
-                  if (confirm('정말 로그아웃 하시겠어요?')) {
-                    localStorage.removeItem('danaa_token');
-                    localStorage.removeItem('danaa_onboarding');
-                    localStorage.removeItem('danaa_risk');
-                    localStorage.removeItem('danaa_tutorial_done');
-                    localStorage.removeItem('danaa_challenges');
-                    localStorage.removeItem('danaa_conversations');
-                    window.location.href = '/login';
-                  }
+                  if (!window.confirm('로그아웃 하시겠어요?')) return;
+                  clearToken();
+                  localStorage.removeItem('danaa_onboarding');
+                  localStorage.removeItem('danaa_risk');
+                  localStorage.removeItem('danaa_tutorial_pending');
+                  localStorage.removeItem('danaa_challenges');
+                  localStorage.removeItem('danaa_conversations');
+                  window.location.href = '/login';
                 }}
-                className="w-full flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-cream-300 transition-colors"
+                className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"
               >
                 <div className="text-[13px] font-medium text-nature-900">로그아웃</div>
-                <span className="text-[13px] text-danger">로그아웃 →</span>
               </button>
             </div>
-          </div>
+          </section>
 
-          {/* ── 약관 및 정책 ── */}
-          <div className="bg-white shadow-soft rounded-lg mb-4">
-            <div className="px-4 py-3 border-b border-black/[.04]">
-              <h3 className="text-[14px] font-semibold text-nature-900 flex items-center gap-1.5"><FileText size={16} /> 약관 및 정책</h3>
+          <section className="rounded-xl bg-white shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3">
+              <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
+                <FileText size={16} />
+                약관 및 정책
+              </h3>
             </div>
             <div className="divide-y divide-black/[.04]">
-              {[
-                { label: '개인정보처리방침', key: 'privacy' },
-                { label: '이용약관', key: 'terms' },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => setModal(item.key)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-cream-300 transition-colors"
-                >
-                  <div className="text-[13px] font-medium text-nature-900">{item.label}</div>
-                  <span className="text-[13px] text-neutral-400">보기 ›</span>
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => setModal('privacy')}
+                className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"
+              >
+                <div className="text-[13px] font-medium text-nature-900">개인정보 처리방침</div>
+                <span className="text-[13px] text-neutral-400">보기</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setModal('terms')}
+                className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"
+              >
+                <div className="text-[13px] font-medium text-nature-900">이용약관</div>
+                <span className="text-[13px] text-neutral-400">보기</span>
+              </button>
             </div>
-          </div>
-
+          </section>
         </div>
       </div>
 
-      {/* 모달 (약관/정책) */}
-      {modal && modal !== 'password' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" onClick={() => setModal(null)}>
-          <div className="bg-white rounded-xl max-w-[480px] w-full max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-cream-500 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-nature-900">
-                {modal === 'terms' ? '이용약관' : '개인정보 처리방침'}
-              </h3>
-              <button onClick={() => setModal(null)} className="text-neutral-400 hover:text-nature-900 text-[18px]">×</button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-5 py-4">
-              <pre className="text-[13px] text-neutral-600 leading-[1.8] whitespace-pre-wrap font-[inherit]">
-                {modal === 'terms' ? TERMS_TEXT : PRIVACY_TEXT}
-              </pre>
-            </div>
-            <div className="px-5 py-3 border-t border-cream-500">
-              <button onClick={() => setModal(null)} className="w-full py-2.5 bg-nature-500 text-white rounded-lg text-[14px] font-medium hover:bg-nature-600 transition-colors">확인</button>
-            </div>
-          </div>
-        </div>
+      {modal === 'password' && (
+        <PasswordModal
+          onClose={() => setModal(null)}
+          onSubmit={submitPasswordChange}
+          saving={passwordSaving}
+          message={passwordMessage}
+        />
       )}
 
-      {/* 비밀번호 변경 모달 */}
-      {modal === 'password' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" onClick={() => setModal(null)}>
-          <div className="bg-white rounded-xl max-w-[400px] w-full flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="px-5 py-4 border-b border-cream-500 flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-nature-900">비밀번호 변경</h3>
-              <button onClick={() => setModal(null)} className="text-neutral-400 hover:text-nature-900 text-[18px]">×</button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div>
-                <div className="text-[12px] text-neutral-400 mb-1">현재 비밀번호</div>
-                <input type="password" placeholder="현재 비밀번호 입력" className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 bg-white" />
-              </div>
-              <div>
-                <div className="text-[12px] text-neutral-400 mb-1">새 비밀번호</div>
-                <input type="password" placeholder="새 비밀번호 입력" className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 bg-white" />
-              </div>
-              <div>
-                <div className="text-[12px] text-neutral-400 mb-1">새 비밀번호 확인</div>
-                <input type="password" placeholder="새 비밀번호 다시 입력" className="w-full px-3 py-2.5 border border-cream-500 rounded-lg text-[14px] outline-none focus:border-nature-500 bg-white" />
-              </div>
-            </div>
-            <div className="px-5 py-3 border-t border-cream-500 flex gap-2">
-              <button onClick={() => setModal(null)} className="flex-1 py-2.5 border border-cream-500 rounded-lg text-[14px] text-neutral-400 hover:bg-cream-300 transition-colors">취소</button>
-              <button onClick={() => { alert('백엔드 연동 후 비밀번호 변경이 가능합니다.'); setModal(null); }} className="flex-1 py-2.5 bg-nature-500 text-white rounded-lg text-[14px] font-medium hover:bg-nature-600 transition-colors">변경하기</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {modal === 'terms' && <TextModal title="이용약관" text={TERMS_TEXT} onClose={() => setModal(null)} />}
+      {modal === 'privacy' && <TextModal title="개인정보 처리방침" text={PRIVACY_TEXT} onClose={() => setModal(null)} />}
     </>
   );
 }

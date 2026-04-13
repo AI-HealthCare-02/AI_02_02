@@ -10,6 +10,8 @@ from backend.core import config
 from backend.core.config import Env
 from backend.dependencies.security import get_request_user
 from backend.dtos.auth import (
+    AccountEmailConfirmRequest,
+    AccountEmailVerificationRequest,
     EmailLinkConfirmRequest,
     EmailLinkConfirmResponse,
     EmailLinkPreviewListResponse,
@@ -20,6 +22,7 @@ from backend.dtos.auth import (
     EmailSignupVerificationResponse,
     LoginRequest,
     LoginResponse,
+    PasswordChangeRequest,
     SignUpRequest,
     TokenRefreshResponse,
 )
@@ -79,6 +82,40 @@ async def email_signup_confirm(
 ) -> Response:
     await auth_service.confirm_email_signup_verification(body)
     return Response(content={"detail": "Email verified and account created."}, status_code=status.HTTP_201_CREATED)
+
+
+@auth_router.post(
+    "/email/account/request",
+    response_model=EmailSignupVerificationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+@limiter.limit("3/minute")
+async def account_email_request(
+    request: Request,
+    body: AccountEmailVerificationRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    auth_service: Annotated[AuthService, Depends(AuthService)],
+) -> Response:
+    result = await auth_service.request_account_email_verification(user=user, data=body)
+    return Response(content=result, status_code=status.HTTP_201_CREATED)
+
+
+@auth_router.post("/email/account/confirm", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+async def account_email_confirm(
+    request: Request,
+    body: AccountEmailConfirmRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    auth_service: Annotated[AuthService, Depends(AuthService)],
+) -> Response:
+    updated_user = await auth_service.confirm_account_email_verification(user=user, data=body)
+    return Response(
+        content={
+            "detail": "Email verified and linked to this account.",
+            "user": UserInfoResponse.model_validate(updated_user).model_dump(mode="json"),
+        },
+        status_code=status.HTTP_200_OK,
+    )
 
 
 @auth_router.post("/email-verify/confirm", status_code=status.HTTP_201_CREATED)
@@ -405,6 +442,16 @@ async def login(
         expires=tokens["refresh_token"].payload["exp"],
     )
     return resp
+
+
+@auth_router.post("/password/change", status_code=status.HTTP_200_OK)
+async def change_password(
+    body: PasswordChangeRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    auth_service: Annotated[AuthService, Depends(AuthService)],
+) -> Response:
+    await auth_service.change_password(user=user, data=body)
+    return Response(content={"detail": "Password changed successfully."}, status_code=status.HTTP_200_OK)
 
 
 @auth_router.get("/token/refresh", response_model=TokenRefreshResponse, status_code=status.HTTP_200_OK)

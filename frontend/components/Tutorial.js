@@ -7,15 +7,15 @@ const STEPS = [
   {
     target: '[data-tutorial="sidebar-nav"]',
     emoji: Compass,
-    title: '메뉴 살펴보기',
+    title: '메뉴 둘러보기',
     desc: '채팅, 리포트, 챌린지 메뉴로 이동할 수 있어요.',
     position: 'right',
   },
   {
     target: null,
     emoji: MessageSquare,
-    title: 'AI와 대화하다 보면',
-    desc: '이런 식으로 생활 습관을 물어봐요. 잘 답변해주실수록 맞춤 리포트가 정확해져요!',
+    title: 'AI와 대화해보세요',
+    desc: '이런 식으로 생활 습관을 물어볼 수 있어요. 답변이 쌓일수록 맞춤 리포트가 더 정확해져요.',
     position: 'center',
     miniChat: true,
   },
@@ -23,21 +23,21 @@ const STEPS = [
     target: '[data-tutorial="today-cards"]',
     emoji: BarChart3,
     title: '오늘의 건강 기록',
-    desc: '수면, 식사, 운동, 수분을 탭해서 기록해요.\n오른쪽 상단 아이콘으로 패널을 접었다 펼 수 있어요.',
+    desc: '수면, 식사, 운동, 수분을 빠르게 기록할 수 있어요.\n오른쪽 패널에서 바로 입력해도 됩니다.',
     position: 'left',
   },
   {
     target: '[data-tutorial="unanswered"]',
     emoji: HelpCircle,
     title: '미답변 질문',
-    desc: '놓친 질문도 꼼꼼히 답변해주시면 리포트의 정확도가 올라가요!',
+    desc: '남아 있는 질문에 답할수록 리포트의 정확도가 올라가요.',
     position: 'left',
   },
   {
     target: null,
     emoji: Sparkles,
     title: '준비 완료!',
-    desc: '오늘의 건강 기록부터 시작해볼까요?',
+    desc: '이제 오늘의 건강 기록부터 시작해볼까요?',
     position: 'center',
   },
 ];
@@ -48,22 +48,25 @@ export default function Tutorial({ onComplete }) {
 
   const current = STEPS[step];
 
-  // 대상 요소 위치 계산
   const updateSpotlight = useCallback(() => {
     if (!current.target) {
       setSpotlightRect(null);
       return;
     }
-    const el = document.querySelector(current.target);
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      setSpotlightRect({
-        top: rect.top - 8,
-        left: rect.left - 8,
-        width: rect.width + 16,
-        height: rect.height + 16,
-      });
+
+    const element = document.querySelector(current.target);
+    if (!element) {
+      setSpotlightRect(null);
+      return;
     }
+
+    const rect = element.getBoundingClientRect();
+    setSpotlightRect({
+      top: rect.top - 8,
+      left: rect.left - 8,
+      width: rect.width + 16,
+      height: rect.height + 16,
+    });
   }, [current.target]);
 
   useEffect(() => {
@@ -73,19 +76,20 @@ export default function Tutorial({ onComplete }) {
   }, [step, updateSpotlight]);
 
   const finish = useCallback(() => {
-    try { localStorage.setItem('danaa_tutorial_done', 'true'); } catch {}
+    try {
+      localStorage.setItem('danaa_tutorial_done', 'true');
+    } catch {}
     onComplete?.();
   }, [onComplete]);
 
   const next = () => {
     if (step < STEPS.length - 1) {
-      setStep(step + 1);
-    } else {
-      finish();
+      setStep((prev) => prev + 1);
+      return;
     }
+    finish();
   };
 
-  // 툴팁 위치 계산
   const getTooltipStyle = () => {
     if (current.position === 'center' || !spotlightRect) {
       return {
@@ -96,59 +100,63 @@ export default function Tutorial({ onComplete }) {
       };
     }
 
-    const gap = 16;
-    const s = spotlightRect;
+    const gap = 20;
+    const rect = spotlightRect;
 
     switch (current.position) {
       case 'right':
         return {
           position: 'fixed',
-          top: s.top + s.height / 2,
-          left: s.left + s.width + gap,
+          top: rect.top + rect.height / 2,
+          left: rect.left + rect.width + gap,
           transform: 'translateY(-50%)',
         };
       case 'left':
         return {
           position: 'fixed',
-          top: s.top + s.height / 2,
-          right: window.innerWidth - s.left + gap,
+          top: rect.top + rect.height / 2,
+          right: window.innerWidth - rect.left + gap,
           transform: 'translateY(-50%)',
         };
       case 'top':
         return {
           position: 'fixed',
-          bottom: window.innerHeight - s.top + gap,
-          left: s.left + s.width / 2,
+          bottom: window.innerHeight - rect.top + gap,
+          left: rect.left + rect.width / 2,
           transform: 'translateX(-50%)',
         };
       case 'bottom':
         return {
           position: 'fixed',
-          top: s.top + s.height + gap,
-          left: s.left + s.width / 2,
+          top: rect.top + rect.height + gap,
+          left: rect.left + rect.width / 2,
           transform: 'translateX(-50%)',
         };
       default:
-        return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+        return {
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+        };
     }
   };
 
-  // 화살표 방향 (툴팁에서 대상을 가리키는 방향)
   const getArrowClass = () => {
     if (current.position === 'center' || !spotlightRect) return '';
-    const map = {
+
+    const classMap = {
       right: 'tutorial-arrow-left',
       left: 'tutorial-arrow-right',
       top: 'tutorial-arrow-bottom',
       bottom: 'tutorial-arrow-top',
     };
-    return map[current.position] || '';
+    return classMap[current.position] || '';
   };
 
   return (
     <div className="fixed inset-0 z-[100]" style={{ pointerEvents: 'auto' }}>
-      {/* 오버레이 — SVG로 스포트라이트 구멍 */}
-      <svg className="fixed inset-0 w-full h-full" style={{ zIndex: 100 }}>
+      <svg className="fixed inset-0 h-full w-full" style={{ zIndex: 100 }}>
         <defs>
           <mask id="spotlight-mask">
             <rect width="100%" height="100%" fill="white" />
@@ -164,15 +172,9 @@ export default function Tutorial({ onComplete }) {
             )}
           </mask>
         </defs>
-        <rect
-          width="100%"
-          height="100%"
-          fill="rgba(0,0,0,0.55)"
-          mask="url(#spotlight-mask)"
-        />
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#spotlight-mask)" />
       </svg>
 
-      {/* 스포트라이트 링 */}
       {spotlightRect && (
         <div
           className="fixed rounded-xl ring-2 ring-white/60 animate-pulse"
@@ -187,43 +189,50 @@ export default function Tutorial({ onComplete }) {
         />
       )}
 
-      {/* 툴팁 */}
       <div
-        className={`bg-white rounded-2xl shadow-2xl p-5 z-[102] ${current.miniChat ? 'max-w-[360px]' : 'max-w-[300px]'} ${getArrowClass()}`}
+        className={`z-[102] rounded-[28px] bg-white p-7 shadow-2xl ${
+          current.miniChat ? 'w-[520px] max-w-[92vw]' : 'w-[460px] max-w-[92vw]'
+        } ${getArrowClass()}`}
         style={getTooltipStyle()}
       >
-        {/* 이모지 + 제목 */}
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-cream-300 flex items-center justify-center text-[20px]">
-            <current.emoji size={22} />
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream-300">
+            <current.emoji size={24} />
           </div>
-          <div className="text-[15px] font-semibold text-nature-900">{current.title}</div>
+          <div className="text-[18px] font-semibold text-nature-900">{current.title}</div>
         </div>
 
-        {/* 미니 채팅 예시 */}
         {current.miniChat && (
-          <div className="bg-cream-300 rounded-xl p-3 mb-3 space-y-2.5">
-            {/* AI 질문 */}
-            <div className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-nature-900 text-white flex items-center justify-center text-[8px] font-semibold shrink-0">다</div>
-              <div className="bg-white rounded-xl rounded-tl-md px-3 py-2 text-[12px] text-nature-900 leading-[1.6] shadow-sm">
-                어제 저녁은 드셨나요? 🍽️
+          <div className="mb-4 space-y-3 rounded-2xl bg-cream-300 p-4">
+            <div className="flex gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nature-900 text-[9px] font-semibold text-white">
+                AI
+              </div>
+              <div className="rounded-2xl rounded-tl-md bg-white px-3.5 py-2.5 text-[13px] leading-[1.7] text-nature-900 shadow-sm">
+                어제 저녁은 어떻게 드셨나요?
               </div>
             </div>
-            {/* 사용자 답변 버튼들 */}
-            <div className="flex justify-end gap-1.5">
-              <div className="bg-nature-900 text-white rounded-xl rounded-br-md px-3 py-1.5 text-[12px]">
-                간단히 먹었어요
+
+            <div className="flex justify-end gap-2">
+              <div className="rounded-2xl rounded-br-md bg-nature-900 px-3.5 py-2 text-[13px] text-white">
+                간단하게 먹었어요
               </div>
             </div>
-            {/* AI 후속 */}
-            <div className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-nature-900 text-white flex items-center justify-center text-[8px] font-semibold shrink-0">다</div>
-              <div className="bg-white rounded-xl rounded-tl-md px-3 py-2 text-[12px] text-nature-900 leading-[1.6] shadow-sm">
-                채소는 드셨나요? 🥗
-                <div className="flex gap-1 mt-1.5">
-                  {['충분히', '조금', '못 먹었어요'].map(opt => (
-                    <span key={opt} className="px-2 py-0.5 rounded-full text-[9px] bg-cream-300 text-neutral-400 border border-cream-500">{opt}</span>
+
+            <div className="flex gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nature-900 text-[9px] font-semibold text-white">
+                AI
+              </div>
+              <div className="rounded-2xl rounded-tl-md bg-white px-3.5 py-2.5 text-[13px] leading-[1.7] text-nature-900 shadow-sm">
+                채소는 얼마나 드셨나요?
+                <div className="mt-2 flex gap-1.5">
+                  {['충분히', '조금', '먹지 않았어요'].map((option) => (
+                    <span
+                      key={option}
+                      className="rounded-full border border-cream-500 bg-cream-300 px-2.5 py-1 text-[10px] text-neutral-500"
+                    >
+                      {option}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -231,38 +240,34 @@ export default function Tutorial({ onComplete }) {
           </div>
         )}
 
-        {/* 설명 */}
-        <div className="text-[13px] text-neutral-400 leading-[1.7] mb-4 whitespace-pre-line">
+        <div className="mb-5 whitespace-pre-line text-[15px] leading-[1.75] text-neutral-500">
           {current.desc}
         </div>
 
-        {/* 하단: 도트 + 버튼 */}
         <div className="flex items-center justify-between">
-          {/* 진행 도트 */}
-          <div className="flex items-center gap-1.5">
-            {STEPS.map((_, i) => (
+          <div className="flex items-center gap-2">
+            {STEPS.map((_, index) => (
               <div
-                key={i}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  i === step ? 'bg-nature-500' : i < step ? 'bg-nature-500' : 'bg-neutral-200'
+                key={index}
+                className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                  index === step ? 'bg-nature-500' : index < step ? 'bg-nature-500' : 'bg-neutral-200'
                 }`}
               />
             ))}
           </div>
 
-          {/* 버튼 */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {step < STEPS.length - 1 && (
               <button
                 onClick={finish}
-                className="text-[12px] text-neutral-400 hover:text-nature-900 transition-colors"
+                className="text-[13px] text-neutral-400 transition-colors hover:text-nature-900"
               >
                 건너뛰기
               </button>
             )}
             <button
               onClick={next}
-              className="px-4 py-1.5 bg-nature-500 text-white text-[13px] font-medium rounded-lg hover:bg-nature-600 transition-colors"
+              className="rounded-xl bg-nature-500 px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-nature-600"
             >
               {step < STEPS.length - 1 ? '다음' : '시작하기'}
             </button>

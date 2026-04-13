@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { setToken } from '../../hooks/useApi';
+
 export default function SocialAuthClient({ searchParams }) {
   const router = useRouter();
   const accessToken = searchParams?.access_token;
@@ -16,9 +18,7 @@ export default function SocialAuthClient({ searchParams }) {
     }
 
     if (accessToken) {
-      try {
-        localStorage.setItem('danaa_access_token', accessToken);
-      } catch {}
+      setToken(accessToken);
       router.replace(nextPath);
       return;
     }
