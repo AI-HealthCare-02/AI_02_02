@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   BarChart3,
   Droplet,
@@ -49,6 +49,7 @@ export default function Sidebar() {
   const [userGroup, setUserGroup] = useState('온보딩 미완료');
   const [userInitial, setUserInitial] = useState('?');
   const pathname = usePathname();
+  const router = useRouter();
   const { grouped } = useConversations();
 
   useEffect(() => {
@@ -98,7 +99,12 @@ export default function Sidebar() {
 
   const handleConversationClick = (conversation) => {
     setActiveSessionId(conversation.id);
-    window.dispatchEvent(new CustomEvent('danaa:load-session', { detail: { id: conversation.id } }));
+    if (pathname.startsWith('/app/chat')) {
+      window.dispatchEvent(new CustomEvent('danaa:load-session', { detail: { id: conversation.id } }));
+      return;
+    }
+
+    router.push(`/app/chat?session_id=${conversation.id}`);
   };
 
   const currentCat = categories[selectedCat];

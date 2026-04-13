@@ -224,6 +224,7 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyPolicyNotice, setHistoryPolicyNotice] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const chatScrollRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -254,13 +255,19 @@ export default function ChatPage() {
     setInputText('');
     setIsStreaming(false);
     setIsHistoryLoading(false);
+    setHistoryPolicyNotice(false);
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('session_id')) {
+      window.history.replaceState(window.history.state, '', '/app/chat');
+    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('danaa:conversation-active', { detail: { id: null } }));
     }
   }, [isStreaming]);
 
-  const loadSessionHistory = useCallback(async (targetSessionId) => {
-    if (!targetSessionId || isStreaming) return;
+  const loadSessionHistory = useCallback(async (targetSessionId, options = {}) => {
+    if (!targetSessionId || isStreaming) return false;
+
+    const { clearQuery = false } = options;
 
     setIsHistoryLoading(true);
     try {
@@ -293,11 +300,17 @@ export default function ChatPage() {
       setSessionId(targetSessionId);
       setInputText('');
       setActiveCard(null);
+      setHistoryPolicyNotice(nextMessages.length > 0);
+      if (clearQuery && typeof window !== 'undefined') {
+        window.history.replaceState(window.history.state, '', '/app/chat');
+      }
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('danaa:conversation-active', { detail: { id: targetSessionId } }));
       }
+      return true;
     } catch (error) {
       console.error('chat_history_load_failed', error);
+      return false;
     } finally {
       setIsHistoryLoading(false);
     }
@@ -366,6 +379,21 @@ export default function ChatPage() {
       }
     };
   }, [loadSessionHistory, resetConversation]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const requestedSessionId = Number(new URLSearchParams(window.location.search).get('session_id'));
+    if (!requestedSessionId || isStreaming || isHistoryLoading || sessionId === requestedSessionId) {
+      return;
+    }
+
+    (async () => {
+      await loadSessionHistory(requestedSessionId, { clearQuery: true });
+    })();
+
+    return undefined;
+  }, [isHistoryLoading, isStreaming, loadSessionHistory, sessionId]);
 
   /* ── SSE 파싱 유틸 ── */
   function parseLegacySSE(text) {
@@ -581,6 +609,7 @@ const sendMessage = useCallback(async () => {
     draftMessageRef.current = aiMsg;
     setStreamingDraft(aiMsg);
     setInputText('');
+    setHistoryPolicyNotice(false);
     setIsStreaming(true);
     streamPerfRef.current = {
       requestStartedAt: typeof performance !== 'undefined' ? performance.now() : null,
@@ -945,6 +974,14 @@ const sendMessage = useCallback(async () => {
             )}
 
             {/* ── 채팅 메시지 ── */}
+            {historyPolicyNotice && (
+              <div className="max-w-[840px] mx-auto mb-3.5">
+                <div className="ml-[38px] rounded-xl border border-cream-500 bg-cream-300 px-4 py-3 text-[12px] leading-[1.6] text-neutral-500">
+                  이전 대화는 텍스트만 복원돼요. 건강 질문 카드는 새 답변에서만 표시됩니다.
+                </div>
+              </div>
+            )}
+
             {messages.map((msg) => (
               <div key={msg.id ?? `${msg.role}-${msg.ts ?? 'message'}`} className="max-w-[840px] mx-auto mb-3.5">
                 {msg.role === 'user' ? (
