@@ -218,3 +218,31 @@ openai.AuthenticationError: Invalid API key
 
 - `sk-proj-여기에-실제-키를-넣으세요` 가 그대로 있으면 실제 키로 교체 필요
 - 팀장에게 API 키를 받으세요
+---
+
+## 오류 11: push 전에 자동 검사에서 막힘
+
+### 이런 메시지가 뜨면
+
+```bash
+[pre-push] Running local checks before push...
+```
+
+### 의미
+
+저장소에 설정된 `pre-push` 훅이 GitHub Actions와 비슷한 기본 검사를 먼저 돌리고 있다는 뜻입니다.
+
+- `uv run ruff check backend`
+- `uv run python -m pytest backend/tests/unit -q`
+- frontend 변경이 있으면 `cd frontend && npm run build`
+
+### 해결
+
+실패한 단계의 에러를 먼저 고친 뒤 다시 `git push` 하면 됩니다.
+
+```bash
+uv run ruff check backend --fix
+uv run python -m pytest backend/tests/unit -q
+cd frontend
+npm run build
+```
