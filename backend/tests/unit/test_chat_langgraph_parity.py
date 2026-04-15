@@ -17,7 +17,7 @@ class _FakeRagService:
     def search(self, query: str, top_k: int = 2):
         del query, top_k
         return SimpleNamespace(
-            prompt_context="\n\n## 참고 정보\n- 생활 습관 문맥\n",
+            prompt_context="\n\n## 참고 정보\n- 생활 습관 문서\n",
             hit_count=1,
             has_context=True,
         )
@@ -27,7 +27,7 @@ class _FakeUserContextService:
     def build_context(self, profile, topic_hint=None):
         del profile, topic_hint
         return SimpleNamespace(
-            summary="체중관리 목표, 수면 6-7시간 유지",
+            summary="체중 관리 목표, 수면 6-7시간 유지",
             has_context=True,
         )
 
@@ -76,6 +76,8 @@ async def test_graph_matches_legacy_parity(monkeypatch: pytest.MonkeyPatch):
         history=_history(),
         filter_result=_filter_result(),
         profile=_profile(),
+        app_help_text="\n\n## 앱 기능 참고\n- 채팅: 기록 카드 설명",
+        app_state_text="\n\n## 현재 상태 답변 규칙\n현재 확인된 상태로는 정확한 값을 알 수 없어요.",
     )
 
     legacy_output = await graph_adapter._run_legacy_prep(inputs)
@@ -94,3 +96,5 @@ async def test_graph_matches_legacy_parity(monkeypatch: pytest.MonkeyPatch):
     assert legacy_fields["should_run_rag"] is True
     assert graph_fields["should_build_user_context"] is True
     assert legacy_fields["message_route"] == MessageRoute.HEALTH_GENERAL.value
+    assert legacy_fields["app_help_layer_sha256"] == graph_fields["app_help_layer_sha256"]
+    assert legacy_fields["app_state_layer_sha256"] == graph_fields["app_state_layer_sha256"]

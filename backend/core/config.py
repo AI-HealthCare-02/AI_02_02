@@ -20,6 +20,12 @@ class ChatLangGraphMode(StrEnum):
     PARTIAL = "partial"
 
 
+class ChatAppContextMode(StrEnum):
+    OFF = "off"
+    HELP_ONLY = "help_only"
+    LIVE_STATE = "live_state"
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
 
@@ -107,6 +113,7 @@ class Config(BaseSettings):
     CHAT_LANGGRAPH_AUDIT_SAMPLE_RATE: float = 0.0
     CHAT_LANGGRAPH_PREP_TIMEOUT_MS: int = 250
     CHAT_LANGGRAPH_FORCE_FALLBACK: bool = False
+    CHAT_APP_CONTEXT_MODE: ChatAppContextMode = ChatAppContextMode.OFF
 
     CHAT_OPENAI_SHARED_CLIENT_ENABLED: bool = True
     CHAT_OPENAI_STREAM_CONNECT_TIMEOUT_MS: int = 3000

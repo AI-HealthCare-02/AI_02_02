@@ -16,8 +16,12 @@ from backend.dtos.health import (
     DailyLogPatchRequest,
     DailyLogPatchResponse,
     DailyLogResponse,
+    DailyMissingSummary,
     MissingDateEntry,
     MissingDatesResponse,
+    PendingQuestionBundle,
+    PendingQuestionItem,
+    PendingQuestionsResponse,
 )
 from backend.models.enums import FIELD_TO_SOURCE, DataSource
 from backend.models.health import DailyHealthLog
@@ -75,6 +79,68 @@ def _empty_log_response(log_date: date) -> DailyLogResponse:
     return DailyLogResponse(log_date=log_date)
 
 
+def _build_missing_summary_payload(summary: dict[str, object] | None) -> DailyMissingSummary | None:
+    if not summary:
+        return None
+
+    question_labels = summary.get("question_labels") or []
+    if not isinstance(question_labels, list):
+        question_labels = []
+
+    max_labels = 3
+    labels = [str(label) for label in question_labels[:max_labels]]
+    truncated_count = max(0, len(question_labels) - len(labels))
+    return DailyMissingSummary(
+        count=int(summary.get("count") or 0),
+        labels=labels,
+        truncated_count=truncated_count,
+    )
+
+
+def _build_pending_questions_payload(
+    pending: dict[str, object] | None,
+) -> PendingQuestionsResponse | None:
+    if not pending:
+        return None
+
+    bundles: list[PendingQuestionBundle] = []
+    raw_bundles = pending.get("bundles") or []
+    if not isinstance(raw_bundles, list):
+        raw_bundles = []
+
+    for bundle in raw_bundles:
+        questions: list[PendingQuestionItem] = []
+        raw_questions = bundle.get("questions") or []
+        if not isinstance(raw_questions, list):
+            raw_questions = []
+
+        for question in raw_questions:
+            questions.append(
+                PendingQuestionItem(
+                    field=str(question.get("field")),
+                    summary_label=str(question.get("summary_label") or question.get("text") or question.get("field")),
+                    text=str(question.get("text") or question.get("field")),
+                    input_type=str(question.get("input_type") or "select"),
+                    options=list(question.get("options") or []),
+                    condition=question.get("condition"),
+                )
+            )
+
+        bundles.append(
+            PendingQuestionBundle(
+                bundle_key=str(bundle.get("bundle_key")),
+                name=str(bundle.get("name") or bundle.get("bundle_key")),
+                unanswered_count=int(bundle.get("unanswered_count") or 0),
+                questions=questions,
+            )
+        )
+
+    return PendingQuestionsResponse(
+        count=int(pending.get("count") or 0),
+        bundles=bundles,
+    )
+
+
 class HealthDailyService:
     """일일 건강 데이터 CRUD."""
 
@@ -82,13 +148,44 @@ class HealthDailyService:
         """특정 날짜 건강 기록 조회."""
         log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=log_date)
         if not log:
-            return _empty_log_response(log_date)
-        return _log_to_response(log)
+            return await self._attach_missing_summary(
+                user_id=user_id,
+                log_date=log_date,
+                response=_empty_log_response(log_date),
+            )
+        return await self._attach_missing_summary(
+            user_id=user_id,
+            log_date=log_date,
+            response=_log_to_response(log),
+        )
+
+    async def _attach_missing_summary(
+        self,
+        *,
+        user_id: int,
+        log_date: date,
+        response: DailyLogResponse,
+    ) -> DailyLogResponse:
+        if log_date != date.today():
+            return response
+
+        from backend.services.health_question import HealthQuestionService
+
+        service = HealthQuestionService()
+        summary = await service.get_daily_missing_summary(user_id)
+        pending_questions = await service.get_daily_pending_questions(user_id)
+        response.missing_summary = _build_missing_summary_payload(summary)
+        response.pending_questions = _build_pending_questions_payload(pending_questions)
+        return response
 
     MAX_BACKFILL_DAYS = 3
 
-    async def patch_daily_log(self, user_id: int, log_date: date, data: DailyLogPatchRequest) -> DailyLogPatchResponse:
-        """직접입력으로 건강 기록 저장 (First Answer Wins)."""
+    async def patch_daily_log(self, user_id: int, log_date: date, data: DailyLogPatchRequest) -> DailyLogPatchResponse:  # noqa: C901
+        """직접입력으로 건강 기록 저장.
+
+        - 오늘 날짜 + source=direct: 같은 날 수정 허용
+        - 그 외 경로: 기존 First Answer Wins 유지
+        """
         today = date.today()
         if log_date > today:
             raise HTTPException(
@@ -109,21 +206,29 @@ class HealthDailyService:
         # 입력 데이터에서 보내지 않은 필드 제외
         input_data = data.model_dump(exclude_none=True, exclude={"source"})
 
+        allow_same_day_replace = data.source == DataSource.DIRECT and log_date == today
+
         # 제약 조건 적용
         if input_data.get("exercise_done") is False:
             input_data.pop("exercise_type", None)
             input_data.pop("exercise_minutes", None)
+            if allow_same_day_replace:
+                input_data["_clear_exercise_children"] = True
         if input_data.get("alcohol_today") is False:
             input_data.pop("alcohol_amount_level", None)
+            if allow_same_day_replace:
+                input_data["_clear_alcohol_child"] = True
 
         field_results: dict[str, str] = {}
         update_fields: list[str] = []
 
         for field_name, value in input_data.items():
+            if field_name.startswith("_clear_"):
+                continue
             if field_name not in DATA_FIELDS:
                 continue
             existing = getattr(log, field_name, None)
-            if existing is not None:
+            if existing is not None and not allow_same_day_replace:
                 # First Answer Wins — 이미 값이 있으면 스킵
                 field_results[field_name] = "skipped(already_answered)"
                 continue
@@ -138,11 +243,33 @@ class HealthDailyService:
                 setattr(log, source_field, data.source)
                 update_fields.append(source_field)
 
+        if input_data.get("_clear_exercise_children"):
+            had_exercise_type = log.exercise_type is not None
+            had_exercise_minutes = log.exercise_minutes is not None
+            log.exercise_type = None
+            log.exercise_minutes = None
+            update_fields.extend(["exercise_type", "exercise_minutes"])
+            if had_exercise_type:
+                field_results.setdefault("exercise_type", "accepted")
+            if had_exercise_minutes:
+                field_results.setdefault("exercise_minutes", "accepted")
+
+        if input_data.get("_clear_alcohol_child"):
+            had_alcohol_amount = log.alcohol_amount_level is not None
+            log.alcohol_amount_level = None
+            update_fields.append("alcohol_amount_level")
+            if had_alcohol_amount:
+                field_results.setdefault("alcohol_amount_level", "accepted")
+
         if update_fields:
             await log.save(update_fields=list(dict.fromkeys(update_fields + ["updated_at"])))
 
         return DailyLogPatchResponse(
-            daily_log=_log_to_response(log),
+            daily_log=await self._attach_missing_summary(
+                user_id=user_id,
+                log_date=log_date,
+                response=_log_to_response(log),
+            ),
             field_results=field_results,
             challenge_update=None,  # TODO: 챌린지 자동 체크인 연동
         )

@@ -45,6 +45,45 @@ class TestHealthDaily(TestCase):
         assert r.status_code == status.HTTP_200_OK
         assert r.json()["field_results"]["sleep_quality"] == "accepted"
 
+    async def test_get_today_includes_missing_summary(self):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await self._signup_and_login(c, "health_today_summary@test.com")
+            today = date.today().isoformat()
+
+            await c.patch(
+                f"/api/v1/health/daily/{today}",
+                json={"source": "direct", "sleep_quality": "good"},
+                headers=h,
+            )
+
+            r = await c.get(f"/api/v1/health/daily/{today}", headers=h)
+
+        assert r.status_code == status.HTTP_200_OK
+        body = r.json()
+        assert body["missing_summary"] is not None
+        assert isinstance(body["missing_summary"]["count"], int)
+        assert isinstance(body["missing_summary"]["labels"], list)
+        assert isinstance(body["missing_summary"]["truncated_count"], int)
+        assert body["pending_questions"] is not None
+        assert isinstance(body["pending_questions"]["count"], int)
+        assert isinstance(body["pending_questions"]["bundles"], list)
+
+    async def test_get_past_day_does_not_include_missing_summary(self):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await self._signup_and_login(c, "health_past_summary@test.com")
+            three_days_ago = (date.today() - timedelta(days=3)).isoformat()
+
+            await c.patch(
+                f"/api/v1/health/daily/{three_days_ago}",
+                json={"source": "direct", "sleep_quality": "good"},
+                headers=h,
+            )
+
+            r = await c.get(f"/api/v1/health/daily/{three_days_ago}", headers=h)
+
+        assert r.status_code == status.HTTP_200_OK
+        assert r.json()["missing_summary"] is None
+
     async def test_patch_future_date_422(self):
         """미래 날짜 → 422."""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -78,8 +117,8 @@ class TestHealthDaily(TestCase):
             }, headers=h)
         assert r.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    async def test_first_answer_wins(self):
-        """동일 필드 2번 입력 → 두 번째는 skipped."""
+    async def test_today_direct_patch_allows_same_day_replace(self):
+        """오늘 direct 입력은 같은 날 수정 가능."""
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
             h = await self._signup_and_login(c, "health_faw@test.com")
             today = date.today().isoformat()
@@ -92,6 +131,26 @@ class TestHealthDaily(TestCase):
 
             # 2차 입력 (동일 필드)
             r = await c.patch(f"/api/v1/health/daily/{today}", json={
+                "source": "direct",
+                "sleep_quality": "bad",
+            }, headers=h)
+
+        assert r.status_code == status.HTTP_200_OK
+        assert r.json()["field_results"]["sleep_quality"] == "accepted"
+        assert r.json()["daily_log"]["sleep_quality"] == "bad"
+
+    async def test_past_day_direct_patch_keeps_first_answer_wins(self):
+        """오늘이 아닌 direct 입력은 기존 skip 규칙 유지."""
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            h = await self._signup_and_login(c, "health_past_faw@test.com")
+            three_days_ago = (date.today() - timedelta(days=3)).isoformat()
+
+            await c.patch(f"/api/v1/health/daily/{three_days_ago}", json={
+                "source": "direct",
+                "sleep_quality": "good",
+            }, headers=h)
+
+            r = await c.patch(f"/api/v1/health/daily/{three_days_ago}", json={
                 "source": "direct",
                 "sleep_quality": "bad",
             }, headers=h)

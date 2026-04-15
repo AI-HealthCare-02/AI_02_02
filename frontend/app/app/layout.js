@@ -1,11 +1,27 @@
-'use client';
+import { readFile } from 'fs/promises';
+import path from 'path';
+import { Suspense } from 'react';
 
 import Sidebar from '../../components/Sidebar';
 
-export default function AppLayout({ children }) {
+async function loadProductGuide() {
+  try {
+    const guidePath = path.join(process.cwd(), '..', 'shared', 'danaa_product_guide.v1.json');
+    const raw = await readFile(guidePath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export default async function AppLayout({ children }) {
+  const productGuide = await loadProductGuide();
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-white text-nature-900">
-      <Sidebar />
+      <Suspense fallback={null}>
+        <Sidebar productGuide={productGuide} />
+      </Suspense>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {children}
       </div>

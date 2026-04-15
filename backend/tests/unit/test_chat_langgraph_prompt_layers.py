@@ -17,7 +17,7 @@ class _FakeRagService:
     def search(self, query: str, top_k: int = 2):
         del query, top_k
         return SimpleNamespace(
-            prompt_context="\n\n## 참고 정보\n- 운동 루틴 문맥\n",
+            prompt_context="\n\n## 참고 정보\n- 운동 루틴 문서\n",
             hit_count=1,
             has_context=True,
         )
@@ -58,11 +58,13 @@ async def test_prompt_layer_hashes_match(monkeypatch: pytest.MonkeyPatch):
 
     inputs = graph_adapter._build_inputs(
         user_id=8,
-        message_text="운동 계획 어떻게 세워?",
+        message_text="운동 계획 어떻게 짜?",
         base_system_prompt="BASE\n",
         history=history,
         filter_result=filter_result,
         profile=profile,
+        app_help_text="\n\n## 앱 기능 참고\n- 리포트: 설명",
+        app_state_text="\n\n## 현재 확인된 앱 상태\n- 오늘 아직 안 적은 질문 수: 3",
     )
 
     legacy_output = await graph_adapter._run_legacy_prep(inputs)
@@ -76,6 +78,8 @@ async def test_prompt_layer_hashes_match(monkeypatch: pytest.MonkeyPatch):
     )
 
     assert legacy_fields["system_prompt_sha256"] == graph_fields["system_prompt_sha256"]
+    assert legacy_fields["app_help_layer_sha256"] == graph_fields["app_help_layer_sha256"]
+    assert legacy_fields["app_state_layer_sha256"] == graph_fields["app_state_layer_sha256"]
     assert legacy_fields["user_context_layer_sha256"] == graph_fields["user_context_layer_sha256"]
     assert legacy_fields["route_layer_sha256"] == graph_fields["route_layer_sha256"]
     assert legacy_fields["rag_layer_sha256"] == graph_fields["rag_layer_sha256"]

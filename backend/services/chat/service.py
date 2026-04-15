@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import time
 from collections.abc import AsyncGenerator
 from contextlib import suppress
@@ -11,11 +12,22 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 
 from backend.core import config
+from backend.core.config import ChatAppContextMode
 from backend.core.logger import setup_logger
 from backend.dtos.chat import HealthAnswerResponse
 from backend.models.chat import ChatMessage, ChatSession, MessageRole
 from backend.models.enums import AiConsent, FilterExpressionVerdict, FilterMedicalAction
 from backend.models.health import HealthProfile
+from backend.models.users import User
+from backend.services.challenge import ChallengeService
+from backend.services.chat.app_context import (
+    ChatAppChallengeStateItem,
+    ChatAppContext,
+    ChatAppStateSnapshot,
+    build_app_help_layer,
+    build_app_state_layer,
+    build_default_help_snapshot,
+)
 from backend.services.chat.enrich import (
     _get_rag_service as get_rag_service,
 )
@@ -43,6 +55,7 @@ from backend.services.chat.enrich import (
 from backend.services.chat.enrich import (
     _try_rag_search as try_rag_search,
 )
+from backend.services.chat.intent import classify_chat_app_intent
 from backend.services.chat.persistence import (
     _prepare_session as prepare_session,
 )
@@ -95,6 +108,7 @@ class ChatService:
 
     def __init__(self):
         self.health_question_service = HealthQuestionService()
+        self.challenge_service = ChallengeService()
         self.content_filter = ContentFilterService()
         self._last_crisis_at: dict[int, datetime] = {}
         self._rag_service = None
@@ -126,6 +140,115 @@ class ChatService:
 
     def _select_topic_hint(self, message: str) -> str | None:
         return select_topic_hint(message)
+
+    @staticmethod
+    def _hash_user_id(user_id: int) -> str:
+        return hashlib.sha256(str(user_id).encode("utf-8")).hexdigest()[:12]
+
+    async def _build_chat_app_context(
+        self,
+        *,
+        user_id: int,
+        message_text: str,
+        profile: HealthProfile | None,
+    ) -> ChatAppContext | None:
+        mode = config.CHAT_APP_CONTEXT_MODE
+        if mode == ChatAppContextMode.OFF:
+            return None
+
+        intent = classify_chat_app_intent(message_text)
+        if intent.value == "none":
+            return None
+
+        help_snapshot = build_default_help_snapshot()
+        if mode != ChatAppContextMode.LIVE_STATE:
+            return ChatAppContext(intent=intent, help_snapshot=help_snapshot)
+
+        if not await self._can_use_live_app_state(user_id=user_id, profile=profile):
+            return ChatAppContext(intent=intent, help_snapshot=help_snapshot)
+
+        state_snapshot = await self._build_chat_app_state_snapshot(
+            user_id=user_id,
+            profile=profile,
+            intent=intent,
+        )
+        return ChatAppContext(
+            intent=intent,
+            help_snapshot=help_snapshot,
+            state_snapshot=state_snapshot,
+            has_live_state=state_snapshot is not None,
+        )
+
+    async def _can_use_live_app_state(
+        self,
+        *,
+        user_id: int,
+        profile: HealthProfile | None,
+    ) -> bool:
+        if profile is None or profile.ai_consent != AiConsent.AGREED:
+            return False
+        user = await User.get_or_none(id=user_id)
+        return bool(user and user.onboarding_completed)
+
+    async def _build_chat_app_state_snapshot(
+        self,
+        *,
+        user_id: int,
+        profile: HealthProfile | None,
+        intent,
+    ) -> ChatAppStateSnapshot | None:
+        if profile is None:
+            return None
+
+        snapshot = ChatAppStateSnapshot(
+            onboarding_completed=True,
+            user_group=str(profile.user_group.value if hasattr(profile.user_group, "value") else profile.user_group),
+            initial_risk_level=(
+                str(profile.initial_risk_level.value)
+                if getattr(profile, "initial_risk_level", None) is not None
+                and hasattr(profile.initial_risk_level, "value")
+                else str(profile.initial_risk_level) if getattr(profile, "initial_risk_level", None) is not None else None
+            ),
+        )
+
+        if intent.value in {"challenge_state", "mixed"}:
+            overview = await self.challenge_service.get_overview(user_id=user_id)
+            snapshot = ChatAppStateSnapshot(
+                onboarding_completed=snapshot.onboarding_completed,
+                user_group=snapshot.user_group,
+                initial_risk_level=snapshot.initial_risk_level,
+                active_count=overview.stats.get("active_count"),
+                remaining_active_slots=overview.stats.get("remaining_active_slots"),
+                active_challenges=tuple(
+                    ChatAppChallengeStateItem(
+                        name=item.name,
+                        progress_pct=float(item.progress_pct),
+                        today_checked=item.today_checked,
+                        current_streak=item.current_streak,
+                    )
+                    for item in overview.active
+                ),
+            )
+
+        if intent.value in {"pending_surveys", "mixed"}:
+            summary = await self.health_question_service.get_daily_missing_summary(user_id=user_id)
+            snapshot = ChatAppStateSnapshot(
+                onboarding_completed=snapshot.onboarding_completed,
+                user_group=snapshot.user_group,
+                initial_risk_level=snapshot.initial_risk_level,
+                active_count=snapshot.active_count,
+                remaining_active_slots=snapshot.remaining_active_slots,
+                active_challenges=snapshot.active_challenges,
+                pending_count=int(summary["count"]),
+            )
+
+        return snapshot
+
+    @staticmethod
+    def _app_context_state_keys(context: ChatAppContext | None) -> tuple[str, ...]:
+        if context is None or context.state_snapshot is None:
+            return ()
+        return context.state_snapshot.state_keys()
 
     async def send_message_stream(  # noqa: C901
         self,
@@ -202,6 +325,47 @@ class ChatService:
         await ChatMessage.create(session=session, role=MessageRole.USER, content=message)
 
         base_system_prompt = await self._build_system_prompt(profile, eligible_bundles)
+        app_context_started_at = time.perf_counter()
+        app_context: ChatAppContext | None = None
+        app_help_text = ""
+        app_state_text = ""
+        if config.CHAT_APP_CONTEXT_MODE != ChatAppContextMode.OFF:
+            try:
+                app_context = await self._build_chat_app_context(
+                    user_id=user_id,
+                    message_text=message,
+                    profile=profile,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "chat_app_context_unavailable",
+                    chat_req_id=chat_req_id,
+                    user_id_hash=self._hash_user_id(user_id),
+                    mode=config.CHAT_APP_CONTEXT_MODE.value,
+                    error=type(exc).__name__,
+                )
+            else:
+                app_help_text = build_app_help_layer(app_context)
+                app_state_text = build_app_state_layer(app_context)
+
+            logger.info(
+                "chat_app_context",
+                chat_req_id=chat_req_id,
+                user_id_hash=self._hash_user_id(user_id),
+                mode=config.CHAT_APP_CONTEXT_MODE.value,
+                intent=app_context.intent.value if app_context is not None else "none",
+                had_help=bool(app_help_text),
+                had_state=bool(app_context and app_context.has_live_state and app_state_text),
+                state_keys=self._app_context_state_keys(app_context),
+                assemble_ms=round((time.perf_counter() - app_context_started_at) * 1000, 2),
+                prompt_tokens_added=estimate_text_tokens(app_help_text + app_state_text),
+                schema_version=(
+                    app_context.state_snapshot.schema_version
+                    if app_context and app_context.state_snapshot is not None
+                    else "chat_app_context_v1"
+                ),
+            )
+
         prep_started_at = time.perf_counter()
         openai_messages = await self._build_openai_messages(
             profile,
@@ -211,6 +375,8 @@ class ChatService:
             user_id=user_id,
             message_text=message,
             base_system_prompt=base_system_prompt,
+            app_help_text=app_help_text,
+            app_state_text=app_state_text,
             chat_req_id=chat_req_id,
         )
         logger.info("chat_prep_ms", chat_req_id=chat_req_id, prep_ms=round((time.perf_counter() - prep_started_at) * 1000, 2))
@@ -292,7 +458,7 @@ class ChatService:
             created_at__gte=datetime.now(tz=config.TIMEZONE).replace(hour=0, minute=0, second=0, microsecond=0),
         ).count()
         if today_count >= MAX_DAILY_CHATS:
-            return "오늘 대화 횟수를 초과했어요. 내일 다시 대화해 주세요"
+            return "오늘 대화 가능 횟수를 초과했어요. 내일 다시 대화해 주세요."
 
         return None
 
@@ -376,6 +542,8 @@ class ChatService:
         user_id: int | None = None,
         message_text: str | None = None,
         base_system_prompt: str | None = None,
+        app_help_text: str | None = None,
+        app_state_text: str | None = None,
         chat_req_id: str | None = None,
     ) -> list[dict[str, str]]:
         if (
@@ -392,6 +560,8 @@ class ChatService:
                 history=history,
                 filter_result=filter_result,
                 profile=profile,
+                app_help_text=app_help_text,
+                app_state_text=app_state_text,
                 chat_req_id=chat_req_id,
             )
         return await build_openai_messages(
@@ -403,6 +573,8 @@ class ChatService:
             user_context,
             message_text=message_text,
             base_system_prompt=base_system_prompt,
+            app_help_text=app_help_text,
+            app_state_text=app_state_text,
         )
 
     def _should_use_langgraph_prep(self, user_id: int, filter_result: FilterResult) -> bool:

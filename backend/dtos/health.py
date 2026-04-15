@@ -38,6 +38,35 @@ class DailyLogResponse(BaseModel):
     mood_level: str | None = None
     alcohol_today: bool | None = None
     alcohol_amount_level: str | None = None
+    missing_summary: DailyMissingSummary = None
+    pending_questions: PendingQuestionsResponse = None
+
+
+class DailyMissingSummary(BaseModel):
+    count: int
+    labels: list[str] = Field(default_factory=list)
+    truncated_count: int = 0
+
+
+class PendingQuestionItem(BaseModel):
+    field: str
+    summary_label: str
+    text: str
+    input_type: str = "select"
+    options: list[str | int | bool] = Field(default_factory=list)
+    condition: str | None = None
+
+
+class PendingQuestionBundle(BaseModel):
+    bundle_key: str
+    name: str
+    unanswered_count: int
+    questions: list[PendingQuestionItem] = Field(default_factory=list)
+
+
+class PendingQuestionsResponse(BaseModel):
+    count: int
+    bundles: list[PendingQuestionBundle] = Field(default_factory=list)
 
 
 class DailyLogPatchRequest(BaseModel):

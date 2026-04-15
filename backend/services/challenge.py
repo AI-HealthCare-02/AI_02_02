@@ -14,9 +14,11 @@ from datetime import date, datetime
 from fastapi import HTTPException, status
 
 from backend.core import config
+from backend.core.cache import delete_cached
 from backend.dtos.challenges import (
     CalendarDayEntry,
     ChallengeCalendarResponse,
+    ChallengeCatalogItem,
     ChallengeCheckinRequest,
     ChallengeCheckinResponse,
     ChallengeJoinResponse,
@@ -32,6 +34,10 @@ MAX_ACTIVE_CHALLENGES = 2
 
 class ChallengeService:
     """챌린지 비즈니스 로직."""
+
+    @staticmethod
+    async def _invalidate_user_caches(user_id: int) -> None:
+        await delete_cached(f"dash:challenge:{user_id}")
 
     async def get_overview(self, user_id: int) -> ChallengeOverviewResponse:
         """챌린지 전체 조회 (활성 + 완료 + 추천)."""
@@ -68,13 +74,15 @@ class ChallengeService:
         # 추천 챌린지
         from backend.models.health import HealthProfile
         profile = await HealthProfile.get_or_none(user_id=user_id)
-        user_group = profile.user_group if profile else "C"
+        user_group = profile.user_group.value if profile and hasattr(profile.user_group, "value") else (profile.user_group if profile else "C")
         recommended = await self._get_recommended(user_id, user_group)
+        catalog = await self._get_catalog(user_id, user_group, recommended)
 
         return ChallengeOverviewResponse(
             active=active,
             completed=completed,
             recommended=recommended,
+            catalog=catalog,
             stats={
                 "active_count": len(active),
                 "completed_count": len(completed),
@@ -127,6 +135,7 @@ class ChallengeService:
             started_at=now,
             target_days=template.default_duration_days,
         )
+        await self._invalidate_user_caches(user_id)
         return ChallengeJoinResponse(
             user_challenge_id=uc.id,
             template_id=template_id,
@@ -187,6 +196,7 @@ class ChallengeService:
             uc.completed_at = datetime.now(tz=config.TIMEZONE)
 
         await uc.save()
+        await self._invalidate_user_caches(user_id)
 
         return ChallengeCheckinResponse(
             checkin_id=checkin.id,
@@ -258,6 +268,34 @@ class ChallengeService:
             ))
 
         return recommended[:5]
+
+    async def _get_catalog(
+        self,
+        user_id: int,
+        user_group: str,
+        recommended: list[ChallengeRecommendedItem],
+    ) -> list[ChallengeCatalogItem]:
+        recommended_ids = {item.template_id for item in recommended}
+        templates = await ChallengeTemplate.filter(is_active=True).order_by("category", "id")
+
+        catalog: list[ChallengeCatalogItem] = []
+        for template in templates:
+            if user_group not in template.for_groups:
+                continue
+            catalog.append(
+                ChallengeCatalogItem(
+                    template_id=template.id,
+                    code=template.code,
+                    name=template.name,
+                    emoji=template.emoji,
+                    category=template.category,
+                    description=template.description,
+                    default_duration_days=template.default_duration_days,
+                    is_recommended=template.id in recommended_ids,
+                )
+            )
+
+        return catalog
 
     @staticmethod
     def _update_streak(uc: UserChallenge, checkin_status: CheckinStatus) -> None:
