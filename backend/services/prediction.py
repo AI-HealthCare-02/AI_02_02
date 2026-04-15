@@ -13,7 +13,6 @@ from pydantic import BaseModel
 
 from backend.models.enums import Relation, RiskLevel, UserGroup
 
-
 NON_DIABETIC_TRACK = "non_diabetic_track"
 DIABETIC_TRACK = "diabetic_track"
 

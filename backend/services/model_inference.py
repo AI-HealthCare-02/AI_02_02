@@ -12,7 +12,6 @@ import pandas as pd
 from backend.models.health import DailyHealthLog, HealthProfile, PeriodicMeasurement
 from backend.services.prediction import DIABETIC_TRACK, NON_DIABETIC_TRACK, resolve_model_track
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_ARTIFACT_DIR = PROJECT_ROOT / "tools" / "ml_artifacts" / "two_track_project_models"
 
