@@ -12,6 +12,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from backend.core import config
+from backend.core.logger import setup_logger
 from backend.dtos.analysis import AnalysisSummaryResponse, RiskBrief, ScorecardResponse
 from backend.dtos.dashboard import RiskDetailResponse
 from backend.dtos.risk import RiskHistoryPoint, RiskHistoryResponse
@@ -19,6 +20,9 @@ from backend.models.assessments import RiskAssessment
 from backend.models.enums import PeriodType
 from backend.models.health import DailyHealthLog, HealthProfile, PeriodicMeasurement
 from backend.services.prediction import calculate_findrisc
+from backend.services.report_coaching import ReportCoachingService
+
+logger = setup_logger(__name__)
 
 # ── 점수 매핑 상수 ──
 
@@ -73,6 +77,16 @@ def _detail_factors(
 class RiskAnalysisService:
     """위험도 분석."""
 
+    def __init__(self) -> None:
+        self.model_inference = None
+        self.report_coaching = ReportCoachingService()
+        try:
+            from backend.services.model_inference import ModelInferenceService
+
+            self.model_inference = ModelInferenceService()
+        except Exception:
+            logger.warning("model_inference_disabled")
+
     async def get_latest_risk(self, user_id: int) -> RiskDetailResponse | None:
         """최신 위험도 조회."""
         assessment = await RiskAssessment.filter(
@@ -82,7 +96,9 @@ class RiskAnalysisService:
         if not assessment:
             return None
 
-        return self._assessment_to_detail(assessment)
+        detail = self._assessment_to_detail(assessment)
+        detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
+        return await self._attach_ai_coaching(user_id=user_id, detail=detail)
 
     async def recalculate_risk(self, user_id: int) -> RiskDetailResponse | None:
         """위험도 수동 재계산."""
@@ -149,32 +165,80 @@ class RiskAnalysisService:
 
         now = datetime.now(tz=config.TIMEZONE)
 
-        # DB 저장
-        assessment = await RiskAssessment.create(
+        detail_payload = {
+            "findrisc_score": findrisc.total_score,
+            "risk_level": findrisc.risk_level,
+            "sleep_score": sleep_score,
+            "diet_score": diet_score,
+            "exercise_score": exercise_score,
+            "lifestyle_score": lifestyle_score,
+            "assessed_at": now,
+            "score_breakdown": {
+                "age": findrisc.score_breakdown["age"],
+                "bmi": findrisc.score_breakdown["bmi"],
+                "waist": findrisc.score_breakdown["waist"],
+                "activity": findrisc.score_breakdown["activity"],
+                "vegetable": findrisc.score_breakdown["vegetable"],
+                "hypertension": findrisc.score_breakdown["hypertension"],
+                "glucose_history": findrisc.score_breakdown["glucose_history"],
+                "family": findrisc.score_breakdown["family"],
+            },
+            "top_positive_factors": positive,
+            "top_risk_factors": risk_factors,
+        }
+        detail = RiskDetailResponse(**detail_payload)
+        detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
+        detail = await self._attach_ai_coaching(
+            user_id=user_id,
+            detail=detail,
+            profile=profile,
+            logs=list(logs),
+        )
+
+        payload = {
+            "findrisc_score": findrisc.total_score,
+            "risk_level": findrisc.risk_level,
+            "predicted_score_pct": detail.predicted_score_pct,
+            "predicted_risk_level": detail.predicted_risk_level,
+            "predicted_risk_label": detail.predicted_risk_label,
+            "predicted_stage_label": detail.predicted_stage_label,
+            "model_track": detail.model_track,
+            "sleep_score": sleep_score,
+            "diet_score": diet_score,
+            "exercise_score": exercise_score,
+            "lifestyle_score": lifestyle_score,
+            "score_age": findrisc.score_breakdown["age"],
+            "score_bmi": findrisc.score_breakdown["bmi"],
+            "score_waist": findrisc.score_breakdown["waist"],
+            "score_activity": findrisc.score_breakdown["activity"],
+            "score_vegetable": findrisc.score_breakdown["vegetable"],
+            "score_hypertension": findrisc.score_breakdown["hypertension"],
+            "score_glucose_history": findrisc.score_breakdown["glucose_history"],
+            "score_family": findrisc.score_breakdown["family"],
+            "top_positive_factors": positive,
+            "top_risk_factors": risk_factors,
+            "assessed_at": now,
+        }
+        assessment = await RiskAssessment.get_or_none(
             user_id=user_id,
             period_type=PeriodType.WEEKLY,
             period_start=period_start,
             period_end=today,
-            findrisc_score=findrisc.total_score,
-            risk_level=findrisc.risk_level,
-            sleep_score=sleep_score,
-            diet_score=diet_score,
-            exercise_score=exercise_score,
-            lifestyle_score=lifestyle_score,
-            score_age=findrisc.score_breakdown["age"],
-            score_bmi=findrisc.score_breakdown["bmi"],
-            score_waist=findrisc.score_breakdown["waist"],
-            score_activity=findrisc.score_breakdown["activity"],
-            score_vegetable=findrisc.score_breakdown["vegetable"],
-            score_hypertension=findrisc.score_breakdown["hypertension"],
-            score_glucose_history=findrisc.score_breakdown["glucose_history"],
-            score_family=findrisc.score_breakdown["family"],
-            top_positive_factors=positive,
-            top_risk_factors=risk_factors,
-            assessed_at=now,
         )
-
-        return self._assessment_to_detail(assessment)
+        if assessment:
+            await RiskAssessment.filter(id=assessment.id).update(**payload)
+            assessment = await RiskAssessment.get(id=assessment.id)
+        else:
+            assessment = await RiskAssessment.create(
+                user_id=user_id,
+                period_type=PeriodType.WEEKLY,
+                period_start=period_start,
+                period_end=today,
+                **payload,
+            )
+        result = self._assessment_to_detail(assessment)
+        result.ai_coaching_lines = detail.ai_coaching_lines
+        return result
 
     async def get_risk_history(self, user_id: int, weeks: int = 12) -> RiskHistoryResponse:
         """최근 주간 위험도 이력 조회."""
@@ -189,6 +253,13 @@ class RiskAnalysisService:
                 period_end=item.period_end,
                 findrisc_score=item.findrisc_score,
                 risk_level=item.risk_level,
+                predicted_score_pct=item.predicted_score_pct,
+                predicted_risk_level=item.predicted_risk_level,
+                predicted_risk_label=item.predicted_risk_label,
+                predicted_stage_label=item.predicted_stage_label,
+                model_enabled=item.predicted_score_pct is not None,
+                model_status="ready" if item.predicted_score_pct is not None else "artifacts_missing",
+                model_track=item.model_track,
                 assessed_at=item.assessed_at,
             )
             for item in reversed(assessments)
@@ -391,6 +462,14 @@ class RiskAnalysisService:
             exercise_score=a.exercise_score,
             lifestyle_score=a.lifestyle_score,
             assessed_at=a.assessed_at,
+            model_track=a.model_track,
+            predicted_score_pct=a.predicted_score_pct,
+            predicted_risk_level=a.predicted_risk_level,
+            predicted_risk_label=a.predicted_risk_label,
+            predicted_stage_label=a.predicted_stage_label,
+            model_enabled=a.predicted_score_pct is not None,
+            model_status="ready" if a.predicted_score_pct is not None else "artifacts_missing",
+            model_status_message=None if a.predicted_score_pct is not None else "모델 산출물 파일이 설치되지 않아 AI 예측 리포트가 비활성화되었습니다.",
             score_breakdown={
                 "age": a.score_age,
                 "bmi": a.score_bmi,
@@ -404,3 +483,101 @@ class RiskAnalysisService:
             top_positive_factors=a.top_positive_factors or [],
             top_risk_factors=a.top_risk_factors or [],
         )
+
+    async def _attach_model_prediction(
+        self,
+        *,
+        user_id: int,
+        detail: RiskDetailResponse,
+    ) -> RiskDetailResponse:
+        if self.model_inference is None:
+            return self._mark_model_unavailable(detail)
+
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        if not profile:
+            return self._mark_model_unavailable(detail)
+
+        today = date.today()
+        period_start = today - timedelta(days=7)
+        logs = await DailyHealthLog.filter(
+            user_id=user_id,
+            log_date__gte=period_start,
+            log_date__lte=today,
+        ).order_by("log_date")
+        measurements = await PeriodicMeasurement.filter(
+            user_id=user_id,
+        ).order_by("-measured_at").limit(20)
+
+        try:
+            prediction = await self.model_inference.predict_for_profile(
+                profile=profile,
+                logs=list(logs),
+                measurements=list(measurements),
+            )
+        except Exception as exc:
+            if exc.__class__.__name__ == "ModelArtifactsUnavailableError":
+                logger.warning("model_prediction_artifacts_missing", user_id=user_id)
+                return self._mark_model_unavailable(detail)
+            logger.exception("model_prediction_failed", user_id=user_id)
+            return self._mark_model_unavailable(detail, status="prediction_failed", message="AI 예측 모델을 불러오지 못해 생활기반 리포트만 표시합니다.")
+        payload = detail.model_dump()
+        payload.update(prediction)
+        return RiskDetailResponse(**payload)
+
+    @staticmethod
+    def _mark_model_unavailable(
+        detail: RiskDetailResponse,
+        *,
+        status: str = "artifacts_missing",
+        message: str = "모델 산출물 파일이 설치되지 않아 AI 예측 리포트가 비활성화되었습니다.",
+    ) -> RiskDetailResponse:
+        payload = detail.model_dump()
+        payload.update(
+            {
+                "model_enabled": False,
+                "model_status": status,
+                "model_status_message": message,
+                "predicted_score_pct": None,
+                "predicted_risk_level": None,
+                "predicted_risk_label": None,
+                "predicted_stage_label": None,
+                "model_track": None,
+            }
+        )
+        return RiskDetailResponse(**payload)
+
+    async def _attach_ai_coaching(
+        self,
+        *,
+        user_id: int,
+        detail: RiskDetailResponse,
+        profile: HealthProfile | None = None,
+        logs: list[DailyHealthLog] | None = None,
+    ) -> RiskDetailResponse:
+        if profile is None:
+            profile = await HealthProfile.get_or_none(user_id=user_id)
+        if profile is None:
+            return detail
+
+        if logs is None:
+            today = date.today()
+            period_start = today - timedelta(days=7)
+            logs = list(
+                await DailyHealthLog.filter(
+                    user_id=user_id,
+                    log_date__gte=period_start,
+                    log_date__lte=today,
+                ).order_by("log_date")
+            )
+
+        lines = await self.report_coaching.generate_lines(
+            profile=profile,
+            logs=logs,
+            detail=detail,
+        )
+        if not lines:
+            return detail
+
+        payload = detail.model_dump()
+        payload["ai_coaching_lines"] = lines
+        return RiskDetailResponse(**payload)

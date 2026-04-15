@@ -59,3 +59,11 @@ CLAUDE.md
 LLM-파트-시작-가이드.md
 prompt_plan.md
 docs/HANDOFF_MEMO.md
+
+# Local ML datasets and artifacts
+tools/ml_artifacts/
+catboost_info/
+docs/collaboration/model/*.csv
+docs/collaboration/model/*.CSV
+docs/collaboration/model/*.pdf
+docs/collaboration/model/*.hwpx

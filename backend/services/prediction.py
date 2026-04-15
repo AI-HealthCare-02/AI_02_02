@@ -11,7 +11,10 @@ Null 처리 규칙 (보수적 원칙):
 
 from pydantic import BaseModel
 
-from backend.models.enums import RiskLevel
+from backend.models.enums import Relation, RiskLevel, UserGroup
+
+NON_DIABETIC_TRACK = "non_diabetic_track"
+DIABETIC_TRACK = "diabetic_track"
 
 
 class FindriscResult(BaseModel):
@@ -20,6 +23,19 @@ class FindriscResult(BaseModel):
     total_score: int
     risk_level: RiskLevel
     score_breakdown: dict[str, int]
+
+
+def resolve_model_track(*, relation: str | None = None, user_group: str | None = None) -> str:
+    """Resolve A/B/C onboarding groups into the project's 2-track model layout."""
+
+    normalized_relation = relation.value if hasattr(relation, "value") else relation
+    normalized_group = user_group.value if hasattr(user_group, "value") else user_group
+
+    if normalized_relation in {Relation.DIAGNOSED, Relation.PREDIABETES, "diagnosed", "prediabetes"}:
+        return DIABETIC_TRACK
+    if normalized_group in {UserGroup.A, UserGroup.B, "A", "B"}:
+        return DIABETIC_TRACK
+    return NON_DIABETIC_TRACK
 
 
 # ──────────────────────────────────────────────
