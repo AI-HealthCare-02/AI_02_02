@@ -16,6 +16,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_ARTIFACT_DIR = PROJECT_ROOT / "tools" / "ml_artifacts" / "two_track_project_models"
 
 
+class ModelArtifactsUnavailableError(RuntimeError):
+    """Raised when required local model artifacts are missing."""
+
+
 AGE_MIDPOINT = {
     "under_45": 40.0,
     "45_54": 50.0,
@@ -186,12 +190,45 @@ def _latest_bp_values(measurements: list[PeriodicMeasurement]) -> tuple[float | 
 @lru_cache(maxsize=4)
 def _load_model_bundle(track: str) -> tuple[Any, dict[str, Any]]:
     model_prefix = "diabetic_track_model" if track == DIABETIC_TRACK else "non_diabetic_track_model"
-    model = joblib.load(MODEL_ARTIFACT_DIR / f"{model_prefix}.joblib")
-    metadata = json.loads((MODEL_ARTIFACT_DIR / f"{model_prefix}_metadata.json").read_text(encoding="utf-8"))
+    model_path = MODEL_ARTIFACT_DIR / f"{model_prefix}.joblib"
+    metadata_path = MODEL_ARTIFACT_DIR / f"{model_prefix}_metadata.json"
+    missing_paths = [str(path) for path in (model_path, metadata_path) if not path.exists()]
+    if missing_paths:
+        raise ModelArtifactsUnavailableError(
+            f"Missing model artifacts for track '{track}': {', '.join(missing_paths)}"
+        )
+    model = joblib.load(model_path)
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     return model, metadata
 
 
 class ModelInferenceService:
+    def get_availability(self, *, track: str | None = None) -> dict[str, Any]:
+        tracks = [track] if track else [DIABETIC_TRACK, NON_DIABETIC_TRACK]
+        missing_paths: list[str] = []
+
+        for current_track in tracks:
+            model_prefix = "diabetic_track_model" if current_track == DIABETIC_TRACK else "non_diabetic_track_model"
+            for suffix in (".joblib", "_metadata.json"):
+                path = MODEL_ARTIFACT_DIR / f"{model_prefix}{suffix}"
+                if not path.exists():
+                    missing_paths.append(str(path.relative_to(PROJECT_ROOT)))
+
+        if missing_paths:
+            return {
+                "enabled": False,
+                "status": "artifacts_missing",
+                "message": "모델 산출물 파일이 설치되지 않아 AI 예측 리포트가 비활성화되었습니다.",
+                "missing_paths": missing_paths,
+            }
+
+        return {
+            "enabled": True,
+            "status": "ready",
+            "message": None,
+            "missing_paths": [],
+        }
+
     async def predict_for_profile(
         self,
         *,
@@ -200,6 +237,9 @@ class ModelInferenceService:
         measurements: list[PeriodicMeasurement],
     ) -> dict[str, Any]:
         track = resolve_model_track(relation=profile.relation, user_group=profile.user_group)
+        availability = self.get_availability(track=track)
+        if not availability["enabled"]:
+            raise ModelArtifactsUnavailableError(availability["message"])
         model, metadata = _load_model_bundle(track)
         row = self._build_feature_row(profile=profile, logs=logs, measurements=measurements, feature_columns=metadata["feature_columns"], track=track)
         frame = pd.DataFrame([row])
@@ -215,6 +255,9 @@ class ModelInferenceService:
             "predicted_risk_level": level,
             "predicted_risk_label": level_label,
             "predicted_stage_label": stage_label,
+            "model_enabled": True,
+            "model_status": "ready",
+            "model_status_message": None,
             "recommended_actions": self._build_recommendations(row=row, score_pct=score_pct, track=track),
             "supporting_signals": self._build_supporting_signals(row=row, track=track),
             "disclaimer": "이 결과는 건강 보조 지표이며 진단을 대체하지 않습니다. 정확한 의학적 판단은 의료진 상담이 필요합니다.",

@@ -433,10 +433,21 @@ export default function ReportPage() {
   }, []);
 
   const hasOnboarding = Boolean(status?.is_completed);
+  const hasModelPrediction = risk?.model_enabled === true;
   const coachingLines = useMemo(() => getCoachingLines(risk), [risk]);
   const trendPoints = useMemo(() => buildTrendPoints(history), [history]);
   const trendCards = useMemo(() => buildTrendCards(dailyLogs), [dailyLogs]);
+  const trendOptions = useMemo(
+    () => TREND_OPTIONS.filter((option) => hasModelPrediction || option.key === 'findrisc'),
+    [hasModelPrediction],
+  );
   const hasRiskHistory = trendPoints.length > 1;
+
+  useEffect(() => {
+    if (!hasModelPrediction && trendMode !== 'findrisc') {
+      setTrendMode('findrisc');
+    }
+  }, [hasModelPrediction, trendMode]);
 
   if (!loaded) {
     return (
@@ -511,34 +522,43 @@ export default function ReportPage() {
                   <div className="space-y-3 mb-4">
                     <section className="bg-[#F4F7FB] rounded-[22px] p-5 border border-[#E4EBF3]">
                       <div className="text-[11px] font-medium text-[#6B7A90] tracking-wider mb-3">AI 예측 위험도</div>
-                      <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                        <div className="w-[92px] shrink-0 rounded-[16px] bg-white border border-[#D7E1EC] px-3 py-4 text-center shadow-sm">
-                          <div className="text-[11px] text-[#7D8CA3] mb-1">예측 점수</div>
-                          <div className="text-[24px] font-semibold leading-none text-[#22324A]">{risk.predicted_score_pct ?? '-'}</div>
-                          <div className="text-[11px] text-[#7D8CA3] mt-1">/100</div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-3 mb-3">
-                            <div className="text-[15px] font-semibold text-[#22324A]">
-                              {getModelStageLabel(risk.predicted_risk_level, risk.predicted_stage_label)}
+                      {hasModelPrediction ? (
+                        <div className="flex flex-col md:flex-row gap-4 md:items-center">
+                          <div className="w-[92px] shrink-0 rounded-[16px] bg-white border border-[#D7E1EC] px-3 py-4 text-center shadow-sm">
+                            <div className="text-[11px] text-[#7D8CA3] mb-1">예측 점수</div>
+                            <div className="text-[24px] font-semibold leading-none text-[#22324A]">{risk.predicted_score_pct ?? '-'}</div>
+                            <div className="text-[11px] text-[#7D8CA3] mt-1">/100</div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                              <div className="text-[15px] font-semibold text-[#22324A]">
+                                {getModelStageLabel(risk.predicted_risk_level, risk.predicted_stage_label)}
+                              </div>
+                              <div className="px-3 py-1 rounded-full bg-white border border-[#D7E1EC] text-[11px] text-[#5B6C83]">
+                                {risk.predicted_score_pct ?? '-'}% 구간
+                              </div>
                             </div>
-                            <div className="px-3 py-1 rounded-full bg-white border border-[#D7E1EC] text-[11px] text-[#5B6C83]">
-                              {risk.predicted_score_pct ?? '-'}% 구간
+                            <div className="relative h-[11px] rounded-full" style={{ background: 'linear-gradient(90deg, #3BAA5C 0%, #B7C52B 35%, #FF9F1C 68%, #E6533C 100%)' }}>
+                              <div
+                                className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[3px] border-white shadow-md bg-[#2C3E50]"
+                                style={{ left: `calc(${getModelMarker(risk.predicted_score_pct)} - 9px)` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-[11px] mt-2 px-[2px]">
+                              {MODEL_BAR_STOPS.map((stop) => (
+                                <span key={stop.label} style={{ color: stop.color }}>{stop.label}</span>
+                              ))}
                             </div>
                           </div>
-                          <div className="relative h-[11px] rounded-full" style={{ background: 'linear-gradient(90deg, #3BAA5C 0%, #B7C52B 35%, #FF9F1C 68%, #E6533C 100%)' }}>
-                            <div
-                              className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[3px] border-white shadow-md bg-[#2C3E50]"
-                              style={{ left: `calc(${getModelMarker(risk.predicted_score_pct)} - 9px)` }}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between text-[11px] mt-2 px-[2px]">
-                            {MODEL_BAR_STOPS.map((stop) => (
-                              <span key={stop.label} style={{ color: stop.color }}>{stop.label}</span>
-                            ))}
+                        </div>
+                      ) : (
+                        <div className="rounded-[16px] bg-white border border-dashed border-[#D7E1EC] px-4 py-4">
+                          <div className="text-[14px] font-semibold text-[#22324A] mb-1">AI 예측 리포트 준비 중</div>
+                          <div className="text-[12px] text-[#708198] leading-[1.6]">
+                            {risk.model_status_message || '모델 산출물 파일이 연결되면 AI 예측 위험도와 예측 추이를 함께 표시합니다.'}
                           </div>
                         </div>
-                      </div>
+                      )}
                     </section>
 
                     <section className="bg-[#F8F7F3] rounded-[22px] p-5 border border-[#ECE5D8]">
@@ -590,10 +610,12 @@ export default function ReportPage() {
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">위험도 추이</div>
                   <div className="bg-cream-300 rounded-xl p-5 mb-4">
                     <div className="text-[11px] text-neutral-400 mb-4 leading-[1.6]">
-                      현재 주차를 포함한 최근 8주 기록입니다. AI 예측과 생활기반 점수 중 보고 싶은 기준을 선택해 비교할 수 있습니다.
+                      {hasModelPrediction
+                        ? '현재 주차를 포함한 최근 8주 기록입니다. AI 예측과 생활기반 점수 중 보고 싶은 기준을 선택해 비교할 수 있습니다.'
+                        : '현재 주차를 포함한 최근 8주 생활기반 점수 흐름입니다. AI 예측 모델이 연결되면 예측 추이도 함께 비교할 수 있습니다.'}
                     </div>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {TREND_OPTIONS.map((option) => (
+                      {trendOptions.map((option) => (
                         <button
                           key={option.key}
                           onClick={() => setTrendMode(option.key)}
@@ -614,7 +636,7 @@ export default function ReportPage() {
                           <line x1="48" y1="32" x2="588" y2="32" stroke="#ECE7D8" strokeWidth="1" strokeDasharray="4 4" />
                           <line x1="48" y1="94" x2="588" y2="94" stroke="#ECE7D8" strokeWidth="1" strokeDasharray="4 4" />
                           <line x1="48" y1="156" x2="588" y2="156" stroke="#DED7C5" strokeWidth="1" />
-                          {(trendMode === 'both' || trendMode === 'model') && (
+                          {hasModelPrediction && (trendMode === 'both' || trendMode === 'model') && (
                             <polyline
                               points={buildPolyline(trendPoints.map((point) => [point.x, point.yModel]))}
                               fill="none"
@@ -637,7 +659,7 @@ export default function ReportPage() {
                           )}
                           {trendPoints.map((point) => (
                             <g key={`${point.label}-${point.x}`}>
-                              {(trendMode === 'both' || trendMode === 'model') && point.yModel != null && (
+                              {hasModelPrediction && (trendMode === 'both' || trendMode === 'model') && point.yModel != null && (
                                 <>
                                   <circle cx={point.x} cy={point.yModel} r="4.5" fill="#FF7A45" />
                                   <text x={point.x} y={point.yModel - 10} textAnchor="middle" fontSize="10" fill="#FF7A45">
@@ -661,7 +683,7 @@ export default function ReportPage() {
                         </svg>
 
                         <div className="flex flex-wrap gap-4 justify-center text-[11px] text-neutral-400 mt-3">
-                          {(trendMode === 'both' || trendMode === 'model') && (
+                          {hasModelPrediction && (trendMode === 'both' || trendMode === 'model') && (
                             <span className="flex items-center gap-1.5">
                               <span className="inline-block w-3 h-0.5 bg-[#FF7A45]"></span>
                               AI 예측 위험도

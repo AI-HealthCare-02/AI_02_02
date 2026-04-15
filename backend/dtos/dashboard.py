@@ -25,6 +25,9 @@ class RiskSummaryResponse(BaseModel):
     predicted_risk_level: str | None = None
     predicted_risk_label: str | None = None
     predicted_stage_label: str | None = None
+    model_enabled: bool = False
+    model_status: str | None = None
+    model_status_message: str | None = None
     recommended_actions: list[str] = []
     supporting_signals: list[str] = []
     ai_coaching_lines: list[str] = []

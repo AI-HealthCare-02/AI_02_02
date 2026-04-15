@@ -257,6 +257,8 @@ class RiskAnalysisService:
                 predicted_risk_level=item.predicted_risk_level,
                 predicted_risk_label=item.predicted_risk_label,
                 predicted_stage_label=item.predicted_stage_label,
+                model_enabled=item.predicted_score_pct is not None,
+                model_status="ready" if item.predicted_score_pct is not None else "artifacts_missing",
                 model_track=item.model_track,
                 assessed_at=item.assessed_at,
             )
@@ -465,6 +467,9 @@ class RiskAnalysisService:
             predicted_risk_level=a.predicted_risk_level,
             predicted_risk_label=a.predicted_risk_label,
             predicted_stage_label=a.predicted_stage_label,
+            model_enabled=a.predicted_score_pct is not None,
+            model_status="ready" if a.predicted_score_pct is not None else "artifacts_missing",
+            model_status_message=None if a.predicted_score_pct is not None else "모델 산출물 파일이 설치되지 않아 AI 예측 리포트가 비활성화되었습니다.",
             score_breakdown={
                 "age": a.score_age,
                 "bmi": a.score_bmi,
@@ -486,11 +491,11 @@ class RiskAnalysisService:
         detail: RiskDetailResponse,
     ) -> RiskDetailResponse:
         if self.model_inference is None:
-            return detail
+            return self._mark_model_unavailable(detail)
 
         profile = await HealthProfile.get_or_none(user_id=user_id)
         if not profile:
-            return detail
+            return self._mark_model_unavailable(detail)
 
         today = date.today()
         period_start = today - timedelta(days=7)
@@ -509,11 +514,36 @@ class RiskAnalysisService:
                 logs=list(logs),
                 measurements=list(measurements),
             )
-        except Exception:
+        except Exception as exc:
+            if exc.__class__.__name__ == "ModelArtifactsUnavailableError":
+                logger.warning("model_prediction_artifacts_missing", user_id=user_id)
+                return self._mark_model_unavailable(detail)
             logger.exception("model_prediction_failed", user_id=user_id)
-            return detail
+            return self._mark_model_unavailable(detail, status="prediction_failed", message="AI 예측 모델을 불러오지 못해 생활기반 리포트만 표시합니다.")
         payload = detail.model_dump()
         payload.update(prediction)
+        return RiskDetailResponse(**payload)
+
+    @staticmethod
+    def _mark_model_unavailable(
+        detail: RiskDetailResponse,
+        *,
+        status: str = "artifacts_missing",
+        message: str = "모델 산출물 파일이 설치되지 않아 AI 예측 리포트가 비활성화되었습니다.",
+    ) -> RiskDetailResponse:
+        payload = detail.model_dump()
+        payload.update(
+            {
+                "model_enabled": False,
+                "model_status": status,
+                "model_status_message": message,
+                "predicted_score_pct": None,
+                "predicted_risk_level": None,
+                "predicted_risk_label": None,
+                "predicted_stage_label": None,
+                "model_track": None,
+            }
+        )
         return RiskDetailResponse(**payload)
 
     async def _attach_ai_coaching(

@@ -680,7 +680,9 @@ export default function ReportDetailPage() {
                   })}
 
                   <div className="text-[11px] text-neutral-300 text-center mt-3">
-                    모델 트랙: {risk.model_track === 'diabetic_track' ? '당뇨형' : '비당뇨형'} / {risk.disclaimer}
+                    {risk.model_enabled
+                      ? `모델 트랙: ${risk.model_track === 'diabetic_track' ? '당뇨형' : '비당뇨형'} / ${risk.disclaimer}`
+                      : risk.model_status_message || 'AI 예측 모델 산출물이 연결되면 상세 리포트에 예측 결과가 함께 표시됩니다.'}
                   </div>
                 </>
               )}

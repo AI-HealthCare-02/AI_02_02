@@ -14,6 +14,8 @@ class RiskHistoryPoint(BaseModel):
     predicted_risk_level: str | None = None
     predicted_risk_label: str | None = None
     predicted_stage_label: str | None = None
+    model_enabled: bool = False
+    model_status: str | None = None
     model_track: str | None = None
     assessed_at: datetime
 
