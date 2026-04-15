@@ -157,6 +157,8 @@ def assemble_prompt_layers(state: ChatPrepState) -> dict:
         base_system_prompt=state["base_system_prompt"],
         history=state["history_turns"],
         message_text=state["message_text"],
+        app_help_text=state.get("app_help_text"),
+        app_state_text=state.get("app_state_text"),
         route=state["route"],
         emotional_priority=state["emotional_priority"],
         prompt_policy=state["prompt_policy"],
@@ -166,6 +168,8 @@ def assemble_prompt_layers(state: ChatPrepState) -> dict:
     )
     return {
         "openai_messages": tuple(result.openai_messages),
+        "app_help_layer": result.app_help_layer,
+        "app_state_layer": result.app_state_layer,
         "user_context_layer": result.user_context_layer,
         "route_layer": result.route_layer,
         "rag_layer": result.rag_layer,

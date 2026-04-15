@@ -40,12 +40,26 @@ class ChallengeRecommendedItem(BaseModel):
     default_duration_days: int
 
 
+class ChallengeCatalogItem(BaseModel):
+    """선택 UI용 챌린지 템플릿 항목."""
+
+    template_id: int
+    code: str
+    name: str
+    emoji: str
+    category: str
+    description: str
+    default_duration_days: int
+    is_recommended: bool = False
+
+
 class ChallengeOverviewResponse(BaseModel):
     """GET /challenges/overview 응답."""
 
     active: list[ChallengeOverviewItem] = []
     completed: list[ChallengeOverviewItem] = []
     recommended: list[ChallengeRecommendedItem] = []
+    catalog: list[ChallengeCatalogItem] = []
     stats: dict[str, int] = {}
 
 

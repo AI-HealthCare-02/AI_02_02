@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ClipboardList, TrendingUp, BarChart3 as BarChart3Icon, Target } from 'lucide-react';
+import { BarChart3 as BarChart3Icon, ClipboardList, Target, TrendingUp } from 'lucide-react';
 
 import { api } from '../../../hooks/useApi';
 
@@ -14,6 +14,13 @@ const LEVELS = [
   { key: 'VERY_HIGH', label: '매우 높음', color: '#E53935', max: 26 },
 ];
 
+const CATEGORY_LABELS = {
+  sleep: '수면',
+  diet: '식사',
+  exercise: '운동',
+  hydration: '수분',
+};
+
 function getScorePosition(score) {
   return Math.min(100, Math.max(0, (score / 26) * 100));
 }
@@ -22,29 +29,92 @@ function getCurrentLevel(score) {
   for (const level of LEVELS) {
     if (score <= level.max) return level;
   }
-  return LEVELS[4];
+  return LEVELS[LEVELS.length - 1];
+}
+
+function countRecordedDays(categories) {
+  if (!categories || typeof categories !== 'object') return 0;
+
+  const recordedDates = new Set();
+
+  Object.values(categories).forEach((category) => {
+    if (!Array.isArray(category?.series)) return;
+
+    category.series.forEach((point) => {
+      if (point?.date && point?.value !== null && point?.value !== undefined) {
+        recordedDates.add(point.date);
+      }
+    });
+  });
+
+  return recordedDates.size;
 }
 
 export default function ReportPage() {
   const [status, setStatus] = useState(null);
+  const [weekly, setWeekly] = useState(null);
+  const [challengeOverview, setChallengeOverview] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    async function loadStatus() {
+    let cancelled = false;
+
+    async function loadData() {
       try {
-        const res = await api('/api/v1/onboarding/status');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.is_completed) {
-            setStatus(data);
-          }
+        const [statusRes, weeklyRes, challengeRes] = await Promise.all([
+          api('/api/v1/onboarding/status'),
+          api('/api/v1/health/weekly'),
+          api('/api/v1/challenges/overview'),
+        ]);
+
+        const nextStatus = statusRes.ok ? await statusRes.json() : null;
+        const nextWeekly = weeklyRes.ok ? await weeklyRes.json() : null;
+        const nextChallenge = challengeRes.ok ? await challengeRes.json() : null;
+
+        if (!cancelled) {
+          setStatus(nextStatus);
+          setWeekly(nextWeekly);
+          setChallengeOverview(nextChallenge);
         }
-      } catch {}
-      setLoaded(true);
+      } catch (error) {
+        console.error('report_dashboard_load_failed', error);
+        if (!cancelled) {
+          setStatus(null);
+          setWeekly(null);
+          setChallengeOverview(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoaded(true);
+        }
+      }
     }
 
-    loadStatus();
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  const hasOnboarding = Boolean(status?.is_completed);
+  const score = status?.initial_findrisc_score ?? 0;
+  const level = getCurrentLevel(score);
+  const recordedDays = useMemo(() => countRecordedDays(weekly?.categories), [weekly]);
+  const activeChallenges = Array.isArray(challengeOverview?.active) ? challengeOverview.active : [];
+  const challengeStats = challengeOverview?.stats || {};
+  const categoryCards = useMemo(() => {
+    const categories = weekly?.categories || {};
+    return Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+      const category = categories[key];
+      return {
+        key,
+        label,
+        currentValue: category?.current_value,
+        goalValue: category?.goal_value,
+      };
+    });
+  }, [weekly]);
 
   if (!loaded) {
     return (
@@ -55,26 +125,19 @@ export default function ReportPage() {
         <div className="flex-1 px-6 py-6">
           <div className="max-w-[840px] mx-auto space-y-4 animate-pulse">
             <div className="h-6 bg-cream-400 rounded w-1/4"></div>
-            <div className="bg-cream-300 rounded-xl p-6 space-y-3">
-              <div className="h-4 bg-cream-400 rounded w-1/2"></div>
-              <div className="h-8 bg-cream-400 rounded w-full"></div>
-              <div className="h-4 bg-cream-400 rounded w-3/4"></div>
-            </div>
+            <div className="bg-cream-300 rounded-xl p-6 h-32"></div>
+            <div className="bg-cream-300 rounded-xl p-6 h-24"></div>
+            <div className="bg-cream-300 rounded-xl p-6 h-24"></div>
           </div>
         </div>
       </>
     );
   }
 
-  const hasOnboarding = Boolean(status?.is_completed);
-  const score = status?.initial_findrisc_score ?? 0;
-  const level = getCurrentLevel(score);
-
   return (
     <>
       <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
         <span className="text-[14px] font-medium text-nature-900">리포트</span>
-        <div className="flex-1"></div>
       </header>
 
       <div className="flex border-b border-cream-500 bg-white shrink-0">
@@ -102,7 +165,7 @@ export default function ReportPage() {
                 <div className="text-center py-10">
                   <div className="mb-4"><ClipboardList size={40} className="text-neutral-300 mx-auto" /></div>
                   <div className="text-[16px] font-medium text-nature-900 mb-2">아직 건강 프로필이 없어요</div>
-                  <div className="text-[14px] text-neutral-400 mb-6">온보딩 설문을 완료하면 위험도 분석을 볼 수 있어요</div>
+                  <div className="text-[14px] text-neutral-400 mb-6">온보딩 설문을 완료하면 위험도 정보와 리포트를 볼 수 있어요.</div>
                   <Link href="/onboarding/diabetes" className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">
                     온보딩 시작하기
                   </Link>
@@ -133,7 +196,7 @@ export default function ReportPage() {
                         <div className="flex justify-between text-[11px]">
                           {LEVELS.map((item) => (
                             <span key={item.key} style={{ color: item.color }} className={item.key === level.key ? 'font-bold' : ''}>
-                              {item.key === level.key ? `• ${item.label}` : item.label}
+                              {item.key === level.key ? `•${item.label}` : item.label}
                             </span>
                           ))}
                         </div>
@@ -149,27 +212,76 @@ export default function ReportPage() {
                   </div>
 
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">위험도 추이</div>
-                  <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
-                    <div className="mb-2"><TrendingUp size={24} className="text-neutral-300 mx-auto" /></div>
-                    <div className="text-[13px] text-nature-900 mb-1">아직 추이 데이터가 없어요</div>
-                    <div className="text-[11px] text-neutral-400">건강 기록이 쌓이면 변화 추이를 여기에 보여줍니다.</div>
+                  <div className="bg-cream-300 rounded-xl p-6 mb-3.5">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1"><TrendingUp size={24} className="text-neutral-300" /></div>
+                      <div>
+                        <div className="text-[13px] text-nature-900 mb-1">대시보드는 지금 바로 볼 수 있어요</div>
+                        <div className="text-[11px] text-neutral-400">
+                          최근 7일 중 기록된 날짜는 {recordedDays}일이고, 기록이 쌓일수록 추이와 그래프가 더 선명해져요.
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="text-[13px] font-semibold text-nature-900 mb-2.5">목표별 그래프</div>
-                  <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
-                    <div className="mb-2"><BarChart3Icon size={24} className="text-neutral-300 mx-auto" /></div>
-                    <div className="text-[13px] text-nature-900 mb-1">건강 기록을 시작해보세요</div>
-                    <div className="text-[11px] text-neutral-400 mb-3">수면, 식사, 운동, 수분 기록이 쌓이면 그래프가 표시됩니다.</div>
-                    <Link href="/app/chat" className="text-[12px] text-nature-500 hover:underline">AI 채팅에서 기록 시작</Link>
+                  <div className="text-[13px] font-semibold text-nature-900 mb-2.5">목표별 그래프 준비 상태</div>
+                  <div className="grid grid-cols-2 gap-3 mb-3.5">
+                    {categoryCards.map((item) => (
+                      <div key={item.key} className="rounded-xl bg-cream-300 p-4">
+                        <div className="text-[12px] font-medium text-nature-900">{item.label}</div>
+                        <div className="mt-2 text-[24px] font-semibold text-nature-900">
+                          {item.currentValue === null || item.currentValue === undefined ? '-' : Math.round(item.currentValue)}
+                        </div>
+                        <div className="text-[11px] text-neutral-400">
+                          {item.currentValue === null || item.currentValue === undefined
+                            ? '아직 서버 기록이 부족해요'
+                            : `현재 점수 / 목표 ${Math.round(item.goalValue || 0)}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-cream-300 rounded-xl p-4 mb-3.5">
+                    <div className="text-[12px] text-neutral-400 mb-3">
+                      채팅 아래 카드나 오른쪽 패널에서 기록한 값이 서버에 저장되면, 대시보드와 상세 리포트가 같은 기준으로 채워져요.
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href="/app/chat" className="text-[12px] text-nature-500 hover:underline">오늘 기록 입력하러 가기</Link>
+                      <Link href="/app/report/detail" className="text-[12px] text-neutral-400 hover:text-nature-900">상세 리포트 기준 보기</Link>
+                    </div>
                   </div>
 
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">챌린지 진행</div>
-                  <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
-                    <div className="mb-2"><Target size={24} className="text-neutral-300 mx-auto" /></div>
-                    <div className="text-[13px] text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
-                    <div className="text-[11px] text-neutral-400 mb-3">챌린지에 참여하면 진행 상황이 여기에 표시됩니다.</div>
-                    <Link href="/app/challenge" className="text-[12px] text-nature-500 hover:underline">챌린지 둘러보기</Link>
-                  </div>
+                  {activeChallenges.length === 0 ? (
+                    <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
+                      <div className="mb-2"><Target size={24} className="text-neutral-300 mx-auto" /></div>
+                      <div className="text-[13px] text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
+                      <div className="text-[11px] text-neutral-400 mb-3">
+                        서버 기준으로 현재 진행 중인 챌린지가 없어요. 챌린지는 챌린지 화면에서 시작하고 체크해요.
+                      </div>
+                      <Link href="/app/challenge" className="text-[12px] text-nature-500 hover:underline">챌린지 둘러보기</Link>
+                    </div>
+                  ) : (
+                    <div className="bg-cream-300 rounded-xl p-4 mb-3.5 space-y-3">
+                      <div className="text-[11px] text-neutral-400">
+                        현재 진행 중 {challengeStats.active_count || activeChallenges.length}개 / 남은 슬롯 {challengeStats.remaining_active_slots ?? 0}개
+                      </div>
+                      {activeChallenges.map((challenge) => (
+                        <div key={challenge.user_challenge_id} className="rounded-xl bg-white px-4 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="text-[12px] font-medium text-nature-900">{challenge.emoji} {challenge.name}</div>
+                              <div className="text-[10px] text-neutral-400">
+                                진행률 {Math.round(Number(challenge.progress_pct || 0) * 100)}% · 연속 {challenge.current_streak || 0}일
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-neutral-400">
+                              {challenge.today_checked ? '오늘 체크 완료' : '오늘 체크 필요'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>

@@ -11,6 +11,23 @@ import sys
 import structlog
 
 _configured = False
+_REDACTED_EVENT_KEYS = frozenset(
+    {
+        "app_help_text",
+        "app_state_text",
+        "help_snapshot",
+        "state_snapshot",
+        "app_context",
+    }
+)
+
+
+def _redact_app_context(logger, method_name, event_dict):  # noqa: ANN001, ANN201
+    del logger, method_name
+    for key in _REDACTED_EVENT_KEYS:
+        if key in event_dict:
+            event_dict[key] = "<redacted>"
+    return event_dict
 
 
 def _configure_once() -> None:
@@ -26,6 +43,7 @@ def _configure_once() -> None:
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.UnicodeDecoder(),
+        _redact_app_context,
     ]
 
     structlog.configure(

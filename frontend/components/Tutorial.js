@@ -14,30 +14,30 @@ const STEPS = [
   {
     target: null,
     emoji: MessageSquare,
-    title: 'AI와 대화해보세요',
-    desc: '이런 식으로 생활 습관을 물어볼 수 있어요. 답변이 쌓일수록 맞춤 리포트가 더 정확해져요.',
+    title: 'AI와 대화하기',
+    desc: '건강 기록이나 생활 습관을 물어보면, 답변과 함께 기록 카드가 붙을 수 있어요.',
     position: 'center',
     miniChat: true,
   },
   {
     target: '[data-tutorial="today-cards"]',
     emoji: BarChart3,
-    title: '오늘의 건강 기록',
-    desc: '수면, 식사, 운동, 수분을 빠르게 기록할 수 있어요.\n오른쪽 패널에서 바로 입력해도 됩니다.',
+    title: '오늘 기록 입력하기',
+    desc: '수면, 식사, 운동, 수분은 오른쪽 패널에서 직접 입력하거나, 답변 아래 카드에서 질문형으로 기록할 수 있어요.',
     position: 'left',
   },
   {
     target: '[data-tutorial="unanswered"]',
     emoji: HelpCircle,
-    title: '미답변 질문',
-    desc: '남아 있는 질문에 답할수록 리포트의 정확도가 올라가요.',
+    title: '남은 질문 확인하기',
+    desc: '미답변 질문은 오늘 아직 비어 있는 기록 요약이에요. 새 질문을 보내면 다음 카드가 답변 아래에 붙을 수 있어요.',
     position: 'left',
   },
   {
     target: null,
     emoji: Sparkles,
-    title: '준비 완료!',
-    desc: '이제 오늘의 건강 기록부터 시작해볼까요?',
+    title: '준비 완료',
+    desc: '이제 오늘 기록을 시작해볼까요?',
     position: 'center',
   },
 ];
@@ -158,118 +158,103 @@ export default function Tutorial({ onComplete }) {
     <div className="fixed inset-0 z-[100]" style={{ pointerEvents: 'auto' }}>
       <svg className="fixed inset-0 h-full w-full" style={{ zIndex: 100 }}>
         <defs>
-          <mask id="spotlight-mask">
-            <rect width="100%" height="100%" fill="white" />
+          <mask id="tutorial-mask">
+            <rect x="0" y="0" width="100%" height="100%" fill="white" />
             {spotlightRect && (
               <rect
                 x={spotlightRect.left}
                 y={spotlightRect.top}
                 width={spotlightRect.width}
                 height={spotlightRect.height}
-                rx="12"
+                rx="20"
                 fill="black"
               />
             )}
           </mask>
         </defs>
-        <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#spotlight-mask)" />
+        <rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="rgba(27, 31, 26, 0.72)"
+          mask="url(#tutorial-mask)"
+        />
       </svg>
 
       {spotlightRect && (
         <div
-          className="fixed rounded-xl ring-2 ring-white/60 animate-pulse"
+          className="pointer-events-none fixed rounded-[20px] border border-white/70 shadow-[0_0_0_9999px_rgba(27,31,26,0.08)]"
           style={{
-            zIndex: 101,
             top: spotlightRect.top,
             left: spotlightRect.left,
             width: spotlightRect.width,
             height: spotlightRect.height,
-            pointerEvents: 'none',
+            zIndex: 101,
           }}
         />
       )}
 
       <div
-        className={`z-[102] rounded-[28px] bg-white p-7 shadow-2xl ${
-          current.miniChat ? 'w-[520px] max-w-[92vw]' : 'w-[460px] max-w-[92vw]'
-        } ${getArrowClass()}`}
-        style={getTooltipStyle()}
+        className={`w-[min(360px,calc(100vw-32px))] rounded-[28px] border border-white/20 bg-white/96 p-6 shadow-2xl ${getArrowClass()}`}
+        style={{ ...getTooltipStyle(), zIndex: 102 }}
       >
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cream-300">
-            <current.emoji size={24} />
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cream-300 text-nature-900">
+            <current.emoji size={20} />
           </div>
-          <div className="text-[18px] font-semibold text-nature-900">{current.title}</div>
+          <div>
+            <div className="text-[12px] font-semibold tracking-[0.12em] text-neutral-400 uppercase">
+              STEP {step + 1}
+            </div>
+            <div className="text-[20px] font-semibold text-nature-900">{current.title}</div>
+          </div>
         </div>
 
+        <div className="mt-4 text-[14px] leading-[1.8] text-neutral-500">{current.desc}</div>
+
         {current.miniChat && (
-          <div className="mb-4 space-y-3 rounded-2xl bg-cream-300 p-4">
-            <div className="flex gap-2.5">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nature-900 text-[9px] font-semibold text-white">
-                AI
+          <div className="mt-4 rounded-2xl border border-black/[.06] bg-cream-300 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-nature-900 text-[12px] font-semibold text-white">
+                다
               </div>
-              <div className="rounded-2xl rounded-tl-md bg-white px-3.5 py-2.5 text-[13px] leading-[1.7] text-nature-900 shadow-sm">
-                어제 저녁은 어떻게 드셨나요?
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <div className="rounded-2xl rounded-br-md bg-nature-900 px-3.5 py-2 text-[13px] text-white">
-                간단하게 먹었어요
-              </div>
-            </div>
-
-            <div className="flex gap-2.5">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nature-900 text-[9px] font-semibold text-white">
-                AI
-              </div>
-              <div className="rounded-2xl rounded-tl-md bg-white px-3.5 py-2.5 text-[13px] leading-[1.7] text-nature-900 shadow-sm">
-                채소는 얼마나 드셨나요?
-                <div className="mt-2 flex gap-1.5">
-                  {['충분히', '조금', '먹지 않았어요'].map((option) => (
-                    <span
-                      key={option}
-                      className="rounded-full border border-cream-500 bg-cream-300 px-2.5 py-1 text-[10px] text-neutral-500"
-                    >
-                      {option}
-                    </span>
-                  ))}
+              <div className="flex-1">
+                <div className="text-[12px] font-medium text-nature-900">다나아 예시</div>
+                <div className="mt-1 text-[12px] leading-[1.7] text-neutral-500">
+                  “오늘 수면 어땠어?”처럼 물어보면 답변과 함께 기록 카드가 붙을 수 있어요.
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="mb-5 whitespace-pre-line text-[15px] leading-[1.75] text-neutral-500">
-          {current.desc}
-        </div>
+        <div className="mt-5 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={finish}
+            className="text-[13px] font-medium text-neutral-400 transition-colors hover:text-nature-900"
+          >
+            건너뛰기
+          </button>
 
-        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {STEPS.map((_, index) => (
-              <div
-                key={index}
-                className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                  index === step ? 'bg-nature-500' : index < step ? 'bg-nature-500' : 'bg-neutral-200'
-                }`}
-              />
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {step < STEPS.length - 1 && (
-              <button
-                onClick={finish}
-                className="text-[13px] text-neutral-400 transition-colors hover:text-nature-900"
-              >
-                건너뛰기
-              </button>
-            )}
+            <div className="flex gap-1.5">
+              {STEPS.map((item, index) => (
+                <span
+                  key={item.title}
+                  className={`h-2 rounded-full transition-all ${
+                    index === step ? 'w-5 bg-nature-900' : 'w-2 bg-black/[.08]'
+                  }`}
+                />
+              ))}
+            </div>
             <button
+              type="button"
               onClick={next}
-              className="rounded-xl bg-nature-500 px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-nature-600"
+              className="rounded-full bg-nature-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-nature-800"
             >
-              {step < STEPS.length - 1 ? '다음' : '시작하기'}
+              {step === STEPS.length - 1 ? '시작하기' : '다음'}
             </button>
           </div>
         </div>

@@ -1,369 +1,652 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { LeafyGreen, GlassWater, Moon, Footprints, Dumbbell, Droplets, BedDouble } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Flame, Loader2 } from 'lucide-react';
 
-const ALL_CHALLENGES = [
-  { id: 'veggie', cat: 'food', icon: LeafyGreen, emoji: '🥗', bg: '#D1FAE5', name: '채소 먹기', desc: '매일 채소/과일 1회', recommended: true },
-  { id: 'soda', cat: 'food', icon: GlassWater, emoji: '🥤', bg: '#FEE2E2', name: '단음료 줄이기', desc: '주 3일 이하', recommended: false },
-  { id: 'night', cat: 'food', icon: Moon, emoji: '🌙', bg: '#F3E8FF', name: '야식 줄이기', desc: '9시 이후 안 먹기', recommended: false },
-  { id: 'walk', cat: 'move', icon: Footprints, emoji: '🚶', bg: '#DBEAFE', name: '매일 산책', desc: '식후 15분 걷기', recommended: true },
-  { id: 'exercise', cat: 'move', icon: Dumbbell, emoji: '💪', bg: '#FCE7F3', name: '주간 운동', desc: '주 150분 이상', recommended: false },
-  { id: 'water', cat: 'life', icon: Droplets, emoji: '💧', bg: '#E0E7FF', name: '수분 챙기기', desc: '하루 6잔 이상', recommended: false },
-  { id: 'sleep', cat: 'life', icon: BedDouble, emoji: '😴', bg: '#F0FDF4', name: '수면 관리', desc: '7시간 이상 자기', recommended: false },
+import { api } from '../../../hooks/useApi';
+
+const CHECKIN_STATUS = 'achieved';
+const MAX_ACTIVE_CHALLENGES = 2;
+const LEGACY_STORAGE_KEY = 'danaa_challenges';
+
+const CATEGORY_GROUPS = [
+  {
+    key: 'all',
+    label: '전체',
+    matches: () => true,
+  },
+  {
+    key: 'food',
+    label: '식습관',
+    matches: (item) => item.category === 'diet',
+  },
+  {
+    key: 'move',
+    label: '운동',
+    matches: (item) => item.category === 'exercise',
+  },
+  {
+    key: 'life',
+    label: '생활',
+    matches: (item) => ['sleep', 'hydration', 'medication', 'lifestyle'].includes(item.category),
+  },
 ];
 
-const MAX_ACTIVE = 2;
+const CATEGORY_LABELS = {
+  exercise: '운동',
+  diet: '식습관',
+  sleep: '수면',
+  hydration: '수분',
+  medication: '복약',
+  lifestyle: '생활',
+};
 
-const CATEGORIES = [
-  { key: 'all', label: '전체', count: 7 },
-  { key: 'food', label: '식습관', count: 3 },
-  { key: 'move', label: '운동', count: 2 },
-  { key: 'life', label: '생활', count: 2 },
-];
+const CATEGORY_BADGE_STYLES = {
+  exercise: 'bg-blue-50 text-blue-600',
+  diet: 'bg-emerald-50 text-emerald-600',
+  sleep: 'bg-violet-50 text-violet-600',
+  hydration: 'bg-sky-50 text-sky-600',
+  medication: 'bg-amber-50 text-amber-600',
+  lifestyle: 'bg-stone-100 text-stone-600',
+};
 
-const WEEK_DAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const LEGACY_ID_TO_CODE = {
+  veggie: 'vegetable_3servings',
+  soda: 'no_sweetdrink',
+  night: 'no_nightsnack',
+  walk: 'daily_walk_30min',
+  exercise: 'exercise_150min',
+  water: 'water_6cups',
+  sleep: 'sleep_7h',
+};
+
+function percent(value) {
+  return Math.round(Math.min(100, Math.max(0, Number(value || 0) * 100)));
+}
+
+function fireChallengeRefresh() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('danaa:challenge-overview-refresh'));
+  }
+}
+
+function normalizeLegacyChallengeIds(rawValue) {
+  if (!rawValue) return [];
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
+        if (typeof item.id === 'string' && LEGACY_ID_TO_CODE[item.id]) {
+          return LEGACY_ID_TO_CODE[item.id];
+        }
+        return null;
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function categoryLabel(category) {
+  return CATEGORY_LABELS[category] || category || '기타';
+}
+
+function categoryBadgeStyle(category) {
+  return CATEGORY_BADGE_STYLES[category] || 'bg-stone-100 text-stone-600';
+}
 
 export default function ChallengePage() {
-  const [activeCat, setActiveCat] = useState('all');
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [activeChallenges, setActiveChallenges] = useState([]);
-  const [streak, setStreak] = useState(0);
-  const [weekCheckins, setWeekCheckins] = useState([false, false, false, false, false, false, false]);
+  const [overview, setOverview] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState('');
+  const [busyKey, setBusyKey] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
+  const [legacyCodes, setLegacyCodes] = useState([]);
 
-  // localStorage: danaa_challenges (채팅 패널과 공유)
-  useEffect(() => {
+  const loadOverview = useCallback(async () => {
+    setError('');
     try {
-      const saved = localStorage.getItem('danaa_challenges');
-      if (saved) {
-        const data = JSON.parse(saved);
-        setActiveChallenges(data);
-        // 스트릭 계산
-        const maxStreak = data.reduce((max, c) => Math.max(max, c.current_streak || 0), 0);
-        setStreak(maxStreak);
+      const response = await api('/api/v1/challenges/overview');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
-    } catch {}
-    setLoaded(true);
+
+      const payload = await response.json();
+      setOverview(payload);
+    } catch (nextError) {
+      console.error('challenge_overview_load_failed', nextError);
+      setOverview(null);
+      setError('챌린지 상태를 불러오지 못했어요. 잠시 후 다시 확인해주세요.');
+    } finally {
+      setLoaded(true);
+    }
   }, []);
 
-  const saveChallenges = (challenges) => {
-    setActiveChallenges(challenges);
-    try { localStorage.setItem('danaa_challenges', JSON.stringify(challenges)); } catch {}
-  };
+  useEffect(() => {
+    loadOverview();
+  }, [loadOverview]);
 
-  const filteredChallenges = activeCat === 'all'
-    ? ALL_CHALLENGES
-    : ALL_CHALLENGES.filter((c) => c.cat === activeCat);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  // 복수 선택 (최대 2개 - 이미 활성인 것 제외)
-  const toggleSelect = (id) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter((s) => s !== id));
-    } else {
-      const activeCount = activeChallenges.length;
-      const maxSelectable = MAX_ACTIVE - activeCount;
-      if (selectedIds.length < maxSelectable) {
-        setSelectedIds([...selectedIds, id]);
-      } else if (maxSelectable === 1) {
-        setSelectedIds([id]);
-      }
-    }
-  };
+    const storedValue = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    setLegacyCodes(normalizeLegacyChallengeIds(storedValue));
+  }, []);
 
-  // 챌린지 시작 (복수)
-  const joinChallenges = () => {
-    if (selectedIds.length === 0) return;
-    const newChallenges = selectedIds
-      .map(id => ALL_CHALLENGES.find(c => c.id === id))
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handler = () => {
+      loadOverview();
+    };
+
+    window.addEventListener('danaa:challenge-overview-refresh', handler);
+    return () => {
+      window.removeEventListener('danaa:challenge-overview-refresh', handler);
+    };
+  }, [loadOverview]);
+
+  const activeChallenges = Array.isArray(overview?.active) ? overview.active : [];
+  const completedChallenges = Array.isArray(overview?.completed) ? overview.completed : [];
+  const recommendedChallenges = Array.isArray(overview?.recommended) ? overview.recommended : [];
+  const catalog = Array.isArray(overview?.catalog) ? overview.catalog : [];
+  const stats = overview?.stats || {};
+  const activeTemplateIds = useMemo(
+    () => new Set(activeChallenges.map((item) => Number(item.template_id))),
+    [activeChallenges],
+  );
+  const recommendedTemplateIds = useMemo(
+    () => new Set(recommendedChallenges.map((item) => Number(item.template_id))),
+    [recommendedChallenges],
+  );
+  const topStreak = useMemo(
+    () => activeChallenges.reduce((max, item) => Math.max(max, Number(item.current_streak || 0)), 0),
+    [activeChallenges],
+  );
+  const activeCount = Number(stats.active_count || activeChallenges.length || 0);
+  const maxActiveCount = Number(stats.max_active_count || MAX_ACTIVE_CHALLENGES);
+  const remainingSlots = Number(stats.remaining_active_slots ?? Math.max(0, maxActiveCount - activeCount));
+  const categoryCounts = useMemo(
+    () =>
+      CATEGORY_GROUPS.reduce((acc, group) => {
+        acc[group.key] = catalog.filter((item) => group.matches(item)).length;
+        return acc;
+      }, {}),
+    [catalog],
+  );
+  const filteredCatalog = useMemo(() => {
+    const currentGroup = CATEGORY_GROUPS.find((item) => item.key === activeCategory) || CATEGORY_GROUPS[0];
+    return catalog.filter((item) => currentGroup.matches(item));
+  }, [activeCategory, catalog]);
+  const importableLegacyTemplates = useMemo(() => {
+    if (legacyCodes.length === 0) return [];
+    return legacyCodes
+      .map((code) => catalog.find((item) => item.code === code))
       .filter(Boolean)
-      .map(ch => ({
-        id: ch.id, name: ch.name, emoji: ch.emoji, desc: ch.desc,
-        target_days: 14, days_completed: 0, current_streak: 0,
-        today_checked: false, fixed: false, status: 'active',
-      }));
-    const next = [
-      ...activeChallenges.filter(c => !newChallenges.some(nc => nc.id === c.id)),
-      ...newChallenges,
-    ];
-    saveChallenges(next);
-    setSelectedIds([]);
-  };
+      .filter((item, index, array) => array.findIndex((candidate) => candidate.template_id === item.template_id) === index)
+      .filter((item) => !activeTemplateIds.has(Number(item.template_id)));
+  }, [activeTemplateIds, catalog, legacyCodes]);
 
-  // 챌린지 일시정지 (카드에 남아있고 카운트만 중지)
-  // 백엔드 연동 시: PATCH /api/v1/challenges/{id} { status: "paused" }
-  const pauseChallenge = (id) => {
-    if (!confirm('챌린지를 일시정지하시겠어요?\n카운트가 중지되고, 다시 시작할 수 있어요.')) return;
-    const next = activeChallenges.map(c =>
-      c.id === id ? { ...c, status: 'paused' } : c
-    );
-    saveChallenges(next);
-  };
+  const toggleSelect = useCallback(
+    (templateId) => {
+      const numericId = Number(templateId);
+      if (activeTemplateIds.has(numericId)) return;
 
-  // 챌린지 재개
-  // 백엔드 연동 시: PATCH /api/v1/challenges/{id} { status: "active" }
-  const resumeChallenge = (id) => {
-    const next = activeChallenges.map(c =>
-      c.id === id ? { ...c, status: 'active' } : c
-    );
-    saveChallenges(next);
-  };
+      setSelectedTemplateIds((prev) => {
+        if (prev.includes(numericId)) {
+          return prev.filter((item) => item !== numericId);
+        }
 
-  // 챌린지 취소 (완전 삭제)
-  // 백엔드 연동 시: POST /api/v1/challenges/{id}/abandon
-  const cancelChallenge = (id) => {
-    if (!confirm('챌린지를 취소하시겠어요?\n진행 기록이 초기화됩니다.')) return;
-    const next = activeChallenges.filter(c => c.id !== id);
-    saveChallenges(next);
-    setSelectedIds([]);
-    const maxStreak = next.reduce((max, c) => Math.max(max, c.current_streak || 0), 0);
-    setStreak(maxStreak);
-  };
+        const availableSlots = Math.max(0, remainingSlots - prev.length);
+        if (availableSlots <= 0) {
+          return prev;
+        }
 
-  const hasActive = activeChallenges.length > 0;
-  const canSelectMore = activeChallenges.length + selectedIds.length < MAX_ACTIVE;
+        return [...prev, numericId];
+      });
+    },
+    [activeTemplateIds, remainingSlots],
+  );
 
-  if (!loaded) return (
-    <>
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
-        <span className="text-[14px] font-medium text-nature-900">챌린지</span>
-      </header>
-      <div className="flex-1 px-6 py-6">
-        <div className="max-w-[840px] mx-auto space-y-4 animate-pulse">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 bg-cream-400 rounded-full"></div>
-            <div className="h-8 bg-cream-400 rounded w-24"></div>
-          </div>
-          <div className="flex justify-between">
-            {[...Array(7)].map((_, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <div className="w-6 h-3 bg-cream-400 rounded"></div>
-                <div className="w-8 h-8 bg-cream-400 rounded-full"></div>
-              </div>
-            ))}
-          </div>
-          <div className="h-5 bg-cream-400 rounded w-32"></div>
-          <div className="bg-cream-300 rounded-xl p-6 space-y-2">
-            <div className="h-4 bg-cream-400 rounded w-1/2 mx-auto"></div>
-            <div className="h-3 bg-cream-400 rounded w-1/3 mx-auto"></div>
+  const joinChallenge = useCallback(
+    async (templateId) => {
+      const numericId = Number(templateId);
+      const busyId = `join:${numericId}`;
+      setBusyKey(busyId);
+      setError('');
+
+      try {
+        const response = await api(`/api/v1/challenges/${numericId}/join`, {
+          method: 'POST',
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.detail || `HTTP ${response.status}`);
+        }
+
+        await loadOverview();
+        fireChallengeRefresh();
+      } catch (nextError) {
+        setError(nextError.message || '챌린지를 시작하지 못했어요.');
+      } finally {
+        setBusyKey('');
+      }
+    },
+    [loadOverview],
+  );
+
+  const joinSelectedChallenges = useCallback(async () => {
+    if (selectedTemplateIds.length === 0) return;
+
+    for (const templateId of selectedTemplateIds) {
+      // eslint-disable-next-line no-await-in-loop
+      await joinChallenge(templateId);
+    }
+
+    setSelectedTemplateIds([]);
+  }, [joinChallenge, selectedTemplateIds]);
+
+  const importLegacyChallenges = useCallback(async () => {
+    if (importableLegacyTemplates.length === 0) return;
+
+    const limit = Math.max(0, remainingSlots);
+    const targets = importableLegacyTemplates.slice(0, limit);
+    if (targets.length === 0) {
+      setError('지금은 남은 슬롯이 없어서 기존 챌린지를 가져올 수 없어요.');
+      return;
+    }
+
+    setBusyKey('legacy-import');
+    setError('');
+
+    try {
+      for (const template of targets) {
+        // eslint-disable-next-line no-await-in-loop
+        await joinChallenge(template.template_id);
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      }
+      setLegacyCodes([]);
+    } finally {
+      setBusyKey('');
+    }
+  }, [importableLegacyTemplates, joinChallenge, remainingSlots]);
+
+  const checkinChallenge = useCallback(
+    async (userChallengeId) => {
+      const busyId = `checkin:${userChallengeId}`;
+      setBusyKey(busyId);
+      setError('');
+
+      try {
+        const response = await api(`/api/v1/challenges/${userChallengeId}/checkin`, {
+          method: 'POST',
+          body: JSON.stringify({ status: CHECKIN_STATUS }),
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.detail || `HTTP ${response.status}`);
+        }
+
+        await loadOverview();
+        fireChallengeRefresh();
+      } catch (nextError) {
+        setError(nextError.message || '오늘 체크를 저장하지 못했어요.');
+      } finally {
+        setBusyKey('');
+      }
+    },
+    [loadOverview],
+  );
+
+  if (!loaded) {
+    return (
+      <>
+        <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+          <span className="text-[14px] font-medium text-nature-900">챌린지</span>
+        </header>
+        <div className="flex-1 px-6 py-6">
+          <div className="max-w-[840px] mx-auto space-y-4 animate-pulse">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-cream-400"></div>
+              <div className="h-8 w-24 rounded bg-cream-400"></div>
+            </div>
+            <div className="h-28 rounded-2xl bg-cream-300"></div>
+            <div className="h-64 rounded-2xl bg-cream-300"></div>
           </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
 
   return (
     <>
-      {/* 헤더 */}
       <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
         <span className="text-[14px] font-medium text-nature-900">챌린지</span>
       </header>
 
-      {/* 스크롤 콘텐츠 */}
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
         <div className="max-w-[840px] mx-auto">
-
-          {/* ── 스트릭 ── */}
-          <div className="flex items-center gap-3.5 mb-4">
-            <span className="text-[28px]">🔥</span>
+          <div className="mb-5 flex items-center gap-3.5">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+              <Flame size={24} />
+            </span>
             <div>
-              <span className="text-[28px] font-semibold">{streak}일</span>
-              <span className="text-[15px] text-neutral-400 ml-1">연속</span>
+              <div className="text-[28px] font-semibold text-nature-900">{topStreak}일</div>
+              <div className="text-[13px] text-neutral-400">연속 기록</div>
             </div>
-            <div className="flex gap-1.5 ml-auto">
-              {hasActive && activeChallenges.map(c => (
-                <span key={c.id} className="px-2.5 py-1 rounded-full bg-cream-400 text-neutral-600 text-[12px]">
-                  {c.emoji} {c.name}
+            <div className="ml-auto flex flex-wrap gap-1.5">
+              {activeChallenges.map((challenge) => (
+                <span
+                  key={challenge.user_challenge_id}
+                  className="rounded-full bg-cream-300 px-2.5 py-1 text-[12px] text-neutral-500"
+                >
+                  {challenge.emoji} {challenge.name}
                 </span>
               ))}
-              {activeChallenges.length < MAX_ACTIVE && (
-                <span className="px-2.5 py-1 rounded-full bg-cream-300 text-neutral-400 text-[12px] opacity-50">🔒 ???</span>
+              {activeChallenges.length < maxActiveCount && (
+                <span className="rounded-full bg-cream-300 px-2.5 py-1 text-[12px] text-neutral-300">
+                  남은 슬롯 {remainingSlots}개
+                </span>
               )}
             </div>
           </div>
 
-          {/* ── 주간 도트 ── */}
-          <div className="flex justify-between mb-6">
-            {WEEK_DAYS.map((d, i) => (
-              <div key={d} className="flex flex-col items-center gap-1.5">
-                <span className="text-[12px] text-neutral-400">{d}</span>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-medium ${
-                  weekCheckins[i] ? 'bg-nature-500 text-white' : 'bg-cream-400 text-neutral-300'
-                }`}>
-                  {weekCheckins[i] ? '✓' : '·'}
+          <div className="mb-6 rounded-2xl bg-cream-300 px-5 py-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[12px] text-neutral-400">현재 진행 중</div>
+                <div className="mt-1 text-[24px] font-semibold text-nature-900">
+                  {activeCount}/{maxActiveCount}개
+                </div>
+                <div className="text-[12px] text-neutral-400">
+                  남은 슬롯 {remainingSlots}개 · 최고 연속 {topStreak}일
                 </div>
               </div>
-            ))}
+              <div className="rounded-full bg-white px-3 py-1 text-[12px] text-neutral-500">
+                챌린지 참여와 체크는 이 화면에서 관리해요
+              </div>
+            </div>
           </div>
 
-          {/* ── 오늘의 챌린지 ── */}
-          <h3 className="text-[16px] font-semibold text-nature-900 mb-3">오늘의 챌린지</h3>
-
-          {!hasActive ? (
-            <div className="bg-cream-300 rounded-xl p-6 mb-5 text-center">
-              <div className="text-[13px] text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
-              <div className="text-[11px] text-neutral-400">아래에서 챌린지를 선택해서 시작해보세요</div>
+          {error && (
+            <div className="mb-4 rounded-xl border border-danger/20 bg-danger-light px-4 py-3 text-[12px] text-danger">
+              {error}
             </div>
-          ) : (
-            <>
-              {activeChallenges.map(ch => {
-                const isPaused = ch.status === 'paused';
-                return (
-                  <div key={ch.id} className={`shadow-soft rounded-lg p-4 mb-3 bg-white ${isPaused ? 'opacity-60' : ''}`}>
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-cream-300 text-[20px]">
-                        {ch.emoji}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[15px] font-medium text-nature-900">{ch.name}</span>
-                          {isPaused && <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning-light text-warning font-medium">정지됨</span>}
-                        </div>
-                        <div className="text-[13px] text-neutral-400">
-                          {isPaused ? '카운트 중지 중 · 재개하면 이어서 진행' : `${ch.desc} · AI 채팅에서 자동 체크`}
-                        </div>
-                      </div>
-                      {ch.fixed ? (
-                        <span className="text-[12px] px-2.5 py-1 rounded-md bg-cream-400 text-neutral-400">고정</span>
-                      ) : (
-                        <div className="flex gap-1.5">
-                          {isPaused ? (
-                            <button
-                              onClick={() => resumeChallenge(ch.id)}
-                              className="text-[11px] px-2.5 py-1 rounded-md border border-nature-500 text-nature-500 hover:bg-nature-500 hover:text-white transition-colors"
-                            >
-                              재개
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => pauseChallenge(ch.id)}
-                              className="text-[11px] px-2.5 py-1 rounded-md border border-cream-500 text-neutral-400 hover:text-warning hover:border-warning hover:bg-warning-light transition-colors"
-                            >
-                              정지
-                            </button>
-                          )}
-                          <button
-                            onClick={() => cancelChallenge(ch.id)}
-                            className="text-[11px] px-2.5 py-1 rounded-md border border-cream-500 text-neutral-400 hover:text-danger hover:border-danger hover:bg-danger-light transition-colors"
-                          >
-                            취소
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13px] text-neutral-400 w-[56px] shrink-0">진행</span>
-                      <div className="flex-1 h-1.5 bg-cream-400 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${isPaused ? 'bg-warning/50' : 'bg-neutral-400'}`} style={{ width: `${Math.min(100, ch.days_completed / ch.target_days * 100)}%` }}></div>
-                      </div>
-                      <span className="text-[14px] font-medium text-nature-900">{ch.days_completed}/{ch.target_days}일</span>
-                    </div>
+          )}
+
+          {importableLegacyTemplates.length > 0 && (
+            <div className="mb-5 rounded-2xl border border-cream-500 bg-white px-4 py-4 shadow-soft">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-[13px] font-medium text-nature-900">예전 챌린지 기록이 남아 있어요</div>
+                  <div className="mt-1 text-[11px] text-neutral-400">
+                    이전 브라우저 저장값에서 가져올 수 있는 챌린지 {importableLegacyTemplates.length}개를 찾았어요.
                   </div>
-                );
-              })}
-            </>
-          )}
-
-          {/* ── AI 넛지 ── */}
-          {hasActive ? (
-            <div className="bg-cream-300 rounded-xl px-4 py-3 mb-6 text-[14px] text-neutral-400 leading-relaxed">
-              💬 챌린지를 시작했어요! AI 채팅에서 건강 기록을 하면 자동으로 체크됩니다.
-            </div>
-          ) : (
-            <div className="bg-cream-300 rounded-xl px-4 py-3 mb-6 text-[14px] text-neutral-400 leading-relaxed">
-              💬 챌린지를 선택하면 매일 건강 습관을 추적할 수 있어요
-            </div>
-          )}
-
-          {/* ── 구분선 ── */}
-          <div className="border-t-2 border-cream-400 mb-6"></div>
-
-          {/* ── 챌린지 선택 ── */}
-          <div id="ch-select-area">
-            <h3 className="text-[16px] font-semibold text-nature-900 mb-3">챌린지 선택</h3>
-
-            {/* 카테고리 탭 */}
-            <div className="flex gap-2 mb-5">
-              {CATEGORIES.map((cat) => (
+                </div>
                 <button
-                  key={cat.key}
-                  onClick={() => setActiveCat(cat.key)}
-                  className={`px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors ${
-                    activeCat === cat.key
-                      ? 'bg-nature-500 text-white border border-nature-500'
-                      : 'bg-cream-400 text-neutral-400 hover:bg-cream-500'
+                  type="button"
+                  onClick={importLegacyChallenges}
+                  disabled={busyKey === 'legacy-import' || remainingSlots <= 0}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                    busyKey === 'legacy-import' || remainingSlots <= 0
+                      ? 'bg-cream-300 text-neutral-400 cursor-not-allowed'
+                      : 'bg-nature-900 text-white hover:bg-nature-800'
                   }`}
                 >
-                  {cat.label}<span className="ml-1 opacity-70">{cat.count}</span>
+                  {busyKey === 'legacy-import' ? '가져오는 중' : '기존 챌린지 가져오기'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <section className="mb-6">
+            <h3 className="mb-3 text-[16px] font-semibold text-nature-900">오늘의 챌린지</h3>
+
+            {activeChallenges.length === 0 ? (
+              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center">
+                <div className="text-[13px] font-medium text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
+                <div className="text-[11px] text-neutral-400">아래에서 챌린지를 고르면 이곳에 진행 상태가 보여요.</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activeChallenges.map((challenge) => {
+                  const busy = busyKey === `checkin:${challenge.user_challenge_id}`;
+                  const progress = percent(challenge.progress_pct);
+                  return (
+                    <div key={challenge.user_challenge_id} className="rounded-xl bg-white p-4 shadow-soft">
+                      <div className="mb-3 flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[20px]">{challenge.emoji}</span>
+                            <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] ${categoryBadgeStyle(challenge.category)}`}>
+                              {categoryLabel(challenge.category)}
+                            </span>
+                          </div>
+                          <div className="mt-1 text-[12px] text-neutral-400">
+                            목표 {challenge.target_days}일 · 현재 {challenge.days_completed}일 완료 · 연속 {challenge.current_streak}일
+                          </div>
+                        </div>
+                        {challenge.today_checked ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-nature-100 px-3 py-1 text-[11px] text-nature-700">
+                            <CheckCircle2 size={14} />
+                            오늘 체크 완료
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => checkinChallenge(challenge.user_challenge_id)}
+                            disabled={busy}
+                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                              busy
+                                ? 'bg-cream-300 text-neutral-400 cursor-wait'
+                                : 'bg-nature-900 text-white hover:bg-nature-800'
+                            }`}
+                          >
+                            {busy ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                            오늘 체크하기
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="w-[42px] shrink-0 text-[12px] text-neutral-400">진행</span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-cream-400">
+                          <div className="h-full rounded-full bg-nature-500 transition-all" style={{ width: `${progress}%` }}></div>
+                        </div>
+                        <span className="text-[12px] font-medium text-nature-900">{progress}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <div className="mb-6 rounded-xl bg-cream-300 px-4 py-3 text-[13px] text-neutral-500">
+            건강 기록은 리포트와 브리핑에 반영되고, 챌린지 진행률과 오늘 체크는 이 화면에서 따로 관리돼요.
+          </div>
+
+          <section className="mb-6">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-[16px] font-semibold text-nature-900">추천 챌린지</h3>
+              <div className="text-[12px] text-neutral-400">남은 슬롯 {remainingSlots}개</div>
+            </div>
+
+            {recommendedChallenges.length === 0 ? (
+              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center text-[12px] text-neutral-400">
+                지금 자동 추천된 챌린지는 없어요. 아래 목록에서 직접 골라도 돼요.
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {recommendedChallenges.map((challenge) => {
+                  const busy = busyKey === `join:${challenge.template_id}`;
+                  const disabled = remainingSlots <= 0 || activeTemplateIds.has(Number(challenge.template_id)) || busy;
+                  return (
+                    <div key={challenge.template_id} className="rounded-xl bg-white p-4 shadow-soft">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[18px]">{challenge.emoji}</span>
+                            <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
+                          </div>
+                          <div className="mt-1 text-[12px] text-neutral-400">
+                            {challenge.description} · 기본 {challenge.default_duration_days}일
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => joinChallenge(challenge.template_id)}
+                          disabled={disabled}
+                          className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                            disabled
+                              ? 'bg-cream-300 text-neutral-400 cursor-not-allowed'
+                              : 'bg-nature-500 text-white hover:bg-nature-600'
+                          }`}
+                        >
+                          {busy ? '시작 중' : activeTemplateIds.has(Number(challenge.template_id)) ? '참여 중' : '시작'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="border-t-2 border-cream-400 pt-6">
+            <h3 className="mb-3 text-[16px] font-semibold text-nature-900">챌린지 선택</h3>
+
+            <div className="mb-5 flex flex-wrap gap-2">
+              {CATEGORY_GROUPS.map((group) => (
+                <button
+                  key={group.key}
+                  type="button"
+                  onClick={() => setActiveCategory(group.key)}
+                  className={`rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                    activeCategory === group.key
+                      ? 'border border-nature-500 bg-nature-500 text-white'
+                      : 'bg-cream-400 text-neutral-500 hover:bg-cream-500'
+                  }`}
+                >
+                  {group.label}
+                  <span className="ml-1 opacity-70">{categoryCounts[group.key] || 0}</span>
                 </button>
               ))}
             </div>
 
-            {/* 챌린지 목록 */}
-            <div className="text-[13px] font-medium text-neutral-400 mb-2.5">
-              선택 ({selectedIds.length}/{MAX_ACTIVE - activeChallenges.length}개)
-              {activeChallenges.length > 0 && (
-                <span className="text-neutral-300 ml-1">· 이미 {activeChallenges.length}개 진행 중</span>
-              )}
+            <div className="mb-2.5 text-[13px] font-medium text-neutral-400">
+              선택 ({selectedTemplateIds.length}/{remainingSlots}개)
+              {activeCount > 0 && <span className="ml-1 text-neutral-300">· 이미 {activeCount}개 진행 중</span>}
             </div>
-            <div className="space-y-1.5 mb-4">
-              {filteredChallenges.map((ch) => {
-                const isSelected = selectedIds.includes(ch.id);
-                const isActive = activeChallenges.some(c => c.id === ch.id);
-                const isDisabled = !isSelected && !isActive && !canSelectMore;
+
+            <div className="space-y-1.5">
+              {filteredCatalog.map((item) => {
+                const templateId = Number(item.template_id);
+                const isActive = activeTemplateIds.has(templateId);
+                const isSelected = selectedTemplateIds.includes(templateId);
+                const selectionDisabled = !isSelected && !isActive && selectedTemplateIds.length >= remainingSlots;
+
                 return (
-                  <div
-                    key={ch.id}
-                    onClick={() => !isActive && !isDisabled && toggleSelect(ch.id)}
-                    className={`flex items-center gap-3 rounded-lg p-3 transition-colors ${
+                  <button
+                    key={templateId}
+                    type="button"
+                    onClick={() => toggleSelect(templateId)}
+                    disabled={isActive || selectionDisabled}
+                    className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
                       isActive
-                        ? 'bg-cream-300 opacity-50 cursor-default'
-                        : isDisabled
-                          ? 'bg-cream-300 opacity-30 cursor-not-allowed'
+                        ? 'cursor-default bg-cream-300 opacity-60'
+                        : selectionDisabled
+                          ? 'cursor-not-allowed bg-cream-300 opacity-35'
                           : isSelected
-                            ? 'border-2 border-nature-500 bg-cream-300 cursor-pointer'
-                            : 'bg-white hover:bg-cream-300 shadow-soft cursor-pointer'
+                            ? 'border-2 border-nature-500 bg-cream-300'
+                            : 'bg-white shadow-soft hover:bg-cream-300'
                     }`}
                   >
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-                      isSelected || isActive ? 'bg-nature-500 text-white' : 'border border-cream-500 text-transparent'
-                    }`}>
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
+                        isSelected || isActive ? 'bg-nature-500 text-white' : 'border border-cream-500 text-transparent'
+                      }`}
+                    >
                       ✓
                     </div>
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: ch.bg }}>
-                      <ch.icon size={20} />
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream-300 text-[20px]">
+                      {item.emoji}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-medium text-nature-900">{ch.name}</div>
-                      <div className="text-[12px] text-neutral-400">{ch.desc}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-medium text-nature-900">{item.name}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] ${categoryBadgeStyle(item.category)}`}>
+                          {categoryLabel(item.category)}
+                        </span>
+                      </div>
+                      <div className="text-[12px] text-neutral-400">
+                        {item.description} · 기본 {item.default_duration_days}일
+                      </div>
                     </div>
-                    {ch.recommended && <span className="text-[11px] px-2 py-0.5 rounded bg-cream-300 text-nature-500">추천</span>}
-                    {isActive && <span className="text-[11px] px-2 py-0.5 rounded bg-nature-500 text-white">참여 중</span>}
-                  </div>
+                    {(item.is_recommended || recommendedTemplateIds.has(templateId)) && (
+                      <span className="rounded bg-cream-300 px-2 py-0.5 text-[11px] text-nature-500">추천</span>
+                    )}
+                    {isActive && (
+                      <span className="rounded bg-nature-500 px-2 py-0.5 text-[11px] text-white">참여 중</span>
+                    )}
+                  </button>
                 );
               })}
             </div>
 
-            {/* 참여 버튼 */}
-            {selectedIds.length > 0 && (
-              <div className="text-center py-3">
+            {selectedTemplateIds.length > 0 && (
+              <div className="py-4 text-center">
                 <button
-                  onClick={joinChallenges}
-                  className="px-6 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors"
+                  type="button"
+                  onClick={joinSelectedChallenges}
+                  className="rounded-lg bg-nature-500 px-6 py-2.5 text-[14px] font-medium text-white hover:bg-nature-600 transition-colors"
                 >
-                  {selectedIds.length === 1
+                  {selectedTemplateIds.length === 1
                     ? '챌린지 시작하기'
-                    : `${selectedIds.length}개 챌린지 시작하기`
-                  }
+                    : `${selectedTemplateIds.length}개 챌린지 시작하기`}
                 </button>
               </div>
             )}
 
-            <div className="text-center py-3 text-[13px] text-neutral-400">
-              참여 중 <span className="text-nature-900 font-medium">{activeChallenges.length}</span> / 최대 {MAX_ACTIVE}개
+            <div className="py-3 text-center text-[13px] text-neutral-400">
+              참여 중 <span className="font-medium text-nature-900">{activeCount}</span> / 최대 {maxActiveCount}개
             </div>
-          </div>
+          </section>
 
+          <section className="mt-6">
+            <h3 className="mb-3 text-[16px] font-semibold text-nature-900">완료한 챌린지</h3>
+            {completedChallenges.length === 0 ? (
+              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center text-[12px] text-neutral-400">
+                아직 완료한 챌린지는 없어요.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {completedChallenges.map((challenge) => (
+                  <div key={challenge.user_challenge_id} className="rounded-xl bg-white p-4 shadow-soft">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[18px]">{challenge.emoji}</span>
+                      <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
+                      <span className="rounded-full bg-nature-100 px-2 py-0.5 text-[10px] text-nature-700">완료</span>
+                    </div>
+                    <div className="mt-1 text-[12px] text-neutral-400">
+                      총 {challenge.days_completed}일 기록 · 최고 연속 {challenge.best_streak}일
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </>

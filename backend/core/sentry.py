@@ -24,6 +24,8 @@ HEALTH_SENSITIVE_FIELDS: frozenset[str] = frozenset({
     "nightsnack_level", "blood_pressure", "blood_sugar",
     "message_text", "base_system_prompt", "user_context_text",
     "rag_context_text", "openai_messages", "final_system_prompt",
+    "app_help_text", "app_state_text", "app_context",
+    "state_snapshot", "help_snapshot", "question_labels", "bundle_names",
 })
 
 # 건강 관련 엔드포인트 — request body 전체를 제거

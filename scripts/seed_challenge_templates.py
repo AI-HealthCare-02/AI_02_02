@@ -137,7 +137,7 @@ async def seed() -> None:
 
         await ChallengeTemplate.create(**t)
         created += 1
-        print(f"  [CREATE] {t['code']} — {t['name']}")
+        print(f"  [CREATE] {t['code']} - {t['name']}")
 
     print()
     print(f"완료: {created}개 생성, {skipped}개 건너뜀 (총 {created + skipped}개)")

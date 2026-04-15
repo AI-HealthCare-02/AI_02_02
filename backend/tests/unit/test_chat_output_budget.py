@@ -31,5 +31,5 @@ def test_short_response_instruction_is_flagged(monkeypatch):
         prompt_policy=prompting.PromptPolicy.NONE,
     )
 
-    assert "응답 길이 실험 지시" in result.final_system_prompt
-    assert "의료 안전 안내" in result.final_system_prompt
+    assert "답변 길이 추가 지시" in result.final_system_prompt
+    assert "안전 안내가 필요한 경우에는 그 문구를 생략하지 마세요." in result.final_system_prompt

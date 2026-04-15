@@ -24,15 +24,15 @@ from backend.models.settings import UserSettings
 # ai_worker의 묶음 정의를 직접 참조하지 않고 여기서 매핑 정의
 # (Docker 컨테이너 격리로 workers/ai/ 직접 import 불가)
 
-# ── 묶음별 체크 필드 (미응답 판단용) ──
+# ── 묶음별 기본 체크 필드 (빠른 분기용) ──
 BUNDLE_CHECK_FIELDS: dict[str, list[str]] = {
-    "bundle_1": ["sleep_quality"],
-    "bundle_2": ["breakfast_status"],
-    "bundle_3": ["meal_balance_level"],
-    "bundle_4": ["exercise_done"],
-    "bundle_5": ["vegetable_intake_level"],
+    "bundle_1": ["sleep_quality", "sleep_duration_bucket"],
+    "bundle_2": ["breakfast_status", "took_medication"],
+    "bundle_3": ["meal_balance_level", "sweetdrink_level"],
+    "bundle_4": ["exercise_done", "exercise_type", "exercise_minutes"],
+    "bundle_5": ["vegetable_intake_level", "walk_done"],
     "bundle_6": ["took_medication"],
-    "bundle_7": ["mood_level"],
+    "bundle_7": ["mood_level", "alcohol_today", "alcohol_amount_level"],
 }
 
 # ── 시간 윈도우 정의 (시, 분, 시, 분) ──
@@ -70,7 +70,7 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
         ],
     },
     "bundle_3": {
-        "name": "식단질",
+        "name": "식단",
         "questions": [
             {"field": "meal_balance_level", "text": "오늘 식사 구성은 어땠어? 🥗",
              "options": ["balanced", "carb_heavy", "protein_veg_heavy"]},
@@ -129,6 +129,37 @@ MAX_DAILY_CHATS = 50
 NIGHT_START_HOUR = 22
 NIGHT_END_HOUR = 7
 
+DAILY_MISSING_BUNDLE_LABELS: dict[str, str] = {
+    "bundle_1": "수면",
+    "bundle_2": "아침 식사",
+    "bundle_3": "식사 균형",
+    "bundle_4": "운동",
+    "bundle_5": "생활 습관",
+    "bundle_6": "복약",
+    "bundle_7": "기분과 음주",
+}
+
+DAILY_MISSING_QUESTION_RULES: tuple[dict[str, str], ...] = (
+    {"field": "sleep_quality", "label": "수면의 질", "bundle_key": "bundle_1"},
+    {"field": "sleep_duration_bucket", "label": "수면 시간", "bundle_key": "bundle_1"},
+    {"field": "breakfast_status", "label": "아침 식사 여부", "bundle_key": "bundle_2"},
+    {"field": "meal_balance_level", "label": "식사 균형", "bundle_key": "bundle_3"},
+    {"field": "sweetdrink_level", "label": "당류 음료나 간식", "bundle_key": "bundle_3"},
+    {"field": "exercise_done", "label": "운동 여부", "bundle_key": "bundle_4"},
+    {"field": "exercise_type", "label": "운동 종류", "bundle_key": "bundle_4"},
+    {"field": "exercise_minutes", "label": "운동 시간", "bundle_key": "bundle_4"},
+    {"field": "vegetable_intake_level", "label": "채소 섭취", "bundle_key": "bundle_5"},
+    {"field": "walk_done", "label": "걷기 여부", "bundle_key": "bundle_5"},
+    {"field": "took_medication", "label": "복약 여부", "bundle_key": "bundle_6"},
+    {"field": "mood_level", "label": "기분 상태", "bundle_key": "bundle_7"},
+    {"field": "alcohol_today", "label": "음주 여부", "bundle_key": "bundle_7"},
+    {"field": "alcohol_amount_level", "label": "음주량", "bundle_key": "bundle_7"},
+)
+
+QUESTION_LABEL_BY_FIELD: dict[str, str] = {
+    rule["field"]: rule["label"] for rule in DAILY_MISSING_QUESTION_RULES
+}
+
 
 class HealthQuestionService:
     """건강질문 삽입 판단 + 답변 저장."""
@@ -160,7 +191,7 @@ class HealthQuestionService:
         candidates = self._get_time_candidates(
             now, user_group, engagement, settings.preferred_times,
         )
-        eligible = self._filter_unanswered(candidates, today_log)
+        eligible = self._filter_unanswered(candidates, today_log, user_group)
 
         return eligible[:MAX_BUNDLES_PER_RESPONSE]
 
@@ -208,14 +239,18 @@ class HealthQuestionService:
         return candidates
 
     def _filter_unanswered(
-        self, candidates: list[str], today_log: DailyHealthLog | None
+        self,
+        candidates: list[str],
+        today_log: DailyHealthLog | None,
+        user_group: UserGroup | str | None,
     ) -> list[str]:
         """미응답 묶음만 필터링 + 중복 제거."""
         eligible: list[str] = []
         for bundle_key in candidates:
-            check_fields = BUNDLE_CHECK_FIELDS.get(bundle_key, [])
-            if today_log is None or all(
-                getattr(today_log, f, None) is None for f in check_fields
+            if not self._is_bundle_complete(
+                bundle_key=bundle_key,
+                today_log=today_log,
+                user_group=user_group,
             ):
                 eligible.append(bundle_key)
 
@@ -224,6 +259,233 @@ class HealthQuestionService:
             eligible.remove("bundle_6")
 
         return eligible
+
+    @staticmethod
+    def _get_user_group_value(user_group: UserGroup | str | None) -> str:
+        if hasattr(user_group, "value"):
+            return str(user_group.value)
+        if user_group is None:
+            return UserGroup.C.value
+        return str(user_group)
+
+    def _is_question_applicable(
+        self,
+        *,
+        question: dict,
+        today_log: DailyHealthLog | None,
+        user_group: UserGroup | str | None,
+    ) -> bool:
+        condition = question.get("condition")
+        if not condition:
+            return True
+
+        if condition == "group_A_only":
+            return self._get_user_group_value(user_group) == UserGroup.A.value
+
+        if condition.endswith("_true"):
+            parent_field = condition[: -len("_true")]
+            return bool(today_log and getattr(today_log, parent_field, None) is True)
+
+        if condition == "48h_since_last":
+            return True
+
+        return True
+
+    def _get_required_fields_for_bundle(  # noqa: C901
+        self,
+        *,
+        bundle_key: str,
+        today_log: DailyHealthLog | None,
+        user_group: UserGroup | str | None,
+    ) -> list[str]:
+        if bundle_key == "bundle_1":
+            return ["sleep_quality", "sleep_duration_bucket"]
+
+        if bundle_key == "bundle_2":
+            fields = ["breakfast_status"]
+            if self._get_user_group_value(user_group) == UserGroup.A.value:
+                fields.append("took_medication")
+            return fields
+
+        if bundle_key == "bundle_3":
+            return ["meal_balance_level", "sweetdrink_level"]
+
+        if bundle_key == "bundle_4":
+            fields = ["exercise_done"]
+            if today_log and today_log.exercise_done is True:
+                fields.extend(["exercise_type", "exercise_minutes"])
+            return fields
+
+        if bundle_key == "bundle_5":
+            return ["vegetable_intake_level", "walk_done"]
+
+        if bundle_key == "bundle_6":
+            return ["took_medication"]
+
+        if bundle_key == "bundle_7":
+            fields = ["mood_level", "alcohol_today"]
+            if today_log and today_log.alcohol_today is True:
+                fields.append("alcohol_amount_level")
+            return fields
+
+        return BUNDLE_CHECK_FIELDS.get(bundle_key, [])
+
+    def _is_bundle_complete(
+        self,
+        *,
+        bundle_key: str,
+        today_log: DailyHealthLog | None,
+        user_group: UserGroup | str | None,
+    ) -> bool:
+        required_fields = self._get_required_fields_for_bundle(
+            bundle_key=bundle_key,
+            today_log=today_log,
+            user_group=user_group,
+        )
+        if not required_fields:
+            return False
+        if today_log is None:
+            return False
+        return all(getattr(today_log, field_name, None) is not None for field_name in required_fields)
+
+    def _build_pending_bundle_payload(
+        self,
+        *,
+        bundle_key: str,
+        today_log: DailyHealthLog | None,
+        user_group: UserGroup | str | None,
+    ) -> dict | None:
+        bundle = HEALTH_QUESTION_BUNDLES.get(bundle_key)
+        if not bundle:
+            return None
+
+        questions: list[dict] = []
+        unanswered_count = 0
+        for question in bundle.get("questions", []):
+            if not self._is_question_applicable(
+                question=question,
+                today_log=today_log,
+                user_group=user_group,
+            ):
+                continue
+
+            field_name = question["field"]
+            value = getattr(today_log, field_name, None) if today_log else None
+            required_fields = self._get_required_fields_for_bundle(
+                bundle_key=bundle_key,
+                today_log=today_log,
+                user_group=user_group,
+            )
+            if field_name in required_fields and value is None:
+                unanswered_count += 1
+
+            questions.append(
+                {
+                    "field": field_name,
+                    "summary_label": QUESTION_LABEL_BY_FIELD.get(field_name, question["text"]),
+                    "text": question["text"],
+                    "input_type": question.get("input_type", "select"),
+                    "options": question.get("options", []),
+                    "condition": question.get("condition"),
+                }
+            )
+
+        if unanswered_count <= 0:
+            return None
+
+        return {
+            "bundle_key": bundle_key,
+            "name": bundle.get("name", bundle_key),
+            "unanswered_count": unanswered_count,
+            "questions": questions,
+        }
+
+    async def get_daily_pending_questions(self, user_id: int) -> dict[str, object]:
+        """Return actionable pending question bundles for today's catch-up UI."""
+        today = datetime.now(tz=config.TIMEZONE).date()
+        today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=today)
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        user_group = profile.user_group if profile else UserGroup.C
+
+        bundles: list[dict] = []
+        bundle_order = ["bundle_1", "bundle_2", "bundle_3", "bundle_4", "bundle_5", "bundle_7"]
+
+        if self._get_user_group_value(user_group) == UserGroup.A.value:
+            bundle_order.insert(5, "bundle_6")
+
+        for bundle_key in bundle_order:
+            if bundle_key == "bundle_6" and not self._is_bundle_complete(
+                bundle_key="bundle_2",
+                today_log=today_log,
+                user_group=user_group,
+            ):
+                continue
+
+            payload = self._build_pending_bundle_payload(
+                bundle_key=bundle_key,
+                today_log=today_log,
+                user_group=user_group,
+            )
+            if payload:
+                bundles.append(payload)
+
+        return {
+            "count": sum(bundle["unanswered_count"] for bundle in bundles),
+            "bundles": bundles,
+        }
+
+    async def get_daily_missing_summary(self, user_id: int) -> dict[str, object]:
+        """Return today's missing question summary using canonical fields only."""
+        today = datetime.now(tz=config.TIMEZONE).date()
+        today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=today)
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        user_group = profile.user_group if profile else UserGroup.C
+
+        question_labels: list[str] = []
+        bundle_names: list[str] = []
+        seen_bundle_names: set[str] = set()
+
+        for rule in DAILY_MISSING_QUESTION_RULES:
+            field_name = rule["field"]
+            if not self._should_include_daily_missing_field(
+                field_name=field_name,
+                user_group=user_group,
+                today_log=today_log,
+            ):
+                continue
+            if today_log is not None and getattr(today_log, field_name, None) is not None:
+                continue
+
+            question_labels.append(rule["label"])
+            bundle_name = DAILY_MISSING_BUNDLE_LABELS[rule["bundle_key"]]
+            if bundle_name not in seen_bundle_names:
+                seen_bundle_names.add(bundle_name)
+                bundle_names.append(bundle_name)
+
+        return {
+            "count": len(question_labels),
+            "question_labels": question_labels,
+            "bundle_names": bundle_names,
+        }
+
+    @staticmethod
+    def _should_include_daily_missing_field(
+        *,
+        field_name: str,
+        user_group: UserGroup | str,
+        today_log: DailyHealthLog | None,
+    ) -> bool:
+        group_value = HealthQuestionService._get_user_group_value(user_group)
+        if field_name == "took_medication":
+            return group_value == UserGroup.A.value
+
+        if field_name in {"exercise_type", "exercise_minutes"}:
+            return bool(today_log and today_log.exercise_done is True)
+
+        if field_name == "alcohol_amount_level":
+            return bool(today_log and today_log.alcohol_today is True)
+
+        return True
 
     async def save_health_answers(
         self,
