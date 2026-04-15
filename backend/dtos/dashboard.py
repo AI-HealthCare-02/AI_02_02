@@ -19,6 +19,16 @@ class RiskSummaryResponse(BaseModel):
     exercise_score: int | None = None
     lifestyle_score: int | None = None
     assessed_at: datetime | None = None
+    model_track: str | None = None
+    model_name: str | None = None
+    predicted_score_pct: int | None = None
+    predicted_risk_level: str | None = None
+    predicted_risk_label: str | None = None
+    predicted_stage_label: str | None = None
+    recommended_actions: list[str] = []
+    supporting_signals: list[str] = []
+    ai_coaching_lines: list[str] = []
+    disclaimer: str | None = None
 
 
 class RiskDetailResponse(RiskSummaryResponse):
