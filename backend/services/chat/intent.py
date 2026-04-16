@@ -56,6 +56,14 @@ _PENDING_KEYWORDS = (
     "뭐가 비어 있어",
     "오늘 뭐가 비어 있어",
 )
+_PENDING_KEYWORDS = tuple(dict.fromkeys(_PENDING_KEYWORDS + (
+    "카드 설문",
+    "왜 카드 설문 안나와",
+    "왜 설문카드가 안붙어",
+    "다음 카드 언제 나와",
+    "지금 카드 못받는 이유",
+)))
+
 _STATE_KEYWORDS = (
     "현재",
     "지금",

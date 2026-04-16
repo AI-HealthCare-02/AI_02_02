@@ -32,7 +32,10 @@ const PANEL_LOG_FIELDS = [
   'exercise_minutes',
   'walk_done',
   'water_cups',
+  'took_medication',
   'mood_level',
+  'alcohol_today',
+  'alcohol_amount_level',
 ];
 
 /* ── 유틸 ── */
@@ -53,7 +56,9 @@ const LEGACY_LOG_FIELD_MAP = new Map([
   [['dinner'].join(''), 'dinner_status'],
   [['veget', 'able'].join(''), 'vegetable_intake_level'],
   [['meal', '_', 'balance'].join(''), 'meal_balance_level'],
+  [['medication'].join(''), 'took_medication'],
   [['mo', 'od'].join(''), 'mood_level'],
+  [['alcohol', '_', 'amount'].join(''), 'alcohol_amount_level'],
 ]);
 
 const emptyLog = () => ({
@@ -61,13 +66,15 @@ const emptyLog = () => ({
   breakfast_status: null, lunch_status: null, dinner_status: null,
   vegetable_intake_level: null, meal_balance_level: null,
   exercise_done: null, exercise_type: null, exercise_minutes: null, walk_done: null,
-  water_cups: 0, mood_level: null,
+  water_cups: 0, took_medication: null, mood_level: null, alcohol_today: null, alcohol_amount_level: null,
 });
 
 function migrateStoredLog(rawLog) {
   const nextLog = { ...emptyLog(), ...(rawLog || {}) };
 
   LEGACY_LOG_FIELD_MAP.forEach((canonicalField, legacyField) => {
+    // 자기매핑(legacyField === canonicalField)이면 delete로 현재 값까지 날아가므로 skip
+    if (legacyField === canonicalField) return;
     if (
       nextLog[canonicalField] == null &&
       rawLog &&
@@ -132,6 +139,9 @@ const HEALTH_OPTION_LABELS = {
   ...SLEEP_QUALITY_LABELS,
   ...MEAL_LABELS,
   ...EXERCISE_TYPES,
+  very_good: '아주 좋음',
+  good: '좋음',
+  normal: '보통',
   enough: '충분해요',
   little: '조금 먹었어요',
   none: '거의 없어요',
@@ -191,6 +201,9 @@ function normalizePendingQuestions(rawPending) {
             bundleKey: bundle.bundle_key,
             name: bundle.name || bundle.bundle_key,
             unansweredCount: Number(bundle.unanswered_count || questions.length),
+            unansweredFields: Array.isArray(bundle.unanswered_fields)
+              ? bundle.unanswered_fields.filter((field) => typeof field === 'string')
+              : [],
             questions,
           };
         })
@@ -289,21 +302,21 @@ const ChatTranscript = memo(function ChatTranscript({
             {msg.role === 'user' ? (
               <div className="flex justify-end">
                 <div>
-                  <div className="bg-nature-900 text-white text-[13px] leading-[1.7] rounded-2xl rounded-br-md px-4 py-2.5 max-w-[480px]">
+                  <div className="bg-nature-900 text-white text-[15px] leading-[1.75] rounded-2xl rounded-br-md px-4 py-3 max-w-[520px]">
                     {msg.content}
                   </div>
-                  <div className="text-[11px] text-neutral-300 mt-0.5 text-right">{msg.ts}</div>
+                  <div className="text-[13px] text-neutral-300 mt-1 text-right">{msg.ts}</div>
                 </div>
               </div>
             ) : (
               <div className="flex gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">다</div>
+                <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
                 <div className="flex-1 min-w-0">
-                  <div className={`text-[13px] leading-[1.7] ${msg.isError ? 'text-red-500' : 'text-nature-900'}`}>
+                  <div className={`text-[15px] leading-[1.75] ${msg.isError ? 'text-red-500' : 'text-nature-900'}`}>
                     {msg.content || <span className="text-neutral-300">생각 중...</span>}
                     {msg.streaming && <span className="inline-block w-[2px] h-[14px] bg-nature-900 ml-0.5 animate-pulse align-middle"></span>}
                   </div>
-                  {msg.ts && <div className="text-[11px] text-neutral-300 mt-0.5">{msg.ts}</div>}
+                  {msg.ts && <div className="text-[13px] text-neutral-300 mt-1">{msg.ts}</div>}
                   {!msg.isError && !msg.streaming && primaryHealthQuestion && (
                     <div className="mt-3 max-w-[560px]" data-inline-health-card="true">
                       <InlineHealthQuestionCard
@@ -327,13 +340,13 @@ const ChatTranscript = memo(function ChatTranscript({
           className="max-w-[840px] mx-auto mb-3.5"
         >
           <div className="flex gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">다</div>
+            <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
             <div className="flex-1 min-w-0">
-              <div className={`text-[13px] leading-[1.7] ${streamingDraft.isError ? 'text-red-500' : 'text-nature-900'}`}>
+              <div className={`text-[15px] leading-[1.75] ${streamingDraft.isError ? 'text-red-500' : 'text-nature-900'}`}>
                 {streamingDraft.content || <span className="text-neutral-300">생각 중...</span>}
                 {streamingDraft.streaming && <span className="inline-block w-[2px] h-[14px] bg-nature-900 ml-0.5 animate-pulse align-middle"></span>}
               </div>
-              {streamingDraft.ts && <div className="text-[11px] text-neutral-300 mt-0.5">{streamingDraft.ts}</div>}
+              {streamingDraft.ts && <div className="text-[13px] text-neutral-300 mt-1">{streamingDraft.ts}</div>}
             </div>
           </div>
         </div>
@@ -382,7 +395,28 @@ export default function ChatPage() {
   const nextMessageIdRef = useRef(1);
   const saveTimerRef = useRef(null);
   const saveVersionRef = useRef(0);
+  const fetchRequestIdRef = useRef(0);
   const lastServerLogRef = useRef(migrateStoredLog(emptyLog()));
+  const currentLogRef = useRef(migrateStoredLog(emptyLog()));
+  const directSaveInflightRef = useRef(0);
+  const cardsSectionRef = useRef(null);
+
+  // 활성 상세 카드 바깥(채팅 영역 등)을 클릭하면 접힘
+  useEffect(() => {
+    if (!activeCard) return undefined;
+    const handlePointer = (event) => {
+      const node = cardsSectionRef.current;
+      if (node && !node.contains(event.target)) {
+        setActiveCard(null);
+      }
+    };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('touchstart', handlePointer);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('touchstart', handlePointer);
+    };
+  }, [activeCard]);
 
   const createLocalMessageId = useCallback(() => {
     const nextId = nextMessageIdRef.current;
@@ -399,14 +433,19 @@ export default function ChatPage() {
     return migratedNext;
   }, []);
 
-  const applyServerDailyLog = useCallback((nextLog) => {
+  const applyServerDailyLog = useCallback((nextLog, { fromDirectSave = false } = {}) => {
     const migratedNext = cacheDailyLog(nextLog);
     lastServerLogRef.current = migratedNext;
+    if (!fromDirectSave && directSaveInflightRef.current > 0) {
+      // 진행 중인 direct save를 외부 스냅샷이 덮어쓰지 않도록 user-facing state 보존
+      return migratedNext;
+    }
+    currentLogRef.current = migratedNext;
     setLog(migratedNext);
     return migratedNext;
   }, [cacheDailyLog]);
 
-  const applyDailyPayload = useCallback((payload) => {
+  const applyDailyPayload = useCallback((payload, options = {}) => {
     const nextLog = migrateStoredLog(payload?.daily_log || payload || emptyLog());
     const nextMissingSummary = normalizeMissingSummary(
       payload?.daily_log?.missing_summary ?? payload?.missing_summary,
@@ -414,7 +453,7 @@ export default function ChatPage() {
     const nextPendingQuestions = normalizePendingQuestions(
       payload?.daily_log?.pending_questions ?? payload?.pending_questions,
     );
-    applyServerDailyLog(nextLog);
+    applyServerDailyLog(nextLog, options);
     setMissingSummary(nextMissingSummary);
     setPendingQuestions(nextPendingQuestions);
     return nextLog;
@@ -466,23 +505,36 @@ export default function ChatPage() {
       }
 
       const result = await response.json();
-      applyDailyPayload(result);
+      applyDailyPayload(result, { fromDirectSave: true });
 
       if (version === saveVersionRef.current) {
         setTodaySaveState('saved');
       }
     } catch (error) {
-      console.error('today_log_save_failed', error);
+      // 실패해도 사용자 입력은 유지한다 — 이전 서버 상태로 덮어쓰면 입력한 값이 화면에서 사라져
+      // 사용자가 뭘 눌렀는지조차 못 보게 되는 치명적 UX 문제. 저장 상태만 'error'로 표시하고
+      // 사용자 입력(currentLogRef/log)은 그대로 두어 재시도 기회를 남긴다.
+      console.error('today_log_save_failed', {
+        message: error?.message || String(error),
+        status: error?.status,
+        payload,
+        attempted: {
+          alcohol_today: nextLog?.alcohol_today,
+          alcohol_amount_level: nextLog?.alcohol_amount_level,
+          mood_level: nextLog?.mood_level,
+          took_medication: nextLog?.took_medication,
+        },
+      });
       if (version === saveVersionRef.current) {
-        const fallback = migrateStoredLog(lastServerLogRef.current || emptyLog());
-        cacheDailyLog(fallback);
-        setLog(fallback);
         setTodaySaveState('error');
       }
     }
   }, [applyDailyPayload, buildTodayLogPatch, cacheDailyLog]);
 
   const fetchTodayLog = useCallback(async () => {
+    fetchRequestIdRef.current += 1;
+    const requestId = fetchRequestIdRef.current;
+    const requestSaveVersion = saveVersionRef.current;
     try {
       const response = await api(DAILY_HEALTH_API_PATH(todayDateString()));
       if (!response.ok) {
@@ -490,6 +542,12 @@ export default function ChatPage() {
       }
 
       const payload = await response.json();
+      if (
+        requestId !== fetchRequestIdRef.current ||
+        requestSaveVersion !== saveVersionRef.current
+      ) {
+        return;
+      }
       applyDailyPayload(payload);
       setTodaySaveState('idle');
     } catch (error) {
@@ -660,6 +718,7 @@ export default function ChatPage() {
       const saved = localStorage.getItem(todayKey());
       if (saved) {
         const migratedLog = migrateStoredLog(JSON.parse(saved));
+        currentLogRef.current = migratedLog;
         setLog(migratedLog);
         localStorage.setItem(todayKey(), JSON.stringify(migratedLog));
         localStorage.setItem(DAILY_SCHEMA_VERSION_KEY, DAILY_SCHEMA_VERSION);
@@ -953,10 +1012,14 @@ export default function ChatPage() {
       throw new Error(typeof detail === 'string' ? detail : '저장 중 문제가 생겼어요.');
     }
 
-    await fetchTodayLog();
+    if (payload?.daily_log || payload?.pending_questions || payload?.card_availability) {
+      applyDailyPayload(payload);
+    } else {
+      await fetchTodayLog();
+    }
 
     return payload;
-  }, [fetchTodayLog]);
+  }, [applyDailyPayload, fetchTodayLog]);
 
   const submitPendingQuestionAnswer = useCallback(async (_bundleKey, answers) => {
     const response = await api(DAILY_HEALTH_API_PATH(todayDateString()), {
@@ -1210,6 +1273,7 @@ const sendMessage = useCallback(async () => {
   // 오른쪽 패널 기록은 먼저 화면에 반영하고, 잠시 뒤 기존 daily API로 저장합니다.
   const save = useCallback((next) => {
     const migratedNext = migrateStoredLog(next);
+    currentLogRef.current = migratedNext;
     setLog(migratedNext);
     cacheDailyLog(migratedNext);
     setTodaySaveState('saving');
@@ -1222,13 +1286,69 @@ const sendMessage = useCallback(async () => {
     }
 
     saveTimerRef.current = setTimeout(() => {
-      persistTodayLog(migratedNext, currentVersion);
+      directSaveInflightRef.current += 1;
+      Promise.resolve(persistTodayLog(migratedNext, currentVersion)).finally(() => {
+        directSaveInflightRef.current = Math.max(0, directSaveInflightRef.current - 1);
+      });
     }, PANEL_SAVE_DEBOUNCE_MS);
   }, [cacheDailyLog, persistTodayLog]);
 
+  const saveImmediate = useCallback((next) => {
+    const migratedNext = migrateStoredLog(next);
+    currentLogRef.current = migratedNext;
+    setLog(migratedNext);
+    cacheDailyLog(migratedNext);
+    setTodaySaveState('saving');
+
+    saveVersionRef.current += 1;
+    const currentVersion = saveVersionRef.current;
+
+    if (saveTimerRef.current !== null) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    directSaveInflightRef.current += 1;
+    Promise.resolve(persistTodayLog(migratedNext, currentVersion)).finally(() => {
+      directSaveInflightRef.current = Math.max(0, directSaveInflightRef.current - 1);
+    });
+  }, [cacheDailyLog, persistTodayLog]);
+
   const update = useCallback((field, value) => {
-    save({ ...log, [field]: value });
-  }, [log, save]);
+    const baseLog = migrateStoredLog(currentLogRef.current || emptyLog());
+    const nextLog = { ...baseLog, [field]: value };
+
+    if (field === 'exercise_done' && value === false) {
+      nextLog.exercise_type = null;
+      nextLog.exercise_minutes = null;
+    }
+
+    if (field === 'alcohol_today' && value === false) {
+      nextLog.alcohol_amount_level = null;
+    }
+
+    save(nextLog);
+  }, [save]);
+
+  const updateAlcoholToday = useCallback((value) => {
+    const baseLog = migrateStoredLog(currentLogRef.current || emptyLog());
+    const nextLog = {
+      ...baseLog,
+      alcohol_today: value,
+      alcohol_amount_level: value ? (baseLog.alcohol_amount_level ?? null) : null,
+    };
+    saveImmediate(nextLog);
+  }, [saveImmediate]);
+
+  const updateAlcoholAmount = useCallback((value) => {
+    const baseLog = migrateStoredLog(currentLogRef.current || emptyLog());
+    const nextLog = {
+      ...baseLog,
+      alcohol_today: true,
+      alcohol_amount_level: value,
+    };
+    saveImmediate(nextLog);
+  }, [saveImmediate]);
 
   const selectedPendingBundle = useMemo(() => {
     if (!manualCardBundleKey) return null;
@@ -1280,8 +1400,60 @@ const sendMessage = useCallback(async () => {
       isLogFieldAnswered('sleep_duration_bucket', log.sleep_duration_bucket) ||
       isLogFieldAnswered('breakfast_status', log.breakfast_status) ||
       log.exercise_done !== null ||
-      isLogFieldAnswered('water_cups', log.water_cups)
+      isLogFieldAnswered('water_cups', log.water_cups) ||
+      isLogFieldAnswered('took_medication', log.took_medication) ||
+      isLogFieldAnswered('mood_level', log.mood_level) ||
+      isLogFieldAnswered('alcohol_today', log.alcohol_today)
     );
+
+  const isGroupA = onboarding?.user_group === 'A' || risk?.group === 'A';
+
+  const pendingCardCounts = useMemo(() => {
+    const counts = {
+      sleep: 0,
+      meal: 0,
+      exercise: 0,
+      water: 0,
+      mood: 0,
+      medication: 0,
+      alcohol: 0,
+    };
+
+    const fieldToCardKey = {
+      sleep_quality: 'sleep',
+      sleep_duration_bucket: 'sleep',
+      breakfast_status: 'meal',
+      lunch_status: 'meal',
+      dinner_status: 'meal',
+      vegetable_intake_level: 'meal',
+      meal_balance_level: 'meal',
+      exercise_done: 'exercise',
+      exercise_type: 'exercise',
+      exercise_minutes: 'exercise',
+      walk_done: 'exercise',
+      mood_level: 'mood',
+      took_medication: 'medication',
+      alcohol_today: 'alcohol',
+      alcohol_amount_level: 'alcohol',
+    };
+
+    (pendingQuestions?.bundles || []).forEach((bundle) => {
+      const unansweredFields = Array.isArray(bundle?.unansweredFields) && bundle.unansweredFields.length > 0
+        ? bundle.unansweredFields
+        : (bundle.questions || [])
+            .map((question) => question?.field)
+            .filter((field) => typeof field === 'string' && !isLogFieldAnswered(field, log?.[field]));
+
+      unansweredFields.forEach((field) => {
+        const cardKey = fieldToCardKey[field];
+        if (cardKey) {
+          counts[cardKey] += 1;
+        }
+      });
+    });
+
+    return counts;
+  }, [log, pendingQuestions]);
 
   /* ── 카드 값 계산 ── */
   const sleepVal = getSleepDisplay(log);
@@ -1289,30 +1461,31 @@ const sendMessage = useCallback(async () => {
   const mealVal = mealCount > 0 ? `${mealCount}/3` : null;
   const exerciseVal = log.exercise_done === true ? '✓' : log.exercise_done === false ? '✗' : null;
   const waterVal = log.water_cups > 0 ? `${log.water_cups}잔` : null;
+  const moodVal = log.mood_level ? getHealthOptionLabel(log.mood_level).replace('아주 ', '') : null;
+  const medicationVal = log.took_medication === true ? '완료' : log.took_medication === false ? '건너뜀' : null;
+  const alcoholVal = log.alcohol_today === false
+    ? '안 마심'
+    : log.alcohol_today === true
+      ? (log.alcohol_amount_level ? getHealthOptionLabel(log.alcohol_amount_level) : '음주')
+      : null;
+
+  const alcoholCardVal = log.alcohol_today === false
+    ? '미음주'
+    : log.alcohol_today === true
+      ? (log.alcohol_amount_level ? getHealthOptionLabel(log.alcohol_amount_level) : '음주량 입력 필요')
+      : null;
 
   const cards = [
-    { key: 'sleep', label: '수면', val: sleepVal, color: activeCard === 'sleep' ? 'bg-cream-400' : '' },
-    { key: 'meal', label: '식사', val: mealVal, color: activeCard === 'meal' ? 'bg-cream-400' : '' },
-    { key: 'exercise', label: '운동', val: exerciseVal, color: activeCard === 'exercise' ? 'bg-[#e3f2fd]' : '' },
-    { key: 'water', label: '수분', val: waterVal, color: activeCard === 'water' ? 'bg-cream-400' : '' },
+    { key: 'sleep', label: '수면', icon: '😴', val: sleepVal, pendingCount: pendingCardCounts.sleep, color: activeCard === 'sleep' ? 'bg-cream-400' : '' },
+    { key: 'meal', label: '식사', icon: '🍽️', val: mealVal, pendingCount: pendingCardCounts.meal, color: activeCard === 'meal' ? 'bg-cream-400' : '' },
+    { key: 'exercise', label: '운동', icon: '🏃', val: exerciseVal, pendingCount: pendingCardCounts.exercise, color: activeCard === 'exercise' ? 'bg-[#e3f2fd]' : '' },
+    { key: 'water', label: '수분', icon: '💧', val: waterVal, pendingCount: pendingCardCounts.water, color: activeCard === 'water' ? 'bg-cream-400' : '' },
+    { key: 'mood', label: '기분', icon: '😊', val: moodVal, pendingCount: pendingCardCounts.mood, color: activeCard === 'mood' ? 'bg-cream-400' : '' },
+    { key: 'alcohol', label: '음주', icon: '🍺', val: alcoholCardVal, pendingCount: pendingCardCounts.alcohol, color: activeCard === 'alcohol' ? 'bg-cream-400' : '' },
+    ...(isGroupA
+      ? [{ key: 'medication', label: '복약', icon: '💊', val: medicationVal, pendingCount: pendingCardCounts.medication, color: activeCard === 'medication' ? 'bg-cream-400' : '' }]
+      : []),
   ];
-
-  /* ── 브리핑 자동 생성 ── */
-  const briefings = [];
-  if (log.sleep_duration_bucket) {
-    const q = log.sleep_quality;
-    const sub = q ? SLEEP_QUALITY_LABELS[q] : '';
-    briefings.push({ icon: '💤', text: `수면 ${SLEEP_LABELS[log.sleep_duration_bucket]}`, sub: sub || '기록됨' });
-  }
-  if (log.breakfast_status !== null) {
-    briefings.push({ icon: '🍽️', text: `아침 — ${MEAL_LABELS[log.breakfast_status]}`, sub: log.breakfast_status === 'hearty' ? '좋아요! 👏' : log.breakfast_status === 'skipped' ? '내일은 꼭!' : '기록됨' });
-  }
-  if (log.exercise_done !== null) {
-    briefings.push({ icon: '🏃', text: log.exercise_done ? `운동 ${log.exercise_type ? EXERCISE_TYPES[log.exercise_type] : ''} ${log.exercise_minutes ? log.exercise_minutes + '분' : ''}`.trim() : '운동 — 안 했어요', sub: log.exercise_done ? '잘했어요! 💪' : '내일은 해봐요' });
-  }
-  if (log.water_cups > 0) {
-    briefings.push({ icon: '💧', text: `수분 ${log.water_cups}잔`, sub: log.water_cups >= 8 ? '목표 달성! 🎉' : log.water_cups >= 5 ? '좀 더 마셔요' : '좀 부족해요' });
-  }
 
   if (!loaded) return null;
 
@@ -1333,7 +1506,7 @@ const sendMessage = useCallback(async () => {
 
       {/* 헤더 */}
       <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
-        <span className="text-[13px] font-medium text-nature-900">AI 채팅</span>
+        <span className="text-[15px] font-medium text-nature-900">AI 채팅</span>
         <div className="flex-1"></div>
         <button onClick={() => setPanelOpen(!panelOpen)} className="w-8 h-8 rounded-lg hover:bg-black/[.03] flex items-center justify-center text-sm text-neutral-400 relative">
           📋
@@ -1356,9 +1529,9 @@ const sendMessage = useCallback(async () => {
               <>
                 <div className="max-w-[840px] mx-auto mb-3.5">
                   <div className="flex gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">다</div>
+                    <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] leading-[1.7] text-nature-900">
+                      <div className="text-[15px] leading-[1.75] text-nature-900">
                         안녕하세요! 다나아 AI입니다 😊<br />
                         {risk?.group && <>
                           <strong>{risk.group}그룹</strong>({risk.groupLabel})이시네요.
@@ -1368,7 +1541,7 @@ const sendMessage = useCallback(async () => {
                         오늘 기록을 차근차근 쌓아볼까요?<br />
                         <span className="text-neutral-400">질문에 답하면 본문 아래 카드로 기록할 수 있고, 오른쪽 패널에서는 오늘 기록을 직접 입력하거나 저장된 상태와 남은 질문을 함께 확인할 수 있어요.</span>
                       </div>
-                      <div className="text-[11px] text-neutral-300 mt-0.5">지금</div>
+                      <div className="text-[13px] text-neutral-300 mt-1">지금</div>
                     </div>
                   </div>
                 </div>
@@ -1379,7 +1552,7 @@ const sendMessage = useCallback(async () => {
                     <div className="flex gap-2.5">
                       <div className="w-7 h-7 shrink-0"></div>
                       <div className="flex-1 border border-cream-500 rounded-xl p-4 bg-cream-300 shadow-soft">
-                        <div className="text-[12px] font-medium text-nature-900 mb-2.5">오늘 기록을 어디서든 시작해보세요</div>
+                        <div className="text-[15px] font-medium text-nature-900 mb-2.5">오늘 기록을 어디서든 시작해보세요</div>
                         <div className="flex flex-wrap gap-2">
                           {[
                             { label: '💤 수면 기록', card: 'sleep' },
@@ -1388,7 +1561,7 @@ const sendMessage = useCallback(async () => {
                             { label: '💧 수분 기록', card: 'water' },
                           ].map(item => (
                             <button key={item.card} onClick={() => { setPanelOpen(true); setActiveCard(item.card); }}
-                              className="px-3 py-1.5 rounded-full text-[11px] bg-white border border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500 transition-all">
+                              className="px-3.5 py-2 rounded-full text-[14px] bg-white border border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500 transition-all">
                               {item.label}
                             </button>
                           ))}
@@ -1404,16 +1577,16 @@ const sendMessage = useCallback(async () => {
             {!onboarding && (
               <div className="max-w-[840px] mx-auto mb-3.5">
                 <div className="flex gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">다</div>
+                  <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] leading-[1.7] text-nature-900">
+                    <div className="text-[15px] leading-[1.75] text-nature-900">
                       안녕하세요! 다나아 AI입니다 😊<br />
                       맞춤 건강관리를 시작하려면 먼저 온보딩 설문을 완료해주세요.
                     </div>
-                    <a href="/onboarding/diabetes" className="inline-block mt-2 px-4 py-2 bg-nature-900 text-white text-[12px] font-medium rounded-lg hover:bg-nature-800 transition-colors">
+                    <a href="/onboarding/diabetes" className="inline-block mt-2 px-4 py-2.5 bg-nature-900 text-white text-[14px] font-medium rounded-lg hover:bg-nature-800 transition-colors">
                       온보딩 시작하기 →
                     </a>
-                    <div className="text-[11px] text-neutral-300 mt-1.5">지금</div>
+                    <div className="text-[13px] text-neutral-300 mt-1.5">지금</div>
                   </div>
                 </div>
               </div>
@@ -1422,7 +1595,7 @@ const sendMessage = useCallback(async () => {
             {/* ── 채팅 메시지 ── */}
             {historyPolicyNotice && (
               <div className="max-w-[840px] mx-auto mb-3.5">
-                <div className="ml-[38px] rounded-xl border border-cream-500 bg-cream-300 px-4 py-3 text-[12px] leading-[1.6] text-neutral-500">
+                <div className="ml-[38px] rounded-xl border border-cream-500 bg-cream-300 px-4 py-3.5 text-[14px] leading-[1.6] text-neutral-500">
                   이전 대화는 텍스트만 복원돼요. 건강 질문 카드는 새 답변에서만 표시됩니다.
                 </div>
               </div>
@@ -1467,7 +1640,7 @@ const sendMessage = useCallback(async () => {
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }}
                 placeholder={isHistoryLoading ? '이전 대화를 불러오는 중...' : isStreaming ? '답변을 기다리는 중...' : '다나아에게 무엇이든 물어보세요...'}
                 disabled={isStreaming || isHistoryLoading}
-                className="flex-1 py-2.5 px-4 rounded-[20px] border border-cream-400 text-[13px] outline-none bg-cream-300 focus:border-nature-500 focus:ring-2 focus:ring-nature-500/10 transition-colors disabled:opacity-50"
+                className="flex-1 py-3 px-4 rounded-[20px] border border-cream-400 text-[14px] outline-none bg-cream-300 focus:border-nature-500 focus:ring-2 focus:ring-nature-500/10 transition-colors disabled:opacity-50"
               />
               <button
                 onClick={sendMessage}
@@ -1482,15 +1655,15 @@ const sendMessage = useCallback(async () => {
 
         {/* ══ 오른쪽 패널 ══ */}
         {panelOpen && (
-          <aside className="w-[280px] border-l border-cream-500 bg-white flex flex-col shrink-0 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+          <aside className="w-[320px] xl:w-[336px] border-l border-cream-500 bg-white flex flex-col shrink-0 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
 
-            <div className="p-4 space-y-5">
+            <div className="p-5 space-y-6">
               {/* ═══ 1. 오늘 한눈에 ═══ */}
               <div>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h4 className="text-[12px] font-semibold text-nature-900">오늘 한눈에</h4>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h4 className="text-[16px] font-semibold text-nature-900">오늘 한눈에</h4>
                   <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-medium ${
+                    className={`rounded-full px-2.5 py-1.5 text-[13px] font-medium ${
                       todaySaveState === 'error'
                         ? 'bg-red-50 text-red-500'
                         : todaySaveState === 'saving'
@@ -1509,24 +1682,38 @@ const sendMessage = useCallback(async () => {
                           : '직접 입력 가능'}
                   </span>
                 </div>
-                <div className="border-b border-cream-500 mb-3"></div>
+                <div className="border-b border-cream-500 mb-4"></div>
+                <div className="mb-4 rounded-xl bg-cream-300 px-4 py-3 text-[14px] leading-[1.55] text-neutral-400">
+                  오늘 필요한 기록은 여기에서 바로 입력하고, 비어 있는 항목도 같은 카드에서 이어서 채울 수 있어요.
+                </div>
 
-                {/* 4개 카드 */}
-                <div className="grid grid-cols-4 gap-1.5 mb-3" data-tutorial="today-cards">
+                {/* 기록 카드 + 확장 패널 — 바깥 클릭으로 닫히는 영역 */}
+                <div ref={cardsSectionRef}>
+                <div className="grid grid-cols-2 gap-2.5 mb-4" data-tutorial="today-cards">
                   {cards.map((c) => (
                     <button
                       key={c.key}
                       onClick={() => setActiveCard(activeCard === c.key ? null : c.key)}
-                      className={`text-center py-2.5 cursor-pointer rounded-lg transition-all ${
+                      className={`rounded-2xl p-4 text-left cursor-pointer transition-all ${
                         activeCard === c.key
                           ? `${c.color} shadow-float ring-1 ring-black/[.06]`
-                          : 'hover:bg-black/[.03] shadow-xs'
+                          : 'bg-cream-300 hover:bg-cream-400 shadow-xs'
                       }`}
                     >
-                      <div className={`text-[15px] font-semibold ${c.val ? 'text-nature-900' : 'text-neutral-300'}`}>
-                        {c.val || '—'}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[18px] mb-2">{c.icon}</div>
+                          <div className="text-[14px] text-neutral-400">{c.label}</div>
+                        </div>
+                        {c.pendingCount > 0 && (
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[14px] text-nature-700 shrink-0">
+                            미입력 {c.pendingCount}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] text-neutral-400">{c.label}</div>
+                      <div className={`mt-3 text-[18px] font-semibold leading-[1.25] ${c.val ? 'text-nature-900' : 'text-neutral-300'}`}>
+                        {c.val || '바로 입력'}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1544,48 +1731,23 @@ const sendMessage = useCallback(async () => {
                 {activeCard === 'water' && (
                   <WaterPanelV2 log={log} update={update} />
                 )}
-
-                {/* 아무 카드도 선택 안 했을 때: 비워두기 */}
-              </div>
-
-              {/* ═══ 2. 오늘의 브리핑 ═══ */}
-              <div>
-                <h4 className="text-[12px] font-semibold text-nature-900 mb-2">오늘의 브리핑</h4>
-                <div className="border-b border-cream-500 mb-3"></div>
-                {briefings.length > 0 ? (
-                  <div className="bg-cream-300 rounded-xl p-4 space-y-3">
-                    {briefings.map((item) => (
-                      <div key={item.text} className="flex items-start gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[14px] shrink-0">{item.icon}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[11px] font-medium text-nature-900">{item.text}</div>
-                          <div className="text-[10px] text-neutral-400">{item.sub}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-cream-300 rounded-xl p-4 text-center">
-                    <div className="text-[20px] mb-2">📋</div>
-                    <div className="text-[12px] font-medium text-nature-900 mb-1">아직 기록이 없어요</div>
-                    <div className="text-[10px] text-neutral-400">건강 기록을 시작하면 브리핑이 표시돼요</div>
-                  </div>
+                {activeCard === 'mood' && (
+                  <MoodPanel log={log} update={update} />
                 )}
+                {activeCard === 'medication' && isGroupA && (
+                  <MedicationPanel log={log} update={update} />
+                )}
+                {activeCard === 'alcohol' && (
+                  <AlcoholPanel
+                    log={log}
+                    updateAlcoholToday={updateAlcoholToday}
+                    updateAlcoholAmount={updateAlcoholAmount}
+                  />
+                )}
+                </div>
               </div>
 
-              {/* ═══ 3. 나의 습관 ═══ */}
               <HabitsSection />
-
-              {/* ═══ 4. 미답변 질문 ═══ */}
-              <div data-tutorial="unanswered">
-              <UnansweredQuestionsSectionV2
-                pendingSummary={pendingHealthSummary}
-                hasLiveHealthCard={hasLiveHealthCard}
-                onJumpToHealthCard={scrollToLatestHealthCard}
-                activeBundleKey={manualCardBundleKey}
-                onSelectBundle={openPendingBundleCard}
-              />
-              </div>
             </div>
           </aside>
         )}
@@ -1617,24 +1779,24 @@ function SleepPanel({ log, update }) {
 
   if (!log.sleep_duration_bucket && !log.sleep_quality) {
     return (
-      <div className="bg-cream-300 rounded-lg p-4 mb-3 text-center">
+      <div className="bg-cream-300 rounded-xl p-4.5 mb-4 text-center">
         {panelLocked && (
-          <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+          <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
             이미 저장된 운동 기록은 오늘 화면에서 다시 바꾸지 않아요.
           </div>
         )}
         {panelLocked && (
-          <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+          <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
             이미 저장된 수면 기록은 오늘 화면에서 다시 바꾸지 않아요.
           </div>
         )}
-        <div className="text-[13px] mb-2">😴</div>
-        <div className="text-[12px] text-nature-900 mb-3">수면을 기록해주세요</div>
-        <div className="text-[10px] text-neutral-400 mb-3">몇 시간 주무셨나요?</div>
-        <div className="flex flex-wrap gap-1.5 justify-center">
+        <div className="text-[17px] mb-2.5">😴</div>
+        <div className="text-[16px] font-medium text-nature-900 mb-3">수면을 기록해주세요</div>
+        <div className="text-[14px] leading-[1.55] text-neutral-400 mb-3.5">몇 시간 주무셨나요?</div>
+        <div className="flex flex-wrap gap-2 justify-center">
           {durations.map(d => (
             <button key={d.key} onClick={() => update('sleep_duration_bucket', d.key)} disabled={durationLocked}
-              className={`px-2.5 py-1 rounded-full text-[11px] border transition-all ${
+              className={`px-3 py-1.5 rounded-full text-[15px] border transition-all ${
                 durationLocked
                   ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
                   : 'bg-white border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500'
@@ -1648,18 +1810,18 @@ function SleepPanel({ log, update }) {
   }
 
   return (
-    <div className="bg-cream-300 rounded-lg p-3.5 mb-3">
+    <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
       {panelLocked && (
-        <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+        <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 수면 기록은 오늘 화면에서 다시 바꾸지 않아요.
         </div>
       )}
       {/* 수면 시간 */}
-      <div className="text-[10px] text-neutral-400 mb-2">수면 시간</div>
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="text-[14px] text-neutral-400 mb-2.5">수면 시간</div>
+      <div className="flex flex-wrap gap-2 mb-4">
         {durations.map(d => (
           <button key={d.key} onClick={() => update('sleep_duration_bucket', d.key)} disabled={durationLocked}
-            className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
+            className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
               log.sleep_duration_bucket === d.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : durationLocked
@@ -1671,11 +1833,11 @@ function SleepPanel({ log, update }) {
         ))}
       </div>
       {/* 수면 질 */}
-      <div className="text-[10px] text-neutral-400 mb-2">수면 질</div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="text-[14px] text-neutral-400 mb-2.5">수면 질</div>
+      <div className="flex flex-wrap gap-2">
         {qualities.map(q => (
           <button key={q.key} onClick={() => update('sleep_quality', q.key)} disabled={qualityLocked}
-            className={`px-2 py-1 rounded-full text-[11px] transition-all ${
+            className={`px-2.5 py-1.5 rounded-full text-[15px] transition-all ${
               log.sleep_quality === q.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : qualityLocked
@@ -1720,22 +1882,22 @@ function MealPanel({ log, update }) {
   const panelLocked = false;
 
   return (
-    <div className="bg-cream-300 rounded-lg p-3.5 mb-3">
+    <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
       {panelLocked && (
-        <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+        <div className="mb-4 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 식사 기록은 오늘 화면에서 다시 바꾸지 않아요.
         </div>
       )}
       {meals.map(meal => (
-        <div key={meal.key} className="mb-3 last:mb-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-[12px]">{meal.icon}</span>
-            <span className="text-[11px] font-medium text-nature-900">
+        <div key={meal.key} className="mb-4 last:mb-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[16px]">{meal.icon}</span>
+            <span className="text-[15px] font-medium text-nature-900">
               {meal.label}
               {log[meal.key] && <span className="text-neutral-400 font-normal"> — {MEAL_LABELS[log[meal.key]]}</span>}
             </span>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-2 flex-wrap">
             {options.map(opt => (
               <button
                 key={opt.key}
@@ -1747,7 +1909,7 @@ function MealPanel({ log, update }) {
                       ? lunchLocked
                       : dinnerLocked
                 }
-                className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
+                className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
                   log[meal.key] === opt.key
                     ? 'bg-nature-500 text-white border border-nature-500'
                     : (
@@ -1764,21 +1926,21 @@ function MealPanel({ log, update }) {
               </button>
             ))}
           </div>
-          {meal.key !== 'dinner_status' && <div className="border-b border-black/[.04] mt-3"></div>}
+          {meal.key !== 'dinner_status' && <div className="border-b border-black/[.04] mt-4"></div>}
         </div>
       ))}
 
       {/* 채소 */}
-      <div className="border-t border-black/[.06] mt-3 pt-3">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="text-[12px]">🥬</span>
-          <span className="text-[11px] font-medium text-nature-900">채소</span>
-          {log.vegetable_intake_level && <span className="text-[10px] text-neutral-400">— {vegOptions.find(v => v.key === log.vegetable_intake_level)?.label}</span>}
+      <div className="border-t border-black/[.06] mt-4 pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[16px]">🥬</span>
+          <span className="text-[15px] font-medium text-nature-900">채소</span>
+          {log.vegetable_intake_level && <span className="text-[13px] text-neutral-400">— {vegOptions.find(v => v.key === log.vegetable_intake_level)?.label}</span>}
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-2 flex-wrap">
           {vegOptions.map(opt => (
             <button key={opt.key} onClick={() => update('vegetable_intake_level', opt.key)} disabled={vegetableLocked}
-              className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
+              className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
                 log.vegetable_intake_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
                   : vegetableLocked
@@ -1792,16 +1954,16 @@ function MealPanel({ log, update }) {
       </div>
 
       {/* 식사구성 */}
-      <div className="border-t border-black/[.06] mt-3 pt-3">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="text-[12px]">🍱</span>
-          <span className="text-[11px] font-medium text-nature-900">식사구성</span>
-          {log.meal_balance_level && <span className="text-[10px] text-neutral-400">— {balanceOptions.find(v => v.key === log.meal_balance_level)?.label}</span>}
+      <div className="border-t border-black/[.06] mt-4 pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[16px]">🍱</span>
+          <span className="text-[15px] font-medium text-nature-900">식사구성</span>
+          {log.meal_balance_level && <span className="text-[13px] text-neutral-400">— {balanceOptions.find(v => v.key === log.meal_balance_level)?.label}</span>}
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {balanceOptions.map(opt => (
             <button key={opt.key} onClick={() => update('meal_balance_level', opt.key)} disabled={balanceLocked}
-              className={`px-2.5 py-1 rounded-full text-[11px] transition-all ${
+              className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
                 log.meal_balance_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
                   : balanceLocked
@@ -2051,24 +2213,24 @@ function HabitsSection() {
 
   return (
     <div>
-      <h4 className="text-[12px] font-semibold text-nature-900 mb-2">나의 습관</h4>
-      <div className="border-b border-cream-500 mb-3"></div>
+      <h4 className="text-[16px] font-semibold text-nature-900 mb-3">나의 습관</h4>
+      <div className="border-b border-cream-500 mb-4"></div>
       {challenges.length === 0 ? (
         <div className="bg-cream-300 rounded-xl p-4 text-center">
-          <div className="text-[20px] mb-2">🎯</div>
-          <div className="text-[12px] font-medium text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
-          <div className="text-[10px] text-neutral-400 mb-3">챌린지에 참여하면 여기에 진행 상황이 표시돼요</div>
-          <a href="/app/challenge" className="inline-block px-3.5 py-1.5 rounded-full text-[11px] bg-nature-900 text-white hover:bg-nature-800 transition-colors">
+          <div className="text-[24px] mb-2">🎯</div>
+          <div className="text-[16px] font-medium text-nature-900 mb-1.5">아직 참여 중인 챌린지가 없어요</div>
+          <div className="text-[14px] leading-[1.55] text-neutral-400 mb-3.5">챌린지에 참여하면 여기에 진행 상황이 표시돼요</div>
+          <a href="/app/challenge" className="inline-block px-4 py-2 rounded-full text-[14px] bg-nature-900 text-white hover:bg-nature-800 transition-colors">
             챌린지 둘러보기
           </a>
         </div>
       ) : (
-        <div className="bg-cream-300 rounded-xl p-4 space-y-3">
+        <div className="bg-cream-300 rounded-xl p-4.5 space-y-3.5">
           {challenges.map((item) => (
             <div key={item.user_challenge_id ?? item.name}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-medium text-nature-900">{item.emoji} {item.name}</span>
-                <span className="text-[10px] text-neutral-400">
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <span className="text-[15px] font-medium text-nature-900">{item.emoji} {item.name}</span>
+                <span className="text-[13px] text-neutral-400 shrink-0">
                   {item.today_checked ? '오늘 체크 완료' : '오늘 체크 필요'}
                 </span>
               </div>
@@ -2078,7 +2240,7 @@ function HabitsSection() {
                   style={{ width: `${Math.min(100, Number(item.progress_pct || 0) * 100)}%` }}
                 ></div>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[10px] text-neutral-400">
+              <div className="mt-1.5 flex items-center justify-between text-[13px] text-neutral-400">
                 <span>진행률 {Math.round(Number(item.progress_pct || 0) * 100)}%</span>
                 <span>연속 {item.current_streak || 0}일</span>
               </div>
@@ -2170,13 +2332,13 @@ function ExercisePanelV2({ log, update, save }) {
   const walkLocked = false;
   const panelLocked = false;
 
-  const circleButtonClass = (locked) => `w-7 h-7 rounded-full border flex items-center justify-center text-[12px] transition-colors ${
+  const circleButtonClass = (locked) => `w-9 h-9 rounded-full border flex items-center justify-center text-[16px] transition-colors ${
     locked
       ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
       : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
   }`;
 
-  const pillClass = (active, locked) => `px-3 py-1 rounded-full text-[11px] transition-all ${
+  const pillClass = (active, locked) => `px-3.5 py-1.5 rounded-full text-[14px] transition-all ${
     active
       ? 'bg-nature-500 text-white border border-nature-500'
       : locked
@@ -2186,14 +2348,14 @@ function ExercisePanelV2({ log, update, save }) {
 
   if (log.exercise_done === null) {
     return (
-      <div className="bg-cream-300 rounded-lg p-4 mb-3 text-center">
-        <div className="text-[13px] mb-2">운동</div>
-        <div className="text-[12px] text-nature-900 mb-3">오늘 운동을 했나요?</div>
+      <div className="bg-cream-300 rounded-xl p-4.5 mb-4 text-center">
+        <div className="text-[17px] mb-2.5">운동</div>
+        <div className="text-[16px] font-medium text-nature-900 mb-3.5">오늘 운동을 했나요?</div>
         <div className="flex gap-2 justify-center">
           <button
             onClick={() => update('exercise_done', true)}
             disabled={exerciseDoneLocked}
-            className={`px-3.5 py-1.5 rounded-full text-[11px] border transition-all ${
+            className={`px-4 py-2 rounded-full text-[14px] border transition-all ${
               exerciseDoneLocked
                 ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
                 : 'bg-nature-500 text-white border-nature-500'
@@ -2204,7 +2366,7 @@ function ExercisePanelV2({ log, update, save }) {
           <button
             onClick={() => update('exercise_done', false)}
             disabled={exerciseDoneLocked}
-            className={`px-3.5 py-1.5 rounded-full text-[11px] border transition-all ${
+            className={`px-4 py-2 rounded-full text-[14px] border transition-all ${
               exerciseDoneLocked
                 ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
                 : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
@@ -2219,21 +2381,21 @@ function ExercisePanelV2({ log, update, save }) {
 
   if (log.exercise_done === false) {
     return (
-      <div className={`bg-cream-300 rounded-lg p-3.5 mb-3 ${panelLocked ? 'opacity-70' : ''}`}>
+      <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
         {panelLocked && (
-          <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+          <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
             이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.
           </div>
         )}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-[12px]">운동</span>
-          <span className="text-[11px] font-medium text-nature-900">오늘 운동은 하지 않았어요</span>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[16px]">운동</span>
+          <span className="text-[15px] font-medium text-nature-900">오늘 운동은 하지 않았어요</span>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => save({ ...log, exercise_done: true, exercise_type: null, exercise_minutes: null })}
             disabled={exerciseDoneLocked}
-            className={`px-3 py-1 rounded-full text-[11px] border transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-[14px] border transition-all ${
               exerciseDoneLocked
                 ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
                 : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
@@ -2242,10 +2404,10 @@ function ExercisePanelV2({ log, update, save }) {
             운동함으로 바꾸기
           </button>
         </div>
-        <div className="border-t border-black/[.06] mt-3 pt-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-[12px]">걷기</span>
-            <span className="text-[11px] font-medium text-nature-900">오늘 산책은 했나요?</span>
+        <div className="border-t border-black/[.06] mt-4 pt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[16px]">걷기</span>
+            <span className="text-[15px] font-medium text-nature-900">오늘 산책은 했나요?</span>
           </div>
           <div className="flex gap-2">
             <button
@@ -2269,20 +2431,20 @@ function ExercisePanelV2({ log, update, save }) {
   }
 
   return (
-    <div className={`bg-cream-300 rounded-lg p-3.5 mb-3 ${panelLocked ? 'opacity-70' : ''}`}>
+      <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
       {panelLocked && (
-        <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+        <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.
         </div>
       )}
-      <div className="text-[10px] text-neutral-400 mb-2">운동 종류</div>
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="text-[14px] text-neutral-400 mb-2.5">운동 종류</div>
+      <div className="flex flex-wrap gap-2 mb-4">
         {types.map((type) => (
           <button
             key={type.key}
             onClick={() => update('exercise_type', type.key)}
             disabled={exerciseTypeLocked}
-            className={`px-2 py-1 rounded-full text-[11px] transition-all ${
+            className={`px-2.5 py-1.5 rounded-full text-[14px] transition-all ${
               log.exercise_type === type.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : exerciseTypeLocked
@@ -2295,8 +2457,8 @@ function ExercisePanelV2({ log, update, save }) {
         ))}
       </div>
 
-      <div className="text-[10px] text-neutral-400 mb-2">운동 시간 (분)</div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className="text-[14px] text-neutral-400 mb-2.5">운동 시간 (분)</div>
+      <div className="flex items-center gap-2.5 mb-4">
         <button
           onClick={() => update('exercise_minutes', Math.max(0, (log.exercise_minutes || 0) - 10))}
           disabled={exerciseMinutesLocked}
@@ -2304,8 +2466,8 @@ function ExercisePanelV2({ log, update, save }) {
         >
           -
         </button>
-        <span className="text-[16px] font-semibold text-nature-900 min-w-[40px] text-center">{log.exercise_minutes || 0}</span>
-        <span className="text-[10px] text-neutral-300">분</span>
+        <span className="text-[20px] font-semibold text-nature-900 min-w-[48px] text-center">{log.exercise_minutes || 0}</span>
+        <span className="text-[14px] text-neutral-300">분</span>
         <button
           onClick={() => update('exercise_minutes', Math.min(300, (log.exercise_minutes || 0) + 10))}
           disabled={exerciseMinutesLocked}
@@ -2315,10 +2477,10 @@ function ExercisePanelV2({ log, update, save }) {
         </button>
       </div>
 
-      <div className="border-t border-black/[.06] pt-3">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="text-[12px]">걷기</span>
-          <span className="text-[11px] font-medium text-nature-900">오늘 산책은 했나요?</span>
+      <div className="border-t border-black/[.06] pt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[16px]">걷기</span>
+          <span className="text-[15px] font-medium text-nature-900">오늘 산책은 했나요?</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -2338,11 +2500,11 @@ function ExercisePanelV2({ log, update, save }) {
         </div>
       </div>
 
-      <div className="border-t border-black/[.06] mt-3 pt-2">
+      <div className="border-t border-black/[.06] mt-4 pt-3">
         <button
           onClick={() => save({ ...log, exercise_done: false, exercise_type: null, exercise_minutes: null })}
           disabled={exerciseDoneLocked}
-          className={`text-[10px] transition-colors ${
+          className={`text-[14px] transition-colors ${
             exerciseDoneLocked ? 'text-neutral-300 cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'
           }`}
         >
@@ -2357,17 +2519,17 @@ function WaterPanelV2({ log, update }) {
   const waterLocked = false;
 
   return (
-    <div className={`bg-cream-300 rounded-lg p-3.5 mb-3 ${waterLocked ? 'opacity-70' : ''}`}>
+    <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${waterLocked ? 'opacity-70' : ''}`}>
       {waterLocked && (
-        <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+        <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 수분 기록은 오늘 화면에서 다시 바뀌지 않아요.
         </div>
       )}
-      <div className="flex items-center justify-center gap-3 mb-3">
+      <div className="flex items-center justify-center gap-3.5 mb-4">
         <button
           onClick={() => update('water_cups', Math.max(0, log.water_cups - 1))}
           disabled={waterLocked}
-          className={`w-8 h-8 rounded-full border flex items-center justify-center text-[14px] transition-colors ${
+          className={`w-9 h-9 rounded-full border flex items-center justify-center text-[16px] transition-colors ${
             waterLocked
               ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
               : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
@@ -2376,13 +2538,13 @@ function WaterPanelV2({ log, update }) {
           -
         </button>
         <div className="text-center">
-          <span className="text-[28px] font-semibold text-nature-900">{log.water_cups}</span>
-          <span className="text-[12px] text-neutral-400 ml-1">/ 8잔</span>
+          <span className="text-[32px] font-semibold leading-none text-nature-900">{log.water_cups}</span>
+          <span className="text-[14px] text-neutral-400 ml-1">/ 8잔</span>
         </div>
         <button
           onClick={() => update('water_cups', Math.min(12, log.water_cups + 1))}
           disabled={waterLocked}
-          className={`w-8 h-8 rounded-full border flex items-center justify-center text-[14px] transition-colors ${
+          className={`w-9 h-9 rounded-full border flex items-center justify-center text-[16px] transition-colors ${
             waterLocked
               ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
               : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
@@ -2391,13 +2553,137 @@ function WaterPanelV2({ log, update }) {
           +
         </button>
       </div>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-[16px]">수분</span>
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="text-[20px]">수분</span>
         <div className="flex-1 h-2 bg-cream-500 rounded-full overflow-hidden">
           <div className="h-full bg-[#64b5f6] rounded-full transition-all" style={{ width: `${Math.min(100, (log.water_cups / 8) * 100)}%` }}></div>
         </div>
       </div>
-      <div className="text-[10px] text-neutral-400 text-center">하루 권장 8잔(240ml 기준)</div>
+      <div className="text-[14px] leading-[1.55] text-neutral-400 text-center">하루 권장 8잔(240ml 기준)</div>
+    </div>
+  );
+}
+
+function MoodPanel({ log, update }) {
+  const options = [
+    { key: 'very_good', label: '😊 아주 좋음' },
+    { key: 'good', label: '🙂 좋음' },
+    { key: 'normal', label: '😐 보통' },
+    { key: 'stressed', label: '😵 스트레스' },
+    { key: 'very_stressed', label: '😫 많이 지침' },
+  ];
+
+  return (
+    <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
+      <div className="text-[14px] text-neutral-400 mb-2.5">오늘 기분</div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <button
+            key={option.key}
+            type="button"
+            onClick={() => update('mood_level', option.key)}
+            className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
+              log.mood_level === option.key
+                ? 'bg-nature-500 text-white border border-nature-500'
+                : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MedicationPanel({ log, update }) {
+  return (
+    <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
+      <div className="text-[14px] text-neutral-400 mb-2.5">오늘 약은 챙겨 드셨나요?</div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => update('took_medication', true)}
+          className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
+            log.took_medication === true
+              ? 'bg-nature-500 text-white border border-nature-500'
+              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+          }`}
+        >
+          💊 복용했어요
+        </button>
+        <button
+          type="button"
+          onClick={() => update('took_medication', false)}
+          className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
+            log.took_medication === false
+              ? 'bg-nature-500 text-white border border-nature-500'
+              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+          }`}
+        >
+          아직 못 먹었어요
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AlcoholPanel({ log, updateAlcoholToday, updateAlcoholAmount }) {
+  const amountOptions = [
+    { key: 'light', label: '가볍게' },
+    { key: 'moderate', label: '보통' },
+    { key: 'heavy', label: '많이' },
+  ];
+
+  return (
+    <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
+      <div className="text-[14px] text-neutral-400 mb-2.5">오늘 음주 여부</div>
+      <div className="flex gap-2 flex-wrap mb-4">
+        <button
+          type="button"
+          onClick={() => updateAlcoholToday(false)}
+          className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
+            log.alcohol_today === false
+              ? 'bg-nature-500 text-white border border-nature-500'
+              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+          }`}
+        >
+          안 마셨어요
+        </button>
+        <button
+          type="button"
+          onClick={() => updateAlcoholToday(true)}
+          className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
+            log.alcohol_today === true
+              ? 'bg-nature-500 text-white border border-nature-500'
+              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+          }`}
+        >
+          마셨어요
+        </button>
+      </div>
+
+      {log.alcohol_today === true && (
+        <>
+          <div className="text-[14px] text-neutral-400 mb-2.5">얼마나 마셨어요?</div>
+          <div className="flex gap-2 flex-wrap">
+            {amountOptions.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => updateAlcoholAmount(option.key)}
+                className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
+                  log.alcohol_amount_level === option.key
+                    ? 'bg-nature-500 text-white border border-nature-500'
+                    : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

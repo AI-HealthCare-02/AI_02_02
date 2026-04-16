@@ -40,6 +40,7 @@ class DailyLogResponse(BaseModel):
     alcohol_amount_level: str | None = None
     missing_summary: DailyMissingSummary = None
     pending_questions: PendingQuestionsResponse = None
+    card_availability: CardAvailabilityResponse = None
 
 
 class DailyMissingSummary(BaseModel):
@@ -61,12 +62,24 @@ class PendingQuestionBundle(BaseModel):
     bundle_key: str
     name: str
     unanswered_count: int
+    unanswered_fields: list[str] = Field(default_factory=list)
     questions: list[PendingQuestionItem] = Field(default_factory=list)
 
 
 class PendingQuestionsResponse(BaseModel):
     count: int
     bundles: list[PendingQuestionBundle] = Field(default_factory=list)
+
+
+class CardAvailabilityResponse(BaseModel):
+    mode: str = "auto_sequential"
+    sequence_started_at: datetime | None = None
+    is_available: bool
+    next_bundle_key: str | None = None
+    next_bundle_name: str | None = None
+    blocked_reason: str | None = None
+    blocked_reason_text: str | None = None
+    available_after: datetime | None = None
 
 
 class DailyLogPatchRequest(BaseModel):

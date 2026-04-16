@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 
+from sklearn.model_selection import train_test_split
 from train_two_track_project_models import (
     ARTIFACT_DIR,
     find_best_f1_threshold,
@@ -10,8 +10,6 @@ from train_two_track_project_models import (
     score_binary,
     train_catboost,
 )
-from sklearn.model_selection import train_test_split
-
 
 OUTPUT_PATH = ARTIFACT_DIR / "diabetic_track_ablation_report.md"
 

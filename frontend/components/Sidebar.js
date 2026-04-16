@@ -215,7 +215,7 @@ export default function Sidebar({ productGuide = null }) {
           <div className="mt-1 flex-1 overflow-y-auto border-t border-black/[.04] px-2">
             <button
               onClick={handleNewChatClick}
-              className="mt-2 mb-1 w-full rounded-lg border border-dashed border-black/[.08] bg-transparent px-2 py-2 text-[13px] text-neutral-400 transition-colors hover:bg-black/[.03]"
+              className="mt-2 mb-1 w-full rounded-lg border border-dashed border-black/[.08] bg-transparent px-2 py-2.5 text-[15px] text-neutral-400 transition-colors hover:bg-black/[.03]"
             >
               + 새 대화
             </button>
@@ -224,21 +224,21 @@ export default function Sidebar({ productGuide = null }) {
               grouped.length > 0 ? (
                 grouped.map((group) => (
                   <div key={group.label}>
-                    <div className="px-2 pt-2.5 pb-1 text-[11px] font-semibold tracking-wider text-neutral-300 uppercase">
+                    <div className="px-2 pt-3 pb-1.5 text-[13px] font-semibold tracking-wider text-neutral-300 uppercase">
                       {group.label}
                     </div>
                     {group.items.map((conversation) => (
                       <div
                         key={conversation.id}
                         onClick={() => handleConversationClick(conversation)}
-                        className={`mb-0.5 flex cursor-pointer justify-between rounded-md px-2 py-1.5 text-[13px] transition-all ${
+                        className={`mb-0.5 flex cursor-pointer justify-between rounded-md px-2 py-2 text-[15px] transition-all ${
                           activeSessionId === conversation.id && !activeIsNew
                             ? 'bg-cream-300 font-medium text-nature-900'
                             : 'text-neutral-400 hover:bg-cream-300 hover:text-nature-900'
                         }`}
                       >
                         <span className="mr-2 flex-1 truncate">{conversation.title}</span>
-                        <span className="shrink-0 text-[11px] text-neutral-300">
+                        <span className="shrink-0 text-[13px] text-neutral-300">
                           {formatTime(conversation.updatedAt)}
                         </span>
                       </div>
@@ -251,7 +251,7 @@ export default function Sidebar({ productGuide = null }) {
                     <div className="mb-2">
                       <MessageSquare size={24} className="mx-auto text-neutral-300" />
                     </div>
-                    <div className="text-[12px] text-neutral-400">새 대화를 시작해보세요</div>
+                    <div className="text-[14px] text-neutral-400">새 대화를 시작해보세요</div>
                   </div>
                 </div>
               )
@@ -261,7 +261,7 @@ export default function Sidebar({ productGuide = null }) {
                   <div className="mb-2">
                     <MessageSquare size={24} className="mx-auto text-neutral-300" />
                   </div>
-                  <div className="text-[12px] text-neutral-400">
+                  <div className="text-[14px] leading-[1.55] text-neutral-400">
                     온보딩 완료 후
                     <br />
                     대화 기록이 표시됩니다
@@ -287,7 +287,7 @@ export default function Sidebar({ productGuide = null }) {
             </span>
             <Link
               href="/app/settings"
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-cream-400 text-[11px] font-semibold text-neutral-400 transition-colors hover:bg-cream-500"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-cream-400 text-[13px] font-semibold text-neutral-400 transition-colors hover:bg-cream-500"
             >
               {userInitial}
             </Link>
@@ -299,7 +299,7 @@ export default function Sidebar({ productGuide = null }) {
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="mb-2 flex w-full items-center justify-center gap-2 rounded-full border border-black/[.06] bg-white px-3 py-2 text-[12px] text-neutral-500 transition-colors hover:bg-black/[.03] hover:text-nature-900"
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-full border border-black/[.06] bg-white px-3 py-2.5 text-[14px] text-neutral-500 transition-colors hover:bg-black/[.03] hover:text-nature-900"
             >
               <HelpCircle size={14} />
               서비스 안내
@@ -309,11 +309,11 @@ export default function Sidebar({ productGuide = null }) {
               onClick={() => setCatOpen((prev) => !prev)}
               className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-black/[.03]"
             >
-              <div className="flex items-center gap-2 text-[13px]">
+              <div className="flex items-center gap-2 text-[15px]">
                 <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-neutral-300'} />
                 <div>
                   <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-neutral-300'}`}>{currentCat.name}</div>
-                  <div className="text-[11px] text-neutral-300">{currentCat.desc}</div>
+                  <div className="text-[13px] text-neutral-300">{currentCat.desc}</div>
                 </div>
               </div>
               <span className="text-neutral-300">{catOpen ? '▾' : '▸'}</span>
@@ -328,14 +328,14 @@ export default function Sidebar({ productGuide = null }) {
                       setSelectedCat(index);
                       setCatOpen(false);
                     }}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] transition-colors ${
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
                       selectedCat === index ? 'bg-white text-nature-900' : 'text-neutral-400 hover:bg-white/70'
                     }`}
                   >
                     <category.icon size={14} className={category.active ? 'text-nature-500' : 'text-neutral-300'} />
                     <div>
                       <div className="font-medium">{category.name}</div>
-                      <div className="text-[10px] text-neutral-300">{category.desc}</div>
+                      <div className="text-[12px] text-neutral-300">{category.desc}</div>
                     </div>
                   </button>
                 ))}
@@ -344,8 +344,8 @@ export default function Sidebar({ productGuide = null }) {
 
             <div className="mt-2 flex items-center justify-between rounded-lg px-2 py-2">
               <div>
-                <div className="text-[13px] font-medium text-nature-900">{userName}</div>
-                <div className="text-[11px] text-neutral-300">{userGroup}</div>
+                <div className="text-[15px] font-medium text-nature-900">{userName}</div>
+                <div className="text-[13px] text-neutral-300">{userGroup}</div>
               </div>
               <Link
                 href="/app/settings"

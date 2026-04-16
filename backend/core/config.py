@@ -26,6 +26,16 @@ class ChatAppContextMode(StrEnum):
     LIVE_STATE = "live_state"
 
 
+class LLMProvider(StrEnum):
+    OPENAI = "openai"
+    GEMMA_VLLM = "gemma_vllm"
+
+
+class LLMFallbackProvider(StrEnum):
+    OFF = "off"
+    OPENAI = "openai"
+
+
 class Config(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="allow")
 
@@ -73,7 +83,13 @@ class Config(BaseSettings):
     JWT_LEEWAY: int = 5
 
     OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
+    LLM_PROVIDER: LLMProvider = LLMProvider.OPENAI
+    LLM_BASE_URL: str = ""
+    LLM_MODEL: str = ""
+    LLM_API_KEY: str = ""
+    LLM_FALLBACK_PROVIDER: LLMFallbackProvider = LLMFallbackProvider.OFF
 
     DB_CONNECTION_POOL_MINSIZE: int = 2
 
@@ -128,5 +144,9 @@ class Config(BaseSettings):
     CHAT_OPENAI_MAX_TOKENS: int = 1024
     CHAT_OPENAI_SHORT_RESPONSE_ENABLED: bool = False
     CHAT_OPENAI_SHORT_RESPONSE_MAX_TOKENS: int = 256
+    GEMMA_MAX_MODEL_LEN: int = 4096
+    GEMMA_MAX_NUM_SEQS: int = 1
+    GEMMA_MAX_NUM_BATCHED_TOKENS: int = 2048
+    GEMMA_GPU_MEMORY_UTILIZATION: float = 0.90
 
     CHAT_BENCH_BUDGET_ENABLED: bool = False

@@ -61,6 +61,13 @@ class ChatAppStateSnapshot:
     pending_count: int | None = None
     pending_question_labels: tuple[str, ...] = ()
     pending_bundle_names: tuple[str, ...] = ()
+    card_is_available: bool | None = None
+    card_next_bundle_key: str | None = None
+    card_next_bundle_name: str | None = None
+    card_blocked_reason: str | None = None
+    card_blocked_reason_text: str | None = None
+    card_available_after: object | None = None
+    card_sequence_started_at: object | None = None
     schema_version: str = "chat_app_context_v1"
 
     def state_keys(self) -> tuple[str, ...]:  # noqa: C901
@@ -85,6 +92,20 @@ class ChatAppStateSnapshot:
             keys.append("pending_question_labels")
         if self.pending_bundle_names:
             keys.append("pending_bundle_names")
+        if self.card_is_available is not None:
+            keys.append("card_is_available")
+        if self.card_next_bundle_key is not None:
+            keys.append("card_next_bundle_key")
+        if self.card_next_bundle_name is not None:
+            keys.append("card_next_bundle_name")
+        if self.card_blocked_reason is not None:
+            keys.append("card_blocked_reason")
+        if self.card_blocked_reason_text is not None:
+            keys.append("card_blocked_reason_text")
+        if self.card_available_after is not None:
+            keys.append("card_available_after")
+        if self.card_sequence_started_at is not None:
+            keys.append("card_sequence_started_at")
         return tuple(keys)
 
 
@@ -272,7 +293,18 @@ def _build_challenge_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
 def _build_pending_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
     if snapshot.pending_count is None:
         return []
-    return [f"- 오늘 아직 안 적은 질문 수: {snapshot.pending_count}"]
+    lines = [f"- 오늘 아직 안 적은 질문 수: {snapshot.pending_count}"]
+    if snapshot.card_is_available and snapshot.card_next_bundle_name:
+        lines.append(f"- 지금 자동으로 붙을 다음 카드: {snapshot.card_next_bundle_name}")
+    elif snapshot.card_blocked_reason_text:
+        lines.append(f"- 카드가 바로 안 보이는 이유: {snapshot.card_blocked_reason_text}")
+    if snapshot.card_available_after is not None:
+        lines.append(f"- 다시 자동 카드가 열리는 시각: {snapshot.card_available_after}")
+
+    if snapshot.pending_bundle_names:
+        lines.append(f"- 남아 있는 질문 묶음: {', '.join(snapshot.pending_bundle_names[:3])}")
+
+    return lines
 
 
 def build_app_state_layer(context: ChatAppContext | None) -> str:

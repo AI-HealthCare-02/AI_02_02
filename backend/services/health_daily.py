@@ -6,13 +6,15 @@ First Answer Wins: 이미 값이 있는 필드는 건드리지 않는다.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import HTTPException, status
 
+from backend.core import config
 from backend.dtos.health import (
     BatchRequest,
     BatchResponse,
+    CardAvailabilityResponse,
     DailyLogPatchRequest,
     DailyLogPatchResponse,
     DailyLogResponse,
@@ -131,6 +133,10 @@ def _build_pending_questions_payload(
                 bundle_key=str(bundle.get("bundle_key")),
                 name=str(bundle.get("name") or bundle.get("bundle_key")),
                 unanswered_count=int(bundle.get("unanswered_count") or 0),
+                unanswered_fields=[
+                    str(field_name)
+                    for field_name in (bundle.get("unanswered_fields") or [])
+                ],
                 questions=questions,
             )
         )
@@ -138,6 +144,24 @@ def _build_pending_questions_payload(
     return PendingQuestionsResponse(
         count=int(pending.get("count") or 0),
         bundles=bundles,
+    )
+
+
+def _build_card_availability_payload(
+    availability: dict[str, object] | None,
+) -> CardAvailabilityResponse | None:
+    if not availability:
+        return None
+
+    return CardAvailabilityResponse(
+        mode=str(availability.get("mode") or "auto_sequential"),
+        sequence_started_at=availability.get("sequence_started_at"),
+        is_available=bool(availability.get("is_available")),
+        next_bundle_key=availability.get("next_bundle_key"),
+        next_bundle_name=availability.get("next_bundle_name"),
+        blocked_reason=availability.get("blocked_reason"),
+        blocked_reason_text=availability.get("blocked_reason_text"),
+        available_after=availability.get("available_after"),
     )
 
 
@@ -166,7 +190,7 @@ class HealthDailyService:
         log_date: date,
         response: DailyLogResponse,
     ) -> DailyLogResponse:
-        if log_date != date.today():
+        if log_date != datetime.now(tz=config.TIMEZONE).date():
             return response
 
         from backend.services.health_question import HealthQuestionService
@@ -174,8 +198,10 @@ class HealthDailyService:
         service = HealthQuestionService()
         summary = await service.get_daily_missing_summary(user_id)
         pending_questions = await service.get_daily_pending_questions(user_id)
+        card_availability = await service.get_card_availability(user_id)
         response.missing_summary = _build_missing_summary_payload(summary)
         response.pending_questions = _build_pending_questions_payload(pending_questions)
+        response.card_availability = _build_card_availability_payload(card_availability)
         return response
 
     MAX_BACKFILL_DAYS = 3
@@ -186,7 +212,7 @@ class HealthDailyService:
         - 오늘 날짜 + source=direct: 같은 날 수정 허용
         - 그 외 경로: 기존 First Answer Wins 유지
         """
-        today = date.today()
+        today = datetime.now(tz=config.TIMEZONE).date()
         if log_date > today:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -276,7 +302,7 @@ class HealthDailyService:
 
     async def get_missing_dates(self, user_id: int, lookback_days: int = 7) -> MissingDatesResponse:
         """미입력 날짜 목록 조회."""
-        today = date.today()
+        today = datetime.now(tz=config.TIMEZONE).date()
         entries: list[MissingDateEntry] = []
 
         for i in range(1, lookback_days + 1):

@@ -12,12 +12,17 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "docs" / "collaboration" / "model"

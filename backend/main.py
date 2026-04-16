@@ -58,11 +58,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: C901
 
         await init_shared_openai_client()
         if await warmup_shared_openai_client():
-            logger.info("chat_openai_client_ready")
+            logger.info("chat_llm_client_ready")
         else:
-            logger.warning("chat_openai_client_warmup_skipped")
+            logger.warning("chat_llm_client_warmup_skipped")
     except Exception:
-        logger.warning("chat_openai_client_startup_failed")
+        logger.warning("chat_llm_client_startup_failed")
 
     if config.CHAT_LANGGRAPH_MODE != ChatLangGraphMode.OFF:
         try:

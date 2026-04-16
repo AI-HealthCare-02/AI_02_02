@@ -118,7 +118,7 @@ class TestChatAppContextHealthSummary(TestCase):
             "복약 여부",
             "음주량",
         ]
-        assert summary["bundle_names"] == ["운동", "복약", "기분과 음주"]
+        assert summary["bundle_names"] == ["아침 식사", "운동", "기분과 음주"]
 
     async def test_sleep_bundle_stays_incomplete_until_quality_and_duration_exist(self):
         user = await self._make_user("summary-sleep-order@test.com")

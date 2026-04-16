@@ -56,6 +56,7 @@ from backend.services.chat.enrich import (
     _try_rag_search as try_rag_search,
 )
 from backend.services.chat.intent import classify_chat_app_intent
+from backend.services.chat.openai_client import has_any_llm_target
 from backend.services.chat.persistence import (
     _prepare_session as prepare_session,
 )
@@ -151,6 +152,7 @@ class ChatService:
         user_id: int,
         message_text: str,
         profile: HealthProfile | None,
+        suppress_reason: str | None = None,
     ) -> ChatAppContext | None:
         mode = config.CHAT_APP_CONTEXT_MODE
         if mode == ChatAppContextMode.OFF:
@@ -171,6 +173,7 @@ class ChatService:
             user_id=user_id,
             profile=profile,
             intent=intent,
+            suppress_reason=suppress_reason,
         )
         return ChatAppContext(
             intent=intent,
@@ -196,6 +199,7 @@ class ChatService:
         user_id: int,
         profile: HealthProfile | None,
         intent,
+        suppress_reason: str | None = None,
     ) -> ChatAppStateSnapshot | None:
         if profile is None:
             return None
@@ -232,6 +236,10 @@ class ChatService:
 
         if intent.value in {"pending_surveys", "mixed"}:
             summary = await self.health_question_service.get_daily_missing_summary(user_id=user_id)
+            card_availability = await self.health_question_service.get_card_availability(
+                user_id=user_id,
+                suppress_reason=suppress_reason,
+            )
             snapshot = ChatAppStateSnapshot(
                 onboarding_completed=snapshot.onboarding_completed,
                 user_group=snapshot.user_group,
@@ -240,6 +248,15 @@ class ChatService:
                 remaining_active_slots=snapshot.remaining_active_slots,
                 active_challenges=snapshot.active_challenges,
                 pending_count=int(summary["count"]),
+                pending_question_labels=tuple(summary.get("question_labels") or ()),
+                pending_bundle_names=tuple(summary.get("bundle_names") or ()),
+                card_is_available=bool(card_availability.get("is_available")),
+                card_next_bundle_key=card_availability.get("next_bundle_key"),
+                card_next_bundle_name=card_availability.get("next_bundle_name"),
+                card_blocked_reason=card_availability.get("blocked_reason"),
+                card_blocked_reason_text=card_availability.get("blocked_reason_text"),
+                card_available_after=card_availability.get("available_after"),
+                card_sequence_started_at=card_availability.get("sequence_started_at"),
             )
 
         return snapshot
@@ -318,7 +335,10 @@ class ChatService:
         suppress_emotional = config.CONTENT_FILTER_ROUTING_APPLY_ENABLED and filter_result.emotional_priority
         history = await self._get_prompt_history(session)
         if not self._is_in_crisis_cooldown(user_id) and not suppress_emotional:
-            eligible_bundles = await self.health_question_service.get_eligible_bundles(user_id)
+            eligible_bundles = await self.health_question_service.get_eligible_bundles(
+                user_id,
+                include_current_message_anchor=True,
+            )
         else:
             eligible_bundles = []
 
@@ -335,6 +355,7 @@ class ChatService:
                     user_id=user_id,
                     message_text=message,
                     profile=profile,
+                    suppress_reason="suppressed_by_chat_route" if suppress_emotional else None,
                 )
             except Exception as exc:
                 logger.warning(
@@ -446,7 +467,7 @@ class ChatService:
 
     async def _validate_request(self, user_id: int, session_id: int | None) -> str | None:
         del session_id
-        if not config.OPENAI_API_KEY:
+        if not has_any_llm_target():
             return "AI 서비스가 아직 설정되지 않았어요."
 
         return await self._validate_daily_limit(user_id)
@@ -627,10 +648,19 @@ class ChatService:
             bundle_key=bundle_key,
             answers=answers,
         )
+        from backend.services.health_daily import HealthDailyService
+
+        today_snapshot = await HealthDailyService().get_daily_log(
+            user_id=user_id,
+            log_date=datetime.now(tz=config.TIMEZONE).date(),
+        )
         return HealthAnswerResponse(
             saved_fields=result["saved_fields"],
             skipped_fields=result["skipped_fields"],
             cooldown_until=result["cooldown_until"],
+            daily_log=today_snapshot,
+            pending_questions=today_snapshot.pending_questions,
+            card_availability=today_snapshot.card_availability,
         )
 
     async def _build_system_prompt(self, profile, eligible_bundles: list[str]) -> str:
