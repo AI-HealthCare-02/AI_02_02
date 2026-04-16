@@ -13,7 +13,7 @@
 - alcohol_today=false → amount_level null 강제
 """
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 
 from backend.core import config
 from backend.models.assessments import UserEngagement
@@ -35,18 +35,29 @@ BUNDLE_CHECK_FIELDS: dict[str, list[str]] = {
     "bundle_7": ["mood_level", "alcohol_today", "alcohol_amount_level"],
 }
 
-# ── 시간 윈도우 정의 (시, 분, 시, 분) ──
+NIGHT_START_HOUR = 22
+NIGHT_END_HOUR = 7
+MAX_BUNDLES_PER_RESPONSE = 2
 TIME_WINDOWS: dict[str, tuple[int, int, int, int]] = {
     "morning": (7, 0, 9, 0),
     "lunch": (11, 30, 13, 30),
     "evening": (17, 0, 20, 0),
 }
-
 TOUCHPOINT_BUNDLES: dict[str, list[str]] = {
     "morning": ["bundle_1", "bundle_2"],
     "lunch": ["bundle_3"],
     "evening": ["bundle_4", "bundle_5"],
 }
+
+# ── 자동 카드 순서 정의 ──
+AUTO_SEQUENCE_BUNDLES: tuple[str, ...] = (
+    "bundle_1",
+    "bundle_2",
+    "bundle_3",
+    "bundle_4",
+    "bundle_5",
+    "bundle_7",
+)
 
 # ── 묶음별 질문 데이터 (프론트엔드 전송 + 프롬프트 구성용) ──
 # workers/ai/prompts/system.py에도 동일 데이터가 독립적으로 정의됨
@@ -123,11 +134,8 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     },
 }
 
-COOLDOWN_MINUTES = 90
-MAX_BUNDLES_PER_RESPONSE = 2
+SEQUENCE_START_HOUR = 4
 MAX_DAILY_CHATS = 50
-NIGHT_START_HOUR = 22
-NIGHT_END_HOUR = 7
 
 DAILY_MISSING_BUNDLE_LABELS: dict[str, str] = {
     "bundle_1": "수면",
@@ -135,7 +143,6 @@ DAILY_MISSING_BUNDLE_LABELS: dict[str, str] = {
     "bundle_3": "식사 균형",
     "bundle_4": "운동",
     "bundle_5": "생활 습관",
-    "bundle_6": "복약",
     "bundle_7": "기분과 음주",
 }
 
@@ -150,7 +157,7 @@ DAILY_MISSING_QUESTION_RULES: tuple[dict[str, str], ...] = (
     {"field": "exercise_minutes", "label": "운동 시간", "bundle_key": "bundle_4"},
     {"field": "vegetable_intake_level", "label": "채소 섭취", "bundle_key": "bundle_5"},
     {"field": "walk_done", "label": "걷기 여부", "bundle_key": "bundle_5"},
-    {"field": "took_medication", "label": "복약 여부", "bundle_key": "bundle_6"},
+    {"field": "took_medication", "label": "복약 여부", "bundle_key": "bundle_2"},
     {"field": "mood_level", "label": "기분 상태", "bundle_key": "bundle_7"},
     {"field": "alcohol_today", "label": "음주 여부", "bundle_key": "bundle_7"},
     {"field": "alcohol_amount_level", "label": "음주량", "bundle_key": "bundle_7"},
@@ -164,79 +171,10 @@ QUESTION_LABEL_BY_FIELD: dict[str, str] = {
 class HealthQuestionService:
     """건강질문 삽입 판단 + 답변 저장."""
 
-    async def get_eligible_bundles(self, user_id: int) -> list[str]:
-        """4조건을 모두 만족하는 묶음 키 리스트 반환 (최대 2개)."""
-        now = datetime.now(tz=config.TIMEZONE)
-        settings = await self._get_settings(user_id)
-
-        if not settings.chat_notification:
-            return []
-
-        # 조건 4: 야간 침묵 (22:00~07:00)
-        if now.hour >= NIGHT_START_HOUR or now.hour < NIGHT_END_HOUR:
-            return []
-
-        # 조건 1: 쿨다운 체크
-        engagement = await self._get_engagement(user_id, now)
-        if engagement.cooldown_until and engagement.cooldown_until > now:
-            return []
-        if engagement.today_bundle_count >= settings.max_bundles_per_day:
-            return []
-
-        # 조건 2+3: 시간 윈도우 후보 → 미응답 필터
-        today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=now.date())
-        profile = await HealthProfile.get_or_none(user_id=user_id)
-        user_group = profile.user_group if profile else UserGroup.C
-
-        candidates = self._get_time_candidates(
-            now, user_group, engagement, settings.preferred_times,
-        )
-        eligible = self._filter_unanswered(candidates, today_log, user_group)
-
-        return eligible[:MAX_BUNDLES_PER_RESPONSE]
-
     @staticmethod
     async def _get_settings(user_id: int) -> UserSettings:
         settings, _ = await UserSettings.get_or_create(user_id=user_id)
         return settings
-
-    async def _get_engagement(self, user_id: int, now: datetime) -> UserEngagement:
-        """UserEngagement 로드 + 일일 리셋."""
-        engagement, _ = await UserEngagement.get_or_create(
-            user_id=user_id,
-            defaults={"state": EngagementState.ACTIVE},
-        )
-        if engagement.updated_at and engagement.updated_at.date() < now.date():
-            engagement.today_bundle_count = 0
-        return engagement
-
-    def _get_time_candidates(
-        self,
-        now: datetime,
-        user_group: str,
-        engagement: UserEngagement,
-        preferred_times: list[str] | None,
-    ) -> list[str]:
-        """현재 시각 기반 묶음 후보 수집."""
-        candidates: list[str] = []
-        current_minutes = now.hour * 60 + now.minute
-        preferred = set(preferred_times or [])
-
-        for touchpoint, (sh, sm, eh, em) in TIME_WINDOWS.items():
-            if sh * 60 + sm <= current_minutes < eh * 60 + em:
-                if preferred and touchpoint not in preferred:
-                    continue
-                candidates.extend(TOUCHPOINT_BUNDLES[touchpoint])
-
-        # anytime 묶음
-        if user_group == UserGroup.A:
-            candidates.append("bundle_6")
-        if engagement.last_response_at is None or (
-            now - engagement.last_response_at >= timedelta(hours=48)
-        ):
-            candidates.append("bundle_7")
-
-        return candidates
 
     def _filter_unanswered(
         self,
@@ -361,6 +299,7 @@ class HealthQuestionService:
 
         questions: list[dict] = []
         unanswered_count = 0
+        unanswered_fields: list[str] = []
         for question in bundle.get("questions", []):
             if not self._is_question_applicable(
                 question=question,
@@ -378,6 +317,7 @@ class HealthQuestionService:
             )
             if field_name in required_fields and value is None:
                 unanswered_count += 1
+                unanswered_fields.append(field_name)
 
             questions.append(
                 {
@@ -397,41 +337,8 @@ class HealthQuestionService:
             "bundle_key": bundle_key,
             "name": bundle.get("name", bundle_key),
             "unanswered_count": unanswered_count,
+            "unanswered_fields": unanswered_fields,
             "questions": questions,
-        }
-
-    async def get_daily_pending_questions(self, user_id: int) -> dict[str, object]:
-        """Return actionable pending question bundles for today's catch-up UI."""
-        today = datetime.now(tz=config.TIMEZONE).date()
-        today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=today)
-        profile = await HealthProfile.get_or_none(user_id=user_id)
-        user_group = profile.user_group if profile else UserGroup.C
-
-        bundles: list[dict] = []
-        bundle_order = ["bundle_1", "bundle_2", "bundle_3", "bundle_4", "bundle_5", "bundle_7"]
-
-        if self._get_user_group_value(user_group) == UserGroup.A.value:
-            bundle_order.insert(5, "bundle_6")
-
-        for bundle_key in bundle_order:
-            if bundle_key == "bundle_6" and not self._is_bundle_complete(
-                bundle_key="bundle_2",
-                today_log=today_log,
-                user_group=user_group,
-            ):
-                continue
-
-            payload = self._build_pending_bundle_payload(
-                bundle_key=bundle_key,
-                today_log=today_log,
-                user_group=user_group,
-            )
-            if payload:
-                bundles.append(payload)
-
-        return {
-            "count": sum(bundle["unanswered_count"] for bundle in bundles),
-            "bundles": bundles,
         }
 
     async def get_daily_missing_summary(self, user_id: int) -> dict[str, object]:
@@ -442,8 +349,8 @@ class HealthQuestionService:
         user_group = profile.user_group if profile else UserGroup.C
 
         question_labels: list[str] = []
-        bundle_names: list[str] = []
-        seen_bundle_names: set[str] = set()
+        missing_bundle_keys: list[str] = []
+        seen_bundle_keys: set[str] = set()
 
         for rule in DAILY_MISSING_QUESTION_RULES:
             field_name = rule["field"]
@@ -457,15 +364,26 @@ class HealthQuestionService:
                 continue
 
             question_labels.append(rule["label"])
-            bundle_name = DAILY_MISSING_BUNDLE_LABELS[rule["bundle_key"]]
-            if bundle_name not in seen_bundle_names:
-                seen_bundle_names.add(bundle_name)
-                bundle_names.append(bundle_name)
+            bundle_key = rule["bundle_key"]
+            if bundle_key not in seen_bundle_keys:
+                seen_bundle_keys.add(bundle_key)
+                missing_bundle_keys.append(bundle_key)
+
+        ordered_bundle_names: list[str] = []
+        seen_bundle_names: set[str] = set()
+        for bundle_key in self._get_sequence_order(user_group):
+            if bundle_key not in seen_bundle_keys:
+                continue
+            bundle_name = DAILY_MISSING_BUNDLE_LABELS[bundle_key]
+            if bundle_name in seen_bundle_names:
+                continue
+            seen_bundle_names.add(bundle_name)
+            ordered_bundle_names.append(bundle_name)
 
         return {
             "count": len(question_labels),
             "question_labels": question_labels,
-            "bundle_names": bundle_names,
+            "bundle_names": ordered_bundle_names,
         }
 
     @staticmethod
@@ -486,6 +404,185 @@ class HealthQuestionService:
             return bool(today_log and today_log.alcohol_today is True)
 
         return True
+
+    async def get_eligible_bundles(
+        self,
+        user_id: int,
+        *,
+        now: datetime | None = None,
+        include_current_message_anchor: bool = False,
+        suppress_reason: str | None = None,
+    ) -> list[str]:
+        """현재 시점에 자동으로 붙일 다음 bundle 1개만 반환."""
+        availability = await self.get_card_availability(
+            user_id=user_id,
+            now=now,
+            include_current_message_anchor=include_current_message_anchor,
+            suppress_reason=suppress_reason,
+        )
+        next_bundle_key = availability.get("next_bundle_key")
+        if not availability.get("is_available") or not next_bundle_key:
+            return []
+        return [str(next_bundle_key)]
+
+    async def get_card_availability(
+        self,
+        user_id: int,
+        *,
+        now: datetime | None = None,
+        include_current_message_anchor: bool = False,
+        suppress_reason: str | None = None,
+    ) -> dict[str, object]:
+        current_time = now or datetime.now(tz=config.TIMEZONE)
+        settings = await self._get_settings(user_id)
+
+        if not settings.chat_notification:
+            return self._build_card_availability_payload(
+                blocked_reason="notification_off",
+                blocked_reason_text="질문카드 알림이 꺼져 있어요.",
+            )
+
+        if self._is_before_sequence_start(current_time):
+            return self._build_card_availability_payload(
+                blocked_reason="daily_reset_wait",
+                blocked_reason_text="새날 첫 설문은 새벽 4시부터 시작돼요.",
+                available_after=self._sequence_start_at(current_time),
+            )
+
+        first_question_at = await self._get_first_sequence_message_time(
+            user_id=user_id,
+            current_time=current_time,
+        )
+        sequence_started_at = first_question_at
+        if sequence_started_at is None and include_current_message_anchor:
+            sequence_started_at = current_time
+
+        if sequence_started_at is None:
+            return self._build_card_availability_payload(
+                blocked_reason="waiting_for_first_question",
+                blocked_reason_text="오늘 첫 질문을 보내면 그때부터 설문카드 순서가 시작돼요.",
+            )
+
+        today_log = await DailyHealthLog.get_or_none(
+            user_id=user_id,
+            log_date=current_time.date(),
+        )
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        user_group = profile.user_group if profile else UserGroup.C
+        next_bundle_key = self._get_next_incomplete_bundle(
+            today_log=today_log,
+            user_group=user_group,
+        )
+
+        if suppress_reason:
+            return self._build_card_availability_payload(
+                sequence_started_at=sequence_started_at,
+                next_bundle_key=next_bundle_key,
+                blocked_reason=suppress_reason,
+                blocked_reason_text="지금 메시지는 감정/위험 상황 안내를 우선해야 해서 설문카드를 붙이지 않았어요.",
+            )
+
+        if next_bundle_key is None:
+            return self._build_card_availability_payload(
+                sequence_started_at=sequence_started_at,
+                blocked_reason="all_completed",
+                blocked_reason_text="오늘 자동 질문카드는 다 끝났어요. 필요한 항목은 오른쪽 패널에서 바로 수정할 수 있어요.",
+            )
+
+        return self._build_card_availability_payload(
+            sequence_started_at=sequence_started_at,
+            is_available=True,
+            next_bundle_key=next_bundle_key,
+        )
+
+    @staticmethod
+    def _is_before_sequence_start(current_time: datetime) -> bool:
+        return current_time.hour < SEQUENCE_START_HOUR
+
+    @staticmethod
+    def _sequence_start_at(current_time: datetime) -> datetime:
+        return current_time.replace(hour=SEQUENCE_START_HOUR, minute=0, second=0, microsecond=0)
+
+    async def _get_first_sequence_message_time(
+        self,
+        *,
+        user_id: int,
+        current_time: datetime,
+    ) -> datetime | None:
+        from backend.models.chat import ChatMessage, MessageRole
+
+        first_message = await ChatMessage.filter(
+            session__user_id=user_id,
+            role=MessageRole.USER,
+            created_at__gte=self._sequence_start_at(current_time),
+        ).order_by("created_at", "id").first()
+        return first_message.created_at if first_message else None
+
+    def _get_sequence_order(self, user_group: UserGroup | str | None) -> tuple[str, ...]:
+        del user_group
+        return AUTO_SEQUENCE_BUNDLES
+
+    def _get_next_incomplete_bundle(
+        self,
+        *,
+        today_log: DailyHealthLog | None,
+        user_group: UserGroup | str | None,
+    ) -> str | None:
+        for bundle_key in self._get_sequence_order(user_group):
+            if not self._is_bundle_complete(
+                bundle_key=bundle_key,
+                today_log=today_log,
+                user_group=user_group,
+            ):
+                return bundle_key
+        return None
+
+    @staticmethod
+    def _build_card_availability_payload(
+        *,
+        sequence_started_at: datetime | None = None,
+        is_available: bool = False,
+        next_bundle_key: str | None = None,
+        blocked_reason: str | None = None,
+        blocked_reason_text: str | None = None,
+        available_after: datetime | None = None,
+    ) -> dict[str, object]:
+        next_bundle_name = None
+        if next_bundle_key:
+            next_bundle_name = HEALTH_QUESTION_BUNDLES.get(next_bundle_key, {}).get("name") or next_bundle_key
+
+        return {
+            "mode": "auto_sequential",
+            "sequence_started_at": sequence_started_at,
+            "is_available": is_available,
+            "next_bundle_key": next_bundle_key,
+            "next_bundle_name": next_bundle_name,
+            "blocked_reason": blocked_reason,
+            "blocked_reason_text": blocked_reason_text,
+            "available_after": available_after,
+        }
+
+    async def get_daily_pending_questions(self, user_id: int) -> dict[str, object]:
+        """오늘 아직 비어 있는 질문 묶음을 순차 정책과 맞춘 catch-up 목록으로 반환."""
+        today = datetime.now(tz=config.TIMEZONE).date()
+        today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=today)
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        user_group = profile.user_group if profile else UserGroup.C
+
+        bundles: list[dict] = []
+        for bundle_key in self._get_sequence_order(user_group):
+            payload = self._build_pending_bundle_payload(
+                bundle_key=bundle_key,
+                today_log=today_log,
+                user_group=user_group,
+            )
+            if payload:
+                bundles.append(payload)
+
+        return {
+            "count": sum(bundle["unanswered_count"] for bundle in bundles),
+            "bundles": bundles,
+        }
 
     async def save_health_answers(
         self,
@@ -553,10 +650,6 @@ class HealthQuestionService:
                 user_id=user_id,
                 defaults={"state": EngagementState.ACTIVE},
             )
-            cooldown_until = now + timedelta(minutes=COOLDOWN_MINUTES)
-            engagement.cooldown_until = cooldown_until
-            engagement.today_bundle_count += 1
-            engagement.last_bundle_key = bundle_key
             engagement.last_response_at = now
             engagement.total_responses += 1
             await engagement.save()

@@ -40,7 +40,7 @@ class TestChatPhase1Guards(TestCase):
 
         assert [turn.content for turn in history] == [f"message-{index}" for index in range(3, 13)]
 
-    async def test_duplicate_health_answer_does_not_extend_engagement(self):
+    async def test_duplicate_health_answer_does_not_increment_response_stats(self):
         user = await self._make_user("phase1-health@test.com")
         service = HealthQuestionService()
 
@@ -51,8 +51,6 @@ class TestChatPhase1Guards(TestCase):
         )
 
         engagement_after_first = await UserEngagement.get(user_id=user.id)
-        first_cooldown = engagement_after_first.cooldown_until
-
         second = await service.save_health_answers(
             user_id=user.id,
             bundle_key="bundle_1",
@@ -63,18 +61,18 @@ class TestChatPhase1Guards(TestCase):
         log = await DailyHealthLog.get(user_id=user.id)
 
         assert first["saved_fields"] == ["sleep_quality"]
-        assert first["cooldown_until"] is not None
+        assert first["cooldown_until"] is None
         assert second["saved_fields"] == []
         assert second["skipped_fields"] == ["sleep_quality"]
         assert second["cooldown_until"] is None
-        assert engagement_after_first.today_bundle_count == 1
-        assert engagement_after_second.today_bundle_count == 1
+        assert engagement_after_first.today_bundle_count == 0
+        assert engagement_after_second.today_bundle_count == 0
         assert engagement_after_second.total_responses == 1
-        assert engagement_after_second.cooldown_until == first_cooldown
+        assert engagement_after_second.cooldown_until is None
         assert log.sleep_quality == "good"
         assert log.sleep_quality_source == DataSource.CHAT
 
-    async def test_mixed_new_and_existing_fields_still_update_engagement(self):
+    async def test_mixed_new_and_existing_fields_still_update_response_stats(self):
         user = await self._make_user("phase1-health-mixed@test.com")
         service = HealthQuestionService()
 
@@ -99,10 +97,11 @@ class TestChatPhase1Guards(TestCase):
 
         assert result["saved_fields"] == ["sleep_duration_bucket"]
         assert result["skipped_fields"] == ["sleep_quality"]
-        assert result["cooldown_until"] is not None
-        assert second_engagement.today_bundle_count == 2
+        assert result["cooldown_until"] is None
+        assert second_engagement.today_bundle_count == 0
         assert second_engagement.total_responses == 2
-        assert second_engagement.cooldown_until >= first_engagement.cooldown_until
+        assert first_engagement.cooldown_until is None
+        assert second_engagement.cooldown_until is None
         assert log.sleep_duration_bucket == "between_6_7"
 
     async def test_current_message_is_not_duplicated_into_prompt_history(self):

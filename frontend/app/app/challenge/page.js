@@ -348,13 +348,13 @@ export default function ChallengePage() {
               {activeChallenges.map((challenge) => (
                 <span
                   key={challenge.user_challenge_id}
-                  className="rounded-full bg-cream-300 px-2.5 py-1 text-[12px] text-neutral-500"
+                  className="rounded-full bg-cream-300 px-3 py-1.5 text-[14px] text-neutral-500"
                 >
                   {challenge.emoji} {challenge.name}
                 </span>
               ))}
               {activeChallenges.length < maxActiveCount && (
-                <span className="rounded-full bg-cream-300 px-2.5 py-1 text-[12px] text-neutral-300">
+                <span className="rounded-full bg-cream-300 px-3 py-1.5 text-[14px] text-neutral-300">
                   남은 슬롯 {remainingSlots}개
                 </span>
               )}
@@ -364,22 +364,22 @@ export default function ChallengePage() {
           <div className="mb-6 rounded-2xl bg-cream-300 px-5 py-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-[12px] text-neutral-400">현재 진행 중</div>
+                <div className="text-[14px] text-neutral-400">현재 진행 중</div>
                 <div className="mt-1 text-[24px] font-semibold text-nature-900">
                   {activeCount}/{maxActiveCount}개
                 </div>
-                <div className="text-[12px] text-neutral-400">
+                <div className="text-[14px] text-neutral-400">
                   남은 슬롯 {remainingSlots}개 · 최고 연속 {topStreak}일
                 </div>
               </div>
-              <div className="rounded-full bg-white px-3 py-1 text-[12px] text-neutral-500">
+              <div className="rounded-full bg-white px-3.5 py-1.5 text-[14px] text-neutral-500">
                 챌린지 참여와 체크는 이 화면에서 관리해요
               </div>
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 rounded-xl border border-danger/20 bg-danger-light px-4 py-3 text-[12px] text-danger">
+            <div className="mb-4 rounded-xl border border-danger/20 bg-danger-light px-4 py-3.5 text-[14px] text-danger">
               {error}
             </div>
           )}
@@ -389,7 +389,7 @@ export default function ChallengePage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">예전 챌린지 기록이 남아 있어요</div>
-                  <div className="mt-1 text-[11px] text-neutral-400">
+                  <div className="mt-1 text-[13px] text-neutral-400">
                     이전 브라우저 저장값에서 가져올 수 있는 챌린지 {importableLegacyTemplates.length}개를 찾았어요.
                   </div>
                 </div>
@@ -397,7 +397,7 @@ export default function ChallengePage() {
                   type="button"
                   onClick={importLegacyChallenges}
                   disabled={busyKey === 'legacy-import' || remainingSlots <= 0}
-                  className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                     busyKey === 'legacy-import' || remainingSlots <= 0
                       ? 'bg-cream-300 text-neutral-400 cursor-not-allowed'
                       : 'bg-nature-900 text-white hover:bg-nature-800'
@@ -415,7 +415,7 @@ export default function ChallengePage() {
             {activeChallenges.length === 0 ? (
               <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center">
                 <div className="text-[13px] font-medium text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
-                <div className="text-[11px] text-neutral-400">아래에서 챌린지를 고르면 이곳에 진행 상태가 보여요.</div>
+                <div className="text-[13px] leading-[1.55] text-neutral-400">아래에서 챌린지를 고르면 이곳에 진행 상태가 보여요.</div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -429,16 +429,16 @@ export default function ChallengePage() {
                           <div className="flex items-center gap-2">
                             <span className="text-[20px]">{challenge.emoji}</span>
                             <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] ${categoryBadgeStyle(challenge.category)}`}>
+                            <span className={`rounded-full px-2.5 py-1 text-[12px] ${categoryBadgeStyle(challenge.category)}`}>
                               {categoryLabel(challenge.category)}
                             </span>
                           </div>
-                          <div className="mt-1 text-[12px] text-neutral-400">
+                          <div className="mt-1 text-[14px] text-neutral-400">
                             목표 {challenge.target_days}일 · 현재 {challenge.days_completed}일 완료 · 연속 {challenge.current_streak}일
                           </div>
                         </div>
                         {challenge.today_checked ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-nature-100 px-3 py-1 text-[11px] text-nature-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-nature-100 px-3.5 py-1.5 text-[13px] text-nature-700">
                             <CheckCircle2 size={14} />
                             오늘 체크 완료
                           </span>
@@ -447,7 +447,7 @@ export default function ChallengePage() {
                             type="button"
                             onClick={() => checkinChallenge(challenge.user_challenge_id)}
                             disabled={busy}
-                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                            className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                               busy
                                 ? 'bg-cream-300 text-neutral-400 cursor-wait'
                                 : 'bg-nature-900 text-white hover:bg-nature-800'
@@ -460,11 +460,11 @@ export default function ChallengePage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="w-[42px] shrink-0 text-[12px] text-neutral-400">진행</span>
+                        <span className="w-[48px] shrink-0 text-[14px] text-neutral-400">진행</span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-cream-400">
                           <div className="h-full rounded-full bg-nature-500 transition-all" style={{ width: `${progress}%` }}></div>
                         </div>
-                        <span className="text-[12px] font-medium text-nature-900">{progress}%</span>
+                        <span className="text-[14px] font-medium text-nature-900">{progress}%</span>
                       </div>
                     </div>
                   );
@@ -480,11 +480,11 @@ export default function ChallengePage() {
           <section className="mb-6">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="text-[16px] font-semibold text-nature-900">추천 챌린지</h3>
-              <div className="text-[12px] text-neutral-400">남은 슬롯 {remainingSlots}개</div>
+              <div className="text-[14px] text-neutral-400">남은 슬롯 {remainingSlots}개</div>
             </div>
 
             {recommendedChallenges.length === 0 ? (
-              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center text-[12px] text-neutral-400">
+              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center text-[14px] text-neutral-400">
                 지금 자동 추천된 챌린지는 없어요. 아래 목록에서 직접 골라도 돼요.
               </div>
             ) : (
@@ -500,7 +500,7 @@ export default function ChallengePage() {
                             <span className="text-[18px]">{challenge.emoji}</span>
                             <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
                           </div>
-                          <div className="mt-1 text-[12px] text-neutral-400">
+                          <div className="mt-1 text-[14px] text-neutral-400">
                             {challenge.description} · 기본 {challenge.default_duration_days}일
                           </div>
                         </div>
@@ -508,7 +508,7 @@ export default function ChallengePage() {
                           type="button"
                           onClick={() => joinChallenge(challenge.template_id)}
                           disabled={disabled}
-                          className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors ${
+                          className={`rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors ${
                             disabled
                               ? 'bg-cream-300 text-neutral-400 cursor-not-allowed'
                               : 'bg-nature-500 text-white hover:bg-nature-600'
@@ -574,7 +574,7 @@ export default function ChallengePage() {
                     }`}
                   >
                     <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[14px] font-bold ${
                         isSelected || isActive ? 'bg-nature-500 text-white' : 'border border-cream-500 text-transparent'
                       }`}
                     >
@@ -586,19 +586,19 @@ export default function ChallengePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] font-medium text-nature-900">{item.name}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] ${categoryBadgeStyle(item.category)}`}>
+                        <span className={`rounded-full px-2.5 py-1 text-[12px] ${categoryBadgeStyle(item.category)}`}>
                           {categoryLabel(item.category)}
                         </span>
                       </div>
-                      <div className="text-[12px] text-neutral-400">
+                      <div className="text-[14px] text-neutral-400">
                         {item.description} · 기본 {item.default_duration_days}일
                       </div>
                     </div>
                     {(item.is_recommended || recommendedTemplateIds.has(templateId)) && (
-                      <span className="rounded bg-cream-300 px-2 py-0.5 text-[11px] text-nature-500">추천</span>
+                      <span className="rounded bg-cream-300 px-2.5 py-1 text-[13px] text-nature-500">추천</span>
                     )}
                     {isActive && (
-                      <span className="rounded bg-nature-500 px-2 py-0.5 text-[11px] text-white">참여 중</span>
+                      <span className="rounded bg-nature-500 px-2.5 py-1 text-[13px] text-white">참여 중</span>
                     )}
                   </button>
                 );
@@ -627,7 +627,7 @@ export default function ChallengePage() {
           <section className="mt-6">
             <h3 className="mb-3 text-[16px] font-semibold text-nature-900">완료한 챌린지</h3>
             {completedChallenges.length === 0 ? (
-              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center text-[12px] text-neutral-400">
+              <div className="rounded-2xl bg-cream-300 px-5 py-6 text-center text-[14px] text-neutral-400">
                 아직 완료한 챌린지는 없어요.
               </div>
             ) : (
@@ -637,9 +637,9 @@ export default function ChallengePage() {
                     <div className="flex items-center gap-2">
                       <span className="text-[18px]">{challenge.emoji}</span>
                       <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
-                      <span className="rounded-full bg-nature-100 px-2 py-0.5 text-[10px] text-nature-700">완료</span>
+                      <span className="rounded-full bg-nature-100 px-2.5 py-1 text-[12px] text-nature-700">완료</span>
                     </div>
-                    <div className="mt-1 text-[12px] text-neutral-400">
+                    <div className="mt-1 text-[14px] text-neutral-400">
                       총 {challenge.days_completed}일 기록 · 최고 연속 {challenge.best_streak}일
                     </div>
                   </div>

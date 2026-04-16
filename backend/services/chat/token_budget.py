@@ -6,7 +6,7 @@ from collections import OrderedDict
 from collections.abc import Sequence
 from typing import Any
 
-from backend.core import config
+from backend.services.chat.openai_client import get_active_llm_model
 
 _BENCH_BUDGET_MAX_ENTRIES = 512
 _bench_budget_snapshots: OrderedDict[str, dict[str, Any]] = OrderedDict()
@@ -28,7 +28,7 @@ def _get_encoding():
         return None
 
     try:
-        _ENCODING_CACHED = tiktoken.encoding_for_model(config.OPENAI_MODEL)
+        _ENCODING_CACHED = tiktoken.encoding_for_model(get_active_llm_model())
     except Exception:
         try:
             _ENCODING_CACHED = tiktoken.get_encoding("o200k_base")

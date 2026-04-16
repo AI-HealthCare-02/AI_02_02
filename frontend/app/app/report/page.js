@@ -178,22 +178,22 @@ export default function ReportPage() {
                   <div className="bg-cream-300 rounded-xl p-[18px_20px] mb-3.5">
                     <div className="flex gap-4 items-center">
                       <div className="bg-white border border-cream-500 rounded-lg px-5 py-3.5 text-center min-w-[80px]">
-                        <div className="text-[11px] text-neutral-400 mb-1">점수</div>
+                        <div className="text-[13px] text-neutral-400 mb-1.5">점수</div>
                         <div className="text-[34px] font-semibold text-nature-500 leading-none">{score}</div>
-                        <div className="text-[12px] text-neutral-400 mt-1">/26</div>
+                        <div className="text-[14px] text-neutral-400 mt-1.5">/26</div>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-end mb-2">
-                          <span className="text-[11px] px-3 py-1 border border-cream-500 rounded-lg text-neutral-400 bg-white">{level.label} 구간</span>
+                          <span className="text-[13px] px-3 py-1.5 border border-cream-500 rounded-lg text-neutral-400 bg-white">{level.label} 구간</span>
                         </div>
-                        <div className="text-[11px] text-neutral-400 mb-2">FINDRISC 위험도 지수</div>
+                        <div className="text-[13px] text-neutral-400 mb-2.5">FINDRISC 위험도 지수</div>
                         <div className="relative h-[10px] rounded-[5px] mb-1.5" style={{ background: 'linear-gradient(to right, #4CAF50, #8BC34A, #FFC107, #FF7043, #E53935)' }}>
                           <div
                             className="absolute top-[-3px] w-4 h-4 rounded-full border-[2.5px] border-white shadow-md"
                             style={{ left: `calc(${getScorePosition(score)}% - 8px)`, background: '#4A5D23' }}
                           ></div>
                         </div>
-                        <div className="flex justify-between text-[11px]">
+                        <div className="flex justify-between text-[13px]">
                           {LEVELS.map((item) => (
                             <span key={item.key} style={{ color: item.color }} className={item.key === level.key ? 'font-bold' : ''}>
                               {item.key === level.key ? `•${item.label}` : item.label}
@@ -205,7 +205,7 @@ export default function ReportPage() {
                   </div>
 
                   <div className="bg-cream-300 rounded-xl p-4 mb-3.5">
-                    <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-1.5">요약</div>
+                    <div className="text-[13px] font-medium text-neutral-400 tracking-wider mb-1.5">요약</div>
                     <div className="text-[14px] text-neutral-400 leading-[1.8]">
                       그룹: {status.user_group || '-'} / BMI: {status.bmi ?? '-'} / 초기 위험도: {status.initial_risk_level || '-'}
                     </div>
@@ -217,7 +217,7 @@ export default function ReportPage() {
                       <div className="mt-1"><TrendingUp size={24} className="text-neutral-300" /></div>
                       <div>
                         <div className="text-[13px] text-nature-900 mb-1">대시보드는 지금 바로 볼 수 있어요</div>
-                        <div className="text-[11px] text-neutral-400">
+                        <div className="text-[14px] leading-[1.55] text-neutral-400">
                           최근 7일 중 기록된 날짜는 {recordedDays}일이고, 기록이 쌓일수록 추이와 그래프가 더 선명해져요.
                         </div>
                       </div>
@@ -228,11 +228,11 @@ export default function ReportPage() {
                   <div className="grid grid-cols-2 gap-3 mb-3.5">
                     {categoryCards.map((item) => (
                       <div key={item.key} className="rounded-xl bg-cream-300 p-4">
-                        <div className="text-[12px] font-medium text-nature-900">{item.label}</div>
+                        <div className="text-[14px] font-medium text-nature-900">{item.label}</div>
                         <div className="mt-2 text-[24px] font-semibold text-nature-900">
                           {item.currentValue === null || item.currentValue === undefined ? '-' : Math.round(item.currentValue)}
                         </div>
-                        <div className="text-[11px] text-neutral-400">
+                        <div className="text-[13px] text-neutral-400">
                           {item.currentValue === null || item.currentValue === undefined
                             ? '아직 서버 기록이 부족해요'
                             : `현재 점수 / 목표 ${Math.round(item.goalValue || 0)}`}
@@ -241,12 +241,12 @@ export default function ReportPage() {
                     ))}
                   </div>
                   <div className="bg-cream-300 rounded-xl p-4 mb-3.5">
-                    <div className="text-[12px] text-neutral-400 mb-3">
+                    <div className="text-[14px] leading-[1.55] text-neutral-400 mb-3.5">
                       채팅 아래 카드나 오른쪽 패널에서 기록한 값이 서버에 저장되면, 대시보드와 상세 리포트가 같은 기준으로 채워져요.
                     </div>
                     <div className="flex gap-2">
-                      <Link href="/app/chat" className="text-[12px] text-nature-500 hover:underline">오늘 기록 입력하러 가기</Link>
-                      <Link href="/app/report/detail" className="text-[12px] text-neutral-400 hover:text-nature-900">상세 리포트 기준 보기</Link>
+                      <Link href="/app/chat" className="text-[14px] text-nature-500 hover:underline">오늘 기록 입력하러 가기</Link>
+                      <Link href="/app/report/detail" className="text-[14px] text-neutral-400 hover:text-nature-900">상세 리포트 기준 보기</Link>
                     </div>
                   </div>
 
@@ -255,26 +255,26 @@ export default function ReportPage() {
                     <div className="bg-cream-300 rounded-xl p-6 mb-3.5 text-center">
                       <div className="mb-2"><Target size={24} className="text-neutral-300 mx-auto" /></div>
                       <div className="text-[13px] text-nature-900 mb-1">아직 참여 중인 챌린지가 없어요</div>
-                      <div className="text-[11px] text-neutral-400 mb-3">
+                      <div className="text-[14px] leading-[1.55] text-neutral-400 mb-3.5">
                         서버 기준으로 현재 진행 중인 챌린지가 없어요. 챌린지는 챌린지 화면에서 시작하고 체크해요.
                       </div>
-                      <Link href="/app/challenge" className="text-[12px] text-nature-500 hover:underline">챌린지 둘러보기</Link>
+                      <Link href="/app/challenge" className="text-[14px] text-nature-500 hover:underline">챌린지 둘러보기</Link>
                     </div>
                   ) : (
                     <div className="bg-cream-300 rounded-xl p-4 mb-3.5 space-y-3">
-                      <div className="text-[11px] text-neutral-400">
+                      <div className="text-[14px] leading-[1.55] text-neutral-400">
                         현재 진행 중 {challengeStats.active_count || activeChallenges.length}개 / 남은 슬롯 {challengeStats.remaining_active_slots ?? 0}개
                       </div>
                       {activeChallenges.map((challenge) => (
                         <div key={challenge.user_challenge_id} className="rounded-xl bg-white px-4 py-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="text-[12px] font-medium text-nature-900">{challenge.emoji} {challenge.name}</div>
-                              <div className="text-[10px] text-neutral-400">
+                              <div className="text-[14px] font-medium text-nature-900">{challenge.emoji} {challenge.name}</div>
+                              <div className="text-[13px] text-neutral-400">
                                 진행률 {Math.round(Number(challenge.progress_pct || 0) * 100)}% · 연속 {challenge.current_streak || 0}일
                               </div>
                             </div>
-                            <span className="text-[10px] text-neutral-400">
+                            <span className="text-[13px] text-neutral-400">
                               {challenge.today_checked ? '오늘 체크 완료' : '오늘 체크 필요'}
                             </span>
                           </div>

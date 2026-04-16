@@ -77,6 +77,30 @@ services:
       redis:
         condition: service_healthy
 
+  gemma-runtime:
+    image: vllm/vllm-openai:latest
+    env_file: .env
+    restart: unless-stopped
+    gpus: all
+    shm_size: 2g
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    ports:
+      - "${GEMMA_RUNTIME_PORT:-8001}:8001"
+    command: >
+      --model ${LLM_MODEL:-google/gemma-4-E4B-it}
+      --host 0.0.0.0
+      --port 8001
+      --max-model-len ${GEMMA_MAX_MODEL_LEN:-4096}
+      --max-num-seqs ${GEMMA_MAX_NUM_SEQS:-1}
+      --max-num-batched-tokens ${GEMMA_MAX_NUM_BATCHED_TOKENS:-2048}
+      --gpu-memory-utilization ${GEMMA_GPU_MEMORY_UTILIZATION:-0.90}
+      --enable-prefix-caching
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    networks:
+      - ws
+
   nginx:
     image: nginx:latest
     volumes:
@@ -92,6 +116,7 @@ services:
 volumes:
   postgres_data:
   static_volume:
+  huggingface_cache:
 
 networks:
   ws:

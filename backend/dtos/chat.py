@@ -5,6 +5,12 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from backend.dtos.health import (
+    CardAvailabilityResponse,
+    DailyLogResponse,
+    PendingQuestionsResponse,
+)
+
 
 class SendMessageRequest(BaseModel):
     """채팅 메시지 전송 요청."""
@@ -60,3 +66,6 @@ class HealthAnswerResponse(BaseModel):
     saved_fields: list[str]
     skipped_fields: list[str]
     cooldown_until: datetime | None = None
+    daily_log: DailyLogResponse | None = None
+    pending_questions: PendingQuestionsResponse | None = None
+    card_availability: CardAvailabilityResponse | None = None
