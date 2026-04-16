@@ -58,7 +58,7 @@ export default function LoginPage() {
           const status = await statusRes.json();
           window.location.href = status.is_completed ? '/app/chat' : '/onboarding/diabetes';
         } else {
-          window.location.href = '/onboarding/diabetes';
+          setError('로그인은 되었지만 온보딩 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
         }
       } else if (res.status === 401) {
         setError('이메일 또는 비밀번호가 일치하지 않습니다.');
@@ -67,7 +67,7 @@ export default function LoginPage() {
       }
     } catch {
       // 백엔드 미연결 — 개발용 fallback
-      window.location.href = '/onboarding/diabetes';
+      setError('백엔드 연결에 실패했습니다. 서버 상태를 확인해주세요.');
     } finally {
       setLoading(false);
     }

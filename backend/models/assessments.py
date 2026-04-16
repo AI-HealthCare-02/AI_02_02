@@ -26,6 +26,11 @@ class RiskAssessment(models.Model):
     # FINDRISC 총점
     findrisc_score = fields.SmallIntField()
     risk_level = fields.CharEnumField(enum_type=RiskLevel)
+    predicted_score_pct = fields.SmallIntField(null=True)
+    predicted_risk_level = fields.CharField(max_length=20, null=True)
+    predicted_risk_label = fields.CharField(max_length=40, null=True)
+    predicted_stage_label = fields.CharField(max_length=60, null=True)
+    model_track = fields.CharField(max_length=30, null=True)
 
     # 영역별 점수 (0-100 스케일)
     sleep_score = fields.SmallIntField(null=True)

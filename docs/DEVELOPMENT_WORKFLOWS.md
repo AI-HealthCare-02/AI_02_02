@@ -96,6 +96,16 @@ git push -u origin 브랜치이름
 bash scripts/setup-hooks.sh
 ```
 
+설치 후 자동으로 걸리는 검사는 아래와 같습니다.
+
+- `pre-commit`: staged Python 파일에 대해 `ruff check`
+- `commit-msg`: 커밋 메시지 형식 검사
+- `pre-push`: `uv run ruff check backend`
+- `pre-push`: `uv run python -m pytest backend/tests/unit -q`
+- `pre-push`: staged frontend 변경이 있으면 `cd frontend && npm run build`
+
+즉 기본적인 CI 실패는 `git push` 전에 로컬에서 먼저 막는 구조입니다.
+
 ---
 
 ## 6. PR 만들기
