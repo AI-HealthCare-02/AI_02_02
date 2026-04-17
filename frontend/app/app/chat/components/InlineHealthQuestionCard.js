@@ -2,6 +2,10 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
+// 매 렌더마다 새 참조가 생기지 않도록 고정 (부모 리렌더 중 useEffect 상태 리셋 방지)
+const EMPTY_ANSWERS = Object.freeze({});
+const EMPTY_SAVED = Object.freeze([]);
+
 function isQuestionVisible(question, answers) {
   const condition = question?.condition;
   if (!condition) return true;
@@ -54,8 +58,8 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
   questions,
   onSubmit,
   formatOptionLabel,
-  initialAnswers = {},
-  initialSavedFields = [],
+  initialAnswers = EMPTY_ANSWERS,
+  initialSavedFields = EMPTY_SAVED,
   onComplete,
   helperText = '답변 흐름을 끊지 않고 바로 오늘 기록에 반영할 수 있어요.',
 }) {
@@ -65,13 +69,15 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
   const [pendingField, setPendingField] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // 번들/질문셋이 바뀔 때만 상태 리셋. initialAnswers/initialSavedFields 참조 변동은 무시 (클릭 중 리셋 방지)
   useEffect(() => {
     setAnswers(initialAnswers);
     setSavedFields(initialSavedFields);
     setSkippedFields([]);
     setPendingField(null);
     setErrorMessage('');
-  }, [bundleKey, initialAnswers, initialSavedFields, questions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bundleKey, questions]);
 
   const visibleQuestions = useMemo(
     () =>
@@ -173,13 +179,13 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
   );
 
   return (
-    <div className="rounded-2xl border border-cream-500 bg-white px-4 py-3 shadow-soft">
+    <div className="rounded-2xl border border-cream-500 bg-cream-300 px-4 py-3 shadow-soft">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-[12px] font-semibold text-nature-900">{bundleName}</div>
           <div className="text-[11px] text-neutral-400">{helperText}</div>
         </div>
-        {isComplete && <div className="text-[11px] font-medium text-emerald-600">오늘 기록 완료</div>}
+        {isComplete && <div className="text-[11px] font-medium text-neutral-500">오늘 기록 완료</div>}
       </div>
 
       <div className="mt-3 space-y-4">
@@ -200,7 +206,7 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
                       type="button"
                       onClick={() => handleNumberAdjust(question.field, -step)}
                       disabled={isPending}
-                      className="w-8 h-8 rounded-full border border-cream-500 bg-white text-neutral-400 hover:bg-black/[.03] disabled:cursor-wait disabled:opacity-60"
+                      className="w-8 h-8 rounded-full border border-cream-500 bg-cream-400 text-neutral-400 hover:bg-cream-500 disabled:cursor-wait disabled:opacity-60"
                     >
                       -
                     </button>
@@ -212,13 +218,13 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
                       value={value}
                       onChange={(event) => handleNumberInput(question.field, event.target.value)}
                       disabled={isPending}
-                      className="w-20 rounded-lg border border-cream-500 bg-white px-2 py-1 text-center text-[14px] font-semibold text-nature-900 outline-none"
+                      className="w-20 rounded-lg border border-cream-500 bg-cream-400 px-2 py-1 text-center text-[14px] font-semibold text-nature-900 outline-none"
                     />
                     <button
                       type="button"
                       onClick={() => handleNumberAdjust(question.field, step)}
                       disabled={isPending}
-                      className="w-8 h-8 rounded-full border border-cream-500 bg-white text-neutral-400 hover:bg-black/[.03] disabled:cursor-wait disabled:opacity-60"
+                      className="w-8 h-8 rounded-full border border-cream-500 bg-cream-400 text-neutral-400 hover:bg-cream-500 disabled:cursor-wait disabled:opacity-60"
                     >
                       +
                     </button>
@@ -227,7 +233,7 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
                     type="button"
                     onClick={() => handleNumberSave(question)}
                     disabled={isPending}
-                    className="mt-3 w-full rounded-lg bg-nature-900 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-800 disabled:cursor-wait disabled:opacity-60"
+                    className="mt-3 w-full rounded-lg bg-nature-500 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-600 disabled:cursor-wait disabled:opacity-60"
                   >
                     {isPending ? '저장 중...' : '이 값으로 저장'}
                   </button>
@@ -252,7 +258,7 @@ const InlineHealthQuestionCard = memo(function InlineHealthQuestionCard({
                       aria-pressed={isActive}
                       className={`rounded-full border px-3 py-1.5 text-[11px] transition-all ${
                         isActive
-                          ? 'border-nature-900 bg-nature-900 text-white'
+                          ? 'border-nature-500 bg-nature-500 text-white'
                           : 'border-cream-500 bg-cream-300 text-nature-900 hover:border-nature-500'
                       } ${isPending ? 'cursor-wait opacity-60' : ''}`}
                     >

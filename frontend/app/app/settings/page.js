@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Check, Database, FileText, Lock, User as UserIcon } from 'lucide-react';
 import { api, clearToken } from '../../../hooks/useApi';
+import useTheme from '../../../hooks/useTheme';
 
 const TERMS_TEXT = `다나아 서비스 이용약관
 
@@ -40,6 +41,31 @@ function Toggle({ value, onChange, disabled = false }) {
   );
 }
 
+function ThemeSegment() {
+  const { theme, setTheme } = useTheme();
+  const options = [
+    { value: 'dark', label: '다크' },
+    { value: 'light', label: '화이트' },
+  ];
+  return (
+    <div className="flex rounded-lg border border-cream-500 bg-cream-200 p-0.5">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => setTheme(opt.value)}
+          className={`rounded-md px-3 py-1 text-[12px] font-medium transition-colors ${
+            theme === opt.value
+              ? 'bg-cream-400 text-nature-900 shadow-xs'
+              : 'text-neutral-400 hover:text-nature-900'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PasswordModal({ onClose, onSubmit, saving, message }) {
   const [form, setForm] = useState({
     currentPassword: '',
@@ -64,7 +90,7 @@ function PasswordModal({ onClose, onSubmit, saving, message }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={onClose}>
-      <div className="w-full max-w-[420px] rounded-2xl bg-white shadow-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-[420px] rounded-2xl bg-cream-300 border border-cream-500 shadow-modal" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-cream-500 px-5 py-4">
           <h3 className="text-[16px] font-semibold text-nature-900">비밀번호 변경</h3>
           <button type="button" onClick={onClose} className="text-[18px] text-neutral-400 hover:text-nature-900">
@@ -136,7 +162,7 @@ function PasswordModal({ onClose, onSubmit, saving, message }) {
 function TextModal({ title, text, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6" onClick={onClose}>
-      <div className="flex max-h-[70vh] w-full max-w-[520px] flex-col rounded-2xl bg-white shadow-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="flex max-h-[70vh] w-full max-w-[520px] flex-col rounded-2xl bg-cream-300 border border-cream-500 shadow-modal" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-cream-500 px-5 py-4">
           <h3 className="text-[16px] font-semibold text-nature-900">{title}</h3>
           <button type="button" onClick={onClose} className="text-[18px] text-neutral-400 hover:text-nature-900">
@@ -431,7 +457,7 @@ export default function SettingsPage() {
   if (!loaded) {
     return (
       <>
-        <header className="flex h-12 items-center border-b border-black/[.04] bg-white/90 px-4 backdrop-blur-xl">
+        <header className="flex h-12 items-center border-b border-black/[.04] bg-cream-300/90 px-4 backdrop-blur-xl">
           <span className="text-[14px] font-medium text-nature-900">설정</span>
         </header>
         <div className="flex-1 px-6 py-6">
@@ -447,24 +473,25 @@ export default function SettingsPage() {
 
   return (
     <>
-      <header className="flex h-12 items-center border-b border-black/[.04] bg-white/90 px-4 backdrop-blur-xl">
+      <header className="flex h-12 items-center border-b border-black/[.04] bg-cream-300/90 px-4 backdrop-blur-xl">
         <span className="text-[14px] font-medium text-nature-900">설정</span>
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
         <div className="mx-auto max-w-[720px]">
-          <section className="mb-4 rounded-xl bg-white shadow-soft">
-            <div className="border-b border-black/[.04] px-4 py-3">
+          <section className="mb-4 rounded-xl bg-cream-300 border border-cream-500 shadow-soft">
+            <div className="border-b border-black/[.04] px-4 py-3 flex items-center justify-between">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
                 <UserIcon size={16} />
                 프로필
               </h3>
+              <ThemeSegment />
             </div>
             <div className="divide-y divide-black/[.04]">
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">그룹 분류</div>
-                  <div className="mt-0.5 text-[12px] text-neutral-300">온보딩 설문 기준</div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-text-hint)]">온보딩 설문 기준</div>
                 </div>
                 <div className="text-[13px] text-neutral-500">{profileInfo.group}</div>
               </div>
@@ -475,7 +502,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="mb-4 rounded-xl bg-white shadow-soft">
+          <section className="mb-4 rounded-xl bg-cream-300 border border-cream-500 shadow-soft">
             <div className="border-b border-black/[.04] px-4 py-3">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
                 <UserIcon size={16} />
@@ -530,7 +557,7 @@ export default function SettingsPage() {
                   <select
                     value={userForm.gender}
                     onChange={(e) => setUserForm((prev) => ({ ...prev, gender: e.target.value }))}
-                    className="w-full rounded-lg border border-cream-500 bg-white px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+                    className="w-full rounded-lg border border-cream-500 bg-cream-400 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
                   >
                     <option value="">선택</option>
                     <option value="MALE">남성</option>
@@ -621,7 +648,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="mb-4 rounded-xl bg-white shadow-soft">
+          <section className="mb-4 rounded-xl bg-cream-300 border border-cream-500 shadow-soft">
             <div className="border-b border-black/[.04] px-4 py-3">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
                 <Bell size={16} />
@@ -632,28 +659,28 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">채팅 알림</div>
-                  <div className="mt-0.5 text-[12px] text-neutral-300">AI 채팅 관련 알림 설정</div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-text-hint)]">AI 채팅 관련 알림 설정</div>
                 </div>
                 <Toggle value={notifications.chat_notification} onChange={(v) => toggleNotification('chat_notification', v)} />
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">챌린지 리마인더</div>
-                  <div className="mt-0.5 text-[12px] text-neutral-300">챌린지 참여 알림 설정</div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-text-hint)]">챌린지 참여 알림 설정</div>
                 </div>
                 <Toggle value={notifications.challenge_reminder} onChange={(v) => toggleNotification('challenge_reminder', v)} />
               </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">주간 리포트</div>
-                  <div className="mt-0.5 text-[12px] text-neutral-300">수집한 정보를 바탕으로 주간 리포트를 받도록 설정</div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-text-hint)]">수집한 정보를 바탕으로 주간 리포트를 받도록 설정</div>
                 </div>
                 <Toggle value={notifications.weekly_report} onChange={(v) => toggleNotification('weekly_report', v)} />
               </div>
             </div>
           </section>
 
-          <section className="mb-4 rounded-xl bg-white shadow-soft">
+          <section className="mb-4 rounded-xl bg-cream-300 border border-cream-500 shadow-soft">
             <div className="border-b border-black/[.04] px-4 py-3">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
                 <Database size={16} />
@@ -664,7 +691,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">건강데이터 수집 동의</div>
-                  <div className="mt-0.5 text-[12px] text-neutral-300">건강 관리 기능 제공을 위한 데이터 활용 동의입니다.</div>
+                  <div className="mt-0.5 text-[12px] text-[var(--color-text-hint)]">건강 관리 기능 제공을 위한 데이터 활용 동의입니다.</div>
                 </div>
                 <Toggle value={dataConsent} onChange={updateConsent} disabled={consentSaving} />
               </div>
@@ -676,7 +703,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="mb-4 rounded-xl bg-white shadow-soft">
+          <section className="mb-4 rounded-xl bg-cream-300 border border-cream-500 shadow-soft">
             <div className="border-b border-black/[.04] px-4 py-3">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
                 <Lock size={16} />
@@ -714,7 +741,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-xl bg-white shadow-soft">
+          <section className="rounded-xl bg-cream-300 border border-cream-500 shadow-soft">
             <div className="border-b border-black/[.04] px-4 py-3">
               <h3 className="flex items-center gap-1.5 text-[14px] font-semibold text-nature-900">
                 <FileText size={16} />

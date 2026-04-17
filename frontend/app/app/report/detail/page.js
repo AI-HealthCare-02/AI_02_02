@@ -224,7 +224,7 @@ function PeriodButton({ active, label, onClick }) {
       className={`px-3.5 py-1.5 rounded-full text-[12px] border transition-colors ${
         active
           ? 'bg-nature-500 text-white border-nature-500'
-          : 'bg-white text-neutral-400 border-cream-500 hover:border-neutral-400'
+          : 'bg-cream-400 text-neutral-400 border-cream-500 hover:border-neutral-400'
       }`}
     >
       {label}
@@ -238,8 +238,8 @@ function ScoreCard({ item, active, onClick }) {
       onClick={onClick}
       className={`rounded-lg py-2.5 px-2 text-center cursor-pointer transition-all ${
         active
-          ? 'border-2 border-nature-500 shadow-float bg-white'
-          : 'border border-cream-500 bg-white shadow-soft hover:shadow-float hover:-translate-y-0.5'
+          ? 'border-2 border-nature-500 shadow-float bg-cream-300'
+          : 'border border-cream-500 bg-cream-300 shadow-soft hover:shadow-float hover:-translate-y-0.5'
       }`}
     >
       <div className="text-[11px] text-neutral-400 mb-1">{item.label}</div>
@@ -444,43 +444,48 @@ export default function ReportDetailPage() {
   const [summary, setSummary] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [dataError, setDataError] = useState(false);
 
   useEffect(() => {
     async function load() {
       setLoaded(false);
+      setDataError(false);
       try {
         const statusRes = await api('/api/v1/onboarding/status');
-        if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
+        if (!statusRes.ok) { setStatus(null); setLoaded(true); return; }
 
         const statusData = await statusRes.json();
         setStatus(statusData);
 
         if (statusData.is_completed) {
-          const fetchDays = periodDays * 2;
-          const dates = getLastNDates(fetchDays);
-          const summaryPeriod = periodDays === 1 ? 7 : periodDays;
-          const [riskRes, summaryRes, ...logResponses] = await Promise.all([
-            api('/api/v1/risk/recalculate', { method: 'POST' }),
-            api(`/api/v1/analysis/summary?period=${summaryPeriod}`),
-            ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
-          ]);
+          try {
+            const fetchDays = periodDays * 2;
+            const dates = getLastNDates(fetchDays);
+            const summaryPeriod = periodDays === 1 ? 7 : periodDays;
+            const [riskRes, summaryRes, ...logResponses] = await Promise.all([
+              api('/api/v1/risk/recalculate', { method: 'POST' }),
+              api(`/api/v1/analysis/summary?period=${summaryPeriod}`),
+              ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
+            ]);
 
-          if (riskRes.ok) setRisk(await riskRes.json());
-          else setRisk(null);
+            if (riskRes.ok) setRisk(await riskRes.json());
+            else setRisk(null);
 
-          if (summaryRes.ok) setSummary(await summaryRes.json());
-          else setSummary(null);
+            if (summaryRes.ok) setSummary(await summaryRes.json());
+            else setSummary(null);
 
-          const dailyLogs = await Promise.all(
-            logResponses.map(async (response, index) => (response.ok ? response.json() : { log_date: dates[index] })),
-          );
-          setLogs(dailyLogs);
+            const dailyLogs = await Promise.all(
+              logResponses.map(async (response, index) => (response.ok ? response.json() : { log_date: dates[index] })),
+            );
+            setLogs(dailyLogs);
+
+            if (!riskRes.ok) setDataError(true);
+          } catch {
+            setDataError(true);
+          }
         }
       } catch {
         setStatus(null);
-        setRisk(null);
-        setSummary(null);
-        setLogs([]);
       }
       setLoaded(true);
     }
@@ -549,11 +554,11 @@ export default function ReportDetailPage() {
 
   return (
     <>
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+      <header className="h-12 bg-cream-300/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
         <span className="text-[14px] font-medium text-nature-900">리포트</span>
       </header>
 
-      <div className="flex border-b border-cream-500 bg-white shrink-0">
+      <div className="flex border-b border-cream-500 bg-cream-300 shrink-0">
         <Link href="/app/report" className="px-5 py-2.5 text-[14px] font-medium transition-colors relative text-neutral-400 hover:text-neutral-600">대시보드</Link>
         <div className="px-5 py-2.5 text-[14px] font-medium transition-colors relative text-nature-900 cursor-default">
           상세 리포트
@@ -563,7 +568,7 @@ export default function ReportDetailPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
         <div className="max-w-[900px] mx-auto">
-          <div className="bg-white shadow-float rounded-xl overflow-hidden">
+          <div className="bg-cream-300 border border-cream-500 shadow-float rounded-xl overflow-hidden">
             <div className="px-7 py-5 border-b border-black/[.04]">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-baseline gap-3">
@@ -593,19 +598,30 @@ export default function ReportDetailPage() {
 
               {loaded && !hasOnboarding && (
                 <div className="text-center py-10">
-                  <div className="mb-4"><BarChartIcon size={40} className="text-neutral-300 mx-auto" /></div>
+                  <div className="mb-4"><BarChartIcon size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
                   <div className="text-[16px] font-medium text-nature-900 mb-2">아직 상세 리포트를 만들 수 없어요</div>
                   <div className="text-[14px] text-neutral-400 mb-6">온보딩 설문과 건강 기록이 쌓이면 실제 분석 결과가 표시됩니다.</div>
                   <Link href="/onboarding/diabetes" className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">온보딩 시작하기</Link>
                 </div>
               )}
 
-              {loaded && hasOnboarding && !hasDailyData && (
+              {loaded && hasOnboarding && dataError && !risk && (
                 <div className="text-center py-10">
-                  <div className="mb-4"><BarChartIcon size={40} className="text-neutral-300 mx-auto" /></div>
+                  <div className="mb-4"><BarChartIcon size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
+                  <div className="text-[16px] font-medium text-nature-900 mb-2">리포트 데이터를 불러올 수 없어요</div>
+                  <div className="text-[14px] text-neutral-400 mb-6">온보딩은 완료되었지만 분석 데이터를 가져오지 못했습니다. 잠시 후 새로고침 해주세요.</div>
+                  <button onClick={() => window.location.reload()} className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">
+                    새로고침
+                  </button>
+                </div>
+              )}
+
+              {loaded && hasOnboarding && !hasDailyData && !dataError && (
+                <div className="text-center py-10">
+                  <div className="mb-4"><BarChartIcon size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
                   <div className="text-[16px] font-medium text-nature-900 mb-2">아직 상세 리포트를 만들 수 없어요</div>
                   <div className="text-[14px] text-neutral-400 mb-2">{getPeriodLabel(periodDays)} 건강 기록이 더 쌓이면 상세 분석을 볼 수 있어요</div>
-                  <div className="text-[12px] text-neutral-300 mb-6">수면, 식사, 운동, 수분을 기록하면 기간별 비교가 가능합니다.</div>
+                  <div className="text-[12px] text-[var(--color-text-hint)] mb-6">수면, 식사, 운동, 수분을 기록하면 기간별 비교가 가능합니다.</div>
                   <Link href="/app/chat" className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">AI 채팅에서 기록 시작</Link>
                 </div>
               )}
@@ -635,7 +651,7 @@ export default function ReportDetailPage() {
                     기준 기간: {getPeriodLabel(periodDays)}. 아래 비교 문구와 점선 그래프는 바로 이전 같은 기간과의 차이를 뜻합니다.
                   </div>
 
-                  <div className="text-[11px] text-neutral-300 text-right mb-1.5">카드를 탭하면 항목별 상세를 먼저 볼 수 있어요</div>
+                  <div className="text-[11px] text-[var(--color-text-hint)] text-right mb-1.5">카드를 탭하면 항목별 상세를 먼저 볼 수 있어요</div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                     {categoryItems.map((item) => (
                       <ScoreCard key={item.key} item={item} active={scoreTab === item.key} onClick={() => setScoreTab(scoreTab === item.key ? 'all' : item.key)} />
@@ -643,7 +659,7 @@ export default function ReportDetailPage() {
                   </div>
 
                   <div className="flex justify-end mb-3.5">
-                    <button onClick={() => setScoreTab('all')} className={`px-3.5 py-1.5 rounded-full text-[12px] cursor-pointer transition-all ${scoreTab === 'all' ? 'bg-nature-500 text-white border border-nature-500' : 'bg-white text-neutral-400 border border-cream-500 hover:border-neutral-400'}`}>전체 보기</button>
+                    <button onClick={() => setScoreTab('all')} className={`px-3.5 py-1.5 rounded-full text-[12px] cursor-pointer transition-all ${scoreTab === 'all' ? 'bg-nature-500 text-white border border-nature-500' : 'bg-cream-400 text-neutral-400 border border-cream-500 hover:border-neutral-400'}`}>전체 보기</button>
                   </div>
 
                   <OverviewChart analytics={analytics} selectedKey={selectedKey} days={periodDays} />
@@ -679,7 +695,7 @@ export default function ReportDetailPage() {
                     );
                   })}
 
-                  <div className="text-[11px] text-neutral-300 text-center mt-3">
+                  <div className="text-[11px] text-[var(--color-text-hint)] text-center mt-3">
                     {risk.model_enabled
                       ? `모델 트랙: ${risk.model_track === 'diabetic_track' ? '당뇨형' : '비당뇨형'} / ${risk.disclaimer}`
                       : risk.model_status_message || 'AI 예측 모델 산출물이 연결되면 상세 리포트에 예측 결과가 함께 표시됩니다.'}

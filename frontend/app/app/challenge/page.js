@@ -42,12 +42,12 @@ const CATEGORY_LABELS = {
 };
 
 const CATEGORY_BADGE_STYLES = {
-  exercise: 'bg-blue-50 text-blue-600',
-  diet: 'bg-emerald-50 text-emerald-600',
-  sleep: 'bg-violet-50 text-violet-600',
-  hydration: 'bg-sky-50 text-sky-600',
-  medication: 'bg-amber-50 text-amber-600',
-  lifestyle: 'bg-stone-100 text-stone-600',
+  exercise: 'bg-cream-400 text-neutral-500',
+  diet: 'bg-cream-400 text-neutral-500',
+  sleep: 'bg-cream-400 text-neutral-500',
+  hydration: 'bg-cream-400 text-neutral-500',
+  medication: 'bg-cream-400 text-neutral-500',
+  lifestyle: 'bg-cream-400 text-neutral-500',
 };
 
 const LEGACY_ID_TO_CODE = {
@@ -311,7 +311,7 @@ export default function ChallengePage() {
   if (!loaded) {
     return (
       <>
-        <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+        <header className="h-12 bg-cream-300/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
           <span className="text-[14px] font-medium text-nature-900">챌린지</span>
         </header>
         <div className="flex-1 px-6 py-6">
@@ -330,14 +330,14 @@ export default function ChallengePage() {
 
   return (
     <>
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+      <header className="h-12 bg-cream-300/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
         <span className="text-[14px] font-medium text-nature-900">챌린지</span>
       </header>
 
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
         <div className="max-w-[840px] mx-auto">
           <div className="mb-5 flex items-center gap-3.5">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-500">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-cream-400 text-nature-800">
               <Flame size={24} />
             </span>
             <div>
@@ -354,7 +354,7 @@ export default function ChallengePage() {
                 </span>
               ))}
               {activeChallenges.length < maxActiveCount && (
-                <span className="rounded-full bg-cream-300 px-3 py-1.5 text-[14px] text-neutral-300">
+                <span className="rounded-full bg-cream-300 px-3 py-1.5 text-[14px] text-[var(--color-text-hint)]">
                   남은 슬롯 {remainingSlots}개
                 </span>
               )}
@@ -372,7 +372,7 @@ export default function ChallengePage() {
                   남은 슬롯 {remainingSlots}개 · 최고 연속 {topStreak}일
                 </div>
               </div>
-              <div className="rounded-full bg-white px-3.5 py-1.5 text-[14px] text-neutral-500">
+              <div className="rounded-full bg-cream-400 px-3.5 py-1.5 text-[14px] text-neutral-500">
                 챌린지 참여와 체크는 이 화면에서 관리해요
               </div>
             </div>
@@ -385,7 +385,7 @@ export default function ChallengePage() {
           )}
 
           {importableLegacyTemplates.length > 0 && (
-            <div className="mb-5 rounded-2xl border border-cream-500 bg-white px-4 py-4 shadow-soft">
+            <div className="mb-5 rounded-2xl border border-cream-500 bg-cream-300 px-4 py-4 shadow-soft">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">예전 챌린지 기록이 남아 있어요</div>
@@ -423,11 +423,17 @@ export default function ChallengePage() {
                   const busy = busyKey === `checkin:${challenge.user_challenge_id}`;
                   const progress = percent(challenge.progress_pct);
                   return (
-                    <div key={challenge.user_challenge_id} className="rounded-xl bg-white p-4 shadow-soft">
+                    <div key={challenge.user_challenge_id} className="rounded-xl bg-cream-300 border border-cream-500 p-4 shadow-soft">
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[20px]">{challenge.emoji}</span>
+                            <span
+                              className="text-[20px] grayscale opacity-80"
+                              style={{ filter: 'grayscale(1)' }}
+                              aria-hidden="true"
+                            >
+                              {challenge.emoji}
+                            </span>
                             <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>
                             <span className={`rounded-full px-2.5 py-1 text-[12px] ${categoryBadgeStyle(challenge.category)}`}>
                               {categoryLabel(challenge.category)}
@@ -438,7 +444,7 @@ export default function ChallengePage() {
                           </div>
                         </div>
                         {challenge.today_checked ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-nature-100 px-3.5 py-1.5 text-[13px] text-nature-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-nature-900 px-3.5 py-1.5 text-[13px] font-medium text-[var(--color-bg)]">
                             <CheckCircle2 size={14} />
                             오늘 체크 완료
                           </span>
@@ -493,7 +499,7 @@ export default function ChallengePage() {
                   const busy = busyKey === `join:${challenge.template_id}`;
                   const disabled = remainingSlots <= 0 || activeTemplateIds.has(Number(challenge.template_id)) || busy;
                   return (
-                    <div key={challenge.template_id} className="rounded-xl bg-white p-4 shadow-soft">
+                    <div key={challenge.template_id} className="rounded-xl bg-cream-300 border border-cream-500 p-4 shadow-soft">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
@@ -547,7 +553,7 @@ export default function ChallengePage() {
 
             <div className="mb-2.5 text-[13px] font-medium text-neutral-400">
               선택 ({selectedTemplateIds.length}/{remainingSlots}개)
-              {activeCount > 0 && <span className="ml-1 text-neutral-300">· 이미 {activeCount}개 진행 중</span>}
+              {activeCount > 0 && <span className="ml-1 text-[var(--color-text-hint)]">· 이미 {activeCount}개 진행 중</span>}
             </div>
 
             <div className="space-y-1.5">
@@ -570,7 +576,7 @@ export default function ChallengePage() {
                           ? 'cursor-not-allowed bg-cream-300 opacity-35'
                           : isSelected
                             ? 'border-2 border-nature-500 bg-cream-300'
-                            : 'bg-white shadow-soft hover:bg-cream-300'
+                            : 'bg-cream-300 shadow-soft hover:bg-cream-400'
                     }`}
                   >
                     <div
@@ -633,7 +639,7 @@ export default function ChallengePage() {
             ) : (
               <div className="space-y-3">
                 {completedChallenges.map((challenge) => (
-                  <div key={challenge.user_challenge_id} className="rounded-xl bg-white p-4 shadow-soft">
+                  <div key={challenge.user_challenge_id} className="rounded-xl bg-cream-300 border border-cream-500 p-4 shadow-soft">
                     <div className="flex items-center gap-2">
                       <span className="text-[18px]">{challenge.emoji}</span>
                       <span className="text-[15px] font-medium text-nature-900">{challenge.name}</span>

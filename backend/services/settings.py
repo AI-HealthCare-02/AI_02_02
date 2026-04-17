@@ -81,6 +81,7 @@ class SettingsService:
             "reminder_time_evening",
             "max_bundles_per_day",
             "preferred_times",
+            "theme_preference",
             "last_exported_at",
         ):
             writer.writerow(["settings", field_name, getattr(settings, field_name)])

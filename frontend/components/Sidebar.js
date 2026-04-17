@@ -73,6 +73,10 @@ export default function Sidebar({ productGuide = null }) {
   const { grouped } = useConversations();
 
   useEffect(() => {
+    if (window.innerWidth < 768) setOpen(false);
+  }, []);
+
+  useEffect(() => {
     async function loadSidebarState() {
       try {
         const userRes = await api('/api/v1/users/me');
@@ -168,15 +172,23 @@ export default function Sidebar({ productGuide = null }) {
 
   return (
     <>
+      {open && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
       <aside
         className={`${
           open ? 'w-[300px]' : 'w-[48px]'
-        } flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-black/[.06] bg-white/90 backdrop-blur-2xl transition-all duration-200`}
+        } ${
+          open ? 'fixed inset-y-0 left-0 z-40 md:relative md:z-auto' : ''
+        } flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-cream-500 bg-[var(--sidebar-bottom)] transition-all duration-200`}
       >
-        <div className="flex h-12 items-center border-b border-black/[.04] px-2 shrink-0">
+        <div className="flex h-12 items-center border-b border-cream-500 px-2 shrink-0 bg-[var(--sidebar-top)]">
           <button
             onClick={() => setOpen((prev) => !prev)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-lg text-neutral-600 hover:bg-black/[.03]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-lg text-neutral-600 hover:bg-cream-400"
           >
             ☰
           </button>
@@ -190,7 +202,7 @@ export default function Sidebar({ productGuide = null }) {
           )}
         </div>
 
-        <nav className="p-1" data-tutorial="sidebar-nav">
+        <nav className="p-1 bg-[var(--sidebar-top)]" data-tutorial="sidebar-nav">
           {navItems.map((item) => {
             const href = item.href === CHAT_PATH ? chatHref : item.href;
             const active = pathname.startsWith(item.href);
@@ -199,7 +211,7 @@ export default function Sidebar({ productGuide = null }) {
                 key={item.label}
                 href={href}
                 className={`flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[14px] whitespace-nowrap transition-colors ${
-                  active ? 'bg-cream-300 font-medium text-nature-900' : 'text-neutral-400 hover:bg-black/[.03]'
+                  active ? 'bg-cream-300 font-medium text-nature-900' : 'text-neutral-400 hover:bg-cream-400'
                 }`}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
@@ -212,10 +224,10 @@ export default function Sidebar({ productGuide = null }) {
         </nav>
 
         {open && (
-          <div className="mt-1 flex-1 overflow-y-auto border-t border-black/[.04] px-2">
+          <div className="mt-1 flex-1 overflow-y-auto custom-scroll border-t border-cream-500 px-2">
             <button
               onClick={handleNewChatClick}
-              className="mt-2 mb-1 w-full rounded-lg border border-dashed border-black/[.08] bg-transparent px-2 py-2.5 text-[15px] text-neutral-400 transition-colors hover:bg-black/[.03]"
+              className="mt-2 mb-1 w-full rounded-lg border border-dashed border-cream-500 bg-transparent px-2 py-2.5 text-[15px] text-neutral-400 transition-colors hover:bg-cream-400"
             >
               + 새 대화
             </button>
@@ -224,7 +236,7 @@ export default function Sidebar({ productGuide = null }) {
               grouped.length > 0 ? (
                 grouped.map((group) => (
                   <div key={group.label}>
-                    <div className="px-2 pt-3 pb-1.5 text-[13px] font-semibold tracking-wider text-neutral-300 uppercase">
+                    <div className="px-2 pt-3 pb-1.5 text-[13px] font-semibold tracking-wider text-[var(--color-text-hint)] uppercase">
                       {group.label}
                     </div>
                     {group.items.map((conversation) => (
@@ -238,7 +250,7 @@ export default function Sidebar({ productGuide = null }) {
                         }`}
                       >
                         <span className="mr-2 flex-1 truncate">{conversation.title}</span>
-                        <span className="shrink-0 text-[13px] text-neutral-300">
+                        <span className="shrink-0 text-[13px] text-[var(--color-message-meta)]">
                           {formatTime(conversation.updatedAt)}
                         </span>
                       </div>
@@ -249,7 +261,7 @@ export default function Sidebar({ productGuide = null }) {
                 <div className="flex items-center justify-center py-8">
                   <div className="text-center">
                     <div className="mb-2">
-                      <MessageSquare size={24} className="mx-auto text-neutral-300" />
+                      <MessageSquare size={24} className="mx-auto text-[var(--color-text-hint)]" />
                     </div>
                     <div className="text-[14px] text-neutral-400">새 대화를 시작해보세요</div>
                   </div>
@@ -259,7 +271,7 @@ export default function Sidebar({ productGuide = null }) {
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <div className="mb-2">
-                    <MessageSquare size={24} className="mx-auto text-neutral-300" />
+                    <MessageSquare size={24} className="mx-auto text-[var(--color-text-hint)]" />
                   </div>
                   <div className="text-[14px] leading-[1.55] text-neutral-400">
                     온보딩 완료 후
@@ -273,11 +285,11 @@ export default function Sidebar({ productGuide = null }) {
         )}
 
         {!open && (
-          <div className="mt-auto flex flex-col items-center gap-1.5 border-t border-black/[.04] py-1.5">
+          <div className="mt-auto flex flex-col items-center gap-1.5 border-t border-cream-500 py-1.5">
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-black/[.03] hover:text-nature-900"
+              className="flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
               aria-label="서비스 안내 열기"
             >
               <HelpCircle size={15} />
@@ -295,11 +307,11 @@ export default function Sidebar({ productGuide = null }) {
         )}
 
         {open && (
-          <div className="shrink-0 border-t border-black/[.04] px-2 py-2">
+          <div className="shrink-0 border-t border-cream-500 px-2 py-2">
             <button
               type="button"
               onClick={() => setIsGuideOpen(true)}
-              className="mb-2 flex w-full items-center justify-center gap-2 rounded-full border border-black/[.06] bg-white px-3 py-2.5 text-[14px] text-neutral-500 transition-colors hover:bg-black/[.03] hover:text-nature-900"
+              className="mb-2 flex w-full items-center justify-center gap-2 rounded-full border border-cream-500 bg-cream-400 px-3 py-2.5 text-[14px] text-neutral-500 transition-colors hover:bg-cream-500 hover:text-nature-900"
             >
               <HelpCircle size={14} />
               서비스 안내
@@ -307,16 +319,16 @@ export default function Sidebar({ productGuide = null }) {
 
             <button
               onClick={() => setCatOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-black/[.03]"
+              className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-cream-400"
             >
               <div className="flex items-center gap-2 text-[15px]">
-                <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-neutral-300'} />
+                <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
                 <div>
-                  <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-neutral-300'}`}>{currentCat.name}</div>
-                  <div className="text-[13px] text-neutral-300">{currentCat.desc}</div>
+                  <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-[var(--color-text-hint)]'}`}>{currentCat.name}</div>
+                  <div className="text-[13px] text-[var(--color-text-hint)]">{currentCat.desc}</div>
                 </div>
               </div>
-              <span className="text-neutral-300">{catOpen ? '▾' : '▸'}</span>
+              <span className="text-[var(--color-text-hint)]">{catOpen ? '▾' : '▸'}</span>
             </button>
 
             {catOpen && (
@@ -329,13 +341,13 @@ export default function Sidebar({ productGuide = null }) {
                       setCatOpen(false);
                     }}
                     className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
-                      selectedCat === index ? 'bg-white text-nature-900' : 'text-neutral-400 hover:bg-white/70'
+                      selectedCat === index ? 'bg-cream-400 text-nature-900' : 'text-neutral-400 hover:bg-cream-400/70'
                     }`}
                   >
-                    <category.icon size={14} className={category.active ? 'text-nature-500' : 'text-neutral-300'} />
+                    <category.icon size={14} className={category.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
                     <div>
                       <div className="font-medium">{category.name}</div>
-                      <div className="text-[12px] text-neutral-300">{category.desc}</div>
+                      <div className="text-[12px] text-[var(--color-text-hint)]">{category.desc}</div>
                     </div>
                   </button>
                 ))}
@@ -345,11 +357,11 @@ export default function Sidebar({ productGuide = null }) {
             <div className="mt-2 flex items-center justify-between rounded-lg px-2 py-2">
               <div>
                 <div className="text-[15px] font-medium text-nature-900">{userName}</div>
-                <div className="text-[13px] text-neutral-300">{userGroup}</div>
+                <div className="text-[13px] text-[var(--color-text-hint)]">{userGroup}</div>
               </div>
               <Link
                 href="/app/settings"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-black/[.06] text-neutral-400 transition-colors hover:bg-black/[.03] hover:text-nature-900"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
                 aria-label="설정 열기"
               >
                 ⚙

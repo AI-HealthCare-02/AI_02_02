@@ -26,22 +26,22 @@ function GuideSection({ section }) {
         <div className="mt-1 text-[18px] font-semibold text-nature-900">{section.headline}</div>
       </div>
 
-      <div className="rounded-2xl border border-black/[.06] bg-cream-300 px-4 py-3">
+      <div className="rounded-2xl border border-cream-500 bg-cream-300 px-4 py-3">
         <div className="text-[12px] font-medium text-nature-900">이 기능이 뭐예요?</div>
         <div className="mt-1 text-[13px] leading-[1.8] text-neutral-500">{section.what_it_is}</div>
       </div>
 
-      <div className="rounded-2xl border border-black/[.06] bg-white px-4 py-3">
+      <div className="rounded-2xl border border-cream-500 bg-cream-400 px-4 py-3">
         <div className="text-[12px] font-medium text-nature-900">어디서 보면 돼요?</div>
         <div className="mt-1 text-[13px] leading-[1.8] text-neutral-500">{section.where_to_check}</div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-black/[.06] bg-white px-4 py-3">
+        <div className="rounded-2xl border border-cream-500 bg-cream-400 px-4 py-3">
           <div className="text-[12px] font-medium text-nature-900">다음에 하면 좋은 행동</div>
           <div className="mt-1 text-[13px] leading-[1.8] text-neutral-500">{section.next_action}</div>
         </div>
-        <div className="rounded-2xl border border-black/[.06] bg-white px-4 py-3">
+        <div className="rounded-2xl border border-cream-500 bg-cream-400 px-4 py-3">
           <div className="text-[12px] font-medium text-nature-900">알아두면 좋은 점</div>
           <div className="mt-1 text-[13px] leading-[1.8] text-neutral-500">{section.limitations}</div>
         </div>
@@ -70,8 +70,8 @@ export default function AppGuideModal({ guide, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm">
-      <div className="flex w-full max-w-[820px] flex-col overflow-hidden rounded-[28px] border border-black/[.06] bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-black/[.06] px-6 py-5">
+      <div className="flex w-full max-w-[820px] flex-col overflow-hidden rounded-[28px] border border-cream-500 bg-cream-300 shadow-2xl">
+        <div className="flex items-start justify-between border-b border-cream-500 px-6 py-5">
           <div>
             <div className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-neutral-400 uppercase">
               <BookOpen size={14} />
@@ -86,14 +86,14 @@ export default function AppGuideModal({ guide, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-black/[.06] text-neutral-400 transition-colors hover:bg-black/[.03] hover:text-nature-900"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
             aria-label="서비스 안내 닫기"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="border-b border-black/[.06] px-4 py-3">
+        <div className="border-b border-cream-500 px-4 py-3">
           <div className="flex flex-wrap gap-2">
             {TAB_CONFIG.map((tab) => {
               const Icon = tab.icon;

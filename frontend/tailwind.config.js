@@ -7,42 +7,32 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // DA-NA-A Design System v3 — Fresh Green
+        // DA-NA-A Design System v8 — Theme-aware (CSS 변수 참조)
         nature: {
-          DEFAULT: '#2D2D2D',    // 기본 텍스트 (차콜)
-          50:  '#F4F8F0',
-          100: '#E8F1DE',
-          200: '#D1E3BD',
-          300: '#B5D297',
-          400: '#9BC473',
-          500: '#8DB96E',        // 버튼 (스크린샷 연두)
-          600: '#7DAA5E',        // 버튼 호버
-          700: '#6A9150',
-          800: '#4A6638',
-          900: '#2D2D2D',        // 텍스트 (차콜)
-          950: '#1A1A1A',
+          DEFAULT: 'var(--color-text)',
+          100: 'var(--sidebar-top)',
+          500: 'var(--color-cta-bg)',
+          600: 'var(--color-cta-hover)',
+          700: 'var(--color-border)',
+          800: 'var(--color-text-secondary)',
+          900: 'var(--color-text)',
+          950: 'var(--color-primary)',
         },
-        // 서브 텍스트 — 차콜 계열 (기본 neutral보다 진하게)
         neutral: {
-          50:  '#FAFAFA',
-          100: '#F0F0F0',
-          200: '#E0E0E0',
-          300: '#8A8A8A',        // 기존 #bbb → 진한 차콜
-          400: '#666666',        // 기존 #999 → 진한 차콜
-          500: '#4A4A4A',
-          600: '#333333',
-          700: '#2A2A2A',
-          800: '#1F1F1F',
-          900: '#141414',
+          300: 'var(--color-border)',
+          400: 'var(--color-text-muted)',
+          500: 'var(--color-text-secondary)',
+          600: 'var(--color-text-secondary)',
+          700: 'var(--color-text)',
+          800: 'var(--color-text)',
+          900: 'var(--color-text)',
         },
         cream: {
-          DEFAULT: '#FAFAF8',
-          50:  '#FFFFFF',
-          100: '#FDFDFB',
-          200: '#FAFAF8',
-          300: '#F5F7F2',
-          400: '#EEF2E8',
-          500: '#E8EDE0',
+          DEFAULT: 'var(--color-bg)',
+          200: 'var(--color-bg)',
+          300: 'var(--color-surface)',
+          400: 'var(--color-surface-hover)',
+          500: 'var(--color-border)',
         },
         // 시맨틱 컬러
         success: {
@@ -93,11 +83,11 @@ module.exports = {
         '2xl': '24px',
       },
       boxShadow: {
-        'xs':    '0 1px 2px rgba(0,0,0,.04)',
-        'soft':  '0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04)',
-        'float': '0 4px 12px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04)',
-        'lift':  '0 8px 24px rgba(0,0,0,.08), 0 2px 8px rgba(0,0,0,.04)',
-        'modal': '0 16px 48px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.05)',
+        'xs':    '0 1px 2px rgba(0,0,0,.20)',
+        'soft':  '0 1px 3px rgba(0,0,0,.24), 0 1px 2px rgba(0,0,0,.16)',
+        'float': '0 4px 12px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.16)',
+        'lift':  '0 8px 24px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.16)',
+        'modal': '0 16px 48px rgba(0,0,0,.40), 0 4px 12px rgba(0,0,0,.20)',
       },
       transitionTimingFunction: {
         'out-expo': 'cubic-bezier(.25,.46,.45,.94)',

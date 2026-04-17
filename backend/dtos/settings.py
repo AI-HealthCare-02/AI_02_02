@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 from backend.dtos.base import BaseSerializerModel
 
 ALLOWED_PREFERRED_TIMES = {"morning", "lunch", "evening"}
+ALLOWED_THEMES = {"dark", "light"}
 
 
 class SettingsResponse(BaseSerializerModel):
@@ -20,6 +21,7 @@ class SettingsResponse(BaseSerializerModel):
     reminder_time_evening: time | None = None
     max_bundles_per_day: int = 5
     preferred_times: list[str] = Field(default_factory=list)
+    theme_preference: str = "dark"
     last_exported_at: datetime | None = None
 
 
@@ -34,6 +36,17 @@ class SettingsPatchRequest(BaseModel):
     reminder_time_evening: time | None = None
     max_bundles_per_day: int | None = Field(None, ge=1, le=10)
     preferred_times: list[str] | None = Field(None, max_length=3)
+    theme_preference: str | None = None
+
+    @field_validator("theme_preference")
+    @classmethod
+    def validate_theme_preference(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip().lower()
+        if value not in ALLOWED_THEMES:
+            raise ValueError(f"theme_preference must be one of {sorted(ALLOWED_THEMES)}")
+        return value
 
     @field_validator("preferred_times")
     @classmethod
