@@ -125,8 +125,8 @@ export default function SignupPage() {
   }, [emailCode, form.email]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-400 via-cream to-neutral-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-[460px] bg-white rounded-xl shadow-modal p-8">
+    <div className="min-h-screen bg-cream-200 flex items-center justify-center p-6">
+      <div className="w-full max-w-[460px] bg-cream-300 border border-cream-500 rounded-xl shadow-modal p-8">
         <div className="text-center mb-6">
           <Link href="/" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-nature-900 text-white font-bold mx-auto mb-2">
             D
@@ -205,7 +205,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-300 hover:text-neutral-500"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-hint)] hover:text-neutral-500"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -234,7 +234,7 @@ export default function SignupPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-600">
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-[12px] text-danger-light">
               {error}
             </div>
           )}
@@ -255,14 +255,14 @@ export default function SignupPage() {
           </button>
         </div>
 
-        <p className="text-[12px] text-neutral-300 text-center mt-4">
+        <p className="text-[12px] text-[var(--color-text-hint)] text-center mt-4">
           이미 계정이 있다면{' '}
           <Link href="/login" className="text-nature-500 font-semibold">
             로그인
           </Link>
         </p>
 
-        <p className="text-[11px] text-neutral-300 text-center mt-2">
+        <p className="text-[11px] text-[var(--color-text-hint)] text-center mt-2">
           인증 완료 후 계정이 생성됩니다.
         </p>
       </div>

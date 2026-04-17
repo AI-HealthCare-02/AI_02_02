@@ -196,7 +196,7 @@ export default function Tutorial({ onComplete }) {
       )}
 
       <div
-        className={`w-[min(360px,calc(100vw-32px))] rounded-[28px] border border-white/20 bg-white/96 p-6 shadow-2xl ${getArrowClass()}`}
+        className={`w-[min(360px,calc(100vw-32px))] rounded-[28px] border border-cream-500 bg-cream-300 p-6 shadow-2xl ${getArrowClass()}`}
         style={{ ...getTooltipStyle(), zIndex: 102 }}
       >
         <div className="flex items-center gap-3">
@@ -214,9 +214,9 @@ export default function Tutorial({ onComplete }) {
         <div className="mt-4 text-[14px] leading-[1.8] text-neutral-500">{current.desc}</div>
 
         {current.miniChat && (
-          <div className="mt-4 rounded-2xl border border-black/[.06] bg-cream-300 p-4">
+          <div className="mt-4 rounded-2xl border border-cream-500 bg-cream-400 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-nature-900 text-[12px] font-semibold text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-nature-500 text-[12px] font-semibold text-white">
                 다
               </div>
               <div className="flex-1">
@@ -244,7 +244,7 @@ export default function Tutorial({ onComplete }) {
                 <span
                   key={item.title}
                   className={`h-2 rounded-full transition-all ${
-                    index === step ? 'w-5 bg-nature-900' : 'w-2 bg-black/[.08]'
+                    index === step ? 'w-5 bg-nature-500' : 'w-2 bg-cream-500'
                   }`}
                 />
               ))}
@@ -252,7 +252,7 @@ export default function Tutorial({ onComplete }) {
             <button
               type="button"
               onClick={next}
-              className="rounded-full bg-nature-900 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-nature-800"
+              className="rounded-full bg-nature-500 px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-nature-600"
             >
               {step === STEPS.length - 1 ? '시작하기' : '다음'}
             </button>

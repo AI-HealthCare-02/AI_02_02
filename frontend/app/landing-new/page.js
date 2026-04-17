@@ -12,30 +12,30 @@ import { ArrowRight, Users, Globe, Smile, Award, BarChart3, FileText, Heart, Bui
 
 export default function DanaaLandingPage() {
   return (
-    <div className="min-h-screen bg-white font-sans text-[#263238]">
+    <div className="min-h-screen bg-cream-200 font-sans text-nature-900">
 
       {/* ══════════════════════════════════════
           NAVBAR
          ══════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-white shadow-sm">
+      <header className="sticky top-0 z-50 bg-cream-300 shadow-sm border-b border-cream-500">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] h-[60px] flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-1.5">
             <div className="w-[33px] h-[33px] rounded-full bg-nature-500 flex items-center justify-center">
               <Zap size={18} className="text-white" />
             </div>
-            <span className="text-[20px] font-bold text-[#263238]">
+            <span className="text-[20px] font-bold text-nature-900">
               DANAA
             </span>
           </Link>
 
           {/* Nav links — hidden on mobile */}
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#home" className="text-[14px] text-[#18191F] hover:text-nature-500 transition-colors">홈</a>
-            <a href="#features" className="text-[14px] text-[#18191F] hover:text-nature-500 transition-colors">기능</a>
-            <a href="#community" className="text-[14px] text-[#18191F] hover:text-nature-500 transition-colors">소개</a>
-            <a href="#blog" className="text-[14px] text-[#18191F] hover:text-nature-500 transition-colors">블로그</a>
-            <a href="#pricing" className="text-[14px] text-[#18191F] hover:text-nature-500 transition-colors">요금</a>
+            <a href="#home" className="text-[14px] text-nature-900 hover:text-nature-500 transition-colors">홈</a>
+            <a href="#features" className="text-[14px] text-nature-900 hover:text-nature-500 transition-colors">기능</a>
+            <a href="#community" className="text-[14px] text-nature-900 hover:text-nature-500 transition-colors">소개</a>
+            <a href="#blog" className="text-[14px] text-nature-900 hover:text-nature-500 transition-colors">블로그</a>
+            <a href="#pricing" className="text-[14px] text-nature-900 hover:text-nature-500 transition-colors">요금</a>
           </nav>
 
           {/* CTA */}
@@ -48,9 +48,9 @@ export default function DanaaLandingPage() {
 
           {/* Mobile hamburger */}
           <button className="md:hidden flex flex-col gap-1.5">
-            <span className="w-6 h-0.5 bg-[#263238]" />
-            <span className="w-6 h-0.5 bg-[#263238]" />
-            <span className="w-6 h-0.5 bg-[#263238]" />
+            <span className="w-6 h-0.5 bg-cream-100" />
+            <span className="w-6 h-0.5 bg-cream-100" />
+            <span className="w-6 h-0.5 bg-cream-100" />
           </button>
         </div>
       </header>
@@ -59,15 +59,15 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           HERO SECTION
          ══════════════════════════════════════ */}
-      <section id="home" className="bg-[#F5F7FA]">
+      <section id="home" className="bg-cream-300">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] py-16 md:py-24 flex flex-col md:flex-row items-center gap-12">
           {/* Left text */}
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-[36px] md:text-[48px] lg:text-[54px] font-semibold leading-[1.15] text-[#4D4D4D] mb-4">
+            <h1 className="text-[36px] md:text-[48px] lg:text-[54px] font-semibold leading-[1.15] text-nature-900 mb-4">
               AI와 함께하는{' '}
               <span className="text-nature-500">건강 생활습관 코칭</span>
             </h1>
-            <p className="text-[14px] md:text-[16px] text-[#717171] leading-relaxed mb-8">
+            <p className="text-[14px] md:text-[16px] text-neutral-400 leading-relaxed mb-8">
               당뇨 위험도 예측부터 매일 건강 기록까지, 다나아가 당신의 건강을 함께 관리합니다.
             </p>
             <Link
@@ -90,12 +90,12 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           CLIENTS SECTION
          ══════════════════════════════════════ */}
-      <section className="py-10 bg-white">
+      <section className="py-10 bg-cream-200">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] text-center">
-          <h2 className="text-[24px] md:text-[30px] font-semibold text-[#4D4D4D] mb-2">
+          <h2 className="text-[24px] md:text-[30px] font-semibold text-nature-900 mb-2">
             파트너
           </h2>
-          <p className="text-[14px] md:text-[16px] text-[#717171] mb-8">
+          <p className="text-[14px] md:text-[16px] text-neutral-400 mb-8">
             다나아와 함께하는 기관들
           </p>
           {/* Client logos row */}
@@ -116,12 +116,12 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           COMMUNITY MANAGEMENT SECTION
          ══════════════════════════════════════ */}
-      <section id="community" className="py-12 md:py-16 bg-white">
+      <section id="community" className="py-12 md:py-16 bg-cream-200">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] text-center">
-          <h2 className="text-[24px] md:text-[36px] font-semibold text-[#4D4D4D] mb-2">
+          <h2 className="text-[24px] md:text-[36px] font-semibold text-nature-900 mb-2">
             하나의 플랫폼에서 건강을<br className="hidden md:block" /> 관리하세요
           </h2>
-          <p className="text-[14px] md:text-[16px] text-[#717171] mb-12">
+          <p className="text-[14px] md:text-[16px] text-neutral-400 mb-12">
             다나아는 이런 분들에게 적합해요
           </p>
 
@@ -146,16 +146,16 @@ export default function DanaaLandingPage() {
             ].map((card, i) => (
               <div
                 key={i}
-                className="bg-white rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow"
+                className="bg-cream-300 border border-cream-500 rounded-lg shadow-float p-8 flex flex-col items-center text-center hover:shadow-lg transition-shadow"
               >
                 <div className="w-[65px] h-[65px] bg-nature-50 rounded-full flex items-center justify-center mb-4 relative">
                   <div className="absolute -bottom-1 -right-1 w-[50px] h-[50px] bg-nature-500/10 rounded-full" />
                   {card.icon}
                 </div>
-                <h3 className="text-[20px] font-semibold text-[#4D4D4D] whitespace-pre-line leading-snug mb-2">
+                <h3 className="text-[20px] font-semibold text-nature-900 whitespace-pre-line leading-snug mb-2">
                   {card.title}
                 </h3>
-                <p className="text-[14px] text-[#717171] leading-relaxed">
+                <p className="text-[14px] text-neutral-400 leading-relaxed">
                   {card.desc}
                 </p>
               </div>
@@ -168,7 +168,7 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           FEATURE SECTION 1 — Unlock (left image, right text)
          ══════════════════════════════════════ */}
-      <section id="features" className="py-12 md:py-16 bg-white">
+      <section id="features" className="py-12 md:py-16 bg-cream-200">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] flex flex-col md:flex-row items-center gap-12">
           {/* Left illustration */}
           <div className="flex-1 flex justify-center">
@@ -178,10 +178,10 @@ export default function DanaaLandingPage() {
           </div>
           {/* Right text */}
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-[24px] md:text-[36px] font-semibold text-[#4D4D4D] leading-tight mb-4">
+            <h2 className="text-[24px] md:text-[36px] font-semibold text-nature-900 leading-tight mb-4">
               AI가 매일 건강을 체크해요
             </h2>
-            <p className="text-[14px] md:text-[16px] text-[#717171] leading-relaxed mb-6">
+            <p className="text-[14px] md:text-[16px] text-neutral-400 leading-relaxed mb-6">
               대화하다 보면 AI가 자연스럽게 생활 습관을 물어봐요. 답변을 잘 해주실수록 맞춤 리포트의 정확도가 올라갑니다.
             </p>
             <Link
@@ -198,15 +198,15 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           STATS / ACHIEVEMENTS SECTION
          ══════════════════════════════════════ */}
-      <section id="stats" className="py-12 md:py-16 bg-[#F5F7FA]">
+      <section id="stats" className="py-12 md:py-16 bg-cream-300">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] flex flex-col md:flex-row items-center gap-12">
           {/* Left text */}
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-[24px] md:text-[36px] font-semibold text-[#4D4D4D] leading-tight mb-4">
+            <h2 className="text-[24px] md:text-[36px] font-semibold text-nature-900 leading-tight mb-4">
               다나아와 함께{' '}
               <span className="text-nature-500">건강을 관리하세요</span>
             </h2>
-            <p className="text-[14px] text-[#717171]">
+            <p className="text-[14px] text-neutral-400">
               다나아가 제공하는 서비스 현황
             </p>
           </div>
@@ -224,8 +224,8 @@ export default function DanaaLandingPage() {
                   {stat.icon}
                 </div>
                 <div>
-                  <p className="text-[20px] md:text-[24px] font-bold text-[#4D4D4D]">{stat.number}</p>
-                  <p className="text-[14px] text-[#717171]">{stat.label}</p>
+                  <p className="text-[20px] md:text-[24px] font-bold text-nature-900">{stat.number}</p>
+                  <p className="text-[14px] text-neutral-400">{stat.label}</p>
                 </div>
               </div>
             ))}
@@ -237,7 +237,7 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           FEATURE SECTION 2 — Calendar (left image, right text)
          ══════════════════════════════════════ */}
-      <section className="py-12 md:py-16 bg-white">
+      <section className="py-12 md:py-16 bg-cream-200">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] flex flex-col md:flex-row items-center gap-12">
           {/* Left illustration */}
           <div className="flex-1 flex justify-center">
@@ -247,10 +247,10 @@ export default function DanaaLandingPage() {
           </div>
           {/* Right text */}
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-[24px] md:text-[36px] font-semibold text-[#4D4D4D] leading-tight mb-4">
+            <h2 className="text-[24px] md:text-[36px] font-semibold text-nature-900 leading-tight mb-4">
               온보딩 3분이면 시작할 수 있어요
             </h2>
-            <p className="text-[14px] md:text-[16px] text-[#717171] leading-relaxed mb-6">
+            <p className="text-[14px] md:text-[16px] text-neutral-400 leading-relaxed mb-6">
               간단한 건강 설문으로 당뇨 위험도를 확인하고, 맞춤 관리 계획을 받으세요. 온보딩 후 바로 AI 채팅과 건강 기록을 시작할 수 있습니다.
             </p>
             <Link
@@ -267,7 +267,7 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           TESTIMONIAL / CUSTOMER SECTION
          ══════════════════════════════════════ */}
-      <section className="py-12 md:py-16 bg-[#F5F7FA]">
+      <section className="py-12 md:py-16 bg-cream-300">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] flex flex-col md:flex-row items-center gap-12">
           {/* Left avatar */}
           <div className="w-[200px] h-[200px] md:w-[240px] md:h-[240px] bg-gray-200 rounded-xl flex-shrink-0 flex items-center justify-center text-gray-400 text-[14px]">
@@ -276,11 +276,11 @@ export default function DanaaLandingPage() {
 
           {/* Right content */}
           <div className="flex-1">
-            <blockquote className="text-[14px] md:text-[16px] text-[#717171] leading-relaxed mb-6 italic">
+            <blockquote className="text-[14px] md:text-[16px] text-neutral-400 leading-relaxed mb-6 italic">
               &ldquo;다나아를 사용하면서 매일 건강 기록하는 습관이 생겼어요. AI가 물어보는 질문에 답하다 보면 자연스럽게 건강을 챙기게 됩니다. 리포트를 보면서 내 생활습관이 어떻게 변하는지 확인하는 게 동기부여가 돼요.&rdquo;
             </blockquote>
             <p className="text-[16px] md:text-[18px] font-semibold text-nature-500 mb-1">사용자 후기</p>
-            <p className="text-[14px] text-[#717171] mb-6">다나아 베타 테스터</p>
+            <p className="text-[14px] text-neutral-400 mb-6">다나아 베타 테스터</p>
 
             {/* Customer logos row */}
             <div className="flex flex-wrap items-center gap-6">
@@ -304,12 +304,12 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           COMMUNITY UPDATES / BLOG SECTION
          ══════════════════════════════════════ */}
-      <section id="blog" className="py-12 md:py-16 bg-white">
+      <section id="blog" className="py-12 md:py-16 bg-cream-200">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] text-center">
-          <h2 className="text-[24px] md:text-[30px] font-semibold text-[#4D4D4D] mb-2">
+          <h2 className="text-[24px] md:text-[30px] font-semibold text-nature-900 mb-2">
             다나아 건강 가이드
           </h2>
-          <p className="text-[14px] md:text-[16px] text-[#717171] max-w-[500px] mx-auto mb-12">
+          <p className="text-[14px] md:text-[16px] text-neutral-400 max-w-[500px] mx-auto mb-12">
             건강한 생활습관에 대한 최신 정보와 팁을 확인하세요.
           </p>
 
@@ -328,7 +328,7 @@ export default function DanaaLandingPage() {
             ].map((post, i) => (
               <div
                 key={i}
-                className="bg-white rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.08)] overflow-hidden text-left hover:shadow-lg transition-shadow"
+                className="bg-cream-300 border border-cream-500 rounded-lg shadow-float overflow-hidden text-left hover:shadow-lg transition-shadow"
               >
                 {/* Image placeholder */}
                 <div className="w-full h-[200px] bg-gray-200 flex items-center justify-center text-gray-400 text-[14px]">
@@ -336,7 +336,7 @@ export default function DanaaLandingPage() {
                 </div>
                 {/* Content */}
                 <div className="p-6">
-                  <h3 className="text-[16px] md:text-[18px] font-semibold text-[#4D4D4D] leading-snug mb-4">
+                  <h3 className="text-[16px] md:text-[18px] font-semibold text-nature-900 leading-snug mb-4">
                     {post.title}
                   </h3>
                   <Link
@@ -356,9 +356,9 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           CTA SECTION
          ══════════════════════════════════════ */}
-      <section className="py-16 md:py-20 bg-[#F5F7FA]">
+      <section className="py-16 md:py-20 bg-cream-300">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] text-center">
-          <h2 className="text-[30px] md:text-[48px] lg:text-[54px] font-semibold text-[#263238] leading-tight mb-8">
+          <h2 className="text-[30px] md:text-[48px] lg:text-[54px] font-semibold text-nature-900 leading-tight mb-8">
             지금 바로 건강관리를 시작하세요
           </h2>
           <Link
@@ -374,7 +374,7 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           FOOTER
          ══════════════════════════════════════ */}
-      <footer className="bg-[#263238] text-white">
+      <footer className="bg-cream-100 text-white">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] py-12 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
             {/* Brand column */}
@@ -385,7 +385,7 @@ export default function DanaaLandingPage() {
                 </div>
                 <span className="text-[20px] font-bold text-white">DANAA</span>
               </Link>
-              <p className="text-[14px] text-[#D9DBE1] leading-relaxed mb-4">
+              <p className="text-[14px] text-neutral-400 leading-relaxed mb-4">
                 만성질환 예방을 위한 AI 건강 생활습관 코칭
               </p>
               {/* Social icons */}
@@ -408,7 +408,7 @@ export default function DanaaLandingPage() {
               <ul className="space-y-3">
                 {['소개', '블로그', '문의', '요금', '후기'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-[14px] text-[#D9DBE1] hover:text-white transition-colors">{item}</a>
+                    <a href="#" className="text-[14px] text-neutral-400 hover:text-white transition-colors">{item}</a>
                   </li>
                 ))}
               </ul>
@@ -420,7 +420,7 @@ export default function DanaaLandingPage() {
               <ul className="space-y-3">
                 {['도움말', '이용약관', '법적 고지', '개인정보 처리방침', '서비스 상태'].map((item) => (
                   <li key={item}>
-                    <a href="#" className="text-[14px] text-[#D9DBE1] hover:text-white transition-colors">{item}</a>
+                    <a href="#" className="text-[14px] text-neutral-400 hover:text-white transition-colors">{item}</a>
                   </li>
                 ))}
               </ul>
@@ -433,7 +433,7 @@ export default function DanaaLandingPage() {
                 <input
                   type="email"
                   placeholder="이메일 주소를 입력하세요"
-                  className="flex-1 px-4 py-2.5 bg-[#FFFFFF14] border border-[#FFFFFF1A] rounded-l-[4px] text-[14px] text-white placeholder-[#D9DBE1]/50 focus:outline-none focus:border-nature-500"
+                  className="flex-1 px-4 py-2.5 bg-[#FFFFFF14] border border-[#FFFFFF1A] rounded-l-[4px] text-[14px] text-white placeholder-neutral-400/50 focus:outline-none focus:border-nature-500"
                 />
                 <button className="px-4 py-2.5 bg-nature-500 rounded-r-[4px] hover:bg-nature-600 transition-colors">
                   <ArrowRight size={16} className="text-white" />
@@ -444,7 +444,7 @@ export default function DanaaLandingPage() {
 
           {/* Divider */}
           <div className="border-t border-[#FFFFFF1A] pt-6 text-center">
-            <p className="text-[13px] text-[#D9DBE1]">
+            <p className="text-[13px] text-neutral-400">
               &copy; 2025 DANAA. All rights reserved.
             </p>
           </div>

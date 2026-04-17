@@ -42,7 +42,7 @@ export default function RightPanel() {
                 }`}
               >
                 <div className="text-[16px] font-bold text-nature-900">{item.val}</div>
-                <div className="text-[11px] text-neutral-300 font-medium">{item.label}</div>
+                <div className="text-[11px] text-[var(--color-text-hint)] font-medium">{item.label}</div>
               </div>
             ))}
           </div>
@@ -155,7 +155,7 @@ export default function RightPanel() {
                     −
                   </button>
                   <span className="text-[16px] font-bold text-nature-900">{waterCount}</span>
-                  <span className="text-[12px] text-neutral-300 font-medium">/ 8잔</span>
+                  <span className="text-[12px] text-[var(--color-text-hint)] font-medium">/ 8잔</span>
                   <button
                     onClick={() => setWaterCount(Math.min(12, waterCount + 1))}
                     className="w-6 h-6 rounded-full border border-neutral-200 bg-white text-neutral-400 flex items-center justify-center text-[14px] font-medium hover:bg-neutral-100 hover:border-nature-500 hover:text-nature-500 transition-colors"
@@ -170,7 +170,7 @@ export default function RightPanel() {
                   style={{ width: `${Math.min(100, (waterCount / 8) * 100)}%` }}
                 />
               </div>
-              <div className="text-[11px] text-neutral-300 mt-1.5 font-medium">하루 권장 8잔 (240ml 기준)</div>
+              <div className="text-[11px] text-[var(--color-text-hint)] mt-1.5 font-medium">하루 권장 8잔 (240ml 기준)</div>
             </div>
           )}
         </div>
@@ -188,7 +188,7 @@ export default function RightPanel() {
                 <span className="text-[14px] mt-0.5">{item.icon}</span>
                 <div>
                   <div className="text-[12px] text-nature-900 font-medium">{item.text}</div>
-                  <div className="text-[11px] text-neutral-300">{item.sub}</div>
+                  <div className="text-[11px] text-[var(--color-text-hint)]">{item.sub}</div>
                 </div>
               </div>
             ))}
@@ -214,7 +214,7 @@ export default function RightPanel() {
             <div className="flex items-center gap-1.5 mb-3">
               {weekDays.map((day, i) => (
                 <div key={day} className="flex-1 text-center">
-                  <div className="text-[9px] text-neutral-300 mb-1 font-medium">{day}</div>
+                  <div className="text-[9px] text-[var(--color-text-hint)] mb-1 font-medium">{day}</div>
                   <div
                     className={`w-[22px] h-[22px] rounded-full flex items-center justify-center text-[11px] mx-auto transition-colors ${
                       i < streakDays
@@ -249,7 +249,7 @@ export default function RightPanel() {
               <div key={item.name}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[12px] text-nature-900 font-medium">{item.icon} {item.name}</span>
-                  <span className="text-[11px] text-neutral-300 font-medium">{item.progress}</span>
+                  <span className="text-[11px] text-[var(--color-text-hint)] font-medium">{item.progress}</span>
                 </div>
                 <div className="w-full h-[3px] bg-neutral-200 rounded-full overflow-hidden">
                   <div className="h-full bg-neutral-300 rounded-full transition-all" style={{ width: `${item.pct}%` }} />

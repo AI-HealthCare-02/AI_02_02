@@ -74,12 +74,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-400 via-cream to-neutral-100 flex items-center justify-center p-6">
-      <div className="w-[380px] bg-white rounded-xl shadow-modal flex flex-col overflow-hidden p-8">
+    <div className="min-h-screen bg-cream-200 flex items-center justify-center p-6">
+      <div className="w-[380px] bg-cream-300 rounded-xl shadow-modal flex flex-col overflow-hidden p-8 border border-cream-500">
 
         {/* 로고 */}
         <div className="text-center mb-5">
-          <div className="w-10 h-10 rounded-full bg-nature-900 text-white flex items-center justify-center text-[15px] font-bold mx-auto mb-2">D</div>
+          <div className="w-10 h-10 rounded-full bg-nature-950 text-[var(--color-cta-text)] flex items-center justify-center text-[15px] font-bold mx-auto mb-2">D</div>
           <h1 className="text-[18px] font-bold text-nature-900 mb-0.5">환영합니다</h1>
           <p className="text-[12px] text-neutral-400">당신을 위한 건강 파트너, DA-NA-A</p>
         </div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
               placeholder="email@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-0 py-2 border-b border-cream-500 text-[14px] outline-none focus:border-nature-500 bg-transparent"
+              className="w-full px-0 py-2 border-b border-cream-500 text-[14px] outline-none focus:border-neutral-400 bg-transparent"
             />
           </div>
           <div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-0 py-2 border-b border-cream-500 text-[14px] outline-none focus:border-nature-500 bg-transparent"
+              className="w-full px-0 py-2 border-b border-cream-500 text-[14px] outline-none focus:border-neutral-400 bg-transparent"
             />
           </div>
 
@@ -122,14 +122,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="w-full px-4 py-3 rounded-xl text-[14px] font-medium bg-nature-500 text-white transition-all hover:bg-nature-600 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button type="submit" disabled={loading} className="w-full px-4 py-3 rounded-xl text-[14px] font-medium bg-nature-950 text-[var(--color-cta-text)] transition-all hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? '로그인 중...' : '로그인'}
           </button>
         </form>
 
         <div className="flex items-center gap-3 w-full my-2">
           <div className="flex-1 h-px bg-cream-500" />
-          <span className="text-[12px] text-neutral-300">또는</span>
+          <span className="text-[12px] text-[var(--color-text-hint)]">또는</span>
           <div className="flex-1 h-px bg-cream-500" />
         </div>
 
@@ -138,7 +138,7 @@ export default function LoginPage() {
           <a href={`${API_BASE}/api/v1/auth/kakao/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-kakao text-kakao-text transition-all hover:opacity-90">
             <MessageCircle size={16} /> 카카오로 계속하기
           </a>
-          <a href={`${API_BASE}/api/v1/auth/google/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-white border border-cream-500 text-google-text transition-all hover:opacity-90">
+          <a href={`${API_BASE}/api/v1/auth/google/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-white text-[#333333] transition-all hover:opacity-90">
             G Google로 계속하기
           </a>
           <a href={`${API_BASE}/api/v1/auth/naver/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-naver text-white transition-all hover:opacity-90">
@@ -147,11 +147,11 @@ export default function LoginPage() {
         </div>
 
         {/* 하단 */}
-        <p className="text-[12px] text-neutral-300 text-center mb-1.5">
+        <p className="text-[12px] text-[var(--color-text-hint)] text-center mb-1.5">
           아직 계정이 없으신가요?{' '}
-          <Link href="/signup" className="text-nature-500 font-semibold">회원가입</Link>
+          <Link href="/signup" className="text-neutral-500 font-semibold hover:text-nature-900">회원가입</Link>
         </p>
-        <p className="text-[11px] text-neutral-300 text-center">
+        <p className="text-[11px] text-[var(--color-text-hint)] text-center">
           <span className="cursor-pointer hover:text-neutral-400" onClick={() => setModal('terms')}>이용약관</span>
           {' · '}
           <span className="cursor-pointer hover:text-neutral-400" onClick={() => setModal('privacy')}>개인정보 처리방침</span>
@@ -160,8 +160,8 @@ export default function LoginPage() {
 
       {/* 약관/정책 모달 */}
       {modal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" onClick={() => setModal(null)}>
-          <div className="bg-white rounded-xl max-w-[480px] w-full max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-6" onClick={() => setModal(null)}>
+          <div className="bg-cream-300 border border-cream-500 rounded-xl max-w-[480px] w-full max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-cream-500 flex items-center justify-between">
               <h3 className="text-[15px] font-semibold text-nature-900">
                 {modal === 'terms' ? '이용약관' : '개인정보 처리방침'}

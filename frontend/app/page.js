@@ -25,7 +25,7 @@ export default function LandingPage() {
         <Link href="/login" className="inline-block px-10 py-4 bg-nature-500 text-white text-base font-semibold rounded-full shadow-soft hover:bg-nature-600 hover:shadow-float hover:-translate-y-0.5 transition-all">
           지금 무료로 시작하기 →
         </Link>
-        <div className="text-xs text-neutral-300 mt-4">가입 후 바로 사용 · 카드 등록 불필요</div>
+        <div className="text-xs text-[var(--color-text-hint)] mt-4">가입 후 바로 사용 · 카드 등록 불필요</div>
       </section>
 
       {/* Steps */}
@@ -76,7 +76,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-6 text-xs text-neutral-300 border-t border-black/[.04]">
+      <footer className="text-center py-6 text-xs text-[var(--color-text-hint)] border-t border-black/[.04]">
         © 2026 DA-NA-A · 이용약관 · 개인정보처리방침
       </footer>
     </div>

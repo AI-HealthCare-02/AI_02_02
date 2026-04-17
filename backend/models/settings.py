@@ -21,6 +21,7 @@ class UserSettings(models.Model):
     reminder_time_evening = fields.TimeField(null=True)
     max_bundles_per_day = fields.SmallIntField(default=5)
     preferred_times = fields.JSONField(default=list)  # ["morning", "evening"]
+    theme_preference = fields.CharField(max_length=10, default="dark")
     last_exported_at = fields.DatetimeField(null=True)
 
     created_at = fields.DatetimeField(auto_now_add=True)

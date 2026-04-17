@@ -203,7 +203,7 @@ export default function OnboardingComplete() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream-400 via-cream to-neutral-100 flex items-center justify-center p-6">
-      <div className="w-[380px] min-h-[560px] bg-white rounded-xl shadow-modal flex flex-col justify-center p-8 text-center">
+      <div className="w-[380px] min-h-[560px] bg-cream-300 border border-cream-500 rounded-xl shadow-modal flex flex-col justify-center p-8 text-center">
         <div className="text-[48px] mb-4">D</div>
         <h2 className="text-[22px] font-bold text-nature-900 mb-2">온보딩 완료</h2>
         <p className="text-[14px] text-neutral-400 mb-6">

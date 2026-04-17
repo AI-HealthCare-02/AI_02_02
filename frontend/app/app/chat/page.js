@@ -1,9 +1,14 @@
 'use client';
 
 import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
 import { api, getToken } from '../../../hooks/useApi';
+
+/* ── Right Panel V2 (리디자인) · 기본 활성화 / env 값 0일 때만 비활성화 ── */
+const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
+const RightPanelV2 = dynamic(() => import('../../../components/RightPanelV2'), { ssr: false });
 
 /* ── API 설정 ── */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
@@ -44,9 +49,17 @@ const todayKey = () => {
   return `danaa_daily_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 
+// KST 고정: 백엔드(Asia/Seoul)와 "오늘" 경계 일치 · 시간대 다른 디바이스에서 자정 경계 버그 방지
 const todayDateString = () => {
+  // sv-SE 로케일은 YYYY-MM-DD 형식 반환
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+};
+
+// N일 전 날짜 (KST 기준) - 미응답 모달 과거 2일용
+const daysAgoDateString = (offset) => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  d.setDate(d.getDate() - offset);
+  return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 };
 
 const LEGACY_LOG_FIELD_MAP = new Map([
@@ -157,10 +170,32 @@ const HEALTH_OPTION_LABELS = {
   heavy: '많이',
 };
 
+const CLINICAL_EMOJI_REGEX = /[\p{Extended_Pictographic}\uFE0F]/gu;
+
+function stripDisplayEmoji(value) {
+  if (value == null) return '';
+
+  return String(value)
+    .replace(CLINICAL_EMOJI_REGEX, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .trim();
+}
+
 function getHealthOptionLabel(option) {
   if (typeof option === 'boolean') return option ? '네' : '아니요';
   if (typeof option === 'number') return `${option}`;
-  return HEALTH_OPTION_LABELS[option] || String(option).replaceAll('_', ' ');
+  return stripDisplayEmoji(HEALTH_OPTION_LABELS[option] || String(option).replaceAll('_', ' '));
+}
+
+function ClinicalMark({ label, className = '' }) {
+  return (
+    <span
+      className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-md bg-cream-400 px-2 text-[10px] font-semibold tracking-[0.12em] text-neutral-500 ${className}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 function normalizeMissingSummary(rawSummary) {
@@ -287,11 +322,15 @@ const ChatTranscript = memo(function ChatTranscript({
   streamingDraft,
   chatEndRef,
   onSubmitHealthAnswer,
+  onCompleteHealthAnswer,
 }) {
+  const streamingAssistantContent = stripDisplayEmoji(streamingDraft?.content);
+
   return (
     <>
       {messages.map((msg) => {
         const primaryHealthQuestion = Array.isArray(msg.healthQuestions) ? msg.healthQuestions[0] : null;
+        const assistantContent = msg.role === 'assistant' ? stripDisplayEmoji(msg.content) : msg.content;
 
         return (
           <div
@@ -302,28 +341,30 @@ const ChatTranscript = memo(function ChatTranscript({
             {msg.role === 'user' ? (
               <div className="flex justify-end">
                 <div>
-                  <div className="bg-nature-900 text-white text-[15px] leading-[1.75] rounded-2xl rounded-br-md px-4 py-3 max-w-[520px]">
+                  <div className="bg-[var(--color-user-bubble)] text-[var(--color-user-bubble-text)] text-[15px] leading-[1.75] rounded-xl rounded-br-sm px-4 py-3 max-w-[520px]">
                     {msg.content}
                   </div>
-                  <div className="text-[13px] text-neutral-300 mt-1 text-right">{msg.ts}</div>
+                  <div className="text-[13px] text-[var(--color-message-meta)] mt-1 text-right">{msg.ts}</div>
                 </div>
               </div>
             ) : (
               <div className="flex gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
+                <div className="w-7 h-7 rounded-full bg-[var(--color-avatar-bg)] text-[var(--color-avatar-text)] flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
                 <div className="flex-1 min-w-0">
                   <div className={`text-[15px] leading-[1.75] ${msg.isError ? 'text-red-500' : 'text-nature-900'}`}>
-                    {msg.content || <span className="text-neutral-300">생각 중...</span>}
-                    {msg.streaming && <span className="inline-block w-[2px] h-[14px] bg-nature-900 ml-0.5 animate-pulse align-middle"></span>}
+                    {assistantContent || <span className="text-[var(--color-text-hint)]">생각 중...</span>}
+                    {msg.streaming && <span className="inline-block w-[2px] h-[14px] bg-neutral-400 ml-0.5 animate-pulse align-middle"></span>}
                   </div>
-                  {msg.ts && <div className="text-[13px] text-neutral-300 mt-1">{msg.ts}</div>}
+                  {msg.ts && <div className="text-[13px] text-[var(--color-message-meta)] mt-1">{msg.ts}</div>}
                   {!msg.isError && !msg.streaming && primaryHealthQuestion && (
                     <div className="mt-3 max-w-[560px]" data-inline-health-card="true">
                       <InlineHealthQuestionCard
+                        key={primaryHealthQuestion.bundleKey}
                         bundleKey={primaryHealthQuestion.bundleKey}
-                        bundleName={primaryHealthQuestion.name}
+                        bundleName={stripDisplayEmoji(primaryHealthQuestion.name)}
                         questions={primaryHealthQuestion.questions}
                         onSubmit={onSubmitHealthAnswer}
+                        onComplete={onCompleteHealthAnswer}
                         formatOptionLabel={getHealthOptionLabel}
                       />
                     </div>
@@ -340,13 +381,13 @@ const ChatTranscript = memo(function ChatTranscript({
           className="max-w-[840px] mx-auto mb-3.5"
         >
           <div className="flex gap-2.5">
-            <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
+            <div className="w-7 h-7 rounded-full bg-[var(--color-avatar-bg)] text-[var(--color-avatar-text)] flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
             <div className="flex-1 min-w-0">
               <div className={`text-[15px] leading-[1.75] ${streamingDraft.isError ? 'text-red-500' : 'text-nature-900'}`}>
-                {streamingDraft.content || <span className="text-neutral-300">생각 중...</span>}
-                {streamingDraft.streaming && <span className="inline-block w-[2px] h-[14px] bg-nature-900 ml-0.5 animate-pulse align-middle"></span>}
+                {streamingAssistantContent || <span className="text-[var(--color-text-hint)]">생각 중...</span>}
+                {streamingDraft.streaming && <span className="inline-block w-[2px] h-[14px] bg-neutral-400 ml-0.5 animate-pulse align-middle"></span>}
               </div>
-              {streamingDraft.ts && <div className="text-[13px] text-neutral-300 mt-1">{streamingDraft.ts}</div>}
+              {streamingDraft.ts && <div className="text-[13px] text-[var(--color-message-meta)] mt-1">{streamingDraft.ts}</div>}
             </div>
           </div>
         </div>
@@ -364,6 +405,8 @@ export default function ChatPage() {
   const [pendingQuestions, setPendingQuestions] = useState(null);
   const [manualCardBundleKey, setManualCardBundleKey] = useState(null);
   const [todaySaveState, setTodaySaveState] = useState('idle');
+  // 네트워크 연결 상태 (RightPanelV2 오프라인 뱃지용)
+  const [navigatorOnline, setNavigatorOnline] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const [onboarding, setOnboarding] = useState(null);
   const [risk, setRisk] = useState(null);
@@ -400,6 +443,7 @@ export default function ChatPage() {
   const currentLogRef = useRef(migrateStoredLog(emptyLog()));
   const directSaveInflightRef = useRef(0);
   const cardsSectionRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   // 활성 상세 카드 바깥(채팅 영역 등)을 클릭하면 접힘
   useEffect(() => {
@@ -685,6 +729,20 @@ export default function ChatPage() {
     if (!streamingDraft?.id || !isFollowingActiveReply) return;
     scrollToReplyTarget(streamingDraft.id, 'smooth', 'start');
   }, [isFollowingActiveReply, scrollToReplyTarget, streamingDraft?.id]);
+
+  // 네트워크 상태 추적 (RightPanelV2 오프라인 뱃지)
+  useEffect(() => {
+    if (typeof navigator === 'undefined') return;
+    setNavigatorOnline(navigator.onLine);
+    const onOnline = () => setNavigatorOnline(true);
+    const onOffline = () => setNavigatorOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isStreaming || !streamingDraft?.content || !activeReplyMessageId || !isFollowingActiveReply) return;
@@ -1020,6 +1078,17 @@ export default function ChatPage() {
 
     return payload;
   }, [applyDailyPayload, fetchTodayLog]);
+
+  // 번들 내 모든 질문 완료 시 카드 제거 (메시지의 healthQuestions에서 해당 bundleKey 필터링)
+  const completeHealthAnswer = useCallback((bundleKey) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        Array.isArray(m.healthQuestions) && m.healthQuestions.some((q) => q.bundleKey === bundleKey)
+          ? { ...m, healthQuestions: m.healthQuestions.filter((q) => q.bundleKey !== bundleKey) }
+          : m,
+      ),
+    );
+  }, []);
 
   const submitPendingQuestionAnswer = useCallback(async (_bundleKey, answers) => {
     const response = await api(DAILY_HEALTH_API_PATH(todayDateString()), {
@@ -1406,7 +1475,9 @@ const sendMessage = useCallback(async () => {
       isLogFieldAnswered('alcohol_today', log.alcohol_today)
     );
 
-  const isGroupA = onboarding?.user_group === 'A' || risk?.group === 'A';
+  // 복약 카드 노출은 onboarding.user_group === 'A' 로만 판정.
+  // 위험도 risk.group ('A' 위험 단계)은 별도 개념이므로 OR 결합 안 함 (의미 혼선 방지)
+  const isGroupA = onboarding?.user_group === 'A';
 
   const pendingCardCounts = useMemo(() => {
     const counts = {
@@ -1476,14 +1547,14 @@ const sendMessage = useCallback(async () => {
       : null;
 
   const cards = [
-    { key: 'sleep', label: '수면', icon: '😴', val: sleepVal, pendingCount: pendingCardCounts.sleep, color: activeCard === 'sleep' ? 'bg-cream-400' : '' },
-    { key: 'meal', label: '식사', icon: '🍽️', val: mealVal, pendingCount: pendingCardCounts.meal, color: activeCard === 'meal' ? 'bg-cream-400' : '' },
-    { key: 'exercise', label: '운동', icon: '🏃', val: exerciseVal, pendingCount: pendingCardCounts.exercise, color: activeCard === 'exercise' ? 'bg-[#e3f2fd]' : '' },
-    { key: 'water', label: '수분', icon: '💧', val: waterVal, pendingCount: pendingCardCounts.water, color: activeCard === 'water' ? 'bg-cream-400' : '' },
-    { key: 'mood', label: '기분', icon: '😊', val: moodVal, pendingCount: pendingCardCounts.mood, color: activeCard === 'mood' ? 'bg-cream-400' : '' },
-    { key: 'alcohol', label: '음주', icon: '🍺', val: alcoholCardVal, pendingCount: pendingCardCounts.alcohol, color: activeCard === 'alcohol' ? 'bg-cream-400' : '' },
+    { key: 'sleep', label: '수면', marker: 'SL', val: sleepVal, pendingCount: pendingCardCounts.sleep, color: activeCard === 'sleep' ? 'bg-cream-400' : '' },
+    { key: 'meal', label: '식사', marker: 'ME', val: mealVal, pendingCount: pendingCardCounts.meal, color: activeCard === 'meal' ? 'bg-cream-400' : '' },
+    { key: 'exercise', label: '운동', marker: 'EX', val: exerciseVal, pendingCount: pendingCardCounts.exercise, color: activeCard === 'exercise' ? 'bg-cream-400' : '' },
+    { key: 'water', label: '수분', marker: 'WA', val: waterVal, pendingCount: pendingCardCounts.water, color: activeCard === 'water' ? 'bg-cream-400' : '' },
+    { key: 'mood', label: '기분', marker: 'MO', val: moodVal, pendingCount: pendingCardCounts.mood, color: activeCard === 'mood' ? 'bg-cream-400' : '' },
+    { key: 'alcohol', label: '음주', marker: 'AL', val: alcoholCardVal, pendingCount: pendingCardCounts.alcohol, color: activeCard === 'alcohol' ? 'bg-cream-400' : '' },
     ...(isGroupA
-      ? [{ key: 'medication', label: '복약', icon: '💊', val: medicationVal, pendingCount: pendingCardCounts.medication, color: activeCard === 'medication' ? 'bg-cream-400' : '' }]
+      ? [{ key: 'medication', label: '복약', marker: 'MD', val: medicationVal, pendingCount: pendingCardCounts.medication, color: activeCard === 'medication' ? 'bg-cream-400' : '' }]
       : []),
   ];
 
@@ -1505,12 +1576,12 @@ const sendMessage = useCallback(async () => {
       )}
 
       {/* 헤더 */}
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+      <header className="h-12 bg-[var(--color-bg)]/90 backdrop-blur-xl border-b border-cream-500/30 px-4 flex items-center shrink-0">
         <span className="text-[15px] font-medium text-nature-900">AI 채팅</span>
         <div className="flex-1"></div>
-        <button onClick={() => setPanelOpen(!panelOpen)} className="w-8 h-8 rounded-lg hover:bg-black/[.03] flex items-center justify-center text-sm text-neutral-400 relative">
-          📋
-          <span className="absolute top-[5px] right-[5px] w-[7px] h-[7px] bg-[#E07800] rounded-full border-[1.5px] border-white"></span>
+        <button onClick={() => setPanelOpen(!panelOpen)} className="w-8 h-8 rounded-lg hover:bg-cream-400 flex items-center justify-center text-sm text-neutral-400 relative">
+          ▤
+          <span className="absolute top-[5px] right-[5px] w-[7px] h-[7px] bg-warning rounded-full border-[1.5px] border-cream-300"></span>
         </button>
       </header>
 
@@ -1520,7 +1591,7 @@ const sendMessage = useCallback(async () => {
           <div
             ref={chatScrollRef}
             onScroll={handleChatScroll}
-            className="flex-1 overflow-y-auto px-6 py-6"
+            className="flex-1 overflow-y-auto chat-scroll px-3 py-4 md:px-6 md:py-6"
             style={{ scrollbarGutter: 'stable' }}
           >
 
@@ -1529,10 +1600,10 @@ const sendMessage = useCallback(async () => {
               <>
                 <div className="max-w-[840px] mx-auto mb-3.5">
                   <div className="flex gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
+                    <div className="w-7 h-7 rounded-full bg-[var(--color-avatar-bg)] text-[var(--color-avatar-text)] flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[15px] leading-[1.75] text-nature-900">
-                        안녕하세요! 다나아 AI입니다 😊<br />
+                        안녕하세요! 다나아 AI입니다.<br />
                         {risk?.group && <>
                           <strong>{risk.group}그룹</strong>({risk.groupLabel})이시네요.
                           {risk.levelLabel && <> 현재 위험도는 <strong>{risk.levelLabel}</strong> 단계예요.</>}
@@ -1541,7 +1612,7 @@ const sendMessage = useCallback(async () => {
                         오늘 기록을 차근차근 쌓아볼까요?<br />
                         <span className="text-neutral-400">질문에 답하면 본문 아래 카드로 기록할 수 있고, 오른쪽 패널에서는 오늘 기록을 직접 입력하거나 저장된 상태와 남은 질문을 함께 확인할 수 있어요.</span>
                       </div>
-                      <div className="text-[13px] text-neutral-300 mt-1">지금</div>
+                      <div className="text-[13px] text-[var(--color-text-hint)] mt-1">지금</div>
                     </div>
                   </div>
                 </div>
@@ -1555,13 +1626,13 @@ const sendMessage = useCallback(async () => {
                         <div className="text-[15px] font-medium text-nature-900 mb-2.5">오늘 기록을 어디서든 시작해보세요</div>
                         <div className="flex flex-wrap gap-2">
                           {[
-                            { label: '💤 수면 기록', card: 'sleep' },
-                            { label: '🍽️ 식사 기록', card: 'meal' },
-                            { label: '🏃 운동 기록', card: 'exercise' },
-                            { label: '💧 수분 기록', card: 'water' },
+                            { label: '수면 기록', card: 'sleep' },
+                            { label: '식사 기록', card: 'meal' },
+                            { label: '운동 기록', card: 'exercise' },
+                            { label: '수분 기록', card: 'water' },
                           ].map(item => (
                             <button key={item.card} onClick={() => { setPanelOpen(true); setActiveCard(item.card); }}
-                              className="px-3.5 py-2 rounded-full text-[14px] bg-white border border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500 transition-all">
+                              className="px-3.5 py-2 rounded-full text-[14px] bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500 transition-all">
                               {item.label}
                             </button>
                           ))}
@@ -1577,16 +1648,16 @@ const sendMessage = useCallback(async () => {
             {!onboarding && (
               <div className="max-w-[840px] mx-auto mb-3.5">
                 <div className="flex gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-nature-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
+                  <div className="w-7 h-7 rounded-full bg-[var(--color-avatar-bg)] text-[var(--color-avatar-text)] flex items-center justify-center text-[11px] font-semibold shrink-0">다</div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[15px] leading-[1.75] text-nature-900">
-                      안녕하세요! 다나아 AI입니다 😊<br />
+                      안녕하세요! 다나아 AI입니다.<br />
                       맞춤 건강관리를 시작하려면 먼저 온보딩 설문을 완료해주세요.
                     </div>
-                    <a href="/onboarding/diabetes" className="inline-block mt-2 px-4 py-2.5 bg-nature-900 text-white text-[14px] font-medium rounded-lg hover:bg-nature-800 transition-colors">
+                    <a href="/onboarding/diabetes" className="inline-block mt-2 px-4 py-2.5 bg-[var(--color-cta-bg)] text-[var(--color-cta-text)] text-[14px] font-medium rounded-lg hover:bg-[var(--color-cta-hover)] transition-colors">
                       온보딩 시작하기 →
                     </a>
-                    <div className="text-[13px] text-neutral-300 mt-1.5">지금</div>
+                    <div className="text-[13px] text-[var(--color-text-hint)] mt-1.5">지금</div>
                   </div>
                 </div>
               </div>
@@ -1606,6 +1677,7 @@ const sendMessage = useCallback(async () => {
               streamingDraft={streamingDraft}
               chatEndRef={chatEndRef}
               onSubmitHealthAnswer={submitHealthAnswer}
+              onCompleteHealthAnswer={completeHealthAnswer}
             />
 
             {selectedPendingBundle && (
@@ -1615,7 +1687,7 @@ const sendMessage = useCallback(async () => {
                   <div className="flex-1 max-w-[560px]">
                     <InlineHealthQuestionCard
                       bundleKey={selectedPendingBundle.bundleKey}
-                      bundleName={selectedPendingBundle.name}
+                      bundleName={stripDisplayEmoji(selectedPendingBundle.name)}
                       questions={selectedPendingBundle.questions}
                       onSubmit={submitPendingQuestionAnswer}
                       formatOptionLabel={getHealthOptionLabel}
@@ -1631,31 +1703,66 @@ const sendMessage = useCallback(async () => {
           </div>
 
           {/* 입력창 */}
-          <div className="py-3 px-6 bg-white border-t border-cream-500" data-tutorial="chat-input">
-            <div className="max-w-[840px] mx-auto flex gap-2 items-center">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }}
-                placeholder={isHistoryLoading ? '이전 대화를 불러오는 중...' : isStreaming ? '답변을 기다리는 중...' : '다나아에게 무엇이든 물어보세요...'}
-                disabled={isStreaming || isHistoryLoading}
-                className="flex-1 py-3 px-4 rounded-[20px] border border-cream-400 text-[14px] outline-none bg-cream-300 focus:border-nature-500 focus:ring-2 focus:ring-nature-500/10 transition-colors disabled:opacity-50"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={isStreaming || isHistoryLoading || !inputText.trim()}
-                className="w-9 h-9 rounded-full bg-nature-900 text-white flex items-center justify-center text-lg cursor-pointer shrink-0 hover:bg-nature-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          <div className="py-3 px-3 md:px-6" data-tutorial="chat-input">
+            <div className="max-w-[840px] mx-auto">
+              <div
+                className="rounded-2xl border border-[var(--color-input-border)] bg-[var(--color-input-bg)] px-4 pt-3 pb-2.5 cursor-text"
+                onClick={(e) => {
+                  // 버튼 클릭 시에는 기본 핸들러가 먼저 처리되므로, input이 아닌 빈 영역 클릭일 때만 포커스
+                  if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                    chatInputRef.current?.focus();
+                  }
+                }}
               >
-                →
-              </button>
+                <input
+                  ref={chatInputRef}
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); sendMessage(); } }}
+                  placeholder={isHistoryLoading ? '이전 대화를 불러오는 중...' : isStreaming ? '답변을 기다리는 중...' : '답글...'}
+                  disabled={isStreaming || isHistoryLoading}
+                  className="w-full bg-transparent text-[14px] text-nature-900 outline-none placeholder:text-neutral-400 disabled:opacity-50"
+                />
+                <div className="mt-2.5 flex items-center justify-between">
+                  <span className="text-[16px] text-neutral-400 cursor-pointer hover:text-neutral-500">+</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-neutral-400">다나아 AI</span>
+                    <button
+                      onClick={sendMessage}
+                      disabled={isStreaming || isHistoryLoading || !inputText.trim()}
+                      className="w-7 h-7 rounded-lg bg-transparent text-neutral-400 flex items-center justify-center text-sm cursor-pointer shrink-0 hover:text-nature-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ↑
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-1.5 text-center text-[11px] text-[var(--color-text-hint)]">다나아는 AI이며 실수할 수 있습니다. 응답을 다시 한번 확인해 주세요.</div>
             </div>
           </div>
         </div>
 
         {/* ══ 오른쪽 패널 ══ */}
-        {panelOpen && (
-          <aside className="w-[320px] xl:w-[336px] border-l border-cream-500 bg-white flex flex-col shrink-0 overflow-y-auto" style={{ scrollbarGutter: 'stable' }}>
+        {panelOpen && RIGHT_PANEL_V2_ENABLED && (
+          <RightPanelV2
+            log={log}
+            update={update}
+            save={save}
+            saveImmediate={saveImmediate}
+            todaySaveState={todaySaveState}
+            activeCard={activeCard}
+            setActiveCard={setActiveCard}
+            cardsSectionRef={cardsSectionRef}
+            userCtx={{ groups: [onboarding?.user_group].filter(Boolean), isOffline: !navigatorOnline }}
+            todayISO={todayDateString()}
+            onGoChat={() => {/* 채팅 입력창 포커스 등 */}}
+            panels={{ SleepPanel, MealPanel, ExercisePanelV2, WaterPanelV2, MoodPanel, MedicationPanel, AlcoholPanel }}
+            extras={{ updateAlcoholToday, updateAlcoholAmount, HabitsSection }}
+          />
+        )}
+        {panelOpen && !RIGHT_PANEL_V2_ENABLED && (
+          <aside className="hidden md:flex w-[320px] xl:w-[336px] border-l border-cream-500 bg-cream-200 flex-col shrink-0 overflow-y-auto custom-scroll" style={{ scrollbarGutter: 'stable' }}>
 
             <div className="p-5 space-y-6">
               {/* ═══ 1. 오늘 한눈에 ═══ */}
@@ -1665,12 +1772,12 @@ const sendMessage = useCallback(async () => {
                   <span
                     className={`rounded-full px-2.5 py-1.5 text-[13px] font-medium ${
                       todaySaveState === 'error'
-                        ? 'bg-red-50 text-red-500'
+                        ? 'bg-danger/10 text-danger-light'
                         : todaySaveState === 'saving'
                           ? 'bg-cream-300 text-neutral-500'
                           : todaySaveState === 'saved'
                             ? 'bg-nature-100 text-nature-700'
-                            : 'bg-white text-neutral-300'
+                            : 'bg-cream-400 text-[var(--color-text-hint)]'
                     }`}
                   >
                     {todaySaveState === 'error'
@@ -1683,7 +1790,7 @@ const sendMessage = useCallback(async () => {
                   </span>
                 </div>
                 <div className="border-b border-cream-500 mb-4"></div>
-                <div className="mb-4 rounded-xl bg-cream-300 px-4 py-3 text-[14px] leading-[1.55] text-neutral-400">
+                <div className="mb-4 rounded-xl bg-[var(--color-card-surface-subtle)] px-4 py-3 text-[14px] leading-[1.55] text-neutral-400">
                   오늘 필요한 기록은 여기에서 바로 입력하고, 비어 있는 항목도 같은 카드에서 이어서 채울 수 있어요.
                 </div>
 
@@ -1696,22 +1803,22 @@ const sendMessage = useCallback(async () => {
                       onClick={() => setActiveCard(activeCard === c.key ? null : c.key)}
                       className={`rounded-2xl p-4 text-left cursor-pointer transition-all ${
                         activeCard === c.key
-                          ? `${c.color} shadow-float ring-1 ring-black/[.06]`
+                          ? `${c.color} shadow-float ring-1 ring-cream-500`
                           : 'bg-cream-300 hover:bg-cream-400 shadow-xs'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="text-[18px] mb-2">{c.icon}</div>
+                          <ClinicalMark label={c.marker} className="mb-2" />
                           <div className="text-[14px] text-neutral-400">{c.label}</div>
                         </div>
                         {c.pendingCount > 0 && (
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[14px] text-nature-700 shrink-0">
+                          <span className="rounded-full bg-cream-400 px-2.5 py-1 text-[14px] text-nature-700 shrink-0">
                             미입력 {c.pendingCount}
                           </span>
                         )}
                       </div>
-                      <div className={`mt-3 text-[18px] font-semibold leading-[1.25] ${c.val ? 'text-nature-900' : 'text-neutral-300'}`}>
+                      <div className={`mt-3 text-[18px] font-semibold leading-[1.25] ${c.val ? 'text-nature-900' : 'text-[var(--color-text-hint)]'}`}>
                         {c.val || '바로 입력'}
                       </div>
                     </button>
@@ -1767,11 +1874,11 @@ function SleepPanel({ log, update }) {
     { key: 'over_8', label: '8h 이상' },
   ];
   const qualities = [
-    { key: 'very_good', label: '😊 아주 좋음' },
-    { key: 'good', label: '🙂 좋음' },
-    { key: 'normal', label: '😐 보통' },
-    { key: 'bad', label: '😴 나쁨' },
-    { key: 'very_bad', label: '😩 아주 나쁨' },
+    { key: 'very_good', label: '아주 좋음' },
+    { key: 'good', label: '좋음' },
+    { key: 'normal', label: '보통' },
+    { key: 'bad', label: '나쁨' },
+    { key: 'very_bad', label: '아주 나쁨' },
   ];
   const durationLocked = false;
   const qualityLocked = false;
@@ -1781,16 +1888,16 @@ function SleepPanel({ log, update }) {
     return (
       <div className="bg-cream-300 rounded-xl p-4.5 mb-4 text-center">
         {panelLocked && (
-          <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+          <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
             이미 저장된 운동 기록은 오늘 화면에서 다시 바꾸지 않아요.
           </div>
         )}
         {panelLocked && (
-          <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+          <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
             이미 저장된 수면 기록은 오늘 화면에서 다시 바꾸지 않아요.
           </div>
         )}
-        <div className="text-[17px] mb-2.5">😴</div>
+        <ClinicalMark label="SL" className="mx-auto mb-2.5" />
         <div className="text-[16px] font-medium text-nature-900 mb-3">수면을 기록해주세요</div>
         <div className="text-[14px] leading-[1.55] text-neutral-400 mb-3.5">몇 시간 주무셨나요?</div>
         <div className="flex flex-wrap gap-2 justify-center">
@@ -1798,8 +1905,8 @@ function SleepPanel({ log, update }) {
             <button key={d.key} onClick={() => update('sleep_duration_bucket', d.key)} disabled={durationLocked}
               className={`px-3 py-1.5 rounded-full text-[15px] border transition-all ${
                 durationLocked
-                  ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-                  : 'bg-white border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500'
+                  ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                  : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-nature-500 hover:text-white hover:border-nature-500'
               }`}>
               {d.label}
             </button>
@@ -1812,7 +1919,7 @@ function SleepPanel({ log, update }) {
   return (
     <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
       {panelLocked && (
-        <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+        <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 수면 기록은 오늘 화면에서 다시 바꾸지 않아요.
         </div>
       )}
@@ -1825,8 +1932,8 @@ function SleepPanel({ log, update }) {
               log.sleep_duration_bucket === d.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : durationLocked
-                  ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                  : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                  ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                  : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}>
             {d.label}
           </button>
@@ -1841,8 +1948,8 @@ function SleepPanel({ log, update }) {
               log.sleep_quality === q.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : qualityLocked
-                  ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                  : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                  ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                  : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}>
             {q.label}
           </button>
@@ -1855,9 +1962,9 @@ function SleepPanel({ log, update }) {
 /* ═══════════ 식사 패널 ═══════════ */
 function MealPanel({ log, update }) {
   const meals = [
-    { key: 'breakfast_status', label: '아침', icon: '🌅' },
-    { key: 'lunch_status', label: '점심', icon: '☀️' },
-    { key: 'dinner_status', label: '저녁', icon: '🌙' },
+    { key: 'breakfast_status', label: '아침', marker: 'AM' },
+    { key: 'lunch_status', label: '점심', marker: 'NO' },
+    { key: 'dinner_status', label: '저녁', marker: 'PM' },
   ];
   const options = [
     { key: 'hearty', label: '든든히' },
@@ -1884,14 +1991,14 @@ function MealPanel({ log, update }) {
   return (
     <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
       {panelLocked && (
-        <div className="mb-4 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+        <div className="mb-4 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 식사 기록은 오늘 화면에서 다시 바꾸지 않아요.
         </div>
       )}
       {meals.map(meal => (
         <div key={meal.key} className="mb-4 last:mb-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[16px]">{meal.icon}</span>
+            <ClinicalMark label={meal.marker} />
             <span className="text-[15px] font-medium text-nature-900">
               {meal.label}
               {log[meal.key] && <span className="text-neutral-400 font-normal"> — {MEAL_LABELS[log[meal.key]]}</span>}
@@ -1919,21 +2026,21 @@ function MealPanel({ log, update }) {
                             ? lunchLocked
                             : dinnerLocked
                       )
-                      ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                      : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                      ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                      : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
                 }`}>
                 {opt.label}
               </button>
             ))}
           </div>
-          {meal.key !== 'dinner_status' && <div className="border-b border-black/[.04] mt-4"></div>}
+          {meal.key !== 'dinner_status' && <div className="border-b border-cream-500 mt-4"></div>}
         </div>
       ))}
 
       {/* 채소 */}
-      <div className="border-t border-black/[.06] mt-4 pt-4">
+      <div className="border-t border-cream-500 mt-4 pt-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[16px]">🥬</span>
+          <ClinicalMark label="VG" />
           <span className="text-[15px] font-medium text-nature-900">채소</span>
           {log.vegetable_intake_level && <span className="text-[13px] text-neutral-400">— {vegOptions.find(v => v.key === log.vegetable_intake_level)?.label}</span>}
         </div>
@@ -1944,8 +2051,8 @@ function MealPanel({ log, update }) {
                 log.vegetable_intake_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
                   : vegetableLocked
-                    ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                    : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                    ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                    : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
               }`}>
               {opt.label}
             </button>
@@ -1954,9 +2061,9 @@ function MealPanel({ log, update }) {
       </div>
 
       {/* 식사구성 */}
-      <div className="border-t border-black/[.06] mt-4 pt-4">
+      <div className="border-t border-cream-500 mt-4 pt-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[16px]">🍱</span>
+          <ClinicalMark label="BL" />
           <span className="text-[15px] font-medium text-nature-900">식사구성</span>
           {log.meal_balance_level && <span className="text-[13px] text-neutral-400">— {balanceOptions.find(v => v.key === log.meal_balance_level)?.label}</span>}
         </div>
@@ -1967,8 +2074,8 @@ function MealPanel({ log, update }) {
                 log.meal_balance_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
                   : balanceLocked
-                    ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                    : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                    ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                    : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
               }`}>
               {opt.label}
             </button>
@@ -1982,12 +2089,12 @@ function MealPanel({ log, update }) {
 /* ═══════════ 운동 패널 ═══════════ */
 function ExercisePanel({ log, update, save, confirmedLog }) {
   const types = [
-    { key: 'walking', label: '🚶 산책' },
-    { key: 'running', label: '🏃 달리기' },
-    { key: 'cycling', label: '🚴 자전거' },
-    { key: 'swimming', label: '🏊 수영' },
-    { key: 'gym', label: '🏋️ 헬스' },
-    { key: 'home_workout', label: '🏠 홈트' },
+    { key: 'walking', label: '산책' },
+    { key: 'running', label: '달리기' },
+    { key: 'cycling', label: '자전거' },
+    { key: 'swimming', label: '수영' },
+    { key: 'gym', label: '헬스' },
+    { key: 'home_workout', label: '홈트' },
     { key: 'other', label: '기타' },
   ];
 
@@ -2000,13 +2107,13 @@ function ExercisePanel({ log, update, save, confirmedLog }) {
   if (log.exercise_done === null) {
     return (
       <div className="bg-cream-300 rounded-lg p-4 mb-3 text-center">
-        <div className="text-[13px] mb-2">🏃</div>
+        <ClinicalMark label="EX" className="mx-auto mb-2" />
         <div className="text-[12px] text-nature-900 mb-3">운동 — 안 했어요</div>
         <div className="flex gap-2 justify-center">
           <button onClick={() => update('exercise_done', true)} disabled={exerciseDoneLocked}
             className={`px-3.5 py-1.5 rounded-full text-[11px] border transition-all ${
               exerciseDoneLocked
-                ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
+                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
                 : 'bg-nature-500 text-white border-nature-500'
             }`}>
             했어요
@@ -2014,8 +2121,8 @@ function ExercisePanel({ log, update, save, confirmedLog }) {
           <button onClick={() => update('exercise_done', false)} disabled={exerciseDoneLocked}
             className={`px-3.5 py-1.5 rounded-full text-[11px] border transition-all ${
               exerciseDoneLocked
-                ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-                : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}>
             못했어요
           </button>
@@ -2028,37 +2135,37 @@ function ExercisePanel({ log, update, save, confirmedLog }) {
     return (
       <div className={`bg-cream-300 rounded-lg p-3.5 mb-3 ${panelLocked ? 'pointer-events-none opacity-70' : ''}`}>
         {panelLocked && (
-          <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+          <div className="mb-3 rounded-lg bg-cream-400 px-3 py-2 text-[10px] text-neutral-400">
             이미 저장된 운동 기록은 오늘 화면에서 다시 바꾸지 않아요.
           </div>
         )}
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[12px]">🏃</span>
+            <ClinicalMark label="EX" className="h-6 min-w-[24px] px-1.5 text-[9px]" />
           <span className="text-[11px] font-medium text-nature-900">운동 — 안 했어요</span>
         </div>
         <div className="flex gap-2">
           <button onClick={() => save({ ...log, exercise_done: true, exercise_type: null, exercise_minutes: null })} disabled={exerciseDoneLocked}
             className={`px-3 py-1 rounded-full text-[11px] border transition-all ${
               exerciseDoneLocked
-                ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-                : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}>
             했어요로 변경
           </button>
         </div>
         {/* 산책 */}
-        <div className="border-t border-black/[.06] mt-3 pt-3">
+        <div className="border-t border-cream-500 mt-3 pt-3">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-[12px]">🚶</span>
+              <ClinicalMark label="WK" className="h-6 min-w-[24px] px-1.5 text-[9px]" />
             <span className="text-[11px] font-medium text-nature-900">산책</span>
           </div>
           <div className="flex gap-2">
             <button onClick={() => update('walk_done', log.walk_done === true ? null : true)} disabled={walkLocked}
-              className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === true ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed' : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'}`}>
+              className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === true ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
               했어요
             </button>
             <button onClick={() => update('walk_done', log.walk_done === false ? null : false)} disabled={walkLocked}
-              className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === false ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed' : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'}`}>
+              className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === false ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
               못했어요
             </button>
           </div>
@@ -2071,7 +2178,7 @@ function ExercisePanel({ log, update, save, confirmedLog }) {
   return (
     <div className={`bg-cream-300 rounded-lg p-3.5 mb-3 ${panelLocked ? 'opacity-70' : ''}`}>
       {panelLocked && (
-        <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+        <div className="mb-3 rounded-lg bg-cream-400 px-3 py-2 text-[10px] text-neutral-400">
           이미 저장된 운동 기록은 오늘 패널에서 다시 바꾸지 않아요.
         </div>
       )}
@@ -2083,8 +2190,8 @@ function ExercisePanel({ log, update, save, confirmedLog }) {
               log.exercise_type === t.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : exerciseTypeLocked
-                  ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                  : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                  ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                  : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}>
             {t.label}
           </button>
@@ -2094,34 +2201,34 @@ function ExercisePanel({ log, update, save, confirmedLog }) {
       <div className="text-[10px] text-neutral-400 mb-2">운동 시간 (분)</div>
       <div className="flex items-center gap-2 mb-3">
         <button onClick={() => update('exercise_minutes', Math.max(0, (log.exercise_minutes || 0) - 10))} disabled={exerciseMinutesLocked}
-          className="w-7 h-7 rounded-full border border-cream-500 bg-white text-neutral-400 flex items-center justify-center text-[12px] hover:bg-black/[.03]">−</button>
+          className="w-7 h-7 rounded-full border border-cream-500 bg-cream-400 text-neutral-400 flex items-center justify-center text-[12px] hover:bg-cream-500">−</button>
         <span className="text-[16px] font-semibold text-nature-900 min-w-[40px] text-center">{log.exercise_minutes || 0}</span>
-        <span className="text-[10px] text-neutral-300">분</span>
+        <span className="text-[10px] text-[var(--color-text-hint)]">분</span>
         <button onClick={() => update('exercise_minutes', Math.min(300, (log.exercise_minutes || 0) + 10))} disabled={exerciseMinutesLocked}
-          className="w-7 h-7 rounded-full border border-cream-500 bg-white text-neutral-400 flex items-center justify-center text-[12px] hover:bg-black/[.03]">+</button>
+          className="w-7 h-7 rounded-full border border-cream-500 bg-cream-400 text-neutral-400 flex items-center justify-center text-[12px] hover:bg-cream-500">+</button>
       </div>
 
       {/* 산책 */}
-      <div className="border-t border-black/[.06] pt-3">
+      <div className="border-t border-cream-500 pt-3">
         <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="text-[12px]">🚶</span>
+          <ClinicalMark label="WK" className="h-6 min-w-[24px] px-1.5 text-[9px]" />
           <span className="text-[11px] font-medium text-nature-900">산책</span>
         </div>
         <div className="flex gap-2">
           <button onClick={() => update('walk_done', log.walk_done === true ? null : true)} disabled={walkLocked}
-            className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === true ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed' : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'}`}>
+            className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === true ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
             했어요
           </button>
           <button onClick={() => update('walk_done', log.walk_done === false ? null : false)} disabled={walkLocked}
-            className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === false ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed' : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'}`}>
+            className={`px-3 py-1 rounded-full text-[11px] transition-all ${log.walk_done === false ? 'bg-nature-500 text-white border border-nature-500' : walkLocked ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
             못했어요
           </button>
         </div>
       </div>
 
-      <div className="border-t border-black/[.06] mt-3 pt-2">
+      <div className="border-t border-cream-500 mt-3 pt-2">
         <button onClick={() => save({ ...log, exercise_done: false, exercise_type: null, exercise_minutes: null })} disabled={exerciseDoneLocked}
-          className={`text-[10px] transition-colors ${exerciseDoneLocked ? 'text-neutral-300 cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'}`}>
+          className={`text-[10px] transition-colors ${exerciseDoneLocked ? 'text-[var(--color-text-hint)] cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'}`}>
           안 했어요로 변경
         </button>
       </div>
@@ -2135,24 +2242,24 @@ function WaterPanel({ log, update, confirmedLog }) {
   return (
     <div className={`bg-cream-300 rounded-lg p-3.5 mb-3 ${waterLocked ? 'pointer-events-none opacity-70' : ''}`}>
       {waterLocked && (
-        <div className="mb-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+        <div className="mb-3 rounded-lg bg-cream-400 px-3 py-2 text-[10px] text-neutral-400">
           이미 저장된 수분 기록은 오늘 화면에서 다시 바꾸지 않아요.
         </div>
       )}
       <div className="flex items-center justify-center gap-3 mb-3">
         <button onClick={() => update('water_cups', Math.max(0, log.water_cups - 1))} disabled={waterLocked}
-          className="w-8 h-8 rounded-full border border-cream-500 bg-white text-neutral-400 flex items-center justify-center text-[14px] hover:bg-black/[.03] transition-colors">−</button>
+          className="w-8 h-8 rounded-full border border-cream-500 bg-cream-400 text-neutral-400 flex items-center justify-center text-[14px] hover:bg-cream-500 transition-colors">−</button>
         <div className="text-center">
           <span className="text-[28px] font-semibold text-nature-900">{log.water_cups}</span>
           <span className="text-[12px] text-neutral-400 ml-1">/ 8잔</span>
         </div>
         <button onClick={() => update('water_cups', Math.min(12, log.water_cups + 1))} disabled={waterLocked}
-          className="w-8 h-8 rounded-full border border-cream-500 bg-white text-neutral-400 flex items-center justify-center text-[14px] hover:bg-black/[.03] transition-colors">+</button>
+          className="w-8 h-8 rounded-full border border-cream-500 bg-cream-400 text-neutral-400 flex items-center justify-center text-[14px] hover:bg-cream-500 transition-colors">+</button>
       </div>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[16px]">💧</span>
+        <ClinicalMark label="WA" />
         <div className="flex-1 h-2 bg-cream-500 rounded-full overflow-hidden">
-          <div className="h-full bg-[#64b5f6] rounded-full transition-all" style={{ width: `${Math.min(100, log.water_cups / 8 * 100)}%` }}></div>
+          <div className="h-full bg-nature-700 rounded-full transition-all" style={{ width: `${Math.min(100, log.water_cups / 8 * 100)}%` }}></div>
         </div>
       </div>
       <div className="text-[10px] text-neutral-400 text-center">하루 권장 8잔 (240ml 기준)</div>
@@ -2160,7 +2267,7 @@ function WaterPanel({ log, update, confirmedLog }) {
   );
 }
 
-/* ═══════════ 나의 습관 섹션 ═══════════ */
+/* ═══════════ 도전 챌린지 섹션 ═══════════ */
 // localStorage key: danaa_challenges
 // 백엔드 연동 시: GET /api/v1/challenges/overview → active 배열
 // 모델: UserChallenge (template_id, status, current_streak, days_completed, target_days, progress_pct, today_checked)
@@ -2213,39 +2320,73 @@ function HabitsSection() {
 
   return (
     <div>
-      <h4 className="text-[16px] font-semibold text-nature-900 mb-3">나의 습관</h4>
+      <h4 className="text-[16px] font-semibold text-nature-900 mb-3">도전 챌린지</h4>
       <div className="border-b border-cream-500 mb-4"></div>
       {challenges.length === 0 ? (
         <div className="bg-cream-300 rounded-xl p-4 text-center">
-          <div className="text-[24px] mb-2">🎯</div>
+          <ClinicalMark label="CH" className="mx-auto mb-2 h-8 min-w-[32px]" />
           <div className="text-[16px] font-medium text-nature-900 mb-1.5">아직 참여 중인 챌린지가 없어요</div>
           <div className="text-[14px] leading-[1.55] text-neutral-400 mb-3.5">챌린지에 참여하면 여기에 진행 상황이 표시돼요</div>
-          <a href="/app/challenge" className="inline-block px-4 py-2 rounded-full text-[14px] bg-nature-900 text-white hover:bg-nature-800 transition-colors">
+          <a href="/app/challenge" className="inline-block px-4 py-2 rounded-full text-[14px] bg-nature-500 text-white hover:bg-nature-600 transition-colors">
             챌린지 둘러보기
           </a>
         </div>
       ) : (
-        <div className="bg-cream-300 rounded-xl p-4.5 space-y-3.5">
-          {challenges.map((item) => (
-            <div key={item.user_challenge_id ?? item.name}>
-              <div className="flex items-center justify-between gap-3 mb-1.5">
-                <span className="text-[15px] font-medium text-nature-900">{item.emoji} {item.name}</span>
-                <span className="text-[13px] text-neutral-400 shrink-0">
-                  {item.today_checked ? '오늘 체크 완료' : '오늘 체크 필요'}
-                </span>
+        <div className="space-y-3">
+          {challenges.map((item) => {
+            // 주간 근사: current_streak 기준 min 7 · 7일 연속 달성 시 가득 참
+            const weeklyDone = Math.min(7, Number(item.current_streak || 0));
+            const weeklyPct = Math.round((weeklyDone / 7) * 100);
+            const streak = Number(item.current_streak || 0);
+            return (
+              <div
+                key={item.user_challenge_id ?? item.name}
+                className="bg-cream-300 rounded-2xl p-4 border border-cream-500"
+              >
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="text-[16px] grayscale opacity-80"
+                      style={{ filter: 'grayscale(1)' }}
+                      aria-hidden="true"
+                    >
+                      {item.emoji || '🎯'}
+                    </span>
+                    <span className="text-[14px] font-semibold text-nature-900 truncate">
+                      {stripDisplayEmoji(item.name || '')}
+                    </span>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-semibold ${
+                      item.today_checked
+                        ? 'bg-nature-900 text-[var(--color-bg)]'
+                        : 'bg-cream-400 text-neutral-500'
+                    }`}
+                    aria-label={`이번 주 ${weeklyDone}일 달성 중`}
+                  >
+                    {weeklyDone}/7
+                  </span>
+                </div>
+
+                {/* 7칸 도트 진행바 */}
+                <div className="flex items-center gap-1 mb-2">
+                  {Array.from({ length: 7 }, (_, i) => (
+                    <div
+                      key={i}
+                      className={`flex-1 h-1.5 rounded-full transition-colors ${
+                        i < weeklyDone ? 'bg-nature-900' : 'bg-cream-500'
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between text-[12px] text-neutral-400">
+                  <span>이번 주 {weeklyPct}%</span>
+                  <span>{streak}일 연속</span>
+                </div>
               </div>
-              <div className="w-full h-1.5 bg-cream-500 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-neutral-400 rounded-full"
-                  style={{ width: `${Math.min(100, Number(item.progress_pct || 0) * 100)}%` }}
-                ></div>
-              </div>
-              <div className="mt-1.5 flex items-center justify-between text-[13px] text-neutral-400">
-                <span>진행률 {Math.round(Number(item.progress_pct || 0) * 100)}%</span>
-                <span>연속 {item.current_streak || 0}일</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -2273,7 +2414,7 @@ function UnansweredQuestionsSection({ pendingSummary, hasLiveHealthCard, onJumpT
 
       {count === 0 ? (
         <div className="bg-cream-300 rounded-xl p-4 text-center">
-          <div className="text-[20px] mb-2">✅</div>
+          <ClinicalMark label="Q" className="mx-auto mb-2 h-8 min-w-[32px]" />
           <div className="text-[12px] font-medium text-nature-900 mb-1">지금 이어서 답할 질문은 없어요</div>
           <div className="text-[10px] text-neutral-400">새 질문이 생기면 답변 아래 카드에서 바로 기록할 수 있어요.</div>
         </div>
@@ -2282,22 +2423,22 @@ function UnansweredQuestionsSection({ pendingSummary, hasLiveHealthCard, onJumpT
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[11px] font-medium text-nature-900">
-                {pendingSummary?.bundleName || '오늘 기록 보완'}
+                {stripDisplayEmoji(pendingSummary?.bundleName || '오늘 기록 보완')}
               </div>
               <div className="text-[10px] text-neutral-400 mt-1">
                 질문형 기록은 채팅 본문 아래 카드에서 이어지고, 오른쪽 패널에서는 오늘 기록 상태를 바로 확인할 수 있어요.
               </div>
             </div>
-            <span className="rounded-full bg-white px-2 py-1 text-[10px] text-neutral-400">
+            <span className="rounded-full bg-cream-400 px-2 py-1 text-[10px] text-neutral-400">
               {questions.length}개 남음
             </span>
           </div>
 
           <div className="mt-3 space-y-2">
             {questions.map((question, index) => (
-              <div key={question.field} className="rounded-lg bg-white px-3 py-2">
+              <div key={question.field} className="rounded-lg bg-cream-400 px-3 py-2">
                 <div className="text-[10px] text-neutral-400">질문 {index + 1}</div>
-                <div className="text-[11px] font-medium text-nature-900 mt-0.5">{question.text}</div>
+                <div className="text-[11px] font-medium text-nature-900 mt-0.5">{stripDisplayEmoji(question.text)}</div>
               </div>
             ))}
           </div>
@@ -2305,7 +2446,7 @@ function UnansweredQuestionsSection({ pendingSummary, hasLiveHealthCard, onJumpT
           <button
             type="button"
             onClick={onJumpToHealthCard}
-            className="mt-3 w-full rounded-lg bg-nature-900 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-800 transition-colors"
+            className="mt-3 w-full rounded-lg bg-nature-500 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-600 transition-colors"
           >
             채팅 카드로 이동
           </button>
@@ -2334,16 +2475,16 @@ function ExercisePanelV2({ log, update, save }) {
 
   const circleButtonClass = (locked) => `w-9 h-9 rounded-full border flex items-center justify-center text-[16px] transition-colors ${
     locked
-      ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-      : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+      ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+      : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
   }`;
 
   const pillClass = (active, locked) => `px-3.5 py-1.5 rounded-full text-[14px] transition-all ${
     active
       ? 'bg-nature-500 text-white border border-nature-500'
       : locked
-        ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-        : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+        ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+        : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
   }`;
 
   if (log.exercise_done === null) {
@@ -2357,7 +2498,7 @@ function ExercisePanelV2({ log, update, save }) {
             disabled={exerciseDoneLocked}
             className={`px-4 py-2 rounded-full text-[14px] border transition-all ${
               exerciseDoneLocked
-                ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
+                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
                 : 'bg-nature-500 text-white border-nature-500'
             }`}
           >
@@ -2368,8 +2509,8 @@ function ExercisePanelV2({ log, update, save }) {
             disabled={exerciseDoneLocked}
             className={`px-4 py-2 rounded-full text-[14px] border transition-all ${
               exerciseDoneLocked
-                ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-                : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}
           >
             못 했어요
@@ -2383,7 +2524,7 @@ function ExercisePanelV2({ log, update, save }) {
     return (
       <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
         {panelLocked && (
-          <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+          <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
             이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.
           </div>
         )}
@@ -2397,14 +2538,14 @@ function ExercisePanelV2({ log, update, save }) {
             disabled={exerciseDoneLocked}
             className={`px-3.5 py-1.5 rounded-full text-[14px] border transition-all ${
               exerciseDoneLocked
-                ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-                : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}
           >
             운동함으로 바꾸기
           </button>
         </div>
-        <div className="border-t border-black/[.06] mt-4 pt-4">
+        <div className="border-t border-cream-500 mt-4 pt-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[16px]">걷기</span>
             <span className="text-[15px] font-medium text-nature-900">오늘 산책은 했나요?</span>
@@ -2433,7 +2574,7 @@ function ExercisePanelV2({ log, update, save }) {
   return (
       <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
       {panelLocked && (
-        <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+        <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.
         </div>
       )}
@@ -2448,8 +2589,8 @@ function ExercisePanelV2({ log, update, save }) {
               log.exercise_type === type.key
                 ? 'bg-nature-500 text-white border border-nature-500'
                 : exerciseTypeLocked
-                  ? 'bg-white/70 border border-cream-500 text-neutral-300 cursor-not-allowed'
-                  : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                  ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+                  : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}
           >
             {type.label}
@@ -2467,7 +2608,7 @@ function ExercisePanelV2({ log, update, save }) {
           -
         </button>
         <span className="text-[20px] font-semibold text-nature-900 min-w-[48px] text-center">{log.exercise_minutes || 0}</span>
-        <span className="text-[14px] text-neutral-300">분</span>
+        <span className="text-[14px] text-[var(--color-text-hint)]">분</span>
         <button
           onClick={() => update('exercise_minutes', Math.min(300, (log.exercise_minutes || 0) + 10))}
           disabled={exerciseMinutesLocked}
@@ -2477,7 +2618,7 @@ function ExercisePanelV2({ log, update, save }) {
         </button>
       </div>
 
-      <div className="border-t border-black/[.06] pt-4">
+      <div className="border-t border-cream-500 pt-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[16px]">걷기</span>
           <span className="text-[15px] font-medium text-nature-900">오늘 산책은 했나요?</span>
@@ -2500,12 +2641,12 @@ function ExercisePanelV2({ log, update, save }) {
         </div>
       </div>
 
-      <div className="border-t border-black/[.06] mt-4 pt-3">
+      <div className="border-t border-cream-500 mt-4 pt-3">
         <button
           onClick={() => save({ ...log, exercise_done: false, exercise_type: null, exercise_minutes: null })}
           disabled={exerciseDoneLocked}
           className={`text-[14px] transition-colors ${
-            exerciseDoneLocked ? 'text-neutral-300 cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'
+            exerciseDoneLocked ? 'text-[var(--color-text-hint)] cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'
           }`}
         >
           운동 안 함으로 바꾸기
@@ -2521,7 +2662,7 @@ function WaterPanelV2({ log, update }) {
   return (
     <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${waterLocked ? 'opacity-70' : ''}`}>
       {waterLocked && (
-        <div className="mb-3 rounded-xl bg-white px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
+        <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 수분 기록은 오늘 화면에서 다시 바뀌지 않아요.
         </div>
       )}
@@ -2529,10 +2670,10 @@ function WaterPanelV2({ log, update }) {
         <button
           onClick={() => update('water_cups', Math.max(0, log.water_cups - 1))}
           disabled={waterLocked}
-          className={`w-9 h-9 rounded-full border flex items-center justify-center text-[16px] transition-colors ${
+          className={`w-10 h-10 rounded-full border flex items-center justify-center text-[18px] transition-colors ${
             waterLocked
-              ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-              : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+              ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+              : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
           }`}
         >
           -
@@ -2544,10 +2685,10 @@ function WaterPanelV2({ log, update }) {
         <button
           onClick={() => update('water_cups', Math.min(12, log.water_cups + 1))}
           disabled={waterLocked}
-          className={`w-9 h-9 rounded-full border flex items-center justify-center text-[16px] transition-colors ${
+          className={`w-10 h-10 rounded-full border flex items-center justify-center text-[18px] transition-colors ${
             waterLocked
-              ? 'bg-white/70 border-cream-500 text-neutral-300 cursor-not-allowed'
-              : 'bg-white border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+              ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
+              : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
           }`}
         >
           +
@@ -2566,11 +2707,11 @@ function WaterPanelV2({ log, update }) {
 
 function MoodPanel({ log, update }) {
   const options = [
-    { key: 'very_good', label: '😊 아주 좋음' },
-    { key: 'good', label: '🙂 좋음' },
-    { key: 'normal', label: '😐 보통' },
-    { key: 'stressed', label: '😵 스트레스' },
-    { key: 'very_stressed', label: '😫 많이 지침' },
+    { key: 'very_good', label: '아주 좋음' },
+    { key: 'good', label: '좋음' },
+    { key: 'normal', label: '보통' },
+    { key: 'stressed', label: '스트레스' },
+    { key: 'very_stressed', label: '많이 지침' },
   ];
 
   return (
@@ -2585,7 +2726,7 @@ function MoodPanel({ log, update }) {
             className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
               log.mood_level === option.key
                 ? 'bg-nature-500 text-white border border-nature-500'
-                : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
             }`}
           >
             {option.label}
@@ -2607,10 +2748,10 @@ function MedicationPanel({ log, update }) {
           className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
             log.took_medication === true
               ? 'bg-nature-500 text-white border border-nature-500'
-              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+              : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
           }`}
         >
-          💊 복용했어요
+          복용했어요
         </button>
         <button
           type="button"
@@ -2618,7 +2759,7 @@ function MedicationPanel({ log, update }) {
           className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
             log.took_medication === false
               ? 'bg-nature-500 text-white border border-nature-500'
-              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+              : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
           }`}
         >
           아직 못 먹었어요
@@ -2645,7 +2786,7 @@ function AlcoholPanel({ log, updateAlcoholToday, updateAlcoholAmount }) {
           className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
             log.alcohol_today === false
               ? 'bg-nature-500 text-white border border-nature-500'
-              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+              : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
           }`}
         >
           안 마셨어요
@@ -2656,7 +2797,7 @@ function AlcoholPanel({ log, updateAlcoholToday, updateAlcoholAmount }) {
           className={`px-3.5 py-1.5 rounded-full text-[15px] transition-all ${
             log.alcohol_today === true
               ? 'bg-nature-500 text-white border border-nature-500'
-              : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+              : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
           }`}
         >
           마셨어요
@@ -2675,7 +2816,7 @@ function AlcoholPanel({ log, updateAlcoholToday, updateAlcoholAmount }) {
                 className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
                   log.alcohol_amount_level === option.key
                     ? 'bg-nature-500 text-white border border-nature-500'
-                    : 'bg-white border border-cream-500 text-neutral-400 hover:bg-black/[.03]'
+                    : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
                 }`}
               >
                 {option.label}
@@ -2701,7 +2842,7 @@ function UnansweredQuestionsSectionV2({ pendingSummary, hasLiveHealthCard, onJum
 
       {count === 0 ? (
         <div className="bg-cream-300 rounded-xl p-4 text-center">
-          <div className="text-[20px] mb-2">✅</div>
+          <ClinicalMark label="Q" className="mx-auto mb-2 h-8 min-w-[32px]" />
           <div className="text-[12px] font-medium text-nature-900 mb-1">지금 이어서 답할 질문은 없어요</div>
           <div className="text-[10px] text-neutral-400">
             새 질문을 보내면 현재 시간과 기록 상태에 맞는 다음 카드가 새 답변 아래에 붙어요.
@@ -2716,7 +2857,7 @@ function UnansweredQuestionsSectionV2({ pendingSummary, hasLiveHealthCard, onJum
                 오른쪽 패널은 남은 기록 요약이고, 실제 질문 카드는 새 답변 아래에 붙어요.
               </div>
             </div>
-            <span className="rounded-full bg-white px-2 py-1 text-[10px] text-neutral-400">
+            <span className="rounded-full bg-cream-400 px-2 py-1 text-[10px] text-neutral-400">
               {count}개 남음
             </span>
           </div>
@@ -2730,8 +2871,8 @@ function UnansweredQuestionsSectionV2({ pendingSummary, hasLiveHealthCard, onJum
                   onClick={() => onSelectBundle?.(bundle.bundleKey)}
                   className={`w-full rounded-lg px-3 py-2 text-left transition-colors ${
                     activeBundleKey === bundle.bundleKey
-                      ? 'bg-nature-900 text-white'
-                      : 'bg-white hover:bg-cream-400'
+                      ? 'bg-nature-500 text-white'
+                      : 'bg-cream-300 hover:bg-cream-400'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -2739,7 +2880,7 @@ function UnansweredQuestionsSectionV2({ pendingSummary, hasLiveHealthCard, onJum
                       <div className="text-[10px] opacity-70">
                         {bundle.unansweredCount || bundle.questions?.length || 0}개 질문
                       </div>
-                      <div className="text-[11px] font-medium mt-0.5 truncate">{bundle.name}</div>
+                      <div className="text-[11px] font-medium mt-0.5 truncate">{stripDisplayEmoji(bundle.name)}</div>
                     </div>
                     <span className="text-[10px] opacity-70">
                       {activeBundleKey === bundle.bundleKey ? '카드 열림' : '카드 열기'}
@@ -2753,9 +2894,9 @@ function UnansweredQuestionsSectionV2({ pendingSummary, hasLiveHealthCard, onJum
           {bundles.length === 0 && labels.length > 0 && (
             <div className="mt-3 space-y-2">
               {labels.map((label, index) => (
-                <div key={`${label}-${index}`} className="rounded-lg bg-white px-3 py-2">
+                <div key={`${label}-${index}`} className="rounded-lg bg-cream-400 px-3 py-2">
                   <div className="text-[10px] text-neutral-400">질문 {index + 1}</div>
-                  <div className="text-[11px] font-medium text-nature-900 mt-0.5">{label}</div>
+                  <div className="text-[11px] font-medium text-nature-900 mt-0.5">{stripDisplayEmoji(label)}</div>
                 </div>
               ))}
               {truncatedCount > 0 && (
@@ -2765,14 +2906,14 @@ function UnansweredQuestionsSectionV2({ pendingSummary, hasLiveHealthCard, onJum
           )}
 
           {hasLiveHealthCard ? (
-            <div className="mt-3 rounded-lg bg-white px-3 py-2 text-[10px] text-neutral-400">
+            <div className="mt-3 rounded-lg bg-cream-400 px-3 py-2 text-[10px] text-neutral-400">
               지금 화면 아래에 나온 카드에서 바로 이어서 기록할 수 있어요.
             </div>
           ) : (
             <button
               type="button"
               onClick={onJumpToHealthCard}
-              className="mt-3 w-full rounded-lg bg-nature-900 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-800 transition-colors"
+              className="mt-3 w-full rounded-lg bg-nature-500 px-3 py-2 text-[11px] font-medium text-white hover:bg-nature-600 transition-colors"
             >
               현재 카드 위치로 이동
             </button>

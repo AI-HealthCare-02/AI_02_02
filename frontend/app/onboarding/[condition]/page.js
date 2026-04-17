@@ -274,7 +274,7 @@ export default function OnboardingFlow() {
                   {consents[i] && '✓'}
                 </div>
                 <span className="flex-1 text-[14px] text-neutral-600">{item.label}</span>
-                <span className={`text-[12px] ${item.required ? 'text-nature-500' : 'text-neutral-300'}`}>
+                <span className={`text-[12px] ${item.required ? 'text-nature-500' : 'text-[var(--color-text-hint)]'}`}>
                   {item.required ? '필수' : '선택'}
                 </span>
               </button>
@@ -386,7 +386,7 @@ export default function OnboardingFlow() {
                   cat.active && categorySelected
                     ? 'bg-cream-300 border-2 border-nature-500'
                     : cat.active
-                    ? 'bg-white border border-cream-500 hover:bg-cream-300 cursor-pointer'
+                    ? 'bg-cream-400 border border-cream-500 hover:bg-cream-300 cursor-pointer'
                     : 'bg-cream-300 border border-cream-500 opacity-60 cursor-not-allowed'
                 }`}
               >
@@ -418,7 +418,7 @@ export default function OnboardingFlow() {
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[14px] text-left transition-all ${
                     selected
                       ? 'bg-cream-300 border-2 border-nature-500 text-nature-900 font-medium'
-                      : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                      : 'bg-cream-400 border border-cream-500 text-neutral-600 hover:bg-cream-300'
                   }`}
                 >
                   {opt.e && <span className="text-lg">{opt.e}</span>}
@@ -462,7 +462,7 @@ export default function OnboardingFlow() {
                           : 'bg-nature-500 text-white font-medium'
                         : isDisabled
                           ? 'bg-cream-300 border border-cream-500 text-neutral-200 cursor-not-allowed'
-                          : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                          : 'bg-cream-400 border border-cream-500 text-neutral-600 hover:bg-cream-300'
                     }`}
                   >
                     {chip}
@@ -489,7 +489,7 @@ export default function OnboardingFlow() {
                         className={`px-4 py-2.5 rounded-lg text-[14px] transition-all ${
                           selected
                             ? 'bg-nature-500 text-white font-medium'
-                            : 'bg-white border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                            : 'bg-cream-400 border border-cream-500 text-neutral-600 hover:bg-cream-300'
                         }`}
                       >
                         {opt}
@@ -615,7 +615,7 @@ export default function OnboardingFlow() {
           {step?.canSkip && (
             <button
               onClick={handleSkip}
-              className="text-[13px] text-neutral-300 hover:text-neutral-400 transition-all"
+              className="text-[13px] text-[var(--color-text-hint)] hover:text-neutral-400 transition-all"
             >
               건너뛰기
             </button>
@@ -628,7 +628,7 @@ export default function OnboardingFlow() {
             className={`px-6 py-2.5 rounded-lg text-[14px] font-medium transition-all ${
               canProceed
                 ? 'bg-nature-500 text-white hover:bg-nature-800'
-                : 'bg-cream-500 text-neutral-300 cursor-not-allowed'
+                : 'bg-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
             }`}
           >
             {buttonLabel}
@@ -643,7 +643,7 @@ export default function OnboardingFlow() {
     <div
       className="min-h-screen bg-gradient-to-br from-cream-400 via-cream to-neutral-100 flex items-center justify-center p-6"
     >
-      <div className="w-[380px] h-[600px] bg-white rounded-xl shadow-modal flex flex-col overflow-hidden">
+      <div className="w-[380px] h-[600px] bg-cream-300 border border-cream-500 rounded-xl shadow-modal flex flex-col overflow-hidden">
         {/* ── Header ── */}
         <div className="px-5 pt-4 pb-3 flex items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-full bg-nature-500 text-white flex items-center justify-center text-[11px] font-bold">
@@ -656,7 +656,7 @@ export default function OnboardingFlow() {
               style={{ width: progressWidth }}
             />
           </div>
-          <span className="text-[12px] text-neutral-300">{stepLabel}</span>
+          <span className="text-[12px] text-[var(--color-text-hint)]">{stepLabel}</span>
           {/* DEV 건너뛰기 — 현재 입력된 데이터 그대로 저장 후 채팅으로 */}
           <button
             onClick={() => {
@@ -667,7 +667,7 @@ export default function OnboardingFlow() {
               localStorage.removeItem('danaa_tutorial_done');
               window.location.href = '/app/chat';
             }}
-            className="ml-1 px-2 py-0.5 text-[9px] bg-red-100 text-red-500 rounded hover:bg-red-200 transition-colors shrink-0"
+            className="ml-1 px-2 py-0.5 text-[9px] bg-cream-400 text-neutral-400 rounded hover:bg-cream-500 transition-colors shrink-0"
           >
             DEV
           </button>

@@ -322,7 +322,7 @@ function TrendCard({ card }) {
   const goalY = 96 - (((card.goalValue - card.minValue) / (card.maxValue - card.minValue)) * 52);
 
   return (
-    <div className="bg-[#F8F7F3] rounded-[18px] p-4 border border-[#EEE8DE]">
+    <div className="bg-cream-300 rounded-[18px] p-4 border border-cream-500">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Icon size={16} style={{ color: card.color }} />
@@ -342,7 +342,7 @@ function TrendCard({ card }) {
 
       <div className="mt-4">
         <svg width="100%" viewBox="0 0 360 112" style={{ display: 'block' }}>
-          <line x1="24" y1={goalY} x2="336" y2={goalY} stroke="#DAD7CF" strokeWidth="1" strokeDasharray="4 4" />
+          <line x1="24" y1={goalY} x2="336" y2={goalY} stroke="#444444" strokeWidth="1" strokeDasharray="4 4" />
           <polyline
             points={previousPolyline}
             fill="none"
@@ -364,7 +364,7 @@ function TrendCard({ card }) {
           {points.map(([x, y], index) => (
             <circle key={`${card.key}-${index}`} cx={x} cy={y} r={index === points.length - 1 ? 3.5 : 0} fill={card.color} />
           ))}
-          <text x="338" y={goalY + 4} textAnchor="start" fontSize="10" fill="#A7A095">{card.goalLabel}</text>
+          <text x="338" y={goalY + 4} textAnchor="start" fontSize="10" fill="#999999">{card.goalLabel}</text>
         </svg>
         <div className="flex gap-4 justify-center text-[10px] text-neutral-400 mt-2">
           <span className="flex items-center gap-1">
@@ -389,6 +389,8 @@ export default function ReportPage() {
   const [loaded, setLoaded] = useState(false);
   const [trendMode, setTrendMode] = useState('both');
 
+  const [dataError, setDataError] = useState(false);
+
   useEffect(() => {
     async function load() {
       try {
@@ -398,33 +400,36 @@ export default function ReportPage() {
           setStatus(statusData);
 
           if (statusData.is_completed) {
-            const dates = getLastNDates(14);
-            const [riskRes, historyRes, ...dailyResponses] = await Promise.all([
-              api('/api/v1/risk/recalculate', { method: 'POST' }),
-              api('/api/v1/risk/history?weeks=8'),
-              ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
-            ]);
+            try {
+              const dates = getLastNDates(14);
+              const [riskRes, historyRes, ...dailyResponses] = await Promise.all([
+                api('/api/v1/risk/recalculate', { method: 'POST' }),
+                api('/api/v1/risk/history?weeks=8'),
+                ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
+              ]);
 
-            if (riskRes.ok) setRisk(await riskRes.json());
-            if (historyRes.ok) {
-              const historyData = await historyRes.json();
-              setHistory(historyData.history || []);
+              if (riskRes.ok) setRisk(await riskRes.json());
+              if (historyRes.ok) {
+                const historyData = await historyRes.json();
+                setHistory(historyData.history || []);
+              }
+
+              const logs = await Promise.all(
+                dailyResponses.map(async (response, index) => {
+                  if (!response.ok) return { log_date: dates[index] };
+                  return response.json();
+                }),
+              );
+              setDailyLogs(logs);
+
+              if (!riskRes.ok && !historyRes.ok) setDataError(true);
+            } catch {
+              setDataError(true);
             }
-
-            const logs = await Promise.all(
-              dailyResponses.map(async (response, index) => {
-                if (!response.ok) return { log_date: dates[index] };
-                return response.json();
-              }),
-            );
-            setDailyLogs(logs);
           }
         }
       } catch {
         setStatus(null);
-        setRisk(null);
-        setHistory([]);
-        setDailyLogs([]);
       }
       setLoaded(true);
     }
@@ -452,12 +457,12 @@ export default function ReportPage() {
   if (!loaded) {
     return (
       <>
-        <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+        <header className="h-12 bg-cream-300/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
           <span className="text-[14px] font-medium text-nature-900">리포트</span>
         </header>
         <div className="flex-1 px-6 py-6">
           <div className="max-w-[920px] mx-auto space-y-4 animate-pulse">
-            <div className="bg-[#F7F4EC] border border-[#ECE4D3] rounded-xl px-5 py-4">
+            <div className="bg-cream-300 border border-cream-500 rounded-xl px-5 py-4">
               <div className="text-[13px] font-medium text-nature-900 mb-1">최근 기록과 AI 분석을 정리하고 있어요</div>
               <div className="text-[12px] text-neutral-500">최근 생활 기록을 기준으로 현재 상태와 변화 흐름을 불러오는 중입니다.</div>
             </div>
@@ -472,11 +477,11 @@ export default function ReportPage() {
 
   return (
     <>
-      <header className="h-12 bg-white/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
+      <header className="h-12 bg-cream-300/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
         <span className="text-[14px] font-medium text-nature-900">리포트</span>
       </header>
 
-      <div className="flex border-b border-cream-500 bg-white shrink-0">
+      <div className="flex border-b border-cream-500 bg-cream-300 shrink-0">
         <div className="px-5 py-2.5 text-[14px] font-medium transition-colors relative text-nature-900 cursor-default">
           대시보드
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-nature-500"></div>
@@ -488,7 +493,7 @@ export default function ReportPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
         <div className="max-w-[920px] mx-auto">
-          <div className="bg-white shadow-float rounded-xl overflow-hidden">
+          <div className="bg-cream-300 border border-cream-500 shadow-float rounded-xl overflow-hidden">
             <div className="px-7 py-5 border-b border-black/[.04]">
               <div className="flex items-baseline gap-3">
                 <span className="text-[16px] font-semibold text-nature-900">DA-NA-A</span>
@@ -499,7 +504,7 @@ export default function ReportPage() {
             <div className="px-7 py-5 flex flex-col gap-0">
               {!hasOnboarding && (
                 <div className="text-center py-10">
-                  <div className="mb-4"><ClipboardList size={40} className="text-neutral-300 mx-auto" /></div>
+                  <div className="mb-4"><ClipboardList size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
                   <div className="text-[16px] font-medium text-nature-900 mb-2">아직 건강 프로필이 없어요</div>
                   <div className="text-[14px] text-neutral-400 mb-6">온보딩 설문을 완료하면 리포트와 위험도 분석을 볼 수 있습니다.</div>
                   <Link href="/onboarding/diabetes" className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">
@@ -508,9 +513,20 @@ export default function ReportPage() {
                 </div>
               )}
 
+              {hasOnboarding && !risk && dataError && (
+                <div className="text-center py-10">
+                  <div className="mb-4"><ClipboardList size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
+                  <div className="text-[16px] font-medium text-nature-900 mb-2">리포트 데이터를 불러올 수 없어요</div>
+                  <div className="text-[14px] text-neutral-400 mb-6">온보딩은 완료되었지만 위험도 분석 데이터를 가져오지 못했습니다. 잠시 후 새로고침 해주세요.</div>
+                  <button onClick={() => window.location.reload()} className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">
+                    새로고침
+                  </button>
+                </div>
+              )}
+
               {hasOnboarding && risk && (
                 <>
-                  <div className="bg-[#F7F4EC] border border-[#ECE4D3] rounded-xl px-5 py-4 mb-4">
+                  <div className="bg-cream-300 border border-cream-500 rounded-xl px-5 py-4 mb-4">
                     <div className="text-[13px] font-semibold text-nature-900 mb-1">대시보드 안내</div>
                     <div className="text-[12px] text-neutral-500 leading-[1.7]">
                       이 화면은 최근 7일 생활 기록을 요약해서 현재 상태와 변화를 빠르게 보는 화면입니다.
@@ -520,27 +536,27 @@ export default function ReportPage() {
 
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">위험도 정보</div>
                   <div className="space-y-3 mb-4">
-                    <section className="bg-[#F4F7FB] rounded-[22px] p-5 border border-[#E4EBF3]">
-                      <div className="text-[11px] font-medium text-[#6B7A90] tracking-wider mb-3">AI 예측 위험도</div>
+                    <section className="bg-cream-300 rounded-[22px] p-5 border border-cream-500">
+                      <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-3">AI 예측 위험도</div>
                       {hasModelPrediction ? (
                         <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                          <div className="w-[92px] shrink-0 rounded-[16px] bg-white border border-[#D7E1EC] px-3 py-4 text-center shadow-sm">
-                            <div className="text-[11px] text-[#7D8CA3] mb-1">예측 점수</div>
-                            <div className="text-[24px] font-semibold leading-none text-[#22324A]">{risk.predicted_score_pct ?? '-'}</div>
-                            <div className="text-[11px] text-[#7D8CA3] mt-1">/100</div>
+                          <div className="w-[92px] shrink-0 rounded-[16px] bg-cream-300 border border-cream-500 px-3 py-4 text-center shadow-sm">
+                            <div className="text-[11px] text-neutral-400 mb-1">예측 점수</div>
+                            <div className="text-[24px] font-semibold leading-none text-nature-900">{risk.predicted_score_pct ?? '-'}</div>
+                            <div className="text-[11px] text-neutral-400 mt-1">/100</div>
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between gap-3 mb-3">
-                              <div className="text-[15px] font-semibold text-[#22324A]">
+                              <div className="text-[15px] font-semibold text-nature-900">
                                 {getModelStageLabel(risk.predicted_risk_level, risk.predicted_stage_label)}
                               </div>
-                              <div className="px-3 py-1 rounded-full bg-white border border-[#D7E1EC] text-[11px] text-[#5B6C83]">
+                              <div className="px-3 py-1 rounded-full bg-white border border-cream-500 text-[11px] text-neutral-400">
                                 {risk.predicted_score_pct ?? '-'}% 구간
                               </div>
                             </div>
                             <div className="relative h-[11px] rounded-full" style={{ background: 'linear-gradient(90deg, #3BAA5C 0%, #B7C52B 35%, #FF9F1C 68%, #E6533C 100%)' }}>
                               <div
-                                className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[3px] border-white shadow-md bg-[#2C3E50]"
+                                className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[3px] border-cream-300 shadow-md bg-[#2C3E50]"
                                 style={{ left: `calc(${getModelMarker(risk.predicted_score_pct)} - 9px)` }}
                               ></div>
                             </div>
@@ -552,33 +568,33 @@ export default function ReportPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-[16px] bg-white border border-dashed border-[#D7E1EC] px-4 py-4">
-                          <div className="text-[14px] font-semibold text-[#22324A] mb-1">AI 예측 리포트 준비 중</div>
-                          <div className="text-[12px] text-[#708198] leading-[1.6]">
+                        <div className="rounded-[16px] bg-cream-300 border border-dashed border-cream-500 px-4 py-4">
+                          <div className="text-[14px] font-semibold text-nature-900 mb-1">AI 예측 리포트 준비 중</div>
+                          <div className="text-[12px] text-neutral-400 leading-[1.6]">
                             {risk.model_status_message || '모델 산출물 파일이 연결되면 AI 예측 위험도와 예측 추이를 함께 표시합니다.'}
                           </div>
                         </div>
                       )}
                     </section>
 
-                    <section className="bg-[#F8F7F3] rounded-[22px] p-5 border border-[#ECE5D8]">
-                      <div className="text-[11px] font-medium text-[#8A7F70] tracking-wider mb-3">생활기반 위험 점수</div>
+                    <section className="bg-cream-300 rounded-[22px] p-5 border border-cream-500">
+                      <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-3">생활기반 위험 점수</div>
                       <div className="flex flex-col md:flex-row gap-4 md:items-center">
-                        <div className="w-[92px] shrink-0 rounded-[16px] bg-white border border-[#E5DECF] px-3 py-4 text-center shadow-sm">
-                          <div className="text-[11px] text-[#9A8E7E] mb-1">점수</div>
-                          <div className="text-[24px] font-semibold leading-none text-[#2F3B2F]">{risk.findrisc_score ?? '-'}</div>
-                          <div className="text-[11px] text-[#9A8E7E] mt-1">/26</div>
+                        <div className="w-[92px] shrink-0 rounded-[16px] bg-cream-300 border border-cream-500 px-3 py-4 text-center shadow-sm">
+                          <div className="text-[11px] text-neutral-400 mb-1">점수</div>
+                          <div className="text-[24px] font-semibold leading-none text-nature-900">{risk.findrisc_score ?? '-'}</div>
+                          <div className="text-[11px] text-neutral-400 mt-1">/26</div>
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between gap-3 mb-3">
-                            <div className="text-[15px] font-semibold text-[#2F3B2F]">{getFindriscLabel(risk.findrisc_score)}</div>
-                            <div className="px-3 py-1 rounded-full bg-white border border-[#E5DECF] text-[11px] text-[#807463]">
+                            <div className="text-[15px] font-semibold text-nature-900">{getFindriscLabel(risk.findrisc_score)}</div>
+                            <div className="px-3 py-1 rounded-full bg-white border border-cream-500 text-[11px] text-neutral-400">
                               {risk.findrisc_score ?? '-'}점 구간
                             </div>
                           </div>
                           <div className="relative h-[11px] rounded-full" style={{ background: 'linear-gradient(90deg, #57B847 0%, #A8C545 25%, #F0B429 50%, #FF7A45 76%, #E5484D 100%)' }}>
                             <div
-                              className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[3px] border-white shadow-md bg-[#3D3A33]"
+                              className="absolute top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full border-[3px] border-cream-300 shadow-md bg-[#3D3A33]"
                               style={{ left: `calc(${getFindriscMarker(risk.findrisc_score)} - 9px)` }}
                             ></div>
                           </div>
@@ -622,7 +638,7 @@ export default function ReportPage() {
                           className={`px-3.5 py-1.5 rounded-full text-[12px] border transition-colors ${
                             trendMode === option.key
                               ? 'bg-nature-500 text-white border-nature-500'
-                              : 'bg-white text-neutral-400 border-cream-500 hover:border-neutral-400'
+                              : 'bg-cream-400 text-neutral-400 border-cream-500 hover:border-neutral-400'
                           }`}
                         >
                           {option.label}
@@ -633,9 +649,9 @@ export default function ReportPage() {
                     {hasRiskHistory ? (
                       <>
                         <svg width="100%" viewBox="0 0 640 200" style={{ display: 'block' }}>
-                          <line x1="48" y1="32" x2="588" y2="32" stroke="#ECE7D8" strokeWidth="1" strokeDasharray="4 4" />
-                          <line x1="48" y1="94" x2="588" y2="94" stroke="#ECE7D8" strokeWidth="1" strokeDasharray="4 4" />
-                          <line x1="48" y1="156" x2="588" y2="156" stroke="#DED7C5" strokeWidth="1" />
+                          <line x1="48" y1="32" x2="588" y2="32" stroke="#444444" strokeWidth="1" strokeDasharray="4 4" />
+                          <line x1="48" y1="94" x2="588" y2="94" stroke="#444444" strokeWidth="1" strokeDasharray="4 4" />
+                          <line x1="48" y1="156" x2="588" y2="156" stroke="#555555" strokeWidth="1" />
                           {hasModelPrediction && (trendMode === 'both' || trendMode === 'model') && (
                             <polyline
                               points={buildPolyline(trendPoints.map((point) => [point.x, point.yModel]))}
@@ -699,7 +715,7 @@ export default function ReportPage() {
                       </>
                     ) : (
                       <div className="text-center py-10">
-                        <div className="mb-2"><TrendingUp size={24} className="text-neutral-300 mx-auto" /></div>
+                        <div className="mb-2"><TrendingUp size={24} className="text-[var(--color-text-hint)] mx-auto" /></div>
                         <div className="text-[13px] text-nature-900 mb-1">아직 위험도 추이를 만들 데이터가 부족합니다.</div>
                         <div className="text-[11px] text-neutral-400">건강 기록이 쌓이면 AI 예측과 생활기반 변화를 함께 보여줍니다.</div>
                       </div>
@@ -718,7 +734,7 @@ export default function ReportPage() {
 
                   <div className="text-[13px] font-semibold text-nature-900 mb-2.5">챌린지 이행</div>
                   <div className="bg-cream-300 rounded-xl p-6 text-center">
-                    <div className="mb-2"><Target size={24} className="text-neutral-300 mx-auto" /></div>
+                    <div className="mb-2"><Target size={24} className="text-[var(--color-text-hint)] mx-auto" /></div>
                     <div className="text-[13px] text-nature-900 mb-1">추천 액션을 챌린지로 연결해보세요</div>
                     <div className="text-[11px] text-neutral-400 mb-3">
                       {(risk.recommended_actions || []).slice(0, 2).join(' / ') || '생활 목표를 선택하면 여기서 진행 상황을 볼 수 있습니다.'}
