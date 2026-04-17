@@ -2,11 +2,9 @@
 
 import { useCallback } from 'react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '');
 const TOKEN_KEY = 'danaa_token';
 const DEV_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
-const REFRESH_COOKIE = 'refresh_token'; // httpOnly — 백엔드가 관리
-
 /* ═══════════════════════════════════════════
  *  토큰 관리 유틸
  * ═══════════════════════════════════════════ */
@@ -70,12 +68,17 @@ export async function api(path, options = {}) {
     credentials: 'include', // refresh_token 쿠키 포함
   });
 
-  // 401 → 토큰 만료 → 자동 갱신 시도
-  if (res.status === 401 && token) {
+  // 401 → access token 유무와 무관하게 refresh cookie로 복구 시도
+  if (res.status === 401) {
     const refreshed = await refreshToken();
     if (refreshed) {
       // 새 토큰으로 재요청
-      headers['Authorization'] = `Bearer ${getToken()}`;
+      const nextToken = getToken();
+      if (nextToken) {
+        headers['Authorization'] = `Bearer ${nextToken}`;
+      } else {
+        delete headers.Authorization;
+      }
       return fetch(`${API_BASE}${path}`, {
         ...options,
         headers,
@@ -96,7 +99,7 @@ export async function api(path, options = {}) {
  * 토큰 자동 갱신
  * refresh_token 쿠키를 사용해 새 access_token 발급
  */
-async function refreshToken() {
+export async function refreshToken() {
   try {
     const res = await fetch(`${API_BASE}/api/v1/auth/token/refresh`, {
       method: 'GET',
@@ -114,6 +117,11 @@ async function refreshToken() {
   } catch {
     return false;
   }
+}
+
+export async function ensureAuthSession() {
+  if (getToken()) return true;
+  return refreshToken();
 }
 
 /* ═══════════════════════════════════════════

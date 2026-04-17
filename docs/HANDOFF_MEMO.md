@@ -1,3 +1,255 @@
+## 2026-04-17 Theme Reset / Contrast Cleanup / Sidebar Palette Recovery
+
+### Current State
+- First-load default theme is now `light`, not `dark`.
+- Login page was rebuilt around a white card / light background baseline so text contrast is predictable.
+- Home landing hero text no longer relies on near-invisible pale theme text.
+- Sidebar palette was restored closer to `origin/main` after a temporary local beige drift made it look off.
+- Bottom disease selector in the sidebar now:
+  - opens upward
+  - keeps `당뇨` in the current slot
+  - blocks selecting other diseases for now
+
+### What Changed
+- Updated theme boot/default behavior:
+  - [frontend/app/layout.js](/C:/PycharmProjects/DANAA_project/frontend/app/layout.js)
+  - [frontend/contexts/ThemeContext.js](/C:/PycharmProjects/DANAA_project/frontend/contexts/ThemeContext.js)
+  - default/fallback theme changed from `dark` to `light`
+- Reworked login screen for contrast safety on light backgrounds:
+  - [frontend/app/login/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/login/page.js)
+  - white card, light page background, dark body text, dark primary button, preserved bright text only on dark/brand buttons
+- Tightened light-theme readability tokens and utility overrides:
+  - [frontend/app/globals.css](/C:/PycharmProjects/DANAA_project/frontend/app/globals.css)
+  - brighter-on-white text usage was reduced by forcing darker readable values for common utility classes in light theme
+- Restored sidebar background closer to main branch palette:
+  - `--sidebar-top`: `#F7F7F5`
+  - `--sidebar-bottom`: `#F7F7F4`
+- Adjusted sidebar selector behavior:
+  - [frontend/components/Sidebar.js](/C:/PycharmProjects/DANAA_project/frontend/components/Sidebar.js)
+  - upward opening dropdown
+  - only first disease option can actually be selected
+  - unavailable diseases show as blocked / prepared later state
+
+### Why
+- The app had a mixed state where some screens looked visually light while the global default theme still initialized as dark.
+- That mismatch caused token-driven surfaces like login/sidebar to render with low-contrast combinations that looked broken.
+- The sidebar palette had also been locally shifted away from the main-branch white-toned base into a yellower beige tone.
+
+### Verification
+- `npm run build` passed after:
+  - theme default reset
+  - login page rebuild
+  - sidebar palette recovery
+  - sidebar selector behavior changes
+
+### Important Note
+- If a browser still has `localStorage.danaa_theme = 'dark'`, the stored value can override the new default on that machine until cleared or changed.
+- For local QA, forcing light can be done with:
+  - `localStorage.setItem('danaa_theme', 'light')`
+
+## 2026-04-17 Main Sync / Report-Challenge Preservation / Report Recovery Handoff
+
+### Current State
+- Local working branch `feature/report-risk-dashboard-sync` is now fast-forward synced to latest `origin/main`:
+  - current base commit: `1bb1c62` (`Merge pull request #22 from BIJENG/ui/redesign-foundation`)
+- The teammate UI redesign from `origin/main` was brought in first.
+- While re-applying local work, `report` and `challenge` pages were intentionally preserved with the local implementation rather than taking the redesigned main versions.
+- There is still uncommitted local work in the tree, including report/challenge/backend changes and this handoff memo update itself.
+
+### What Was Done
+- Fetched latest remotes and confirmed the old tracked upstream branch for the working branch was already deleted after merge.
+- Safely backed up the dirty worktree with stash before sync:
+  - stash label: `codex-before-origin-main-sync`
+- Merged `origin/main` into the current branch.
+  - This was a fast-forward merge, not a manual history merge conflict.
+- Re-applied local work from stash.
+- Resolved the re-apply conflicts by keeping the local versions for:
+  - [frontend/app/app/challenge/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/challenge/page.js)
+  - [frontend/app/app/report/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/report/page.js)
+  - [frontend/app/app/report/detail/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/report/detail/page.js)
+- Accepted the latest `origin/main` redesign/theme changes for the rest of the merged UI surface, including:
+  - main landing/app shell/sidebar/theme infrastructure
+  - right-panel redesign support
+  - settings/login/onboarding styling updates
+
+### Report / Backend Recovery Applied
+- Fixed a backend regression in risk recalculation that broke demo reseeding:
+  - [backend/services/risk_analysis.py](/C:/PycharmProjects/DANAA_project/backend/services/risk_analysis.py)
+  - bug: `NameError: current_logs is not defined`
+  - fix: `recalculate_risk(...)` now correctly uses `logs` again
+- Expanded analysis/report summary response handling so dashboard/detail report can use:
+  - summary message
+  - impact analysis
+  - current vs previous comparisons
+- Dashboard report page was reworked to:
+  - use horizontal comparative risk gauges instead of donut gauges
+  - use more user-facing copy
+  - keep recent trend mode switching between `AI 예측` and `FINDRISC`
+  - keep dashboard resilient when one secondary report API fails
+- Detail report and analysis summary backend were aligned around:
+  - recent-period comparisons
+  - deficiency-based impact analysis
+  - average-oriented summary values instead of cumulative totals
+
+### Shared Demo Data Recovery
+- Re-ran shared comparison-account seed successfully after the backend fix:
+  - `docker compose exec fastapi uv run python backend/tasks/seed_shared_demo_account.py`
+- Verified seeded local accounts:
+  - `danaa1@danaa.com` / `EKskdk1!`
+  - `danaa2@danaa.com` / `EKskdk1!`
+- Verified seeded contents:
+  - `100` daily logs per account
+  - `12` weekly risk points per account
+  - challenge template note printed as ensured in local DB
+
+### Verification Completed
+- Frontend production build passed after the sync and local conflict resolution:
+  - `npm run build`
+- Backend integration report/settings test file passed in Docker:
+  - `docker compose exec fastapi uv run pytest backend/tests/integration/test_settings_and_reports.py -q`
+  - result: `9 passed`
+- Shared demo reseed command completed successfully after the `risk_analysis` fix.
+
+### Important Working Tree Notes
+- Current local status still includes modified but uncommitted files across:
+  - backend risk/report/challenge/auth DTO/service files
+  - frontend report/challenge/settings/login/onboarding/sidebar/useApi files
+  - docs handoff files
+- The safety stash from before sync was intentionally left in place for rollback confidence:
+  - `stash@{0}` -> `codex-before-origin-main-sync`
+
+### Known Caveats / Follow-Up
+- `report` and `challenge` are currently on the local variant, not the teammate redesign variant from `origin/main`, by explicit choice.
+- A likely remaining UI/data-mapping risk exists in the redesigned chat right panel:
+  - [frontend/components/RightPanelV2.js](/C:/PycharmProjects/DANAA_project/frontend/components/RightPanelV2.js)
+  - it still contains legacy enum labels such as `less_5`, `5_6`, `excellent`, `great`, `hard`
+  - current backend/frontend health-log schema uses values like `under_5`, `between_5_6`, `very_good`, `stressed`, `very_stressed`
+  - result risk: right-panel summary chips can show blank/wrong labels even if saves succeed
+- `frontend/next-dev.log` is currently untracked and appears to be local runtime output only.
+
+### Recommended Next Step
+1. Decide whether to keep the current local report/challenge UX as the long-term version before committing.
+2. Fix `RightPanelV2` enum/display mapping to match the current health-log schema before broader UI QA.
+3. Commit the merged local state in a clean checkpoint commit once the remaining UI smoke check is done.
+
+## 2026-04-17 Localhost Unification / AI Chat Recovery / Theme Coverage Handoff
+
+### Current State
+- Frontend local dev access should now be standardized on:
+  - `http://localhost:3000`
+- Backend API target for local frontend proxy is now standardized on:
+  - `http://localhost:8000`
+- Mixed loopback usage (`localhost` vs `127.0.0.1`) was removed from the frontend-side API path configuration touched in this pass.
+- AI chat was not failing because OpenAI was fully unreachable; the more immediate runtime problem in the local Docker backend was a missing DB column:
+  - `user_settings.theme_preference`
+
+### What Was Checked
+- Repo structure and current dirty worktree were reviewed before touching runtime-sensitive files.
+- Backend unit chat tests passed locally.
+- Frontend production build passed after the frontend-side fixes in this handoff.
+- Docker runtime was inspected with compose status/logs.
+- FastAPI logs showed repeated runtime errors from settings-related reads because the DB schema and code had drifted.
+- FastAPI logs also showed successful outbound OpenAI responses in the same environment, which means the generic "AI 서버와 연결할 수 없어요" message was masking a backend-side application failure rather than proving the model API itself was down.
+
+### Root Cause Found
+- Local Docker backend was crashing request flows on settings access with:
+  - `tortoise.exceptions.OperationalError: column "theme_preference" does not exist`
+- This schema mismatch affected screens and flows that touch settings-backed theme data, including health/report/chat-adjacent paths.
+- Aerich migration recovery is still incomplete in this environment because running upgrade hit:
+  - `Old format of migration file detected, run aerich fix-migrations to upgrade format`
+
+### Local Runtime Recovery Applied
+- Confirmed the intended migration file already exists in repo:
+  - [backend/db/migrations/models/6_20260417000000_add_theme_preference_to_user_settings.py](/C:/PycharmProjects/DANAA_project/backend/db/migrations/models/6_20260417000000_add_theme_preference_to_user_settings.py)
+- Because Aerich upgrade was blocked by old migration metadata format, the missing column was added directly in the local Docker Postgres DB to unblock development runtime:
+  - `ALTER TABLE "user_settings" ADD COLUMN IF NOT EXISTS "theme_preference" VARCHAR(10) NOT NULL DEFAULT 'dark';`
+- FastAPI container was restarted after the DB patch.
+
+### Frontend Config Changes
+- Frontend API base usage was changed away from hard-coded absolute backend access so local Next dev can use same-origin `/api/...` routing again.
+- Loopback host usage was unified to `localhost` in touched config files.
+- Updated files:
+  - [frontend/.env.local](/C:/PycharmProjects/DANAA_project/frontend/.env.local)
+  - [frontend/next.config.mjs](/C:/PycharmProjects/DANAA_project/frontend/next.config.mjs)
+  - [frontend/hooks/useApi.js](/C:/PycharmProjects/DANAA_project/frontend/hooks/useApi.js)
+  - [frontend/app/app/chat/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/chat/page.js)
+
+### Theme Fix Scope
+- Report and challenge screens were still carrying page-local hard-coded colors that bypassed the app-wide theme token system.
+- Theme wrapper classes were added so those pages can react to dark/light mode using shared CSS variables instead of staying visually stuck.
+- Global theme overrides were extended for report/challenge-specific surfaces, borders, text, and hover states.
+- Updated files:
+  - [frontend/app/app/report/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/report/page.js)
+  - [frontend/app/app/report/detail/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/report/detail/page.js)
+  - [frontend/app/app/challenge/page.js](/C:/PycharmProjects/DANAA_project/frontend/app/app/challenge/page.js)
+  - [frontend/app/globals.css](/C:/PycharmProjects/DANAA_project/frontend/app/globals.css)
+
+### Verified
+- `npm run build` passed after the localhost/theme/frontend API path changes.
+- Docker logs confirmed the previous missing-column runtime error existed and was the concrete blocker found in this pass.
+- The local DB now contains `theme_preference`.
+
+### Remaining Caveats
+- Frontend dev server restart is required for `.env.local` changes to be picked up.
+- Aerich migration history still needs proper cleanup with `aerich fix-migrations` plus a normal upgrade path so teammates do not depend on manual SQL in their own environments.
+- A full authenticated CLI smoke test of chat was not completed in this pass:
+  - the documented legacy shared demo email using `.local` is rejected by current validation
+  - a temporary signup/login smoke attempt did not complete successfully and needs separate follow-up
+- `ai-worker` container was observed restarting repeatedly and remains a separate unresolved runtime issue from the FastAPI schema mismatch.
+
+### Recommended Next Step
+1. Restart local frontend dev server and verify chat from `http://localhost:3000`, not `http://localhost:8000`.
+2. Verify theme toggle on:
+   - report
+   - report detail
+   - challenge
+   - settings
+3. Fix Aerich migration state cleanly so the `theme_preference` column is created by migration rather than manual DB patching.
+4. Repair or replace outdated shared demo account credentials/docs so local authenticated smoke tests are reproducible.
+
+## 2026-04-15 Shared Demo Seed Handoff
+
+### Current State
+- Shared comparison-account seed script is available for local verification:
+  - `backend/tasks/seed_shared_demo_account.py`
+- Teammates can rebuild the same local comparison accounts instead of manually inserting DB rows.
+- Companion guide added:
+  - [docs/SHARED_DEMO_ACCOUNT.md](/C:/PycharmProjects/DANAA_project/docs/SHARED_DEMO_ACCOUNT.md)
+
+### Seeded Accounts
+- `danaa1@danaa.com` / `EKskdk1!`
+- `danaa2@danaa.com` / `EKskdk1!`
+
+### Seeded Data
+- `100` daily health logs per account
+- periodic measurements per account
+- `12` weekly risk assessment points per account
+- challenge and check-in data per account
+
+### Scenario Split
+- `danaa1@danaa.com`
+  - intended as a diabetic / high-risk comparison user
+  - latest seeded values verified in local DB:
+    - `findrisc_score = 24`
+    - `predicted_score_pct = 96`
+    - `predicted_stage_label = 전문 상담 권장`
+    - `model_track = diabetic_track`
+- `danaa2@danaa.com`
+  - intended as a non-diabetic / stable comparison user
+  - latest seeded values verified in local DB:
+    - `findrisc_score = 0`
+    - `predicted_score_pct = 7`
+    - `predicted_stage_label = 안정 관리 단계`
+    - `model_track = non_diabetic_track`
+
+### Run Command
+- `docker compose exec fastapi uv run python backend/tasks/seed_shared_demo_account.py`
+
+### Notes
+- The script deletes and recreates the shared comparison accounts each time, so it is safe for repeatable testing but should not be used as a personal dev account.
+- If `OPENAI_API_KEY` is configured, risk recalculation may also generate AI coaching text during the seed run.
+- Legacy seed accounts such as `shared-demo@danaa.local` and `danaa123@danaa.com` are removed by the script during reseed.
+
 # Handoff Memo
 
 ## 2026-04-15 Report Sync / Main Merge / Migration Recovery Handoff

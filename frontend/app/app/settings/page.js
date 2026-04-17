@@ -724,15 +724,18 @@ export default function SettingsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   if (!window.confirm('로그아웃 하시겠어요?')) return;
+                  try {
+                    await api('/api/v1/auth/logout', { method: 'POST' });
+                  } catch {}
                   clearToken();
                   localStorage.removeItem('danaa_onboarding');
                   localStorage.removeItem('danaa_risk');
                   localStorage.removeItem('danaa_tutorial_pending');
                   localStorage.removeItem('danaa_challenges');
                   localStorage.removeItem('danaa_conversations');
-                  window.location.href = '/login';
+                  window.location.href = '/';
                 }}
                 className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"
               >

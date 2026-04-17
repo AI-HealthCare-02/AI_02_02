@@ -194,8 +194,8 @@ export default function Sidebar({ productGuide = null }) {
           </button>
           {open && (
             <Link
-              href="/"
-              className="ml-2 text-[16px] font-bold tracking-tight text-nature-900 transition-opacity hover:opacity-70"
+              href="/app/chat"
+              className="ml-2 text-[16px] font-bold tracking-tight text-[var(--color-text)] transition-opacity hover:opacity-70"
             >
               DANAA
             </Link>
@@ -317,6 +317,7 @@ export default function Sidebar({ productGuide = null }) {
               서비스 안내
             </button>
 
+            <div className="relative">
             <button
               onClick={() => setCatOpen((prev) => !prev)}
               className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-cream-400"
@@ -332,27 +333,39 @@ export default function Sidebar({ productGuide = null }) {
             </button>
 
             {catOpen && (
-              <div className="mt-2 space-y-1 rounded-xl bg-cream-300 p-2">
-                {categories.map((category, index) => (
-                  <button
-                    key={category.name}
-                    onClick={() => {
-                      setSelectedCat(index);
-                      setCatOpen(false);
-                    }}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
-                      selectedCat === index ? 'bg-cream-400 text-nature-900' : 'text-neutral-400 hover:bg-cream-400/70'
-                    }`}
-                  >
-                    <category.icon size={14} className={category.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
-                    <div>
-                      <div className="font-medium">{category.name}</div>
-                      <div className="text-[12px] text-[var(--color-text-hint)]">{category.desc}</div>
-                    </div>
-                  </button>
-                ))}
+              <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-white p-2 shadow-soft">
+                {categories.map((category, index) => {
+                  const isAvailable = index === 0;
+                  return (
+                    <button
+                      key={category.name}
+                      onClick={() => {
+                        if (!isAvailable) return;
+                        setSelectedCat(index);
+                        setCatOpen(false);
+                      }}
+                      disabled={!isAvailable}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
+                        selectedCat === index
+                          ? 'bg-cream-400 text-nature-900'
+                          : isAvailable
+                            ? 'text-neutral-400 hover:bg-cream-400/70'
+                            : 'cursor-not-allowed text-[#9A948B]'
+                      }`}
+                    >
+                      <category.icon size={14} className={isAvailable ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
+                      <div>
+                        <div className="font-medium">{category.name}</div>
+                        <div className="text-[12px] text-[var(--color-text-hint)]">
+                          {isAvailable ? category.desc : '준비 중'}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
+            </div>
 
             <div className="mt-2 flex items-center justify-between rounded-lg px-2 py-2">
               <div>

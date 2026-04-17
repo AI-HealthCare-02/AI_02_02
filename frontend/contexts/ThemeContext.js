@@ -5,7 +5,7 @@ import { api, getToken } from '../hooks/useApi';
 
 const STORAGE_KEY = 'danaa_theme';
 const ALLOWED = ['dark', 'light'];
-const DEFAULT_THEME = 'dark';
+const DEFAULT_THEME = 'light';
 
 export const ThemeContext = createContext({
   theme: DEFAULT_THEME,

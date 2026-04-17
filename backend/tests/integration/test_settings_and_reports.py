@@ -189,6 +189,40 @@ class TestSettingsAndReports(TestCase):
         assert r.status_code == status.HTTP_200_OK
         assert len(r.json()["history"]) >= 1
 
+    async def test_analysis_summary_returns_report_detail_fields(self):
+        email = "analysis_summary@test.com"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            headers = await self._signup_login_consent_survey(c, email)
+            user = await User.get(email=email)
+            today = date.today()
+
+            for offset in range(14):
+                log_date = today - timedelta(days=offset)
+                await DailyHealthLog.create(
+                    user_id=user.id,
+                    log_date=log_date,
+                    sleep_quality="good" if offset < 7 else "normal",
+                    sleep_duration_bucket="between_6_7" if offset < 7 else "between_7_8",
+                    vegetable_intake_level="little" if offset < 7 else "enough",
+                    meal_balance_level="balanced",
+                    exercise_done=offset % 2 == 0,
+                    exercise_minutes=30 if offset % 2 == 0 else 0,
+                    walk_done=offset % 3 == 0,
+                    water_cups=5 if offset < 7 else 7,
+                )
+
+            recalc = await c.post("/api/v1/risk/recalculate", headers=headers)
+            assert recalc.status_code == status.HTTP_200_OK
+
+            r = await c.get("/api/v1/analysis/summary?period=7", headers=headers)
+
+        assert r.status_code == status.HTTP_200_OK
+        data = r.json()
+        assert "summary_message" in data
+        assert len(data["impact_analysis"]) == 3
+        assert {item["key"] for item in data["impact_analysis"]} == {"sleep", "exercise", "diet"}
+        assert {item["key"] for item in data["comparisons"]} == {"sleep", "exercise", "diet", "hydration"}
+
     async def test_health_weekly_returns_category_summary(self):
         email = "health_weekly@test.com"
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

@@ -41,6 +41,20 @@ const SURVEY_START = 2;
 const SURVEY_END = 14;
 const TOTAL_SURVEY = SURVEY_END - SURVEY_START + 1;
 
+function getInitialAnswers() {
+  const nextAnswers = { 3: 3 };
+
+  allSteps.forEach((step, index) => {
+    if (step.type !== 'single') return;
+    const recommendedIndex = step.opts?.findIndex((opt) => opt?.rec);
+    if (recommendedIndex >= 0) {
+      nextAnswers[index] = recommendedIndex;
+    }
+  });
+
+  return nextAnswers;
+}
+
 const categories = [
   { e: '🩸', n: '당뇨', d: '혈당, 위험도, 습관 추적', active: true },
   { e: '💓', n: '고혈압', d: '혈압, 심혈관', active: false },
@@ -53,7 +67,7 @@ export default function OnboardingFlow() {
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState({ 3: 0, 14: 1 }); // 3: 당뇨진단 기본선택, 14: 1시간30분 기본선택
+  const [answers, setAnswers] = useState(() => getInitialAnswers());
   const answersRef = useRef(answers);
   useEffect(() => { answersRef.current = answers; }, [answers]);
   const [consents, setConsents] = useState([false, false, false, false]);
@@ -364,11 +378,11 @@ export default function OnboardingFlow() {
         <h2 className="text-[20px] font-bold text-nature-900 mb-1 leading-tight whitespace-pre-line">{step.title}</h2>
 
         {/* Subtitle */}
-        {step.sub && <p className="text-[13px] text-neutral-400 mb-3">{step.sub}</p>}
+        {step.sub && <p className="text-[13px] text-neutral-400 mb-4">{step.sub}</p>}
 
         {/* Why box */}
         {step.why && (
-          <div className="bg-cream-300 rounded-lg p-3 mb-4 flex gap-2">
+          <div className="bg-cream-300 rounded-lg p-3 mb-5 flex gap-2">
             <span className="text-[13px]">💡</span>
             <span className="text-[12px] text-neutral-400 leading-[1.6]">{step.why}</span>
           </div>
@@ -376,7 +390,7 @@ export default function OnboardingFlow() {
 
         {/* ── CATEGORY ── */}
         {step.type === 'category' && (
-          <div className="space-y-2">
+          <div className="mt-5 space-y-2.5">
             {categories.map((cat, i) => (
               <button
                 key={i}
@@ -408,7 +422,7 @@ export default function OnboardingFlow() {
 
         {/* ── SINGLE SELECT ── */}
         {step.type === 'single' && (
-          <div className="space-y-2">
+          <div className="mt-5 space-y-2.5">
             {step.opts.map((opt, i) => {
               const selected = answers[currentStep] === i;
               return (
@@ -439,7 +453,7 @@ export default function OnboardingFlow() {
 
         {/* ── CHIP SELECT ── */}
         {step.type === 'chip' && (
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-2.5">
             {(() => {
               const exclusiveLabels = ['해당 없음', '없음', '관리 안 함'];
               const currentAnswers = answers[currentStep] || [];
@@ -475,7 +489,7 @@ export default function OnboardingFlow() {
 
         {/* ── GRID SELECT ── */}
         {step.type === 'grid' && (
-          <div className="space-y-4">
+          <div className="mt-5 space-y-5">
             {step.groups.map((group, gi) => (
               <div key={gi}>
                 <div className="text-[14px] font-semibold text-nature-900 mb-2">{group.l}</div>
@@ -504,7 +518,7 @@ export default function OnboardingFlow() {
 
         {/* ── SLIDER (body) ── */}
         {step.type === 'slider' && (
-          <div className="space-y-5">
+          <div className="mt-5 space-y-6">
             {/* Height slider */}
             <div>
               <div className="text-[14px] font-semibold text-nature-900 mb-2">키</div>

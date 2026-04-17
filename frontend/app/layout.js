@@ -21,17 +21,17 @@ const THEME_INIT_SCRIPT = `
     if (t === 'light' || t === 'dark') {
       document.documentElement.dataset.theme = t;
     } else {
-      document.documentElement.dataset.theme = 'dark';
+      document.documentElement.dataset.theme = 'light';
     }
   } catch(e) {
-    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.theme = 'light';
   }
 })();
 `;
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko" className={notoSansKr.variable} data-theme="dark" suppressHydrationWarning>
+    <html lang="ko" className={notoSansKr.variable} data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link
