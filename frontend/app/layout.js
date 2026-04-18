@@ -1,6 +1,7 @@
 import './globals.css';
 import { Noto_Sans_KR } from 'next/font/google';
 import { ThemeProvider } from '../contexts/ThemeContext';
+import ThemeToggleFloating from '../components/ThemeToggleFloating';
 
 const notoSansKr = Noto_Sans_KR({
   subsets: ['latin'],
@@ -21,17 +22,17 @@ const THEME_INIT_SCRIPT = `
     if (t === 'light' || t === 'dark') {
       document.documentElement.dataset.theme = t;
     } else {
-      document.documentElement.dataset.theme = 'dark';
+      document.documentElement.dataset.theme = 'light';
     }
   } catch(e) {
-    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.theme = 'light';
   }
 })();
 `;
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ko" className={notoSansKr.variable} data-theme="dark" suppressHydrationWarning>
+    <html lang="ko" className={notoSansKr.variable} data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <link
@@ -41,6 +42,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="m-0 bg-cream-200 p-0 text-nature-900 antialiased">
         <ThemeProvider>
+          <ThemeToggleFloating />
           {children}
         </ThemeProvider>
       </body>

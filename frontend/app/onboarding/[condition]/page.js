@@ -41,6 +41,31 @@ const SURVEY_START = 2;
 const SURVEY_END = 14;
 const TOTAL_SURVEY = SURVEY_END - SURVEY_START + 1;
 
+function getInitialAnswers() {
+  const nextAnswers = {
+    3: 3,
+    4: { 1: 2 },
+    6: 2,
+    7: [4],
+    8: [4],
+    9: { 0: 4, 1: 3 },
+    10: 0,
+    11: [5],
+    12: { 0: 2, 1: 0, 2: 0 },
+    13: [5],
+  };
+
+  allSteps.forEach((step, index) => {
+    if (step.type !== 'single') return;
+    const recommendedIndex = step.opts?.findIndex((opt) => opt?.rec);
+    if (recommendedIndex >= 0) {
+      nextAnswers[index] = recommendedIndex;
+    }
+  });
+
+  return nextAnswers;
+}
+
 const categories = [
   { e: '🩸', n: '당뇨', d: '혈당, 위험도, 습관 추적', active: true },
   { e: '💓', n: '고혈압', d: '혈압, 심혈관', active: false },
@@ -49,11 +74,31 @@ const categories = [
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
+const ONBOARDING_THEME_VARS = {
+  '--color-bg': '#F7F3EC',
+  '--color-surface': '#FFFDF8',
+  '--color-surface-hover': '#F2ECE2',
+  '--color-border': '#DDD4C6',
+  '--color-border-light': '#E8E0D3',
+  '--color-border-focus': '#111111',
+  '--color-text': '#1B1B18',
+  '--color-text-secondary': '#4E4A43',
+  '--color-text-muted': '#6B655D',
+  '--color-text-hint': '#797267',
+  '--color-primary': '#111111',
+  '--color-primary-accent': '#111111',
+  '--color-cta-bg': '#1D1D1A',
+  '--color-cta-hover': '#2E2D2A',
+  '--color-cta-text': '#FFFFFF',
+  '--sidebar-top': '#F7F3EC',
+  '--sidebar-bottom': '#F7F3EC',
+};
+
 export default function OnboardingFlow() {
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState({ 3: 0, 14: 1 }); // 3: 당뇨진단 기본선택, 14: 1시간30분 기본선택
+  const [answers, setAnswers] = useState(() => getInitialAnswers());
   const answersRef = useRef(answers);
   useEffect(() => { answersRef.current = answers; }, [answers]);
   const [consents, setConsents] = useState([false, false, false, false]);
@@ -364,11 +409,11 @@ export default function OnboardingFlow() {
         <h2 className="text-[20px] font-bold text-nature-900 mb-1 leading-tight whitespace-pre-line">{step.title}</h2>
 
         {/* Subtitle */}
-        {step.sub && <p className="text-[13px] text-neutral-400 mb-3">{step.sub}</p>}
+        {step.sub && <p className="text-[13px] text-neutral-400 mb-4">{step.sub}</p>}
 
         {/* Why box */}
         {step.why && (
-          <div className="bg-cream-300 rounded-lg p-3 mb-4 flex gap-2">
+          <div className="bg-cream-300 rounded-lg p-3 mb-5 flex gap-2">
             <span className="text-[13px]">💡</span>
             <span className="text-[12px] text-neutral-400 leading-[1.6]">{step.why}</span>
           </div>
@@ -376,7 +421,7 @@ export default function OnboardingFlow() {
 
         {/* ── CATEGORY ── */}
         {step.type === 'category' && (
-          <div className="space-y-2">
+          <div className="mt-5 space-y-2.5">
             {categories.map((cat, i) => (
               <button
                 key={i}
@@ -384,16 +429,16 @@ export default function OnboardingFlow() {
                 onClick={() => cat.active && setCategorySelected(true)}
                 className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all relative ${
                   cat.active && categorySelected
-                    ? 'bg-cream-300 border-2 border-nature-500'
+                    ? 'bg-[#1D1D1A] border-2 border-[#1D1D1A] text-white shadow-[0_12px_30px_rgba(17,17,17,0.16)]'
                     : cat.active
-                    ? 'bg-cream-400 border border-cream-500 hover:bg-cream-300 cursor-pointer'
-                    : 'bg-cream-300 border border-cream-500 opacity-60 cursor-not-allowed'
+                    ? 'bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] cursor-pointer'
+                    : 'bg-[#F0EBE1] border border-[var(--color-border)] opacity-70 cursor-not-allowed'
                 }`}
               >
                 <span className="text-[20px]">{cat.e}</span>
                 <div className="flex-1">
-                  <div className="text-[15px] font-semibold text-nature-900">{cat.n}</div>
-                  <div className="text-[12px] text-neutral-400">{cat.d}</div>
+                  <div className={`text-[15px] font-semibold ${cat.active && categorySelected ? 'text-white' : 'text-nature-900'}`}>{cat.n}</div>
+                  <div className={`text-[12px] ${cat.active && categorySelected ? 'text-white/75' : 'text-neutral-400'}`}>{cat.d}</div>
                 </div>
                 {!cat.active && (
                   <span className="text-[11px] bg-cream-500 text-neutral-400 px-2 py-0.5 rounded-full">준비 중</span>
@@ -408,7 +453,7 @@ export default function OnboardingFlow() {
 
         {/* ── SINGLE SELECT ── */}
         {step.type === 'single' && (
-          <div className="space-y-2">
+          <div className="mt-5 space-y-2.5">
             {step.opts.map((opt, i) => {
               const selected = answers[currentStep] === i;
               return (
@@ -417,17 +462,17 @@ export default function OnboardingFlow() {
                   onClick={() => pickSingle(i)}
                   className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-[14px] text-left transition-all ${
                     selected
-                      ? 'bg-cream-300 border-2 border-nature-500 text-nature-900 font-medium'
-                      : 'bg-cream-400 border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                      ? 'bg-[#1D1D1A] border-2 border-[#1D1D1A] text-white font-medium shadow-[0_12px_30px_rgba(17,17,17,0.16)]'
+                      : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-neutral-600 hover:bg-[var(--color-surface-hover)]'
                   }`}
                 >
                   {opt.e && <span className="text-lg">{opt.e}</span>}
                   <span className="flex-1">{opt.l}</span>
                   {opt.rec && (
-                    <span className="text-[11px] bg-nature-50 text-nature-700 px-2 py-0.5 rounded-full font-medium">추천</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${selected ? 'border border-white/25 bg-white/15 text-white' : 'bg-[#111111] text-white'}`}>추천</span>
                   )}
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center text-[11px] shrink-0 ${
-                    selected ? 'bg-nature-500 border-nature-500 text-white' : 'border-cream-500'
+                    selected ? 'bg-white border-white text-[#111111]' : 'border-cream-500'
                   }`}>
                     {selected && '✓'}
                   </div>
@@ -439,7 +484,7 @@ export default function OnboardingFlow() {
 
         {/* ── CHIP SELECT ── */}
         {step.type === 'chip' && (
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-2.5">
             {(() => {
               const exclusiveLabels = ['해당 없음', '없음', '관리 안 함'];
               const currentAnswers = answers[currentStep] || [];
@@ -450,7 +495,6 @@ export default function OnboardingFlow() {
               return step.chips.map((chip, i) => {
                 const selected = currentAnswers.includes(i);
                 const isExclusive = exclusiveLabels.some(l => chip.includes(l));
-                const isDisabled = hasExclusiveSelected && !isExclusive;
                 return (
                   <button
                     key={i}
@@ -460,9 +504,7 @@ export default function OnboardingFlow() {
                         ? isExclusive
                           ? 'bg-nature-500 text-white font-medium ring-2 ring-nature-500/30'
                           : 'bg-nature-500 text-white font-medium'
-                        : isDisabled
-                          ? 'bg-cream-300 border border-cream-500 text-neutral-200 cursor-not-allowed'
-                          : 'bg-cream-400 border border-cream-500 text-neutral-600 hover:bg-cream-300'
+                        : 'bg-cream-400 border border-cream-500 text-neutral-600 hover:bg-cream-300'
                     }`}
                   >
                     {chip}
@@ -475,7 +517,7 @@ export default function OnboardingFlow() {
 
         {/* ── GRID SELECT ── */}
         {step.type === 'grid' && (
-          <div className="space-y-4">
+          <div className="mt-5 space-y-5">
             {step.groups.map((group, gi) => (
               <div key={gi}>
                 <div className="text-[14px] font-semibold text-nature-900 mb-2">{group.l}</div>
@@ -504,7 +546,7 @@ export default function OnboardingFlow() {
 
         {/* ── SLIDER (body) ── */}
         {step.type === 'slider' && (
-          <div className="space-y-5">
+          <div className="mt-5 space-y-5">
             {/* Height slider */}
             <div>
               <div className="text-[14px] font-semibold text-nature-900 mb-2">키</div>
@@ -516,7 +558,7 @@ export default function OnboardingFlow() {
                   step="1"
                   value={height}
                   onChange={(e) => setHeight(Number(e.target.value))}
-                  className="flex-1 h-1.5 appearance-none bg-cream-500 rounded-full outline-none accent-nature-500"
+                  className="onboarding-range flex-1 h-2 appearance-none rounded-full outline-none"
                 />
                 <div className="flex items-center gap-1">
                   <input
@@ -551,7 +593,7 @@ export default function OnboardingFlow() {
                   step="1"
                   value={weight}
                   onChange={(e) => setWeight(Number(e.target.value))}
-                  className="flex-1 h-1.5 appearance-none bg-cream-500 rounded-full outline-none accent-nature-500"
+                  className="onboarding-range flex-1 h-2 appearance-none rounded-full outline-none"
                 />
                 <div className="flex items-center gap-1">
                   <input
@@ -576,7 +618,7 @@ export default function OnboardingFlow() {
             </div>
 
             {/* BMI display */}
-            <div className="bg-cream-300 rounded-xl p-4 text-center">
+            <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-3 text-center">
               <div className="text-[12px] text-neutral-400 mb-1">BMI</div>
               <div className="text-[24px] font-bold text-nature-500">{bmi}</div>
               <div className="text-[12px] text-neutral-400 mt-1">
@@ -641,9 +683,10 @@ export default function OnboardingFlow() {
   // ─── Main layout ────────────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-cream-400 via-cream to-neutral-100 flex items-center justify-center p-6"
+      className="onboarding-shell min-h-screen bg-gradient-to-br from-[#F3EFE7] via-[#F7F3EC] to-[#ECE6DB] flex items-center justify-center p-4 md:p-6"
+      style={{ ...ONBOARDING_THEME_VARS, colorScheme: 'light' }}
     >
-      <div className="w-[380px] h-[600px] bg-cream-300 border border-cream-500 rounded-xl shadow-modal flex flex-col overflow-hidden">
+      <div className="w-[380px] h-[min(720px,calc(100vh-32px))] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[24px] shadow-[0_24px_70px_rgba(52,45,35,0.14)] flex flex-col overflow-hidden">
         {/* ── Header ── */}
         <div className="px-5 pt-4 pb-3 flex items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-full bg-nature-500 text-white flex items-center justify-center text-[11px] font-bold">
