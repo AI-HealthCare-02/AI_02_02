@@ -138,7 +138,7 @@ export default function LoginPage() {
           <a href={`${API_BASE}/api/v1/auth/kakao/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-kakao text-kakao-text transition-all hover:opacity-90">
             <MessageCircle size={16} /> 카카오로 계속하기
           </a>
-          <a href={`${API_BASE}/api/v1/auth/google/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-white text-[#333333] transition-all hover:opacity-90">
+          <a href={`${API_BASE}/api/v1/auth/google/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-white text-[#333333] border border-[#DADCE0] transition-all hover:bg-[#F8F9FA]">
             G Google로 계속하기
           </a>
           <a href={`${API_BASE}/api/v1/auth/naver/start`} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium bg-naver text-white transition-all hover:opacity-90">

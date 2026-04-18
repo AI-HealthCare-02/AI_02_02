@@ -110,12 +110,15 @@ function categoryInterpretation(meta, item) {
 
 function ReportTabs() {
   return (
-    <div className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-[980px] gap-1 px-6">
-        <Link href="/app/report" className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-stone-400 transition-colors hover:text-stone-700">
+    <div className="border-b border-black/[.06]">
+      <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
+        <Link
+          href="/app/report"
+          className="inline-flex cursor-pointer items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-neutral-500 transition-colors hover:text-nature-800"
+        >
           대시보드
         </Link>
-        <div className="inline-flex items-center border-b-2 border-stone-700 px-5 py-3 text-[14px] font-semibold text-stone-800">
+        <div className="inline-flex items-center border-b-2 border-nature-500 px-5 py-3 text-[14px] font-semibold text-nature-900">
           상세 리포트
         </div>
       </div>
@@ -377,14 +380,14 @@ export default function ReportDetailPage() {
   );
 
   return (
-    <>
-      <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
-        <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
+    <div className="theme-report-page flex h-full flex-col">
+      <header className="flex h-12 shrink-0 items-center border-b border-[#F5F5F4] bg-white px-4">
+        <span className="text-[14px] font-medium text-nature-900">리포트</span>
       </header>
       <ReportTabs />
 
-      <div className="flex-1 overflow-y-auto bg-stone-50 px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="mx-auto max-w-[980px] space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
+        <div className="mx-auto max-w-[1080px] space-y-4">
 
           {error && (
             <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-500">{error}</div>
@@ -485,6 +488,6 @@ export default function ReportDetailPage() {
 
         </div>
       </div>
-    </>
+    </div>
   );
 }

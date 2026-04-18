@@ -100,13 +100,15 @@ class RiskAnalysisService:
         detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
         return await self._attach_ai_coaching(user_id=user_id, detail=detail)
 
-    async def recalculate_risk(self, user_id: int) -> RiskDetailResponse | None:
-        """위험도 수동 재계산."""
+    async def recalculate_risk(
+        self, user_id: int, for_date: date | None = None
+    ) -> RiskDetailResponse | None:
+        """위험도 수동 재계산. ``for_date``를 주면 해당 날짜 기준 7일 창으로 재계산 (백필용)."""
         profile = await HealthProfile.get_or_none(user_id=user_id)
         if not profile:
             return None
 
-        today = date.today()
+        today = for_date or date.today()
         period_start = today - timedelta(days=7)
 
         # 최근 7일 건강 기록
@@ -219,23 +221,15 @@ class RiskAnalysisService:
             "top_risk_factors": risk_factors,
             "assessed_at": now,
         }
-        assessment = await RiskAssessment.get_or_none(
+        # 유니크 제약 (user_id, period_type, period_start, period_end) 기반 upsert.
+        # 동시 요청 2건이 있어도 DB가 중복 생성을 차단하므로 IntegrityError 발생 시 재조회.
+        assessment, _ = await RiskAssessment.update_or_create(
+            defaults=payload,
             user_id=user_id,
             period_type=PeriodType.WEEKLY,
             period_start=period_start,
             period_end=today,
         )
-        if assessment:
-            await RiskAssessment.filter(id=assessment.id).update(**payload)
-            assessment = await RiskAssessment.get(id=assessment.id)
-        else:
-            assessment = await RiskAssessment.create(
-                user_id=user_id,
-                period_type=PeriodType.WEEKLY,
-                period_start=period_start,
-                period_end=today,
-                **payload,
-            )
         result = self._assessment_to_detail(assessment)
         result.ai_coaching_lines = detail.ai_coaching_lines
         return result
