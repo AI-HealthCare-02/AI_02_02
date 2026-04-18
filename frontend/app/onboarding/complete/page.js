@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import { api, setToken } from '../../../hooks/useApi';
+import { ONBOARDING_THEME_VARS } from '../../../lib/onboardingTheme';
 
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -202,53 +203,81 @@ export default function OnboardingComplete() {
   const summary = useMemo(() => calculateSummary(savedData || {}), [savedData]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-400 via-cream to-neutral-100 flex items-center justify-center p-6">
-      <div className="w-[380px] min-h-[560px] bg-cream-300 border border-cream-500 rounded-xl shadow-modal flex flex-col justify-center p-8 text-center">
-        <div className="text-[48px] mb-4">D</div>
-        <h2 className="text-[22px] font-bold text-nature-900 mb-2">온보딩 완료</h2>
-        <p className="text-[14px] text-neutral-400 mb-6">
+    <div
+      className="min-h-screen flex items-center justify-center p-6"
+      style={{ ...ONBOARDING_THEME_VARS, background: 'var(--color-bg)' }}
+    >
+      <div
+        className="w-[380px] min-h-[560px] rounded-xl shadow-modal flex flex-col justify-center p-8 text-center"
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <div className="text-[48px] mb-4" style={{ color: 'var(--color-text)' }}>D</div>
+        <h2 className="text-[22px] font-bold mb-2" style={{ color: 'var(--color-text)' }}>온보딩 완료</h2>
+        <p className="text-[14px] mb-6" style={{ color: 'var(--color-text-muted)' }}>
           설문 결과를 저장하고 초기 건강 프로필을 생성하고 있습니다.
         </p>
 
-        <div className="bg-cream-300 rounded-xl border border-cream-500 p-5 text-left mb-4">
-          <h4 className="text-[14px] font-semibold text-nature-900 mb-3">요약</h4>
-          <div className="flex justify-between py-1.5 border-b border-neutral-50">
-            <span className="text-[13px] text-neutral-400">관계</span>
-            <span className="text-[13px] font-medium text-nature-900">{summary.relation}</span>
+        <div
+          className="rounded-xl p-5 text-left mb-4"
+          style={{
+            background: 'var(--color-surface-hover)',
+            border: '1px solid var(--color-border-light)',
+          }}
+        >
+          <h4 className="text-[14px] font-semibold mb-3" style={{ color: 'var(--color-text)' }}>요약</h4>
+          <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+            <span className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>관계</span>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{summary.relation}</span>
           </div>
-          <div className="flex justify-between py-1.5 border-b border-neutral-50">
-            <span className="text-[13px] text-neutral-400">BMI</span>
-            <span className="text-[13px] font-medium text-nature-900">{summary.bmi}</span>
+          <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+            <span className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>BMI</span>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{summary.bmi}</span>
           </div>
           <div className="flex justify-between py-1.5">
-            <span className="text-[13px] text-neutral-400">운동 빈도</span>
-            <span className="text-[13px] font-medium text-nature-900">{summary.exercise}</span>
+            <span className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>운동 빈도</span>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{summary.exercise}</span>
           </div>
         </div>
 
         {submitState === 'submitting' && (
-          <div className="rounded-xl px-5 py-3.5 mb-6 bg-cream-300 text-[14px] text-nature-900">
+          <div
+            className="rounded-xl px-5 py-3.5 mb-6 text-[14px]"
+            style={{ background: 'var(--color-surface-hover)', color: 'var(--color-text-secondary)' }}
+          >
             {progressLabel}
           </div>
         )}
 
         {submitState === 'done' && (
-          <div className="rounded-xl px-5 py-3.5 mb-6 bg-nature-50 text-[14px] text-nature-700">
+          <div
+            className="rounded-xl px-5 py-3.5 mb-6 text-[14px]"
+            style={{ background: '#E6F4EA', color: '#1E5631' }}
+          >
             {progressLabel}
           </div>
         )}
 
         {submitState === 'error' && (
-          <div className="rounded-xl px-5 py-3.5 mb-6 bg-red-50 text-[14px] text-red-600">
+          <div
+            className="rounded-xl px-5 py-3.5 mb-6 text-[14px]"
+            style={{ background: '#FDECEC', color: '#B42318' }}
+          >
             {error}
           </div>
         )}
 
         <Link
           href="/app/chat"
-          className={`inline-block w-full py-3.5 text-white text-[15px] font-semibold rounded-xl shadow-soft transition-all ${
-            submitState === 'done' ? 'bg-nature-500 hover:bg-nature-600' : 'bg-neutral-300 pointer-events-none'
+          className={`inline-block w-full py-3.5 text-[15px] font-semibold rounded-xl shadow-soft transition-all ${
+            submitState === 'done' ? '' : 'pointer-events-none'
           }`}
+          style={{
+            background: submitState === 'done' ? 'var(--color-cta-bg)' : 'var(--color-border)',
+            color: submitState === 'done' ? 'var(--color-cta-text)' : 'var(--color-text-muted)',
+          }}
         >
           메인으로 이동
         </Link>

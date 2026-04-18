@@ -2,6 +2,7 @@
 
 import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { FileText } from 'lucide-react';
 import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
 import { api, getToken } from '../../../hooks/useApi';
@@ -1576,10 +1577,23 @@ const sendMessage = useCallback(async () => {
       <header className="h-12 bg-[var(--color-bg)]/90 backdrop-blur-xl border-b border-cream-500/30 px-4 flex items-center shrink-0">
         <span className="text-[15px] font-medium text-nature-900">AI 채팅</span>
         <div className="flex-1"></div>
-        <button onClick={() => setPanelOpen(!panelOpen)} className="w-8 h-8 rounded-lg hover:bg-cream-400 flex items-center justify-center text-sm text-neutral-400 relative">
-          ▤
-          <span className="absolute top-[5px] right-[5px] w-[7px] h-[7px] bg-warning rounded-full border-[1.5px] border-cream-300"></span>
-        </button>
+        <div className="relative group hidden md:flex">
+          <button
+            type="button"
+            onClick={() => setPanelOpen(!panelOpen)}
+            aria-label={panelOpen ? '사이드바 닫기' : '사이드바 열기'}
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+          >
+            <FileText size={16} strokeWidth={1.75} />
+            <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[var(--color-bg)] bg-warning" />
+          </button>
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute right-0 top-[calc(100%+6px)] z-50 whitespace-nowrap rounded-md bg-[var(--color-text)] px-2 py-1 text-[11px] font-semibold text-[var(--color-bg)] shadow-lg ring-1 ring-black/10 opacity-0 transition-opacity duration-150 delay-[400ms] group-hover:opacity-100"
+          >
+            {panelOpen ? '사이드바 닫기' : '사이드바 열기'}
+          </span>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">

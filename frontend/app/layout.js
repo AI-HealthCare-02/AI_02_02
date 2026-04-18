@@ -18,6 +18,14 @@ export const metadata = {
 const THEME_INIT_SCRIPT = `
 (function(){
   try {
+    var p = location.pathname || '/';
+    // 공개 페이지(로그인/회원가입/온보딩/랜딩) 는 localStorage 값과 무관하게 라이트 강제
+    var forceLight = p === '/' ||
+      /^\\/(login|signup|onboarding|social-auth|landing-new)(\\/|$)/.test(p);
+    if (forceLight) {
+      document.documentElement.dataset.theme = 'light';
+      return;
+    }
     var t = localStorage.getItem('danaa_theme');
     if (t === 'light' || t === 'dark') {
       document.documentElement.dataset.theme = t;

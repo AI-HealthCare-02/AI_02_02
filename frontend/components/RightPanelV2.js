@@ -169,9 +169,9 @@ export default function RightPanelV2({
     if (todaySaveState === 'error') return { label: t('rightPanel.action.error'), className: 'bg-danger/10 text-danger-light' };
     if (todaySaveState === 'saving') return { label: t('rightPanel.action.saving'), className: 'bg-cream-300 text-neutral-500' };
     if (todaySaveState === 'saved') return { label: pencilIcon, className: 'bg-nature-900 text-[var(--color-bg)]' };
-    // idle 상태: 저장된 항목이 있으면 연필 아이콘, 없으면 '오늘 입력 가능'
+    // idle 상태: 저장된 항목이 있을 때만 연필 아이콘 표시 (입력 없을 땐 뱃지 자체 숨김)
     if (answeredCount > 0) return { label: pencilIcon, className: 'bg-cream-400 text-nature-900' };
-    return { label: t('rightPanel.action.directInput'), className: 'rp-action-badge-default' };
+    return null;
   })();
 
   const handleToggleCard = (key) => setActiveCard((prev) => (prev === key ? null : key));
@@ -187,7 +187,9 @@ export default function RightPanelV2({
         {/* ═══ 요약 카드 · Stone ═══ */}
         <div className="rp__head">
           <h4 className="rp__title">{t('rightPanel.title')}</h4>
-          <span className={`rp-action ${saveBadge.className}`}>{saveBadge.label}</span>
+          {saveBadge && (
+            <span className={`rp-action ${saveBadge.className}`}>{saveBadge.label}</span>
+          )}
         </div>
 
         <div className="rp-quick" style={{ background: 'var(--color-summary-surface)' }}>

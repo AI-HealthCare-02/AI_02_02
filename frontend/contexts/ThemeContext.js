@@ -1,12 +1,30 @@
 'use client';
 
 import { createContext, useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { api, getToken } from '../hooks/useApi';
 
 const STORAGE_KEY = 'danaa_theme';
 const ALLOWED = ['dark', 'light'];
 const DEFAULT_THEME = 'light';
+
+// 로그인·회원가입·온보딩·랜딩 등 공개 경로는 localStorage 값과 무관하게
+// 항상 라이트로 렌더한다. 이들 페이지는 라이트 전용으로 디자인되어
+// 다크 적용 시 "D 로고·로그인 버튼" 같은 요소가 배경과 동색이 되어 안 보이기 때문.
+const FORCE_LIGHT_PREFIXES = [
+  '/login',
+  '/signup',
+  '/onboarding',
+  '/social-auth',
+  '/landing-new',
+];
+
+function isForcedLightPath(pathname) {
+  if (!pathname) return false;
+  if (pathname === '/') return true; // 루트 랜딩도 라이트 강제
+  return FORCE_LIGHT_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 export const ThemeContext = createContext({
   theme: DEFAULT_THEME,
@@ -32,6 +50,8 @@ function readLocalTheme() {
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(DEFAULT_THEME);
   const [isLoaded, setIsLoaded] = useState(false);
+  const pathname = usePathname();
+  const forcedLight = isForcedLightPath(pathname);
 
   useEffect(() => {
     const local = readLocalTheme();
@@ -39,6 +59,16 @@ export function ThemeProvider({ children }) {
     applyTheme(local);
     setIsLoaded(true);
   }, []);
+
+  // 경로 변경 시: 공개 페이지는 항상 라이트로, 앱 내부는 저장된 테마로 복원
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (forcedLight) {
+      applyTheme('light');
+    } else {
+      applyTheme(theme);
+    }
+  }, [forcedLight, isLoaded, theme]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -58,7 +88,7 @@ export function ThemeProvider({ children }) {
 
         if (!cancelled && ALLOWED.includes(serverTheme) && serverTheme !== theme) {
           setThemeState(serverTheme);
-          applyTheme(serverTheme);
+          if (!forcedLight) applyTheme(serverTheme);
           localStorage.setItem(STORAGE_KEY, serverTheme);
         }
       } catch {

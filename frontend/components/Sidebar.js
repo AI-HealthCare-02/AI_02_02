@@ -211,7 +211,9 @@ export default function Sidebar({ productGuide = null }) {
                 key={item.label}
                 href={href}
                 className={`flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[14px] whitespace-nowrap transition-colors ${
-                  active ? 'bg-cream-300 font-medium text-nature-900' : 'text-neutral-400 hover:bg-cream-400'
+                  active
+                    ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
+                    : 'text-neutral-400 hover:bg-cream-400'
                 }`}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
@@ -245,7 +247,7 @@ export default function Sidebar({ productGuide = null }) {
                         onClick={() => handleConversationClick(conversation)}
                         className={`mb-0.5 flex cursor-pointer justify-between rounded-md px-2 py-2 text-[15px] transition-all ${
                           activeSessionId === conversation.id && !activeIsNew
-                            ? 'bg-cream-300 font-medium text-nature-900'
+                            ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
                             : 'text-neutral-400 hover:bg-cream-300 hover:text-nature-900'
                         }`}
                       >

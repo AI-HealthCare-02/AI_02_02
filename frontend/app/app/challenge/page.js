@@ -84,7 +84,8 @@ function challengeVisual(item) {
   if (raw.includes('water_6cups') || raw.includes('water') || raw.includes('물') || item?.category === 'hydration') {
     return { icon: Droplets, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
   }
-  if (raw.includes('daily_walk_30min') || raw.includes('walk')) {
+  // '걷기' 가 '운동' 보다 먼저 매치돼야 Footprints 아이콘이 적용됨 (한글 이름 대응)
+  if (raw.includes('daily_walk_30min') || raw.includes('walk') || raw.includes('걷기')) {
     return { icon: Footprints, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
   }
   if (raw.includes('exercise_150min') || raw.includes('exercise') || raw.includes('운동') || item?.category === 'exercise') {
@@ -505,7 +506,7 @@ export default function ChallengePage() {
 
   return (
     <div className="theme-challenge-page flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center border-b border-black/[.04] bg-white/90 px-4 backdrop-blur-xl">
+      <header className="flex h-12 shrink-0 items-center border-b border-stone-100 bg-white px-4">
         <span className="text-[14px] font-medium text-nature-900">챌린지</span>
       </header>
       <TabBar activeTab={activeTab} onChange={setActiveTab} highlightSelection={activeChallenges.length === 0} />
