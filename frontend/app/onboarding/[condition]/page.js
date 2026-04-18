@@ -3,6 +3,8 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { ONBOARDING_THEME_VARS } from '../../../lib/onboardingTheme';
+
 // ─── Step definitions ───────────────────────────────────────────────────────
 const allSteps = [
   // 0: terms (auth는 /login 페이지로 분리됨)
@@ -74,25 +76,6 @@ const categories = [
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
-const ONBOARDING_THEME_VARS = {
-  '--color-bg': '#F7F3EC',
-  '--color-surface': '#FFFDF8',
-  '--color-surface-hover': '#F2ECE2',
-  '--color-border': '#DDD4C6',
-  '--color-border-light': '#E8E0D3',
-  '--color-border-focus': '#111111',
-  '--color-text': '#1B1B18',
-  '--color-text-secondary': '#4E4A43',
-  '--color-text-muted': '#6B655D',
-  '--color-text-hint': '#797267',
-  '--color-primary': '#111111',
-  '--color-primary-accent': '#111111',
-  '--color-cta-bg': '#1D1D1A',
-  '--color-cta-hover': '#2E2D2A',
-  '--color-cta-text': '#FFFFFF',
-  '--sidebar-top': '#F7F3EC',
-  '--sidebar-bottom': '#F7F3EC',
-};
 
 export default function OnboardingFlow() {
   const router = useRouter();

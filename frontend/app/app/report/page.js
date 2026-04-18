@@ -140,14 +140,14 @@ function getTrendInsight(points, mode, summary) {
 
 function ReportTabs() {
   return (
-    <div className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-[980px] gap-1 px-6">
-        <div className="inline-flex items-center border-b-2 border-stone-700 px-5 py-3 text-[14px] font-semibold text-stone-800">
+    <div className="border-b border-black/[.06]">
+      <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
+        <div className="inline-flex items-center border-b-2 border-nature-500 px-5 py-3 text-[14px] font-semibold text-nature-900">
           대시보드
         </div>
         <Link
           href="/app/report/detail"
-          className="inline-flex cursor-pointer items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-stone-400 transition-colors hover:text-stone-700"
+          className="inline-flex cursor-pointer items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-neutral-500 transition-colors hover:text-nature-800"
         >
           상세 리포트
         </Link>
@@ -327,7 +327,7 @@ const LOAD_STEPS = [
 function LoadingScreen({ step }) {
   const current = LOAD_STEPS.findIndex((s) => s.key === step);
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-stone-50 px-6 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-16">
       {/* 스피너 */}
       <div className="relative flex h-16 w-16 items-center justify-center">
         <svg className="absolute inset-0 animate-spin" viewBox="0 0 64 64" fill="none">
@@ -417,8 +417,8 @@ export default function ReportPage() {
   if (!loaded) {
     return (
       <div className="theme-report-page flex h-full flex-col">
-        <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
-          <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
+        <header className="flex h-12 shrink-0 items-center border-b border-[#F5F5F4] bg-white px-4">
+          <span className="text-[14px] font-medium text-nature-900">리포트</span>
         </header>
         <ReportTabs />
         <LoadingScreen step={loadStep} />
@@ -428,13 +428,14 @@ export default function ReportPage() {
 
   return (
     <div className="theme-report-page flex h-full flex-col">
-      <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
+      <header className="h-12 shrink-0 border-b border-[#F5F5F4] bg-white px-4">
         <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
       </header>
       <ReportTabs />
 
-      <div className="flex-1 overflow-y-auto bg-stone-50 px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="mx-auto max-w-[980px] space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
+        <div className="mx-auto max-w-[1080px]">
+          <main className="min-w-0 space-y-6">
 
           {error && (
             <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-500">
@@ -534,6 +535,7 @@ export default function ReportPage() {
             </>
           )}
 
+          </main>
         </div>
       </div>
     </div>
