@@ -33,23 +33,50 @@
 
 ```text
 .
-├── workers/ai/         # AI 모델 추론 및 학습 관련 코드 (Worker)
-│   ├── core/           # 워커 설정 및 로거
-│   ├── tasks/          # 실제 처리할 작업 정의
-│   └── main.py         # 워커 진입점
-├── backend/            # FastAPI 서버 코드
-│   ├── apis/           # API 라우터 (v1 버전 관리)
-│   ├── core/           # 서버 설정 (pydantic-settings)
-│   ├── db/             # 데이터베이스 초기화 및 마이그레이션 (Tortoise ORM)
-│   ├── dtos/           # 데이터 전송 객체 (Pydantic models)
-│   ├── models/         # DB 테이블 정의
-│   ├── services/       # 비즈니스 로직
-│   └── main.py         # FastAPI 애플리케이션 진입점
-├── envs/               # 환경 변수 설정 파일 (.env)
-├── nginx/              # Nginx 설정 파일 (리버스 프록시)
-├── scripts/            # 배포 및 CI용 쉘 스크립트
-├── docker-compose.yml  # 전체 서비스 실행 설정
-└── pyproject.toml      # uv 기반 의존성 관리 설정
+├── frontend/               # Next.js 14 프론트엔드
+│   ├── app/                # 페이지 라우터 (App Router)
+│   ├── components/         # 공통 UI 컴포넌트
+│   ├── hooks/              # 커스텀 훅 (useApi 등)
+│   ├── contexts/           # React Context (테마 등)
+│   ├── lib/                # 채팅 유틸, i18n
+│   └── public/             # 정적 파일
+├── backend/                # FastAPI 서버 코드
+│   ├── apis/v1/            # API 라우터 (v1 버전 관리)
+│   ├── core/               # 서버 설정, JWT, Redis, Sentry
+│   ├── db/                 # DB 초기화 및 Aerich 마이그레이션
+│   ├── dependencies/       # FastAPI 의존성 주입 (인증 등)
+│   ├── dtos/               # 데이터 전송 객체 (Pydantic models)
+│   ├── middleware/         # CORS, Rate Limit
+│   ├── models/             # DB 테이블 정의 (Tortoise ORM)
+│   ├── repositories/       # DB 쿼리 레이어
+│   ├── services/           # 비즈니스 로직 (chat, RAG, 위험도 등)
+│   ├── tasks/              # 스케줄러, daily/weekly cron
+│   ├── tests/              # 통합/유닛 테스트
+│   ├── utils/              # 공통 유틸
+│   ├── validators/         # 입력값 검증
+│   └── main.py             # FastAPI 애플리케이션 진입점
+├── workers/ai/             # AI Worker (별도 컨테이너)
+│   ├── core/               # 워커 설정 및 로거
+│   ├── prompts/            # 시스템 프롬프트
+│   ├── tasks/              # 실제 처리할 작업 정의
+│   └── main.py             # 워커 진입점
+├── tools/
+│   └── ml_artifacts/       # 학습된 모델 파일
+│       ├── diabetic_track/     # 당뇨/전단계 트랙 (CatBoost)
+│       └── non_diabetic_track/ # 비당뇨 트랙 (MLP Regressor)
+├── scripts/
+│   ├── ci/                 # 린트, 테스트, 타입 검사 스크립트
+│   ├── hooks/              # Git 훅 (pre-push 등)
+│   ├── ml/                 # 모델 학습 스크립트
+│   ├── certbot.sh          # SSL 인증서 발급
+│   └── deployment.sh       # EC2 배포 자동화
+├── shared/                 # 팀 공유 산출물 (제품 가이드 등)
+├── envs/                   # 환경 변수 설정 파일
+├── nginx/                  # Nginx 설정 (리버스 프록시)
+├── .github/workflows/      # GitHub Actions CI/CD
+├── docker-compose.yml      # 로컬 전체 스택 실행
+├── docker-compose.prod.yml # 프로덕션 스택 실행
+└── pyproject.toml          # uv 기반 의존성 관리
 ```
 
 ---
