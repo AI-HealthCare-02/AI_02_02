@@ -334,6 +334,7 @@ export default function Sidebar({ productGuide = null }) {
 
             {catOpen && (
               <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-[var(--color-surface)] p-2 shadow-soft">
+              <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-[var(--color-surface)] p-2 shadow-soft">
                 {categories.map((category, index) => {
                   const isAvailable = index === 0;
                   return (

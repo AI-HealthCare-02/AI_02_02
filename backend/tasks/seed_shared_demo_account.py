@@ -113,8 +113,6 @@ def get_shared_password() -> str:
     raise RuntimeError(
         "SHARED_DEMO_PASSWORD is not set. Add it to your local .env before running the shared demo seed."
     )
-
-
 @dataclass(frozen=True)
 class MeasurementPlan:
     weight_start: float
@@ -856,6 +854,7 @@ async def seed() -> None:
     print("=" * 64)
     for account in SEED_ACCOUNTS:
         print(f"email    : {account.email}")
+        print(f"password : {get_shared_password()}")
         print(f"password : {get_shared_password()}")
         print(f"scenario : {account.scenario}")
         print("-" * 64)

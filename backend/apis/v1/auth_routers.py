@@ -444,6 +444,19 @@ async def login(
     return resp
 
 
+@auth_router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout() -> Response:
+    resp = Response(content={"detail": "Logged out successfully."}, status_code=status.HTTP_200_OK)
+    resp.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=True if config.ENV == Env.PROD else False,
+        samesite="Lax",
+        domain=config.COOKIE_DOMAIN or None,
+    )
+    return resp
+
+
 @auth_router.post("/password/change", status_code=status.HTTP_200_OK)
 async def change_password(
     body: PasswordChangeRequest,

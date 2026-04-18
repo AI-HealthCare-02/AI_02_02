@@ -13,7 +13,13 @@ from datetime import date, datetime, timedelta
 
 from backend.core import config
 from backend.core.logger import setup_logger
-from backend.dtos.analysis import AnalysisSummaryResponse, RiskBrief, ScorecardResponse
+from backend.dtos.analysis import (
+    AnalysisSummaryResponse,
+    CategoryComparisonItem,
+    ImpactAnalysisItem,
+    RiskBrief,
+    ScorecardResponse,
+)
 from backend.dtos.dashboard import RiskDetailResponse
 from backend.dtos.risk import RiskHistoryPoint, RiskHistoryResponse
 from backend.models.assessments import RiskAssessment
@@ -39,6 +45,21 @@ VEGETABLE_SCORE = {"enough": 30, "little": 15, "none": 0}
 BALANCE_SCORE = {"balanced": 30, "protein_veg_heavy": 20, "carb_heavy": 10}
 SWEETDRINK_SCORE = {"none": 20, "one": 10, "two_plus": 0}
 NIGHTSNACK_SCORE = {"none": 20, "light": 10, "heavy": 0}
+
+SLEEP_HOURS = {
+    "under_5": 4.5,
+    "between_5_6": 5.5,
+    "between_6_7": 6.5,
+    "between_7_8": 7.5,
+    "over_8": 8.5,
+}
+
+ANALYSIS_LABELS = {
+    "sleep": "수면",
+    "exercise": "운동",
+    "diet": "식습관",
+    "hydration": "수분",
+}
 
 
 def _detail_factors(
@@ -271,13 +292,18 @@ class RiskAnalysisService:
     ) -> AnalysisSummaryResponse | None:
         """기간별 분석 요약."""
         today = date.today()
-        start = today - timedelta(days=period)
+        current_start = today - timedelta(days=period - 1)
+        previous_end = current_start - timedelta(days=1)
+        previous_start = previous_end - timedelta(days=period - 1)
 
         logs = await DailyHealthLog.filter(
             user_id=user_id,
-            log_date__gte=start,
+            log_date__gte=previous_start,
             log_date__lte=today,
         ).order_by("log_date")
+
+        current_logs = [log for log in logs if current_start <= log.log_date <= today]
+        previous_logs = [log for log in logs if previous_start <= log.log_date <= previous_end]
 
         # 최신 위험도
         assessment = await RiskAssessment.filter(
@@ -292,7 +318,20 @@ class RiskAnalysisService:
         )
 
         positive, risk_factors = self._identify_factors(
-            logs, sleep_score, diet_score, exercise_score,
+            current_logs, sleep_score, diet_score, exercise_score,
+        )
+
+        comparisons = self._build_category_comparisons(
+            current_logs=current_logs,
+            previous_logs=previous_logs,
+        )
+        impact_analysis = self._build_impact_analysis(
+            comparisons=comparisons,
+            period=period,
+        )
+        summary_message = self._build_summary_message(
+            impact_analysis=impact_analysis,
+            comparisons=comparisons,
         )
 
         return AnalysisSummaryResponse(
@@ -306,7 +345,14 @@ class RiskAnalysisService:
             risk=RiskBrief(
                 findrisc_score=assessment.findrisc_score if assessment else 0,
                 risk_level=assessment.risk_level if assessment else "unknown",
+                predicted_score_pct=assessment.predicted_score_pct if assessment else None,
+                predicted_risk_level=assessment.predicted_risk_level if assessment else None,
+                predicted_stage_label=assessment.predicted_stage_label if assessment else None,
+                model_enabled=assessment.predicted_score_pct is not None if assessment else False,
             ),
+            summary_message=summary_message,
+            impact_analysis=impact_analysis,
+            comparisons=comparisons,
             top_positive_factors=positive,
             top_risk_factors=risk_factors,
             cached_at=datetime.now(tz=config.TIMEZONE),
@@ -450,6 +496,189 @@ class RiskAnalysisService:
             risk.extend(risk_detail)
 
         return positive[:5], risk[:5]
+
+    @staticmethod
+    def _average(values: list[float | int | None]) -> float | None:
+        valid = [float(value) for value in values if value is not None]
+        if not valid:
+            return None
+        return round(sum(valid) / len(valid), 1)
+
+    @staticmethod
+    def _safe_delta_pct(current: float | int | None, previous: float | int | None) -> int | None:
+        if current is None or previous in (None, 0):
+            return None
+        return round(((float(current) - float(previous)) / float(previous)) * 100)
+
+    @staticmethod
+    def _sleep_hours(log: DailyHealthLog) -> float | None:
+        return SLEEP_HOURS.get(log.sleep_duration_bucket)
+
+    @staticmethod
+    def _daily_diet_score(log: DailyHealthLog) -> float | None:
+        has_any = any(
+            getattr(log, field) is not None
+            for field in (
+                "vegetable_intake_level",
+                "meal_balance_level",
+                "sweetdrink_level",
+                "nightsnack_level",
+            )
+        )
+        if not has_any:
+            return None
+
+        score = (
+            VEGETABLE_SCORE.get(log.vegetable_intake_level, 0)
+            + BALANCE_SCORE.get(log.meal_balance_level, 0)
+            + SWEETDRINK_SCORE.get(log.sweetdrink_level, 0)
+            + NIGHTSNACK_SCORE.get(log.nightsnack_level, 0)
+        )
+        return float(max(0, min(100, score)))
+
+    @classmethod
+    def _build_category_comparisons(
+        cls,
+        *,
+        current_logs: list[DailyHealthLog],
+        previous_logs: list[DailyHealthLog],
+    ) -> list[CategoryComparisonItem]:
+        current_sleep = cls._average([cls._sleep_hours(log) for log in current_logs])
+        previous_sleep = cls._average([cls._sleep_hours(log) for log in previous_logs])
+
+        current_exercise = sum(
+            1 for log in current_logs
+            if log.exercise_done or (log.exercise_minutes or 0) > 0
+        )
+        previous_exercise = sum(
+            1 for log in previous_logs
+            if log.exercise_done or (log.exercise_minutes or 0) > 0
+        )
+
+        current_diet = cls._average([cls._daily_diet_score(log) for log in current_logs])
+        previous_diet = cls._average([cls._daily_diet_score(log) for log in previous_logs])
+
+        current_water_cups = cls._average([log.water_cups for log in current_logs])
+        previous_water_cups = cls._average([log.water_cups for log in previous_logs])
+        current_water_liters = round(current_water_cups * 0.2, 1) if current_water_cups is not None else None
+        previous_water_liters = round(previous_water_cups * 0.2, 1) if previous_water_cups is not None else None
+
+        return [
+            CategoryComparisonItem(
+                key="sleep",
+                label=ANALYSIS_LABELS["sleep"],
+                current_value=current_sleep,
+                previous_value=previous_sleep,
+                current_display=f"{current_sleep:.1f}h" if current_sleep is not None else "-",
+                previous_display=f"{previous_sleep:.1f}h" if previous_sleep is not None else "-",
+                delta_pct=cls._safe_delta_pct(current_sleep, previous_sleep),
+                score=round(min(100, (current_sleep / 7) * 100)) if current_sleep is not None else 0,
+            ),
+            CategoryComparisonItem(
+                key="exercise",
+                label=ANALYSIS_LABELS["exercise"],
+                current_value=float(current_exercise),
+                previous_value=float(previous_exercise),
+                current_display=f"{current_exercise}회",
+                previous_display=f"{previous_exercise}회",
+                delta_pct=cls._safe_delta_pct(current_exercise, previous_exercise),
+                score=min(100, round((current_exercise / max(1, len(current_logs))) * 100)),
+            ),
+            CategoryComparisonItem(
+                key="diet",
+                label=ANALYSIS_LABELS["diet"],
+                current_value=current_diet,
+                previous_value=previous_diet,
+                current_display=f"{round(current_diet)}점" if current_diet is not None else "-",
+                previous_display=f"{round(previous_diet)}점" if previous_diet is not None else "-",
+                delta_pct=cls._safe_delta_pct(current_diet, previous_diet),
+                score=round(current_diet) if current_diet is not None else 0,
+            ),
+            CategoryComparisonItem(
+                key="hydration",
+                label=ANALYSIS_LABELS["hydration"],
+                current_value=current_water_liters,
+                previous_value=previous_water_liters,
+                current_display=f"{current_water_liters:.1f}L" if current_water_liters is not None else "-",
+                previous_display=f"{previous_water_liters:.1f}L" if previous_water_liters is not None else "-",
+                delta_pct=cls._safe_delta_pct(current_water_liters, previous_water_liters),
+                score=min(100, round((current_water_cups / 6) * 100)) if current_water_cups is not None else 0,
+            ),
+        ]
+
+    @staticmethod
+    def _build_impact_analysis(
+        *,
+        comparisons: list[CategoryComparisonItem],
+        period: int,
+    ) -> list[ImpactAnalysisItem]:
+        comparison_map = {item.key: item for item in comparisons}
+        targets = {
+            "sleep": 7.0,
+            "exercise": float(max(1, round((period / 7) * 3))),
+            "diet": 70.0,
+        }
+        labels = {
+            "sleep": ANALYSIS_LABELS["sleep"],
+            "exercise": ANALYSIS_LABELS["exercise"],
+            "diet": ANALYSIS_LABELS["diet"],
+        }
+        current_values = {
+            key: float(comparison_map[key].current_value or 0)
+            for key in targets
+            if key in comparison_map
+        }
+        deficiencies = {
+            key: max(0.0, (targets[key] - current_values.get(key, 0.0)) / targets[key])
+            for key in targets
+        }
+        total_deficiency = sum(deficiencies.values())
+
+        ordered_keys = sorted(deficiencies, key=lambda key: deficiencies[key], reverse=True)
+        items: list[ImpactAnalysisItem] = []
+        allocated = 0.0
+        for index, key in enumerate(ordered_keys):
+            if total_deficiency <= 0:
+                contribution = 0
+            elif index == len(ordered_keys) - 1:
+                contribution = int(round(100 - allocated))
+            else:
+                contribution = int(round((deficiencies[key] / total_deficiency) * 100))
+                allocated += contribution
+            items.append(
+                ImpactAnalysisItem(
+                    key=key,
+                    label=labels[key],
+                    contribution_pct=contribution,
+                    current_score=int(round(current_values.get(key, 0.0))),
+                    target_score=int(round(targets[key])),
+                )
+            )
+        return items
+
+    @staticmethod
+    def _build_summary_message(
+        *,
+        impact_analysis: list[ImpactAnalysisItem],
+        comparisons: list[CategoryComparisonItem],
+    ) -> str:
+        if not impact_analysis:
+            return "최근 기록이 아직 충분하지 않아 영향 분석을 만들지 못했어요."
+
+        top_item = impact_analysis[0]
+        if top_item.contribution_pct <= 0:
+            return "현재 안정적인 상태를 유지하고 있습니다."
+
+        comparison_map = {item.key: item for item in comparisons}
+        comparison = comparison_map.get(top_item.key)
+
+        if comparison and comparison.delta_pct is not None:
+            if comparison.delta_pct < 0:
+                return f"{top_item.label} 감소가 최근 위험도에 가장 큰 영향을 미쳤어요."
+            if comparison.delta_pct > 0:
+                return f"{top_item.label} 변화가 현재 위험도 흐름에서 가장 큰 비중을 차지해요."
+
+        return f"{top_item.label} 관리가 현재 위험도에서 가장 우선순위가 높은 항목이에요."
 
     @staticmethod
     def _assessment_to_detail(a: RiskAssessment) -> RiskDetailResponse:

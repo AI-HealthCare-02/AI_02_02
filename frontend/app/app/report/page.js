@@ -346,6 +346,16 @@ function LoadingScreen({ step }) {
       </div>
 
       {/* 단계 진행 바 */}
+      <div className="flex gap-2">
+        {LOAD_STEPS.map((s, i) => (
+          <div
+            key={s.key}
+            className={`h-1.5 rounded-full transition-all duration-500 ${
+              i <= current ? 'w-8 bg-stone-600' : 'w-4 bg-stone-200'
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -434,7 +444,7 @@ export default function ReportPage() {
       <ReportTabs />
 
       <div className="flex-1 overflow-y-auto bg-stone-50 px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="mx-auto max-w-[980px] space-y-6">
+        <div className="mx-auto max-w-[980px] space-y-4">
 
           {error && (
             <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-500">
@@ -515,8 +525,8 @@ export default function ReportPage() {
               </section>
 
               {/* 건강 요약 4개 카드 */}
-              <section className="pt-2">
-                <div className="mb-4 flex items-center justify-between">
+              <section>
+                <div className="mb-3 flex items-center justify-between">
                   <div className="text-[15px] font-semibold text-stone-800">최근 7일 건강 요약</div>
                   <Link
                     href="/app/report/detail"

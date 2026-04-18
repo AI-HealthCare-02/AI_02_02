@@ -11,6 +11,7 @@ module.exports = {
         nature: {
           DEFAULT: 'var(--color-text)',
           100: 'var(--sidebar-top)',
+          400: 'var(--color-text-secondary)',
           500: 'var(--color-cta-bg)',
           600: 'var(--color-cta-hover)',
           700: 'var(--color-border)',

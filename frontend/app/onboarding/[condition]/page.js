@@ -547,6 +547,7 @@ export default function OnboardingFlow() {
         {/* ── SLIDER (body) ── */}
         {step.type === 'slider' && (
           <div className="mt-5 space-y-5">
+          <div className="mt-5 space-y-5">
             {/* Height slider */}
             <div>
               <div className="text-[14px] font-semibold text-nature-900 mb-2">키</div>
