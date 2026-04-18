@@ -32,6 +32,30 @@ export function isLoggedIn() {
   return !!getToken();
 }
 
+/**
+ * 세션 복원 시도 — 토큰 없으면 refresh_token 쿠키로 갱신 시도
+ * @returns {Promise<boolean>} 세션 유효 여부
+ */
+export async function ensureAuthSession() {
+  if (getToken()) return true;
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/token/refresh`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.access_token) {
+        setToken(data.access_token);
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /* ═══════════════════════════════════════════
  *  API 호출 유틸
  * ═══════════════════════════════════════════ */

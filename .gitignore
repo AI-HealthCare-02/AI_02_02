@@ -4,6 +4,8 @@ frontend/.next/
 frontend/.next-dev/
 frontend/out/
 frontend/.turbo/
+frontend/next-dev.log
+frontend/next-dev.err.log
 npm-debug.log*
 
 # Python / uv
@@ -63,7 +65,5 @@ docs/HANDOFF_MEMO.md
 # Local ML datasets and artifacts
 tools/ml_artifacts/
 catboost_info/
-docs/collaboration/model/*.csv
-docs/collaboration/model/*.CSV
-docs/collaboration/model/*.pdf
-docs/collaboration/model/*.hwpx
+docs/collaboration/model/reference/
+docs/collaboration/archive/model_reference/

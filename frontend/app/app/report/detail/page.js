@@ -2,229 +2,136 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3 as BarChartIcon } from 'lucide-react';
+import { Activity, BarChart3, Droplets, Moon, TrendingDown, TrendingUp, UtensilsCrossed } from 'lucide-react';
 
 import { api } from '../../../../hooks/useApi';
 
 const PERIOD_OPTIONS = [
-  { value: 1, label: '1일' },
-  { value: 7, label: '7일' },
+  { value: 7,  label: '7일'  },
   { value: 30, label: '30일' },
 ];
 
-const CATEGORY_ORDER = ['sleep', 'diet', 'exercise', 'hydration'];
-
 const CATEGORY_META = {
-  sleep: { label: '수면', color: '#4A90D9' },
-  diet: { label: '식사', color: '#F0A500' },
-  exercise: { label: '운동', color: '#60A5FA' },
-  hydration: { label: '수분', color: '#B0B0B0' },
-};
-
-const FACTOR_LABELS = {
-  good_sleep: '수면 상태 양호',
-  poor_sleep: '수면 관리 필요',
-  healthy_diet: '식습관 양호',
-  poor_diet: '식습관 관리 필요',
-  regular_exercise: '운동 루틴 양호',
-  low_activity: '활동량 부족',
-  regular_walk: '걷기 루틴 양호',
-  good_vegetable_intake: '채소 섭취 양호',
-  low_vegetable_intake: '채소 섭취 부족',
-  carb_heavy_meals: '탄수화물 위주 식사',
-  frequent_alcohol: '음주 빈도 높음',
+  sleep:     { label: '수면',   icon: Moon,            color: '#6366f1', bg: 'bg-indigo-50',  text: 'text-indigo-500',  goal: '7h'    },
+  diet:      { label: '식습관', icon: UtensilsCrossed, color: '#f59e0b', bg: 'bg-amber-50',   text: 'text-amber-500',   goal: '70점'  },
+  exercise:  { label: '운동',   icon: Activity,        color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-500', goal: '주 3회' },
+  hydration: { label: '수분',   icon: Droplets,        color: '#3b82f6', bg: 'bg-blue-50',    text: 'text-blue-500',    goal: '1.2L'  },
 };
 
 const SLEEP_HOURS = {
-  under_5: 4.5,
-  between_5_6: 5.5,
-  between_6_7: 6.5,
-  between_7_8: 7.5,
-  over_8: 8.5,
+  under_5: 4.5, between_5_6: 5.5, between_6_7: 6.5, between_7_8: 7.5, over_8: 8.5,
 };
 
-function labelFactor(value) {
-  return FACTOR_LABELS[value] || value;
-}
+// ── 유틸 ──────────────────────────────────────────────────────────────────────
 
 function getLastNDates(days) {
   const today = new Date();
-  const dates = [];
-  for (let offset = days - 1; offset >= 0; offset -= 1) {
-    const target = new Date(today);
-    target.setDate(today.getDate() - offset);
-    dates.push(target.toISOString().slice(0, 10));
-  }
-  return dates;
+  return Array.from({ length: days }, (_, offset) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() - (days - 1 - offset));
+    return d.toISOString().slice(0, 10);
+  });
 }
 
-function average(values) {
-  const filtered = values.filter((value) => value != null);
-  if (!filtered.length) return null;
-  return filtered.reduce((sum, value) => sum + value, 0) / filtered.length;
-}
-
-function round1(value) {
-  if (value == null) return null;
-  return Math.round(value * 10) / 10;
+function formatDateLabel(value) {
+  if (!value) return '';
+  const [, month, day] = String(value).split('-');
+  return `${month}.${day}`;
 }
 
 function scoreDiet(log) {
-  let score = 0;
-  if (log.vegetable_intake_level === 'enough') score += 35;
-  if (log.vegetable_intake_level === 'little') score += 20;
-  if (log.meal_balance_level === 'balanced') score += 35;
-  if (log.meal_balance_level === 'protein_veg_heavy') score += 25;
-  if (log.sweetdrink_level === 'none') score += 15;
-  if (log.sweetdrink_level === 'one') score += 8;
-  if (log.nightsnack_level === 'none') score += 15;
-  if (log.nightsnack_level === 'light') score += 8;
-  if (!log.vegetable_intake_level && !log.meal_balance_level && !log.sweetdrink_level && !log.nightsnack_level) {
-    return null;
+  let score = 0, hasAny = false;
+  if (log.vegetable_intake_level) { hasAny = true; score += log.vegetable_intake_level === 'enough' ? 35 : 20; }
+  if (log.meal_balance_level)     { hasAny = true; score += log.meal_balance_level === 'balanced' ? 35 : log.meal_balance_level === 'protein_veg_heavy' ? 25 : 10; }
+  if (log.sweetdrink_level)       { hasAny = true; score += log.sweetdrink_level === 'none' ? 15 : 8; }
+  if (log.nightsnack_level)       { hasAny = true; score += log.nightsnack_level === 'none' ? 15 : 8; }
+  return hasAny ? score : null;
+}
+
+function buildSeries(logs, category) {
+  if (category === 'sleep')     return logs.map((l) => SLEEP_HOURS[l.sleep_duration_bucket] ?? null);
+  if (category === 'diet')      return logs.map((l) => scoreDiet(l));
+  if (category === 'exercise')  return logs.map((l) => (l.exercise_done || (l.exercise_minutes || 0) > 0 ? (l.exercise_minutes || 30) : 0));
+  if (category === 'hydration') return logs.map((l) => (l.water_cups != null ? Number((l.water_cups * 0.2).toFixed(1)) : null));
+  return [];
+}
+
+function maxSeriesValue(series) {
+  const values = series.flat().filter((v) => v != null);
+  return values.length ? Math.max(...values, 1) : 1;
+}
+
+function seriesToPoints(series, maxValue, width = 640, height = 170) {
+  const left = 40, right = 16, top = 14, bottom = 28;
+  return series.map((value, i) => {
+    const x = left + i * ((width - left - right) / Math.max(1, series.length - 1));
+    if (value == null) return [x, null];
+    return [x, height - bottom - (value / maxValue) * (height - top - bottom)];
+  });
+}
+
+function buildSmoothPath(points) {
+  const valid = points.filter(([, y]) => y != null);
+  if (valid.length < 2) return '';
+  let d = `M ${valid[0][0]},${valid[0][1]}`;
+  for (let i = 1; i < valid.length; i++) {
+    const [x0, y0] = valid[i - 1], [x1, y1] = valid[i];
+    const cx = (x0 + x1) / 2;
+    d += ` C ${cx},${y0} ${cx},${y1} ${x1},${y1}`;
   }
-  return score;
+  return d;
 }
 
-function getPeriodLabel(days) {
-  if (days === 1) return '오늘';
-  return `최근 ${days}일`;
+function buildAreaPath(points, baseY) {
+  const valid = points.filter(([, y]) => y != null);
+  if (valid.length < 2) return '';
+  let d = `M ${valid[0][0]},${baseY} L ${valid[0][0]},${valid[0][1]}`;
+  for (let i = 1; i < valid.length; i++) {
+    const [x0, y0] = valid[i - 1], [x1, y1] = valid[i];
+    const cx = (x0 + x1) / 2;
+    d += ` C ${cx},${y0} ${cx},${y1} ${x1},${y1}`;
+  }
+  d += ` L ${valid.at(-1)[0]},${baseY} Z`;
+  return d;
 }
 
-function buildPolyline(points) {
-  return points
-    .filter((point) => point[1] != null)
-    .map(([x, y]) => `${x},${y}`)
-    .join(' ');
+function buildPrevPolyline(points) {
+  return points.filter(([, y]) => y != null).map(([x, y]) => `${x},${y}`).join(' ');
 }
 
-function seriesToPoints(series, maxValue, minValue = 0, width = 640, height = 180) {
-  if (!series.length) return [];
-  return series.map((value, index) => {
-    const x = 90 + index * ((width - 140) / Math.max(1, series.length - 1));
-    const ratio = maxValue === minValue ? 0.5 : ((value ?? minValue) - minValue) / (maxValue - minValue);
-    const y = (height - 20) - (Math.max(0, Math.min(1, ratio)) * (height - 40));
-    return [x, y];
-  });
+function categoryInterpretation(meta, item) {
+  if (!item || item.delta_pct == null) return `${meta.label} 기록이 아직 충분하지 않아요.`;
+  if (item.delta_pct > 0)  return `이전 기간보다 ${item.delta_pct}% 올랐어요.`;
+  if (item.delta_pct < 0)  return `이전 기간보다 ${Math.abs(item.delta_pct)}% 낮아졌어요.`;
+  return '이전 기간과 비슷하게 유지되고 있어요.';
 }
 
-function seriesToBars(series, maxValue, options = {}) {
-  const {
-    chartWidth = 500,
-    startX = 90,
-    baseY = 112,
-    chartHeight = 97,
-    groupWidth = 20,
-    barWidth = 8,
-    gap = 3,
-  } = options;
+// ── 탭 ───────────────────────────────────────────────────────────────────────
 
-  const step = chartWidth / Math.max(1, series.length - 1 || 1);
-  return series.map((value, index) => {
-    const safe = Math.max(0, value ?? 0);
-    const height = maxValue <= 0 ? 0 : (safe / maxValue) * chartHeight;
-    const x = startX + (index * step) - (groupWidth / 2);
-    return {
-      x,
-      y: baseY - height,
-      width: barWidth,
-      height,
-      pairedX: x + barWidth + gap,
-    };
-  });
+function ReportTabs() {
+  return (
+    <div className="border-b border-stone-200 bg-white">
+      <div className="mx-auto flex max-w-[980px] gap-1 px-6">
+        <Link href="/app/report" className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-stone-400 transition-colors hover:text-stone-700">
+          대시보드
+        </Link>
+        <div className="inline-flex items-center border-b-2 border-stone-700 px-5 py-3 text-[14px] font-semibold text-stone-800">
+          상세 리포트
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function metricText(current, previous, unit = '') {
-  if (current == null) return '-';
-  if (previous == null) return `${current}${unit}`;
-  const delta = round1(current - previous);
-  if (delta > 0) return `${current}${unit} / 이전 대비 +${delta}${unit}`;
-  if (delta < 0) return `${current}${unit} / 이전 대비 -${Math.abs(delta)}${unit}`;
-  return `${current}${unit} / 이전과 동일`;
-}
-
-function getCategoryAnalytics(currentLogs, previousLogs, periodDays) {
-  const currentSleepSeries = currentLogs.map((log) => SLEEP_HOURS[log.sleep_duration_bucket] ?? null);
-  const previousSleepSeries = previousLogs.map((log) => SLEEP_HOURS[log.sleep_duration_bucket] ?? null);
-  const currentSleepAvg = round1(average(currentSleepSeries));
-  const previousSleepAvg = round1(average(previousSleepSeries));
-
-  const currentDietSeries = currentLogs.map((log) => scoreDiet(log));
-  const previousDietSeries = previousLogs.map((log) => scoreDiet(log));
-  const currentDietAvg = round1(average(currentDietSeries));
-  const previousDietAvg = round1(average(previousDietSeries));
-
-  const currentExerciseSeries = currentLogs.map((log) => (log.exercise_done || (log.exercise_minutes || 0) > 0 ? (log.exercise_minutes || 30) : 0));
-  const previousExerciseSeries = previousLogs.map((log) => (log.exercise_done || (log.exercise_minutes || 0) > 0 ? (log.exercise_minutes || 30) : 0));
-  const currentExerciseTotal = currentExerciseSeries.reduce((sum, value) => sum + value, 0);
-  const previousExerciseTotal = previousExerciseSeries.reduce((sum, value) => sum + value, 0);
-
-  const currentWaterSeries = currentLogs.map((log) => log.water_cups ?? null);
-  const previousWaterSeries = previousLogs.map((log) => log.water_cups ?? null);
-  const currentWaterAvg = round1(average(currentWaterSeries));
-  const previousWaterAvg = round1(average(previousWaterSeries));
-
-  const exerciseTarget = Math.max(30, Math.round((150 / 7) * periodDays));
-
-  return {
-    sleep: {
-      key: 'sleep',
-      label: '수면',
-      score: Math.round(Math.min(100, ((currentSleepAvg || 0) / 7) * 100)),
-      currentValue: currentSleepAvg == null ? '-' : `${currentSleepAvg}h`,
-      compareText: metricText(currentSleepAvg, previousSleepAvg, 'h'),
-      currentSummary: `${getPeriodLabel(periodDays)} 평균 수면시간`,
-      currentSeries: currentSleepSeries.map((value) => value ?? 0),
-      previousSeries: previousSleepSeries.map((value) => value ?? 0),
-      chartMax: 8.5,
-      insight: currentSleepAvg != null ? `이 기간 평균 수면은 ${currentSleepAvg}시간입니다.` : '수면 기록이 아직 부족합니다.',
-    },
-    diet: {
-      key: 'diet',
-      label: '식사',
-      score: Math.round(currentDietAvg ?? 0),
-      currentValue: currentDietAvg == null ? '-' : `${Math.round(currentDietAvg)}점`,
-      compareText: metricText(Math.round(currentDietAvg ?? 0), Math.round(previousDietAvg ?? 0), '점'),
-      currentSummary: `${getPeriodLabel(periodDays)} 식습관 점수`,
-      currentSeries: currentDietSeries.map((value) => value ?? 0),
-      previousSeries: previousDietSeries.map((value) => value ?? 0),
-      chartMax: 100,
-      insight: currentDietAvg != null ? `채소, 식사 균형, 간식 기록을 반영한 평균 점수입니다.` : '식사 기록이 아직 부족합니다.',
-    },
-    exercise: {
-      key: 'exercise',
-      label: '운동',
-      score: Math.round(Math.min(100, (currentExerciseTotal / exerciseTarget) * 100)),
-      currentValue: `${currentExerciseTotal}분`,
-      compareText: metricText(currentExerciseTotal, previousExerciseTotal, '분'),
-      currentSummary: `${getPeriodLabel(periodDays)} 총 운동시간`,
-      currentSeries: currentExerciseSeries,
-      previousSeries: previousExerciseSeries,
-      chartMax: Math.max(60, ...currentExerciseSeries, ...previousExerciseSeries, 60),
-      insight: `이 기간 운동 목표는 ${exerciseTarget}분 기준으로 계산합니다.`,
-    },
-    hydration: {
-      key: 'hydration',
-      label: '수분',
-      score: Math.round(Math.min(100, ((currentWaterAvg || 0) / 6) * 100)),
-      currentValue: currentWaterAvg == null ? '-' : `${currentWaterAvg}잔`,
-      compareText: metricText(currentWaterAvg, previousWaterAvg, '잔'),
-      currentSummary: `${getPeriodLabel(periodDays)} 평균 물 섭취량`,
-      currentSeries: currentWaterSeries.map((value) => value ?? 0),
-      previousSeries: previousWaterSeries.map((value) => value ?? 0),
-      chartMax: 8,
-      insight: currentWaterAvg != null ? `이 기간 평균 수분 섭취는 ${currentWaterAvg}잔입니다.` : '수분 기록이 아직 부족합니다.',
-    },
-  };
-}
+// ── 기간 버튼 ─────────────────────────────────────────────────────────────────
 
 function PeriodButton({ active, label, onClick }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`px-3.5 py-1.5 rounded-full text-[12px] border transition-colors ${
-        active
-          ? 'bg-nature-500 text-white border-nature-500'
-          : 'bg-cream-400 text-neutral-400 border-cream-500 hover:border-neutral-400'
+      className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-all ${
+        active ? 'bg-stone-700 text-white shadow-sm' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'
       }`}
     >
       {label}
@@ -232,494 +139,352 @@ function PeriodButton({ active, label, onClick }) {
   );
 }
 
-function ScoreCard({ item, active, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-lg py-2.5 px-2 text-center cursor-pointer transition-all ${
-        active
-          ? 'border-2 border-nature-500 shadow-float bg-cream-300'
-          : 'border border-cream-500 bg-cream-300 shadow-soft hover:shadow-float hover:-translate-y-0.5'
-      }`}
-    >
-      <div className="text-[11px] text-neutral-400 mb-1">{item.label}</div>
-      <div className="text-[22px] font-semibold leading-none text-nature-900">{item.score}</div>
-      <div className="text-[11px] font-medium mt-1 text-neutral-500">{item.currentValue}</div>
-      <div className="text-[11px] text-neutral-400 mt-1.5 pt-1.5 border-t border-black/[.04] leading-snug">{item.compareText}</div>
-    </button>
-  );
-}
+// ── 영향 분석 타일 ─────────────────────────────────────────────────────────────
 
-function ComparisonChart({ title, currentSeries, previousSeries, color, maxValue, days, variant = 'line' }) {
-  const currentPoints = seriesToPoints(currentSeries, maxValue);
-  const previousPoints = seriesToPoints(previousSeries, maxValue);
-  const currentBars = seriesToBars(currentSeries, maxValue);
-  const previousBars = seriesToBars(previousSeries, maxValue);
-  const previousColor = '#8E877B';
-  const labels = Array.from({ length: currentSeries.length }, (_, index) => {
-    if (days === 1) return ['오늘'][index] || '';
-    return `${index + 1}일`;
-  });
-  const showEvery = days >= 30 ? 5 : days >= 14 ? 2 : 1;
+function ImpactTile({ item, index }) {
+  const styles = [
+    { wrap: 'bg-stone-800 border-stone-700',  label: 'text-white',     sub: 'text-white/60',  bar: 'bg-white/25',  track: 'bg-white/10',  badge: 'bg-white/15 text-white',      rank: 'text-white/50' },
+    { wrap: 'bg-white border-stone-200',      label: 'text-stone-800', sub: 'text-stone-400', bar: 'bg-stone-500', track: 'bg-stone-100', badge: 'bg-stone-100 text-stone-600', rank: 'text-stone-300' },
+    { wrap: 'bg-white border-stone-100',      label: 'text-stone-700', sub: 'text-stone-400', bar: 'bg-stone-300', track: 'bg-stone-100', badge: 'bg-stone-50 text-stone-500',  rank: 'text-stone-200' },
+  ];
+  const s = styles[index] || styles[2];
 
   return (
-    <>
-      <div className="text-[12px] font-medium text-neutral-400 tracking-wider mt-5 mb-3">{title}</div>
-      <svg width="100%" viewBox="0 0 640 138" style={{ display: 'block', marginBottom: 8 }}>
-        <line x1="50" y1="15" x2="600" y2="15" stroke="#f0f0f0" strokeWidth="0.5" strokeDasharray="4 4" />
-        <line x1="50" y1="50" x2="600" y2="50" stroke="#f0f0f0" strokeWidth="0.5" strokeDasharray="4 4" />
-        <line x1="50" y1="85" x2="600" y2="85" stroke="#f0f0f0" strokeWidth="0.5" strokeDasharray="4 4" />
-        <line x1="50" y1="112" x2="600" y2="112" stroke="#eee" strokeWidth="0.5" />
-        {variant === 'bar' ? (
-          <>
-            {previousBars.map((bar, index) => (
-              <rect
-                key={`prev-bar-${title}-${index}`}
-                x={bar.x}
-                y={bar.y}
-                width={bar.width}
-                height={bar.height}
-                rx="3"
-                fill={previousColor}
-                fillOpacity="0.55"
-                stroke={previousColor}
-                strokeOpacity="0.85"
-                strokeWidth="1"
-              />
-            ))}
-            {currentBars.map((bar, index) => (
-              <rect
-                key={`curr-bar-${title}-${index}`}
-                x={bar.pairedX}
-                y={bar.y}
-                width={bar.width}
-                height={bar.height}
-                rx="3"
-                fill={color}
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            <polyline
-              points={buildPolyline(previousPoints)}
-              fill="none"
-              stroke={previousColor}
-              strokeWidth="2.4"
-              strokeOpacity="0.9"
-              strokeDasharray="7 5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <polyline points={buildPolyline(currentPoints)} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            {currentPoints.map(([x, y], index) => (
-              <circle key={`curr-dot-${title}-${index}`} cx={x} cy={y} r={index === currentPoints.length - 1 ? 3.5 : 0} fill={color} />
-            ))}
-          </>
-        )}
-        {labels.map((label, index) => {
-          if (days !== 1 && index % showEvery !== 0 && index !== labels.length - 1) return null;
-          return (
-            <text key={`${title}-${label}-${index}`} x={currentPoints[index]?.[0] ?? 90} y="128" fontSize="10" fill="#AAA" textAnchor="middle">
-              {label}
-            </text>
-          );
-        })}
-      </svg>
-      <div className="flex gap-4 justify-center text-[11px] text-neutral-400">
-        <span className="flex items-center gap-1">
-          <span className={`inline-block ${variant === 'bar' ? 'w-2 h-2 rounded-sm' : 'w-3 h-0.5'}`} style={{ backgroundColor: color }}></span>
-          선택 기간
-        </span>
-        <span className="flex items-center gap-1">
-          <span className={variant === 'bar' ? 'inline-block w-2 h-2 rounded-sm' : 'inline-block w-3 border-t-2 border-dashed'} style={variant === 'bar' ? { backgroundColor: previousColor } : { borderColor: previousColor }}></span>
-          이전 같은 기간
+    <div className={`rounded-2xl border p-4 ${s.wrap}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className={`text-[10px] font-bold uppercase tracking-widest ${s.rank}`}>#{index + 1} 우선순위</div>
+          <div className={`mt-0.5 text-[15px] font-semibold ${s.label}`}>{item.label}</div>
+        </div>
+        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-bold ${s.badge}`}>
+          {item.contribution_pct}%
         </span>
       </div>
-    </>
-  );
-}
-
-function OverviewChart({ analytics, selectedKey, days }) {
-  const seriesMap = {
-    sleep: analytics.sleep.currentSeries,
-    diet: analytics.diet.currentSeries,
-    exercise: analytics.exercise.currentSeries,
-    hydration: analytics.hydration.currentSeries,
-  };
-
-  const maxMap = {
-    sleep: analytics.sleep.chartMax,
-    diet: analytics.diet.chartMax,
-    exercise: analytics.exercise.chartMax,
-    hydration: analytics.hydration.chartMax,
-  };
-
-  const colors = {
-    sleep: CATEGORY_META.sleep.color,
-    diet: CATEGORY_META.diet.color,
-    exercise: CATEGORY_META.exercise.color,
-    hydration: CATEGORY_META.hydration.color,
-  };
-
-  const labels = Array.from({ length: analytics.sleep.currentSeries.length }, (_, index) => {
-    if (days === 1) return ['오늘'][index] || '';
-    return `${index + 1}일`;
-  });
-  const showEvery = days >= 30 ? 5 : days >= 14 ? 2 : 1;
-
-  return (
-    <>
-      <div className="text-[13px] font-semibold text-nature-900 mb-2.5">전체 그래프</div>
-      <div className="bg-cream-300 rounded-xl p-5 mb-4">
-        <div className="text-[11px] text-neutral-400 mb-3 leading-[1.6]">
-          선택한 기간의 주요 항목 흐름입니다. 카드를 누르면 해당 항목을 더 선명하게 볼 수 있습니다.
-        </div>
-        <svg width="100%" viewBox="0 0 640 180" style={{ display: 'block', marginBottom: 6 }}>
-          <line x1="50" y1="20" x2="600" y2="20" stroke="#f0f0f0" strokeWidth="0.5" strokeDasharray="4 4" />
-          <line x1="50" y1="70" x2="600" y2="70" stroke="#f0f0f0" strokeWidth="0.5" strokeDasharray="4 4" />
-          <line x1="50" y1="120" x2="600" y2="120" stroke="#f0f0f0" strokeWidth="0.5" strokeDasharray="4 4" />
-          <line x1="50" y1="160" x2="600" y2="160" stroke="#eee" strokeWidth="0.5" />
-          {Object.keys(seriesMap).map((key) => {
-            const points = seriesToPoints(seriesMap[key], maxMap[key]);
-            const isFocused = !selectedKey || selectedKey === key;
-            return (
-              <g key={key}>
-                <polyline
-                  points={buildPolyline(points)}
-                  fill="none"
-                  stroke={colors[key]}
-                  strokeWidth={isFocused ? '2.5' : '1.8'}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={isFocused ? 0.95 : 0.18}
-                />
-                {points.length > 0 && (
-                  <circle
-                    cx={points[points.length - 1][0]}
-                    cy={points[points.length - 1][1]}
-                    r={isFocused ? 3.2 : 2.2}
-                    fill={colors[key]}
-                    fillOpacity={isFocused ? 1 : 0.35}
-                  />
-                )}
-              </g>
-            );
-          })}
-          {labels.map((label, index) => {
-            if (days !== 1 && index % showEvery !== 0 && index !== labels.length - 1) return null;
-            return (
-              <text key={`${label}-${index}`} x={90 + index * ((640 - 140) / Math.max(1, labels.length - 1))} y="174" fontSize="11" fill="#AAA" textAnchor="middle">
-                {label}
-              </text>
-            );
-          })}
-        </svg>
-        <div className="flex gap-3.5 justify-center text-[11px] text-neutral-400 mb-1">
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5" style={{ backgroundColor: CATEGORY_META.sleep.color }}></span>수면</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5" style={{ backgroundColor: CATEGORY_META.diet.color }}></span>식사</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5" style={{ backgroundColor: CATEGORY_META.exercise.color }}></span>운동</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-3 h-0.5" style={{ backgroundColor: CATEGORY_META.hydration.color }}></span>수분</span>
-        </div>
+      <div className={`mt-3 h-1.5 rounded-full ${s.track}`}>
+        <div className={`h-full rounded-full transition-all duration-500 ${s.bar}`} style={{ width: `${item.contribution_pct}%` }} />
       </div>
-    </>
-  );
-}
-
-function MetricCard({ title, value, suffix = '', caption }) {
-  return (
-    <div className="bg-cream-300 rounded-lg py-2.5 px-3 text-center">
-      <div className="text-[11px] text-neutral-400 mb-1">{title}</div>
-      <div className="font-semibold text-nature-900 text-[18px]">{value}{suffix}</div>
-      <div className="text-[11px] text-neutral-400 mt-0.5">{caption}</div>
+      <div className={`mt-2 text-[11px] ${s.sub}`}>
+        현재 {item.current_score}점 · 목표 {item.target_score}점
+      </div>
     </div>
   );
 }
 
+// ── 비교 카드 ─────────────────────────────────────────────────────────────────
+
+function ComparisonCard({ item }) {
+  const meta  = CATEGORY_META[item.key];
+  const Icon  = meta?.icon;
+  const delta = item.delta_pct;
+  const isUp  = delta != null && delta > 0;
+  const isDown = delta != null && delta < 0;
+
+  return (
+    <div className="rounded-2xl border border-stone-100 bg-white p-4 shadow-sm">
+      <div className="flex items-center gap-2.5">
+        {Icon && (
+          <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.bg}`}>
+            <Icon size={15} className={meta.text} />
+          </div>
+        )}
+        <div className="text-[13px] font-semibold text-stone-700">{item.label}</div>
+      </div>
+      <div className="mt-3 flex items-end justify-between">
+        <div className="text-[22px] font-bold leading-none text-stone-800">{item.current_display}</div>
+        {delta != null && (
+          <div className={`flex items-center gap-0.5 text-[12px] font-semibold ${isUp ? 'text-emerald-500' : isDown ? 'text-red-400' : 'text-stone-400'}`}>
+            {isUp   && <TrendingUp size={12} />}
+            {isDown && <TrendingDown size={12} />}
+            {isUp ? '+' : ''}{delta}%
+          </div>
+        )}
+      </div>
+      <div className="mt-1 text-[11px] text-stone-400">이전 {item.previous_display}</div>
+    </div>
+  );
+}
+
+// ── 카테고리 차트 ─────────────────────────────────────────────────────────────
+
+function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
+  const meta           = CATEGORY_META[category];
+  const Icon           = meta.icon;
+  const currentSeries  = useMemo(() => buildSeries(currentLogs, category),  [currentLogs, category]);
+  const previousSeries = useMemo(() => buildSeries(previousLogs, category), [previousLogs, category]);
+  const labels         = useMemo(() => currentLogs.map((l) => formatDateLabel(l.log_date)), [currentLogs]);
+  const maxValue       = useMemo(() => maxSeriesValue([currentSeries, previousSeries]), [currentSeries, previousSeries]);
+  const currentPoints  = useMemo(() => seriesToPoints(currentSeries, maxValue),  [currentSeries, maxValue]);
+  const previousPoints = useMemo(() => seriesToPoints(previousSeries, maxValue), [previousSeries, maxValue]);
+  const smoothPath     = useMemo(() => buildSmoothPath(currentPoints),  [currentPoints]);
+  const areaPath       = useMemo(() => buildAreaPath(currentPoints, 142), [currentPoints]);
+  const gradId         = `grad-${category}`;
+
+  const delta   = comparison?.delta_pct;
+  const isUp    = (delta ?? 0) > 0;
+  const isDown  = (delta ?? 0) < 0;
+
+  return (
+    <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${meta.bg}`}>
+            <Icon size={16} className={meta.text} />
+          </div>
+          <div>
+            <div className="text-[15px] font-semibold text-stone-800">{meta.label}</div>
+            <div className="text-[11px] text-stone-400">목표 {meta.goal}</div>
+          </div>
+        </div>
+        {delta != null && (
+          <div className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-semibold ${
+            isUp ? 'bg-emerald-50 text-emerald-600' : isDown ? 'bg-red-50 text-red-500' : 'bg-stone-100 text-stone-500'
+          }`}>
+            {isUp   && <TrendingUp size={12} />}
+            {isDown && <TrendingDown size={12} />}
+            {isUp ? '+' : ''}{delta}%
+          </div>
+        )}
+      </div>
+
+      <svg width="100%" viewBox="0 0 640 170" style={{ display: 'block' }}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor={meta.color} stopOpacity="0.2" />
+            <stop offset="100%" stopColor={meta.color} stopOpacity="0.01" />
+          </linearGradient>
+        </defs>
+
+        <line x1="40" y1="142" x2="624" y2="142" stroke="#e7e5e4" />
+        <line x1="40" y1="88"  x2="624" y2="88"  stroke="#f5f5f4" strokeDasharray="4 4" />
+        <line x1="40" y1="34"  x2="624" y2="34"  stroke="#f5f5f4" strokeDasharray="4 4" />
+
+        <polyline
+          points={buildPrevPolyline(previousPoints)}
+          fill="none"
+          stroke="#d6d3d1"
+          strokeWidth="1.8"
+          strokeDasharray="5 4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {category === 'exercise' ? (
+          currentSeries.map((value, i) => {
+            const x = currentPoints[i]?.[0] ?? 0;
+            const y = currentPoints[i]?.[1] ?? 142;
+            return (
+              <rect key={`bar-${i}`} x={x - 7} y={y} width="14" height={Math.max(0, 142 - y)} rx="4"
+                fill={meta.color} opacity="0.8" />
+            );
+          })
+        ) : (
+          <>
+            {areaPath   && <path d={areaPath}   fill={`url(#${gradId})`} />}
+            {smoothPath && <path d={smoothPath} fill="none" stroke={meta.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
+            {currentPoints.map(([x, y], i) =>
+              y == null ? null : (
+                <g key={`pt-${i}`}>
+                  {i === currentPoints.length - 1 && <circle cx={x} cy={y} r="12" fill={meta.color} opacity="0.1" />}
+                  <circle cx={x} cy={y} r="4" fill="white" stroke={meta.color} strokeWidth="2.5" />
+                </g>
+              )
+            )}
+          </>
+        )}
+
+        {labels.map((label, i) => (
+          <text key={`lbl-${i}`} x={currentPoints[i]?.[0] ?? 40} y="162" textAnchor="middle" fontSize="10" fill="#a8a29e">
+            {i % Math.max(1, Math.ceil(labels.length / 6)) === 0 || i === labels.length - 1 ? label : ''}
+          </text>
+        ))}
+      </svg>
+
+      <div className="mt-3 flex items-center justify-between gap-4">
+        <div className="flex gap-4 text-[11px] text-stone-400">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-4 rounded" style={{ backgroundColor: meta.color }} />
+            현재
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block w-4 border-t-2 border-dashed border-stone-300" />
+            이전
+          </div>
+        </div>
+        <div className="text-[12px] text-stone-500">
+          {categoryInterpretation(meta, comparison)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── 메인 페이지 ───────────────────────────────────────────────────────────────
+
 export default function ReportDetailPage() {
-  const [scoreTab, setScoreTab] = useState('all');
   const [periodDays, setPeriodDays] = useState(7);
-  const [status, setStatus] = useState(null);
-  const [risk, setRisk] = useState(null);
+  const [status,  setStatus]  = useState(null);
   const [summary, setSummary] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-  const [dataError, setDataError] = useState(false);
+  const [logs,    setLogs]    = useState([]);
+  const [loaded,  setLoaded]  = useState(false);
+  const [error,   setError]   = useState('');
 
   useEffect(() => {
     async function load() {
-      setLoaded(false);
-      setDataError(false);
+      setLoaded(false); setError('');
       try {
         const statusRes = await api('/api/v1/onboarding/status');
-        if (!statusRes.ok) { setStatus(null); setLoaded(true); return; }
-
+        if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
         const statusData = await statusRes.json();
         setStatus(statusData);
 
         if (statusData.is_completed) {
-          try {
-            const fetchDays = periodDays * 2;
-            const dates = getLastNDates(fetchDays);
-            const summaryPeriod = periodDays === 1 ? 7 : periodDays;
-            const [riskRes, summaryRes, ...logResponses] = await Promise.all([
-              api('/api/v1/risk/recalculate', { method: 'POST' }),
-              api(`/api/v1/analysis/summary?period=${summaryPeriod}`),
-              ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
-            ]);
-
-            if (riskRes.ok) setRisk(await riskRes.json());
-            else setRisk(null);
-
-            if (summaryRes.ok) setSummary(await summaryRes.json());
-            else setSummary(null);
-
-            const dailyLogs = await Promise.all(
-              logResponses.map(async (response, index) => (response.ok ? response.json() : { log_date: dates[index] })),
-            );
-            setLogs(dailyLogs);
-
-            if (!riskRes.ok) setDataError(true);
-          } catch {
-            setDataError(true);
-          }
+          const dates = getLastNDates(periodDays * 2);
+          const [summaryRes, ...dailyResponses] = await Promise.allSettled([
+            api(`/api/v1/analysis/summary?period=${periodDays}`),
+            ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
+          ]);
+          setSummary(summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null);
+          const dailyLogs = await Promise.all(
+            dailyResponses.map(async (res, i) => {
+              if (res.status !== 'fulfilled' || !res.value.ok) return { log_date: dates[i] };
+              return res.value.json();
+            }),
+          );
+          setLogs(dailyLogs);
+          if (summaryRes.status === 'rejected' || !summaryRes.value?.ok) setError('일부 데이터를 불러오지 못했어요.');
         }
-      } catch {
-        setStatus(null);
+      } catch (err) {
+        console.error('report_detail_load_failed', err);
+        setError('상세 리포트를 불러오지 못했어요.');
+        setSummary(null); setLogs([]);
+      } finally {
+        setLoaded(true);
       }
-      setLoaded(true);
     }
-
     load();
   }, [periodDays]);
 
   const hasOnboarding = Boolean(status?.is_completed);
-  const currentLogs = useMemo(() => logs.slice(-periodDays), [logs, periodDays]);
-  const previousLogs = useMemo(() => logs.slice(-periodDays * 2, -periodDays), [logs, periodDays]);
-  const hasDailyData = currentLogs.some((log) => log.sleep_duration_bucket || log.meal_balance_level || log.exercise_done != null || log.water_cups != null);
-
-  const analytics = useMemo(() => getCategoryAnalytics(currentLogs, previousLogs, periodDays), [currentLogs, previousLogs, periodDays]);
-  const categoryItems = useMemo(() => CATEGORY_ORDER.map((key) => analytics[key]), [analytics]);
-  const selectedKey = scoreTab === 'all' ? null : scoreTab;
-  const selectedItem = selectedKey ? analytics[selectedKey] : null;
-
-  const positiveFactors = (summary?.top_positive_factors || []).map(labelFactor);
-  const riskFactors = (summary?.top_risk_factors || []).map(labelFactor);
-  const recommendedActions = risk?.recommended_actions || [];
-
-  const sectionMap = {
-    sleep: {
-      title: '수면 상세',
-      insight: selectedItem?.insight || analytics.sleep.insight,
-      metrics: [
-        { title: '수면 점수', value: analytics.sleep.score, suffix: '/100' },
-        { title: '평균 수면', value: analytics.sleep.currentValue, caption: getPeriodLabel(periodDays) },
-        { title: '비교', value: analytics.sleep.compareText, caption: '이전 같은 기간' },
-      ],
-      chart: <ComparisonChart title="수면 시간 비교" currentSeries={analytics.sleep.currentSeries} previousSeries={analytics.sleep.previousSeries} color={CATEGORY_META.sleep.color} maxValue={analytics.sleep.chartMax} days={periodDays} />,
-    },
-    diet: {
-      title: '식사 상세',
-      insight: analytics.diet.insight,
-      metrics: [
-        { title: '식사 점수', value: analytics.diet.score, suffix: '/100' },
-        { title: '현재 점수', value: analytics.diet.currentValue, caption: getPeriodLabel(periodDays) },
-        { title: '비교', value: analytics.diet.compareText, caption: '이전 같은 기간' },
-      ],
-      chart: <ComparisonChart title="식사 점수 비교" currentSeries={analytics.diet.currentSeries} previousSeries={analytics.diet.previousSeries} color={CATEGORY_META.diet.color} maxValue={analytics.diet.chartMax} days={periodDays} />,
-    },
-    exercise: {
-      title: '운동 상세',
-      insight: analytics.exercise.insight,
-      metrics: [
-        { title: '운동 점수', value: analytics.exercise.score, suffix: '/100' },
-        { title: '총 운동시간', value: analytics.exercise.currentValue, caption: getPeriodLabel(periodDays) },
-        { title: '비교', value: analytics.exercise.compareText, caption: '이전 같은 기간' },
-      ],
-      chart: <ComparisonChart title="운동 시간 비교" currentSeries={analytics.exercise.currentSeries} previousSeries={analytics.exercise.previousSeries} color={CATEGORY_META.exercise.color} maxValue={analytics.exercise.chartMax} days={periodDays} variant="bar" />,
-    },
-    hydration: {
-      title: '수분 상세',
-      insight: analytics.hydration.insight,
-      metrics: [
-        { title: '수분 점수', value: analytics.hydration.score, suffix: '/100' },
-        { title: '평균 섭취량', value: analytics.hydration.currentValue, caption: getPeriodLabel(periodDays) },
-        { title: '비교', value: analytics.hydration.compareText, caption: '이전 같은 기간' },
-      ],
-      chart: <ComparisonChart title="수분 섭취량 비교" currentSeries={analytics.hydration.currentSeries} previousSeries={analytics.hydration.previousSeries} color={CATEGORY_META.hydration.color} maxValue={analytics.hydration.chartMax} days={periodDays} />,
-    },
-  };
-
-  const orderedSections = selectedKey ? [selectedKey, ...CATEGORY_ORDER.filter((item) => item !== selectedKey)] : CATEGORY_ORDER;
+  const currentLogs   = useMemo(() => logs.slice(-periodDays),                  [logs, periodDays]);
+  const previousLogs  = useMemo(() => logs.slice(-periodDays * 2, -periodDays), [logs, periodDays]);
+  const comparisonMap = useMemo(
+    () => Object.fromEntries((summary?.comparisons || []).map((item) => [item.key, item])),
+    [summary],
+  );
+  const hasData = useMemo(
+    () => currentLogs.some((l) => l.sleep_duration_bucket || l.vegetable_intake_level || l.exercise_done != null || l.water_cups != null),
+    [currentLogs],
+  );
 
   return (
     <>
-      <header className="h-12 bg-cream-300/90 backdrop-blur-xl border-b border-black/[.04] px-4 flex items-center shrink-0">
-        <span className="text-[14px] font-medium text-nature-900">리포트</span>
+      <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
+        <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
       </header>
+      <ReportTabs />
 
-      <div className="flex border-b border-cream-500 bg-cream-300 shrink-0">
-        <Link href="/app/report" className="px-5 py-2.5 text-[14px] font-medium transition-colors relative text-neutral-400 hover:text-neutral-600">대시보드</Link>
-        <div className="px-5 py-2.5 text-[14px] font-medium transition-colors relative text-nature-900 cursor-default">
-          상세 리포트
-          <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-nature-500"></div>
-        </div>
-      </div>
+      <div className="flex-1 overflow-y-auto bg-stone-50 px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
+        <div className="mx-auto max-w-[980px] space-y-4">
 
-      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="max-w-[900px] mx-auto">
-          <div className="bg-cream-300 border border-cream-500 shadow-float rounded-xl overflow-hidden">
-            <div className="px-7 py-5 border-b border-black/[.04]">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-[16px] font-semibold text-nature-900">DA-NA-A</span>
-                  <span className="text-[13px] text-neutral-400">상세 리포트</span>
-                </div>
-                <div className="flex flex-wrap gap-2 justify-end">
-                  {PERIOD_OPTIONS.map((option) => (
-                    <PeriodButton key={option.value} active={periodDays === option.value} label={option.label} onClick={() => setPeriodDays(option.value)} />
-                  ))}
-                </div>
-              </div>
+          {error && (
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-500">{error}</div>
+          )}
+
+          {/* 헤더 */}
+          <section className="flex items-center justify-between rounded-2xl border border-stone-100 bg-white px-6 py-4 shadow-sm">
+            <div>
+              <div className="text-[17px] font-semibold text-stone-800">건강 데이터 분석</div>
+              <div className="text-[12px] text-stone-400">기간별 변화와 영향 요인을 확인하세요</div>
             </div>
+            <div className="flex gap-2">
+              {PERIOD_OPTIONS.map((opt) => (
+                <PeriodButton key={opt.value} active={periodDays === opt.value} label={opt.label} onClick={() => setPeriodDays(opt.value)} />
+              ))}
+            </div>
+          </section>
 
-            <div className="px-7 py-5 flex flex-col gap-0">
-              {!loaded && (
-                <>
-                  <div className="bg-[#F7F4EC] border border-[#ECE4D3] rounded-xl px-5 py-4 mb-4">
-                    <div className="text-[13px] font-medium text-nature-900 mb-1">상세 분석을 준비하고 있어요</div>
-                    <div className="text-[12px] text-neutral-500 leading-[1.7]">
-                      선택한 기간의 DB 기록과 AI 분석을 정리하는 중입니다.
-                    </div>
-                  </div>
-                  <div className="text-center py-10 text-[14px] text-neutral-400">리포트를 불러오는 중입니다.</div>
-                </>
-              )}
+          {/* 온보딩 미완료 */}
+          {loaded && !hasOnboarding && (
+            <section className="rounded-2xl border border-stone-100 bg-white p-8 text-center shadow-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100">
+                <BarChart3 size={22} className="text-stone-400" />
+              </div>
+              <div className="mt-4 text-[20px] font-semibold text-stone-800">온보딩을 먼저 완료해주세요</div>
+              <div className="mt-2 text-[13px] text-stone-400">온보딩 완료 후 건강 데이터 분석이 활성화돼요.</div>
+              <Link href="/onboarding/diabetes" className="mt-5 inline-flex rounded-full bg-stone-800 px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-stone-700">
+                설문 시작하기
+              </Link>
+            </section>
+          )}
 
-              {loaded && !hasOnboarding && (
-                <div className="text-center py-10">
-                  <div className="mb-4"><BarChartIcon size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
-                  <div className="text-[16px] font-medium text-nature-900 mb-2">아직 상세 리포트를 만들 수 없어요</div>
-                  <div className="text-[14px] text-neutral-400 mb-6">온보딩 설문과 건강 기록이 쌓이면 실제 분석 결과가 표시됩니다.</div>
-                  <Link href="/onboarding/diabetes" className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">온보딩 시작하기</Link>
-                </div>
-              )}
+          {/* 데이터 없음 */}
+          {loaded && hasOnboarding && !hasData && (
+            <section className="rounded-2xl border border-stone-100 bg-white p-8 text-center shadow-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-stone-100">
+                <BarChart3 size={22} className="text-stone-400" />
+              </div>
+              <div className="mt-4 text-[20px] font-semibold text-stone-800">기록이 더 필요해요</div>
+              <div className="mt-2 text-[13px] text-stone-400">기록이 쌓이면 기간 비교와 영향 분석을 보여드릴게요.</div>
+            </section>
+          )}
 
-              {loaded && hasOnboarding && dataError && !risk && (
-                <div className="text-center py-10">
-                  <div className="mb-4"><BarChartIcon size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
-                  <div className="text-[16px] font-medium text-nature-900 mb-2">리포트 데이터를 불러올 수 없어요</div>
-                  <div className="text-[14px] text-neutral-400 mb-6">온보딩은 완료되었지만 분석 데이터를 가져오지 못했습니다. 잠시 후 새로고침 해주세요.</div>
-                  <button onClick={() => window.location.reload()} className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">
-                    새로고침
-                  </button>
-                </div>
-              )}
-
-              {loaded && hasOnboarding && !hasDailyData && !dataError && (
-                <div className="text-center py-10">
-                  <div className="mb-4"><BarChartIcon size={40} className="text-[var(--color-text-hint)] mx-auto" /></div>
-                  <div className="text-[16px] font-medium text-nature-900 mb-2">아직 상세 리포트를 만들 수 없어요</div>
-                  <div className="text-[14px] text-neutral-400 mb-2">{getPeriodLabel(periodDays)} 건강 기록이 더 쌓이면 상세 분석을 볼 수 있어요</div>
-                  <div className="text-[12px] text-[var(--color-text-hint)] mb-6">수면, 식사, 운동, 수분을 기록하면 기간별 비교가 가능합니다.</div>
-                  <Link href="/app/chat" className="inline-block px-5 py-2.5 bg-nature-500 text-white text-[14px] font-medium rounded-lg hover:bg-nature-600 transition-colors">AI 채팅에서 기록 시작</Link>
-                </div>
-              )}
-
-              {loaded && hasOnboarding && hasDailyData && risk && (
-                <>
-                  <div className="bg-[#F7F4EC] border border-[#ECE4D3] rounded-xl px-5 py-4 mb-4">
-                    <div className="text-[13px] font-semibold text-nature-900 mb-1">상세 리포트 안내</div>
-                    <div className="text-[12px] text-neutral-500 leading-[1.7]">
-                      이 화면은 선택한 기간의 기록을 더 깊게 분석하는 화면입니다. 오른쪽 버튼으로 1일, 7일, 30일 기준을 바꿔서
-                      같은 항목을 다시 볼 수 있습니다.
-                    </div>
-                  </div>
-
-                  <div className="bg-cream-300 rounded-lg p-4 mb-4" style={{ minHeight: 68 }}>
-                    <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-1.5">
-                      {periodDays === 1 ? 'AI 오늘 요약' : `AI ${getPeriodLabel(periodDays)} 요약`}
-                    </div>
-                    <div className="text-[14px] text-nature-900 leading-[1.7]">
-                      {summary
-                        ? `좋은 흐름: ${positiveFactors.slice(0, 2).join(', ') || '아직 없음'}. 우선 관리: ${riskFactors.slice(0, 2).join(', ') || '기본 관리 유지'}.`
-                        : recommendedActions[0] || '기록이 더 쌓이면 기간별 분석 요약이 표시됩니다.'}
-                    </div>
-                  </div>
-
-                  <div className="text-[11px] text-neutral-400 mb-3 leading-[1.6]">
-                    기준 기간: {getPeriodLabel(periodDays)}. 아래 비교 문구와 점선 그래프는 바로 이전 같은 기간과의 차이를 뜻합니다.
-                  </div>
-
-                  <div className="text-[11px] text-[var(--color-text-hint)] text-right mb-1.5">카드를 탭하면 항목별 상세를 먼저 볼 수 있어요</div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                    {categoryItems.map((item) => (
-                      <ScoreCard key={item.key} item={item} active={scoreTab === item.key} onClick={() => setScoreTab(scoreTab === item.key ? 'all' : item.key)} />
+          {loaded && hasOnboarding && hasData && summary && (
+            <>
+              {/* 핵심 요약 + 영향 분석 */}
+              <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+                <div className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+                  <div className="text-[12px] font-semibold uppercase tracking-widest text-stone-400">이번 기간 핵심</div>
+                  <p className="text-[16px] font-semibold leading-relaxed text-stone-800">
+                    {summary.summary_message}
+                  </p>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    {(summary.comparisons || []).map((item) => (
+                      <ComparisonCard key={item.key} item={item} />
                     ))}
                   </div>
+                </div>
 
-                  <div className="flex justify-end mb-3.5">
-                    <button onClick={() => setScoreTab('all')} className={`px-3.5 py-1.5 rounded-full text-[12px] cursor-pointer transition-all ${scoreTab === 'all' ? 'bg-nature-500 text-white border border-nature-500' : 'bg-cream-400 text-neutral-400 border border-cream-500 hover:border-neutral-400'}`}>전체 보기</button>
+                <div className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+                  <div className="text-[12px] font-semibold uppercase tracking-widest text-stone-400">지금 가장 중요한 것</div>
+                  <p className="text-[13px] text-stone-500">위험도에 영향을 주는 항목 순위예요.</p>
+                  <div className="flex flex-col gap-2">
+                    {(summary.impact_analysis || []).map((item, i) => (
+                      <ImpactTile key={item.key} item={item} index={i} />
+                    ))}
                   </div>
+                </div>
+              </section>
 
-                  <OverviewChart analytics={analytics} selectedKey={selectedKey} days={periodDays} />
+              {/* 카테고리별 차트 */}
+              <section className="space-y-4">
+                <div className="text-[15px] font-semibold text-stone-700">항목별 상세 추이</div>
+                {Object.keys(CATEGORY_META).map((category) => (
+                  <CategoryChart
+                    key={category}
+                    category={category}
+                    currentLogs={currentLogs}
+                    previousLogs={previousLogs}
+                    comparison={comparisonMap[category]}
+                  />
+                ))}
+              </section>
+            </>
+          )}
 
-                  {scoreTab === 'all' && (
-                    <div className="mb-4 space-y-2">
-                      <InsightCard icon="⚠️" title="지금 가장 먼저 볼 신호" text={riskFactors[0] || '아직 뚜렷한 위험 신호는 없습니다.'} />
-                      <InsightCard icon="✅" title="잘 유지되고 있는 패턴" text={positiveFactors[0] || '기록이 더 쌓이면 강점을 더 정확히 찾을 수 있어요.'} />
-                      <InsightCard icon="💡" title="가장 바로 실행할 액션" text={recommendedActions[0] || '기본 생활습관 관리 유지'} />
-                    </div>
-                  )}
-
-                  <div className="border-t-2 border-cream-400 my-7"></div>
-                  <div className="text-[16px] font-semibold text-nature-900 mb-1.5">항목별 상세</div>
-                  <div className="text-[11px] text-neutral-400 mb-5">{getPeriodLabel(periodDays)} 기록과 이전 같은 기간 비교를 함께 보여줍니다.</div>
-
-                  {orderedSections.map((key) => {
-                    const section = sectionMap[key];
-                    return (
-                      <div key={key} className={scoreTab === key ? 'mb-6 border-2 border-nature-500 rounded-xl p-4 bg-cream-300/20' : 'mb-6'}>
-                        <div className="text-[14px] font-semibold text-nature-900 mb-3">{section.title}</div>
-                        <div className="bg-cream-300 rounded-lg p-3.5 mb-3.5">
-                          <div className="text-[11px] font-medium text-neutral-400 tracking-wider mb-1.5">해석</div>
-                          <div className="text-[14px] text-nature-900 leading-[1.6]">{section.insight}</div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3.5">
-                          {section.metrics.map((metric) => (
-                            <MetricCard key={`${key}-${metric.title}`} title={metric.title} value={metric.value} suffix={metric.suffix || ''} caption={metric.caption} />
-                          ))}
-                        </div>
-                        {section.chart}
-                      </div>
-                    );
-                  })}
-
-                  <div className="text-[11px] text-[var(--color-text-hint)] text-center mt-3">
-                    {risk.model_enabled
-                      ? `모델 트랙: ${risk.model_track === 'diabetic_track' ? '당뇨형' : '비당뇨형'} / ${risk.disclaimer}`
-                      : risk.model_status_message || 'AI 예측 모델 산출물이 연결되면 상세 리포트에 예측 결과가 함께 표시됩니다.'}
-                  </div>
-                </>
-              )}
+          {/* 로딩 */}
+          {!loaded && (
+            <div className="animate-pulse space-y-4">
+              <div className="h-16 rounded-2xl bg-stone-100" />
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="h-64 rounded-2xl bg-stone-100" />
+                <div className="h-64 rounded-2xl bg-stone-100" />
+              </div>
+              {[...Array(4)].map((_, i) => <div key={i} className="h-52 rounded-2xl bg-stone-100" />)}
             </div>
-          </div>
+          )}
+
         </div>
       </div>
     </>
-  );
-}
-
-function InsightCard({ icon, title, text }) {
-  return (
-    <div className="border border-cream-500 rounded-[10px] p-3">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-[7px] bg-cream-300 flex items-center justify-center text-[14px] shrink-0">{icon}</div>
-        <div>
-          <div className="text-[13px] font-medium text-nature-900">{title}</div>
-          <div className="text-[11px] text-neutral-400 mt-0.5">{text}</div>
-        </div>
-      </div>
-    </div>
   );
 }
