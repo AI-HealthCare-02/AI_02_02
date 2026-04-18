@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import importlib
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from sklearn.model_selection import train_test_split
-from train_two_track_project_models import (
-    ARTIFACT_DIR,
-    find_best_f1_threshold,
-    load_diabetic_dataset,
-    score_binary,
-    train_catboost,
-)
 
-OUTPUT_PATH = ARTIFACT_DIR / "diabetic_track_ablation_report.md"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+_train_module = importlib.import_module("scripts.ml.train_diabetic_track_model")
+ARTIFACT_DIR = _train_module.ARTIFACT_DIR
+find_best_f1_threshold = _train_module.find_best_f1_threshold
+load_diabetic_dataset = _train_module.load_diabetic_dataset
+score_binary = _train_module.score_binary
+train_catboost = _train_module.train_catboost
+
+OUTPUT_PATH = ARTIFACT_DIR / "ablation_report.md"
 
 
 BASE_NUMERIC = [

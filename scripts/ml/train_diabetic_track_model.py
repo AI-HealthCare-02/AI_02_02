@@ -24,9 +24,9 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = PROJECT_ROOT / "docs" / "collaboration" / "model"
-ARTIFACT_DIR = PROJECT_ROOT / "tools" / "ml_artifacts" / "two_track_project_models"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PROJECT_ROOT / "docs" / "collaboration" / "model" / "reference"
+ARTIFACT_DIR = PROJECT_ROOT / "tools" / "ml_artifacts" / "diabetic_track"
 
 BRFSS_PATH = DATA_DIR / "diabetes_binary_health_indicators_BRFSS2015.csv"
 MESRA_PATH = DATA_DIR / "diabetes_dataset__2019.csv"
@@ -515,87 +515,58 @@ def run_track_experiment(dataset: pd.DataFrame, *, numeric_features: list[str], 
     return trained_models, champion_result.model_name, challenger, results
 
 
-def save_snapshot(name: str, dataset: pd.DataFrame) -> None:
-    dataset.to_csv(ARTIFACT_DIR / f"{name}_dataset.csv", index=False, encoding="utf-8-sig")
+def save_snapshot(dataset: pd.DataFrame) -> None:
+    dataset.to_csv(ARTIFACT_DIR / "dataset.csv", index=False, encoding="utf-8-sig")
+    dataset.head(1000).to_csv(ARTIFACT_DIR / "dataset_sample_1000.csv", index=False, encoding="utf-8-sig")
 
 
-def save_artifact(name: str, model, artifact: TrackArtifact) -> None:
-    joblib.dump(model, ARTIFACT_DIR / f"{name}.joblib")
-    (ARTIFACT_DIR / f"{name}_metadata.json").write_text(json.dumps(asdict(artifact), ensure_ascii=False, indent=2), encoding="utf-8")
+def save_artifact(model, artifact: TrackArtifact) -> None:
+    joblib.dump(model, ARTIFACT_DIR / "model.joblib")
+    (ARTIFACT_DIR / "metadata.json").write_text(json.dumps(asdict(artifact), ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def write_report(non_diabetic: TrackArtifact, diabetic: TrackArtifact) -> None:
+def write_report(diabetic: TrackArtifact) -> None:
     lines = [
-        "# Two-Track Project Diabetes Models",
+        "# Diabetic Track Training Report",
         "",
-        "## Service Structure",
-        "- Model A: non-diabetic track management model",
-        "- Model B: diabetic track management model",
-        "- NHIS 2024 1,000,000-row data is now actually included in the pipeline.",
-        "- The paper-style BPNN was kept as an MLP challenger and CatBoost was compared as the current production candidate.",
+        "- This script trains only the diabetic track classifier.",
+        "- Current project decision: diabetic track keeps CatBoost classification.",
+        "- MLP remains a comparison candidate during experimentation, but is not saved as the active runtime artifact.",
         "",
+        f"## {diabetic.title}",
+        f"- Target: `{diabetic.target_description}`",
+        f"- Dataset: `{diabetic.dataset_description}`",
+        f"- Raw rows before sampling: `{diabetic.raw_rows_before_sampling:,}`",
+        f"- Rows used for local training: `{diabetic.rows_used_for_training:,}`",
+        f"- Champion: `{diabetic.champion}`",
+        f"- Challenger: `{diabetic.challenger}`",
+        f"- Features: {', '.join(f'`{item}`' for item in diabetic.feature_columns)}",
+        f"- Class balance: negative `{diabetic.class_balance['negative']:,}`, positive `{diabetic.class_balance['positive']:,}`",
+        "- Candidate results:",
     ]
-    for artifact in [non_diabetic, diabetic]:
-        lines.extend([
-            f"## {artifact.title}",
-            f"- Target: `{artifact.target_description}`",
-            f"- Dataset: `{artifact.dataset_description}`",
-            f"- Raw rows before sampling: `{artifact.raw_rows_before_sampling:,}`",
-            f"- Rows used for local training: `{artifact.rows_used_for_training:,}`",
-            f"- Champion: `{artifact.champion}`",
-            f"- Challenger: `{artifact.challenger}`",
-            f"- Features: {', '.join(f'`{item}`' for item in artifact.feature_columns)}",
-            f"- Class balance: negative `{artifact.class_balance['negative']:,}`, positive `{artifact.class_balance['positive']:,}`",
-            "- Candidate results:",
-        ])
-        for candidate in artifact.candidates:
-            lines.append(f"  - `{candidate.model_name}`: threshold `{candidate.threshold:.2f}`, valid ROC-AUC `{candidate.validation.roc_auc:.4f}`, test ROC-AUC `{candidate.test.roc_auc:.4f}`, test F1 `{candidate.test.f1:.4f}`")
-        lines.append("- Notes:")
-        lines.extend([f"  - {note}" for note in artifact.notes])
-        lines.append("")
+    for candidate in diabetic.candidates:
+        lines.append(
+            f"  - `{candidate.model_name}`: threshold `{candidate.threshold:.2f}`, "
+            f"valid ROC-AUC `{candidate.validation.roc_auc:.4f}`, "
+            f"test ROC-AUC `{candidate.test.roc_auc:.4f}`, test F1 `{candidate.test.f1:.4f}`"
+        )
     lines.extend([
+        "- Notes:",
+        *[f"  - {note}" for note in diabetic.notes],
+        "",
         "## Caveats",
-        "- Feature alignment was handled by transforming richer NHIS variables into service-usable risk buckets instead of discarding them.",
-        "- Model B is stronger than the older 267-row version, but its target is still a proxy management-need label rather than a ground-truth clinical outcome.",
-        "- Model B performance should still be interpreted as service-side prioritization quality, not a directly deployable clinical prognosis score.",
-        "- Threshold optimization was applied because F1 is sensitive to class imbalance and operating threshold choice.",
-        "- Model outputs should trigger personalized lifestyle recommendations and follow-up, not replace medical diagnosis.",
+        "- The target is still a proxy management-need label rather than a clinical outcome.",
+        "- Feature alignment was handled by transforming NHIS variables into service-usable buckets.",
+        "- Model outputs should guide follow-up and lifestyle coaching, not replace diagnosis.",
     ])
-    (ARTIFACT_DIR / "two_track_model_report.md").write_text("\n".join(lines), encoding="utf-8")
+    (ARTIFACT_DIR / "training_report.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> None:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
-    non_diabetic_dataset, non_diabetic_raw_rows = load_non_diabetic_dataset()
     diabetic_dataset, diabetic_raw_rows = load_diabetic_dataset()
-    save_snapshot("non_diabetic_track", non_diabetic_dataset)
-    save_snapshot("diabetic_track", diabetic_dataset)
-
-    non_diabetic_numeric = ["age_midpoint", "bmi", "has_hypertension", "obesity_flag", "severe_obesity_flag", "family_history_flag", "inactivity_flag", "smoking_flag", "alcohol_risk_flag", "poor_sleep_flag", "diet_risk_flag", "waist_risk_flag", "lifestyle_burden_score", "metabolic_burden_score", "bmi_age_interaction", "htn_obesity_interaction"]
-    non_diabetic_categorical = ["dataset_source", "gender", "age_bucket", "family_history", "exercise_frequency", "sleep_duration_bucket", "diet_risk", "smoking_status", "alcohol_frequency", "bmi_class"]
-    non_models, non_champion, non_challenger, non_candidates = run_track_experiment(non_diabetic_dataset, numeric_features=non_diabetic_numeric, categorical_features=non_diabetic_categorical, balance_mode="undersample")
-    non_artifact = TrackArtifact(
-        key="non_diabetic_track_model",
-        title="Model A: Non-Diabetic Track",
-        target_description="General diabetes-risk screening using project-collectible non-lab features; NHIS glucose values were used mainly as supervisory labels.",
-        dataset_description="NHIS 2024 + BRFSS 2015 + Mesra 2019 aligned into a shared service feature space.",
-        raw_rows_before_sampling=non_diabetic_raw_rows,
-        rows_used_for_training=len(non_diabetic_dataset),
-        feature_columns=non_diabetic_numeric + non_diabetic_categorical,
-        derived_features={},
-        class_balance={"negative": int((non_diabetic_dataset['target'] == 0).sum()), "positive": int((non_diabetic_dataset['target'] == 1).sum())},
-        champion=non_champion,
-        challenger=non_challenger,
-        candidates=non_candidates,
-        notes=[
-            "This track now uses NHIS at scale instead of relying only on smaller public datasets.",
-            "High-detail NHIS measurements were compressed into service-usable flags rather than being thrown away.",
-            "This is still the most service-ready model because it mainly depends on non-lab user inputs.",
-        ],
-    )
-    save_artifact("non_diabetic_track_model", non_models[non_champion], non_artifact)
-    save_artifact("non_diabetic_track_model_mlp_challenger", non_models["paper_style_bpnn"], non_artifact)
+    save_snapshot(diabetic_dataset)
 
     diabetic_numeric = ["age_midpoint", "bmi", "has_hypertension", "glucose_risk_flag", "bp_stage_flag", "obesity_flag", "severe_obesity_flag", "family_history_flag", "inactivity_flag", "smoking_flag", "alcohol_risk_flag", "poor_sleep_flag", "diet_risk_flag", "waist_risk_flag", "lifestyle_burden_score", "metabolic_burden_score", "bmi_age_interaction", "htn_obesity_interaction"]
     diabetic_categorical = ["dataset_source", "track_relation", "gender", "age_bucket", "family_history", "exercise_frequency", "sleep_duration_bucket", "diet_risk", "smoking_status", "alcohol_frequency", "bmi_class", "fasting_glucose_range", "bp_stage", "waist_risk"]
@@ -619,20 +590,17 @@ def main() -> None:
             "The target is still a proxy label, so this model should be treated as management prioritization rather than a definitive prognosis model.",
         ],
     )
-    save_artifact("diabetic_track_model", dia_models[dia_champion], dia_artifact)
-    save_artifact("diabetic_track_model_mlp_challenger", dia_models["paper_style_bpnn"], dia_artifact)
-
-    write_report(non_artifact, dia_artifact)
+    save_artifact(dia_models[dia_champion], dia_artifact)
+    write_report(dia_artifact)
 
     print(f"artifacts_dir={ARTIFACT_DIR}")
-    for artifact in [non_artifact, dia_artifact]:
-        best = max(artifact.candidates, key=lambda item: item.validation.roc_auc)
-        print(f"{artifact.key}.champion={artifact.champion}")
-        print(f"{artifact.key}.challenger={artifact.challenger}")
-        print(f"{artifact.key}.raw_rows={artifact.raw_rows_before_sampling}")
-        print(f"{artifact.key}.rows_used={artifact.rows_used_for_training}")
-        print(f"{artifact.key}.test_roc_auc={best.test.roc_auc:.6f}")
-        print(f"{artifact.key}.test_f1={best.test.f1:.6f}")
+    best = max(dia_artifact.candidates, key=lambda item: item.validation.roc_auc)
+    print(f"{dia_artifact.key}.champion={dia_artifact.champion}")
+    print(f"{dia_artifact.key}.challenger={dia_artifact.challenger}")
+    print(f"{dia_artifact.key}.raw_rows={dia_artifact.raw_rows_before_sampling}")
+    print(f"{dia_artifact.key}.rows_used={dia_artifact.rows_used_for_training}")
+    print(f"{dia_artifact.key}.test_roc_auc={best.test.roc_auc:.6f}")
+    print(f"{dia_artifact.key}.test_f1={best.test.f1:.6f}")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ from backend.models.health import DailyHealthLog, HealthProfile, PeriodicMeasure
 from backend.services.prediction import DIABETIC_TRACK, NON_DIABETIC_TRACK, resolve_model_track
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-MODEL_ARTIFACT_DIR = PROJECT_ROOT / "tools" / "ml_artifacts" / "two_track_project_models"
+MODEL_ARTIFACT_ROOT = PROJECT_ROOT / "tools" / "ml_artifacts"
 
 
 class ModelArtifactsUnavailableError(RuntimeError):
@@ -189,9 +189,9 @@ def _latest_bp_values(measurements: list[PeriodicMeasurement]) -> tuple[float | 
 
 @lru_cache(maxsize=4)
 def _load_model_bundle(track: str) -> tuple[Any, dict[str, Any]]:
-    model_prefix = "diabetic_track_model" if track == DIABETIC_TRACK else "non_diabetic_track_model"
-    model_path = MODEL_ARTIFACT_DIR / f"{model_prefix}.joblib"
-    metadata_path = MODEL_ARTIFACT_DIR / f"{model_prefix}_metadata.json"
+    artifact_dir = MODEL_ARTIFACT_ROOT / ("diabetic_track" if track == DIABETIC_TRACK else "non_diabetic_track")
+    model_path = artifact_dir / "model.joblib"
+    metadata_path = artifact_dir / "metadata.json"
     missing_paths = [str(path) for path in (model_path, metadata_path) if not path.exists()]
     if missing_paths:
         raise ModelArtifactsUnavailableError(
@@ -208,9 +208,9 @@ class ModelInferenceService:
         missing_paths: list[str] = []
 
         for current_track in tracks:
-            model_prefix = "diabetic_track_model" if current_track == DIABETIC_TRACK else "non_diabetic_track_model"
-            for suffix in (".joblib", "_metadata.json"):
-                path = MODEL_ARTIFACT_DIR / f"{model_prefix}{suffix}"
+            artifact_dir = MODEL_ARTIFACT_ROOT / ("diabetic_track" if current_track == DIABETIC_TRACK else "non_diabetic_track")
+            for filename in ("model.joblib", "metadata.json"):
+                path = artifact_dir / filename
                 if not path.exists():
                     missing_paths.append(str(path.relative_to(PROJECT_ROOT)))
 
@@ -243,14 +243,19 @@ class ModelInferenceService:
         model, metadata = _load_model_bundle(track)
         row = self._build_feature_row(profile=profile, logs=logs, measurements=measurements, feature_columns=metadata["feature_columns"], track=track)
         frame = pd.DataFrame([row])
-        probability = float(model.predict_proba(frame)[0][1])
-        score_pct = int(round(probability * 100))
+        if track == DIABETIC_TRACK:
+            probability = float(model.predict_proba(frame)[0][1])
+            score_pct = int(round(probability * 100))
+        else:
+            score_pct = int(round(float(model.predict(frame)[0])))
+            score_pct = max(0, min(100, score_pct))
+            probability = score_pct / 100.0
         level = self._classify_probability(probability)
         level_label = LEVEL_LABELS[level]
         stage_label = STAGE_LABELS[level]
         return {
             "model_track": track,
-            "model_name": metadata.get("champion", "catboost_optimized"),
+            "model_name": metadata.get("selected_model") or metadata.get("champion", "catboost_optimized"),
             "predicted_score_pct": score_pct,
             "predicted_risk_level": level,
             "predicted_risk_label": level_label,
