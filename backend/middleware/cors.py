@@ -13,6 +13,8 @@ def setup_cors(app: FastAPI) -> None:
             "http://127.0.0.1:3000",
             "http://localhost",
             "http://127.0.0.1",
+            "https://danaa-project.vercel.app",
+            "https://danaa.r-e.kr",
         ],
         allow_credentials=True,
         allow_methods=["*"],
