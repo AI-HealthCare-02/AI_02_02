@@ -66,7 +66,7 @@
 ### Remaining Caveats
 - Local challenge template seeding was a DB-only action for verification and is not yet represented as a committed seed/migration workflow.
 - If a user truly has no earlier comparison-period records, the previous-period line/bar can still appear absent because there is nothing to render.
-- Model artifacts under `tools/ml_artifacts/two_track_project_models/` are intentionally excluded from the repo and must be supplied separately for full AI prediction output.
+- Model artifacts under `tools/ml_artifacts/diabetic_track/` and `tools/ml_artifacts/non_diabetic_track/` are intentionally excluded from the repo and must be supplied separately for full AI prediction output.
 - If those model artifacts are missing, backend/frontend now fall back to FINDRISC-based report rendering and expose the model section as disabled instead of showing a half-enabled feature.
 - Additional end-to-end browser verification is still recommended for:
   - report dashboard

@@ -38,7 +38,7 @@ def test_model_inference_reports_missing_artifacts(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "pandas", fake_pandas)
 
     model_inference_module = importlib.import_module("backend.services.model_inference")
-    monkeypatch.setattr(model_inference_module, "MODEL_ARTIFACT_DIR", tmp_path / "missing")
+    monkeypatch.setattr(model_inference_module, "MODEL_ARTIFACT_ROOT", tmp_path / "missing")
     monkeypatch.setattr(model_inference_module, "PROJECT_ROOT", Path(tmp_path))
 
     availability = model_inference_module.ModelInferenceService().get_availability()
