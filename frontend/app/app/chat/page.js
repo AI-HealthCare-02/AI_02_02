@@ -11,7 +11,7 @@ const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
 const RightPanelV2 = dynamic(() => import('../../../components/RightPanelV2'), { ssr: false });
 
 /* ── API 설정 ── */
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '');
 const CHAT_API_PATH = '/api/v1/chat/send';
 const CHAT_API_URL = `${API_BASE}${CHAT_API_PATH}`;
 const CHAT_SESSIONS_API_PATH = '/api/v1/chat/sessions';
@@ -882,15 +882,12 @@ export default function ChatPage() {
           const tutorialPending = localStorage.getItem('danaa_tutorial_pending') === 'true';
           const tutorialDone = localStorage.getItem('danaa_tutorial_done') === 'true';
           if (tutorialPending || !tutorialDone) {
-            setShowTutorial(false);
-            window.setTimeout(() => {
-              const stillPending = localStorage.getItem('danaa_tutorial_pending') === 'true';
-              const stillDone = localStorage.getItem('danaa_tutorial_done') === 'true';
-              if (stillPending || !stillDone) {
-                setTutorialKey((prev) => prev + 1);
-                setShowTutorial(true);
+            setShowTutorial((prev) => {
+              if (!prev) {
+                setTutorialKey((key) => key + 1);
               }
-            }, 300);
+              return true;
+            });
           }
         } else {
           setOnboarding(null);

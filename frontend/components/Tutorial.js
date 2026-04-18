@@ -48,13 +48,22 @@ export default function Tutorial({ onComplete }) {
 
   const current = STEPS[step];
 
+  const getTargetElement = useCallback((target) => {
+    if (!target) return null;
+    const element = document.querySelector(target);
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+    return element;
+  }, []);
+
   const updateSpotlight = useCallback(() => {
     if (!current.target) {
       setSpotlightRect(null);
       return;
     }
 
-    const element = document.querySelector(current.target);
+    const element = getTargetElement(current.target);
     if (!element) {
       setSpotlightRect(null);
       return;
@@ -67,13 +76,31 @@ export default function Tutorial({ onComplete }) {
       width: rect.width + 16,
       height: rect.height + 16,
     });
-  }, [current.target]);
+  }, [current.target, getTargetElement]);
 
   useEffect(() => {
     updateSpotlight();
     window.addEventListener('resize', updateSpotlight);
     return () => window.removeEventListener('resize', updateSpotlight);
   }, [step, updateSpotlight]);
+
+  useEffect(() => {
+    if (!current.target) return;
+    const element = getTargetElement(current.target);
+    if (!element) return;
+
+    element.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: 'smooth',
+    });
+
+    const timer = window.setTimeout(() => {
+      updateSpotlight();
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [current.target, getTargetElement, updateSpotlight]);
 
   const finish = useCallback(() => {
     try {
@@ -83,14 +110,22 @@ export default function Tutorial({ onComplete }) {
   }, [onComplete]);
 
   const next = () => {
-    if (step < STEPS.length - 1) {
-      setStep((prev) => prev + 1);
-      return;
+    let nextStep = step + 1;
+    while (nextStep < STEPS.length) {
+      const nextConfig = STEPS[nextStep];
+      if (!nextConfig.target || getTargetElement(nextConfig.target)) {
+        setStep(nextStep);
+        return;
+      }
+      nextStep += 1;
     }
     finish();
   };
 
   const getTooltipStyle = () => {
+    const tooltipWidth = Math.min(360, window.innerWidth - 32);
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
     if (current.position === 'center' || !spotlightRect) {
       return {
         position: 'fixed',
@@ -102,35 +137,38 @@ export default function Tutorial({ onComplete }) {
 
     const gap = 20;
     const rect = spotlightRect;
+    const minLeft = 16;
+    const maxLeft = window.innerWidth - tooltipWidth - 16;
+    const centeredTop = clamp(rect.top + rect.height / 2 - 120, 16, window.innerHeight - 220);
 
     switch (current.position) {
       case 'right':
         return {
           position: 'fixed',
-          top: rect.top + rect.height / 2,
-          left: rect.left + rect.width + gap,
-          transform: 'translateY(-50%)',
+          top: centeredTop,
+          left: clamp(rect.left + rect.width + gap, minLeft, maxLeft),
+          transform: 'none',
         };
       case 'left':
         return {
           position: 'fixed',
-          top: rect.top + rect.height / 2,
-          right: window.innerWidth - rect.left + gap,
-          transform: 'translateY(-50%)',
+          top: centeredTop,
+          left: clamp(rect.left - tooltipWidth - gap, minLeft, maxLeft),
+          transform: 'none',
         };
       case 'top':
         return {
           position: 'fixed',
-          bottom: window.innerHeight - rect.top + gap,
-          left: rect.left + rect.width / 2,
-          transform: 'translateX(-50%)',
+          top: clamp(rect.top - 220 - gap, 16, window.innerHeight - 220),
+          left: clamp(rect.left + rect.width / 2 - tooltipWidth / 2, minLeft, maxLeft),
+          transform: 'none',
         };
       case 'bottom':
         return {
           position: 'fixed',
-          top: rect.top + rect.height + gap,
-          left: rect.left + rect.width / 2,
-          transform: 'translateX(-50%)',
+          top: clamp(rect.top + rect.height + gap, 16, window.innerHeight - 220),
+          left: clamp(rect.left + rect.width / 2 - tooltipWidth / 2, minLeft, maxLeft),
+          transform: 'none',
         };
       default:
         return {
