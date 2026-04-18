@@ -24,10 +24,10 @@ export default function ThemeToggleFloating() {
       type="button"
       onClick={() => setTheme(nextTheme)}
       disabled={!isLoaded}
-      className="fixed right-4 top-3 z-[95] inline-flex min-h-[48px] items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_92%,transparent)] px-4 py-3 text-[14px] font-semibold text-[var(--color-text)] shadow-[0_12px_28px_rgba(0,0,0,0.12)] backdrop-blur transition-transform hover:scale-[1.02] md:right-5"
+      className="fixed right-14 top-[7px] z-[95] inline-flex h-[34px] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_92%,transparent)] px-3 text-[12px] font-medium text-[var(--color-text)] shadow-[0_4px_12px_rgba(0,0,0,0.08)] backdrop-blur transition-transform hover:scale-[1.02]"
       aria-label={`${nextLabel} mode`}
     >
-      {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+      {theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
       <span>{nextLabel}</span>
     </button>
   );
