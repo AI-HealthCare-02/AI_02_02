@@ -13,6 +13,9 @@ const notoSansKr = Noto_Sans_KR({
 export const metadata = {
   title: '다나아(DA-NA-A) | AI 건강관리',
   description: '만성질환 예방을 위한 AI 건강 생활습관 코칭 서비스',
+  verification: {
+    google: '_NARir7Gdd2RFJfCPvl6sjW123JGSvnNRoB48yzHtS4',
+  },
 };
 
 const THEME_INIT_SCRIPT = `
