@@ -1,5 +1,63 @@
 # Handoff Memo
 
+## 2026-04-19 배포 환경 정비 및 소셜 로그인 완성 핸즈오프
+
+### 현재 상태
+- 백엔드: EC2 (`15.165.1.254`, Elastic IP 고정) + GHCR 자동 배포 완료
+- 프론트: Vercel 자동 배포 완료 (`https://danaa-project.vercel.app`)
+- 도메인: `https://danaa.r-e.kr` (SSL 인증서 발급 완료, 만료일 2026-07-17)
+- nginx HTTPS(443) 정상 동작 확인
+- 구글/카카오/네이버 소셜 로그인 배포 환경에서 정상 동작 확인
+- 이메일 회원가입 인증코드 발송 정상 동작 확인
+- Google OAuth 앱 게시 완료 (프로덕션, 누구나 로그인 가능)
+- Google 브랜딩 인증 완료 (`다나아 (DA-NA-A)` 앱 이름 표시)
+
+### env 파일 구조 정리
+| 파일 | 용도 | 참조하는 곳 |
+|------|------|------------|
+| 루트 `.env` | 로컬 직접 실행용 (uvicorn, pytest) | `config.py` 하드코딩 |
+| `envs/.local.env` | 로컬 Docker용 | `docker-compose.yml` |
+| `envs/.prod.env` | EC2 프로덕션용 | `docker-compose.prod.yml` |
+
+### EC2 배포 시 주의사항
+- `docker-compose.prod.yml` 실행 시 반드시 `--env-file envs/.prod.env` 옵션 필요
+  ```bash
+  docker compose -f docker-compose.prod.yml --env-file envs/.prod.env up -d --no-deps fastapi
+  ```
+- EC2 루트 `~/project/.env`도 존재하며 `config.py`가 이를 읽을 수 있음 → 주소 변경 시 이 파일도 함께 수정 필요
+- EC2 루트 `.env` 소셜 콜백 URI는 `https://danaa.r-e.kr/...`로 수정 완료
+
+### 소셜 로그인 설정 현황
+| 제공자 | 콜백 URI | 상태 |
+|--------|----------|------|
+| Google | `https://danaa.r-e.kr/api/v1/auth/social/callback/google` | ✅ 앱 게시 완료 |
+| Kakao | `https://danaa.r-e.kr/api/v1/auth/social/callback/kakao` | ✅ (팀원 테스터 등록 필요할 수 있음) |
+| Naver | `https://danaa.r-e.kr/api/v1/auth/social/callback/naver` | ✅ (팀원 테스터 등록 필요할 수 있음) |
+
+### 추가된 프론트 페이지
+- `frontend/app/privacy/page.js` - 개인정보처리방침 (`/privacy`)
+- `frontend/app/terms/page.js` - 서비스 이용약관 (`/terms`)
+- `frontend/public/googled218112ca89bc379.html` - Google Search Console 인증 파일
+
+### Google Search Console 인증
+- `danaa.r-e.kr` - DNS TXT 레코드 방식으로 인증 완료
+- `danaa-project.vercel.app` - HTML 태그 방식으로 인증 완료 (`layout.js`에 메타태그 추가)
+
+### nginx 설정
+- 현재 HTTP(80)만 동작 중
+- HTTPS(443) 설정 파일: `nginx/prod_https.conf` (도메인 치환 완료)
+- SSL 인증서 및 `options-ssl-nginx.conf`, `ssl-dhparams.pem` EC2에 존재 확인
+- HTTPS 전환 시: `nginx/prod_https.conf`를 EC2 `~/project/nginx/default.conf`로 교체 후 nginx 재시작
+
+### 수동 배포 명령어 (EC2)
+```bash
+cd ~/project
+docker compose -f docker-compose.prod.yml --env-file envs/.prod.env up -d --no-deps fastapi
+docker compose -f docker-compose.prod.yml --env-file envs/.prod.env restart nginx
+```
+
+---
+
 ## 2026-04-19 배포 자동화 완료 핸즈오프
 
 ### 현재 상태
@@ -24,7 +82,7 @@ EC2 SSH 자동 접속 → docker compose pull fastapi → up
 ```
 
 ### EC2 서버 구성
-- IP: `43.202.56.216`
+- IP: `15.165.1.254` (Elastic IP 고정)
 - 프로젝트 경로: `~/project/`
 - SSH 키: `C:\.ssh\DANAA_ssh_key.pem`
 - 실행 중인 컨테이너: fastapi, postgres, redis, nginx, certbot
@@ -32,7 +90,7 @@ EC2 SSH 자동 접속 → docker compose pull fastapi → up
 
 ### EC2 접속 방법
 ```bash
-ssh -i C:\.ssh\DANAA_ssh_key.pem ubuntu@43.202.56.216
+ssh -i C:\.ssh\DANAA_ssh_key.pem ubuntu@15.165.1.254
 ```
 
 ### EC2 주요 명령어
@@ -58,7 +116,7 @@ docker compose up -d --no-deps fastapi
 ### GitHub Secrets (개인 레포: BIJENG/DANAA_project)
 | 이름 | 설명 |
 |------|------|
-| EC2_HOST | 43.202.56.216 |
+| EC2_HOST | 15.165.1.254 |
 | EC2_USER | ubuntu |
 | EC2_SSH_KEY | pem 키 내용 |
 
