@@ -1,5 +1,96 @@
 # Handoff Memo
 
+## 2026-04-19 배포 자동화 완료 핸즈오프
+
+### 현재 상태
+- 백엔드: EC2 (`43.202.56.216`) + GHCR 자동 배포 완료
+- 프론트: Vercel 자동 배포 완료 (`https://danaa-project.vercel.app`)
+- 도메인: `https://danaa.r-e.kr` (SSL 인증서 발급 완료, 만료일 2026-07-17)
+- 비당뇨 트랙 모델: CatBoost → MLP Regressor 교체 완료
+
+### 배포 자동화 흐름
+```
+로컬 코드 수정
+      ↓
+git push origin main (개인 레포)
+      ↓
+GitHub Actions 자동 실행 (.github/workflows/ghcr-build.yml)
+      ↓
+GHCR에 이미지 빌드 & 푸시 (ghcr.io/bijeng/danaa-fastapi:latest)
+      ↓
+EC2 SSH 자동 접속 → docker compose pull fastapi → up
+      ↓
+프론트: Vercel이 frontend/ 폴더 감지 → 자동 빌드 & 배포
+```
+
+### EC2 서버 구성
+- IP: `43.202.56.216`
+- 프로젝트 경로: `~/project/`
+- SSH 키: `C:\.ssh\DANAA_ssh_key.pem`
+- 실행 중인 컨테이너: fastapi, postgres, redis, nginx, certbot
+- 모델 파일 위치: `~/project/tools/ml_artifacts/` (docker-compose.yml에 볼륨 마운트)
+
+### EC2 접속 방법
+```bash
+ssh -i C:\.ssh\DANAA_ssh_key.pem ubuntu@43.202.56.216
+```
+
+### EC2 주요 명령어
+```bash
+# 컨테이너 상태 확인
+docker ps
+
+# FastAPI 로그 확인
+docker logs fastapi --tail=30
+
+# 마이그레이션 실행
+docker exec fastapi uv run --no-sync aerich upgrade
+
+# 시드 데이터 재생성
+docker exec fastapi uv run --no-sync python backend/tasks/seed_shared_demo_account.py
+
+# 수동 배포 (자동 배포 실패 시)
+cd ~/project
+docker compose pull fastapi
+docker compose up -d --no-deps fastapi
+```
+
+### GitHub Secrets (개인 레포: BIJENG/DANAA_project)
+| 이름 | 설명 |
+|------|------|
+| EC2_HOST | 43.202.56.216 |
+| EC2_USER | ubuntu |
+| EC2_SSH_KEY | pem 키 내용 |
+
+### 시드 계정
+| 이메일 | 비밀번호 | 시나리오 |
+|--------|---------|----------|
+| danaa1@danaa.com | EKskdk1! | 당뇨 고위험 |
+| danaa2@danaa.com | EKskdk1! | 건강 예방 |
+
+### 모델 구성
+| 트랙 | 모델 | 대상 |
+|------|------|------|
+| diabetic_track | CatBoost (분류) | 당뇨/전단계 (A/B 그룹) |
+| non_diabetic_track | MLP Regressor (회귀) | 비당뇨 예방 (C 그룹) |
+
+- 모델 파일은 깃허브 미포함 → EC2에 SCP로 직접 전송
+- EC2 경로: `~/project/tools/ml_artifacts/`
+- 로컬 경로: `C:\PycharmProjects\DANAA_project\tools\ml_artifacts\`
+
+### CORS 허용 도메인
+- `http://localhost:3000`
+- `https://danaa-project.vercel.app`
+- `https://danaa.r-e.kr`
+
+### 주의사항
+- EC2 디스크 용량 주의 (8GB, 현재 약 84% 사용 중) → 추후 AWS 콘솔에서 30GB로 확장 권장
+- 이미지 업데이트 시 디스크 부족하면 `docker system prune -af` 후 재시도
+- SSL 인증서 만료일: 2026-07-17 (certbot 자동 갱신 컨테이너 실행 중)
+- oz 공식 레포(`AI-HealthCare-02/AI_02_02`)에도 동일하게 push 필요 시: `git push upstream main`
+
+---
+
 ## 2026-04-15 Report Sync / Main Merge / Migration Recovery Handoff
 
 ### Current State

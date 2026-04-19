@@ -41,7 +41,7 @@ services:
         - linux/amd64
         - linux/arm64
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:app-${APP_VERSION}
-    env_file: .env
+    env_file: envs/.local.env
     command: |
       sh -c "uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
@@ -67,7 +67,7 @@ services:
         - linux/amd64
         - linux/arm64
     image: ${DOCKER_USER}/${DOCKER_REPOSITORY}:ai-${AI_WORKER_VERSION}
-    env_file: .env
+    env_file: envs/.local.env
     restart: always
     mem_limit: 4G
     networks:
@@ -80,7 +80,7 @@ services:
 
   gemma-runtime:
     image: vllm/vllm-openai:latest
-    env_file: .env
+    env_file: envs/.local.env
     restart: unless-stopped
     gpus: all
     shm_size: 2g
