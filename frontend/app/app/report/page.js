@@ -350,6 +350,41 @@ function LoadingScreen({ step }) {
   );
 }
 
+// ── sessionStorage 메모리 캐시 유틸 (5분 TTL) ───────────────────────────────
+const REPORT_CACHE_KEY = 'danaa:report:dashboard:v1';
+const REPORT_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function readReportCache() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(REPORT_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts > REPORT_CACHE_TTL_MS) return null;
+    return parsed.payload;
+  } catch {
+    return null;
+  }
+}
+
+function writeReportCache(payload) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(REPORT_CACHE_KEY, JSON.stringify({ ts: Date.now(), payload }));
+  } catch {
+    // quota 초과 등 무시
+  }
+}
+
+function clearReportCache() {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(REPORT_CACHE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function ReportPage() {
   const [status,    setStatus]    = useState(null);
   const [risk,      setRisk]      = useState(null);
@@ -359,38 +394,103 @@ export default function ReportPage() {
   const [loadStep,  setLoadStep]  = useState('init');
   const [error,     setError]     = useState('');
   const [trendMode, setTrendMode] = useState('findrisc');
+  const [coachingLoading, setCoachingLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCoaching() {
+      try {
+        setCoachingLoading(true);
+        const res = await api('/api/v1/risk/coaching');
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(data?.lines) && data.lines.length > 0) {
+          setRisk((prev) => (prev ? { ...prev, ai_coaching_lines: data.lines } : prev));
+        }
+      } catch {
+        // 실패해도 리포트 본문은 이미 표시됨. 조용히 패스.
+      } finally {
+        if (!cancelled) setCoachingLoading(false);
+      }
+    }
+
     async function load() {
       setError('');
+
+      // ① sessionStorage 캐시 HIT → 즉시 렌더 + 백그라운드 재검증
+      const cached = readReportCache();
+      if (cached) {
+        setStatus(cached.status);
+        setRisk(cached.risk);
+        setHistory(cached.history || []);
+        setSummary(cached.summary);
+        setLoaded(true);
+      }
+
       try {
         setLoadStep('init');
         const statusRes = await api('/api/v1/onboarding/status');
         if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
         const statusData = await statusRes.json();
+        if (cancelled) return;
         setStatus(statusData);
 
-        if (statusData.is_completed) {
-          setLoadStep('risk');
-          const riskRes = await api('/api/v1/risk/recalculate', { method: 'POST' });
-          setRisk(riskRes.ok ? await riskRes.json() : null);
+        if (!statusData.is_completed) {
+          writeReportCache({ status: statusData, risk: null, history: [], summary: null });
+          return;
+        }
 
-          setLoadStep('history');
-          const historyRes = await api('/api/v1/risk/history?weeks=7');
-          if (historyRes.ok) setHistory((await historyRes.json()).history || []);
+        // ② 나머지 3개 API를 병렬 호출 (이전: 순차)
+        setLoadStep('risk');
+        const [riskRes, historyRes, summaryRes] = await Promise.all([
+          api('/api/v1/risk/current'),
+          api('/api/v1/risk/history?weeks=7'),
+          api('/api/v1/analysis/summary?period=7'),
+        ]);
+        if (cancelled) return;
 
-          setLoadStep('summary');
-          const summaryRes = await api('/api/v1/analysis/summary?period=7');
-          setSummary(summaryRes.ok ? await summaryRes.json() : null);
+        const riskData = riskRes.ok ? await riskRes.json() : null;
+        const historyJson = historyRes.ok ? await historyRes.json() : {};
+        const summaryData = summaryRes.ok ? await summaryRes.json() : null;
+        if (cancelled) return;
+
+        setRisk(riskData);
+        setHistory(historyJson.history || []);
+        setSummary(summaryData);
+
+        writeReportCache({
+          status: statusData,
+          risk: riskData,
+          history: historyJson.history || [],
+          summary: summaryData,
+        });
+
+        // ③ AI 코칭은 비차단으로 별도 fetch (OpenAI 2~5초는 리포트 렌더 경로에서 분리)
+        if (riskData) {
+          fetchCoaching();
         }
       } catch (err) {
         console.error('report_dashboard_load_failed', err);
-        setError('데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+        if (!cancelled) setError('데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
       } finally {
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     }
     load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 건강 기록/측정 저장 등 외부 이벤트로 캐시 무효화 알림 수신
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handler = () => clearReportCache();
+    window.addEventListener('danaa:report-cache-refresh', handler);
+    return () => window.removeEventListener('danaa:report-cache-refresh', handler);
   }, []);
 
   useEffect(() => {

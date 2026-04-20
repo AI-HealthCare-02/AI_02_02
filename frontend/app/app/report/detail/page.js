@@ -519,12 +519,49 @@ export default function ReportDetailPage() {
   const [error,   setError]   = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+    const DETAIL_CACHE_KEY = `danaa:report:detail:v1:${periodDays}`;
+    const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+
+    const readDetailCache = () => {
+      if (typeof window === 'undefined') return null;
+      try {
+        const raw = sessionStorage.getItem(DETAIL_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.ts || Date.now() - parsed.ts > DETAIL_CACHE_TTL_MS) return null;
+        return parsed.payload;
+      } catch {
+        return null;
+      }
+    };
+    const writeDetailCache = (payload) => {
+      if (typeof window === 'undefined') return;
+      try {
+        sessionStorage.setItem(DETAIL_CACHE_KEY, JSON.stringify({ ts: Date.now(), payload }));
+      } catch {
+        // ignore
+      }
+    };
+
     async function load() {
-      setLoaded(false); setError('');
+      setError('');
+
+      const cached = readDetailCache();
+      if (cached) {
+        setStatus(cached.status);
+        setSummary(cached.summary);
+        setLogs(cached.logs || []);
+        setLoaded(true);
+      } else {
+        setLoaded(false);
+      }
+
       try {
         const statusRes = await api('/api/v1/onboarding/status');
         if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
         const statusData = await statusRes.json();
+        if (cancelled) return;
         setStatus(statusData);
 
         if (statusData.is_completed) {
@@ -533,26 +570,54 @@ export default function ReportDetailPage() {
             api(`/api/v1/analysis/summary?period=${periodDays}`),
             ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
           ]);
-          setSummary(summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null);
+          if (cancelled) return;
+          const summaryData = summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null;
+          setSummary(summaryData);
           const dailyLogs = await Promise.all(
             dailyResponses.map(async (res, i) => {
               if (res.status !== 'fulfilled' || !res.value.ok) return { log_date: dates[i] };
               return res.value.json();
             }),
           );
+          if (cancelled) return;
           setLogs(dailyLogs);
+          writeDetailCache({ status: statusData, summary: summaryData, logs: dailyLogs });
           if (summaryRes.status === 'rejected' || !summaryRes.value?.ok) setError('일부 데이터를 불러오지 못했어요.');
+        } else {
+          writeDetailCache({ status: statusData, summary: null, logs: [] });
         }
       } catch (err) {
         console.error('report_detail_load_failed', err);
-        setError('상세 리포트를 불러오지 못했어요.');
-        setSummary(null); setLogs([]);
+        if (!cancelled) {
+          setError('상세 리포트를 불러오지 못했어요.');
+          setSummary(null); setLogs([]);
+        }
       } finally {
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     }
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [periodDays]);
+
+  // 건강 기록 저장 이벤트로 상세 캐시도 무효화
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handler = () => {
+      try {
+        Object.keys(sessionStorage)
+          .filter((k) => k.startsWith('danaa:report:detail:v1:'))
+          .forEach((k) => sessionStorage.removeItem(k));
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('danaa:report-cache-refresh', handler);
+    return () => window.removeEventListener('danaa:report-cache-refresh', handler);
+  }, []);
 
   const hasOnboarding = Boolean(status?.is_completed);
   const currentLogs   = useMemo(() => logs.slice(-periodDays),                  [logs, periodDays]);

@@ -1,14 +1,24 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from backend.core import config
+from backend.core.cache import get_cached, set_cached
 from backend.core.logger import setup_logger
 from backend.dtos.dashboard import RiskDetailResponse
 from backend.models.health import DailyHealthLog, HealthProfile
 from backend.services.chat.openai_client import get_openai_client
 
 logger = setup_logger(__name__)
+
+
+# 코칭은 리포트의 다른 수치보다 변동 적어 TTL 6시간.
+CACHE_TTL_COACHING_SECONDS = 6 * 3600
+
+
+def coaching_cache_key(user_id: int) -> str:
+    return f"report:coaching:{user_id}"
 
 FACTOR_LABELS = {
     "good_sleep": "수면 흐름이 안정적임",
@@ -45,6 +55,39 @@ def _factor_lines(values: list[str]) -> list[str]:
 
 
 class ReportCoachingService:
+    async def get_or_generate(
+        self,
+        *,
+        user_id: int,
+        profile: HealthProfile,
+        logs: list[DailyHealthLog],
+        detail: RiskDetailResponse,
+    ) -> dict[str, Any]:
+        """캐시 우선 조회 → MISS 시 OpenAI 호출.
+
+        반환 형태:
+          {"lines": [...], "generated_at": iso-str, "from_cache": bool}
+        """
+        cache_key = coaching_cache_key(user_id)
+        cached = await get_cached(cache_key)
+        if cached is not None and isinstance(cached, dict) and cached.get("lines"):
+            return {**cached, "from_cache": True}
+
+        lines = await self.generate_lines(profile=profile, logs=logs, detail=detail)
+        if not lines:
+            # 실패 시 캐싱은 건너뛴다 (다음 요청에서 재시도 가능)
+            return {"lines": [], "generated_at": None, "from_cache": False}
+
+        payload = {
+            "lines": lines,
+            "generated_at": datetime.now(tz=config.TIMEZONE).isoformat(),
+        }
+        try:
+            await set_cached(cache_key, payload, ttl_seconds=CACHE_TTL_COACHING_SECONDS)
+        except Exception:
+            logger.exception("coaching_cache_set_failed", user_id=user_id)
+        return {**payload, "from_cache": False}
+
     async def generate_lines(
         self,
         *,

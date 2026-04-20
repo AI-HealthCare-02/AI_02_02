@@ -552,6 +552,11 @@ export default function ChatPage() {
       const result = await response.json();
       applyDailyPayload(result, { fromDirectSave: true });
 
+      // 건강 기록 변경 → 리포트 캐시 무효화 이벤트
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('danaa:report-cache-refresh'));
+      }
+
       if (version === saveVersionRef.current) {
         setTodaySaveState('saved');
       }
