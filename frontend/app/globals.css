@@ -702,7 +702,7 @@ html[data-contrast="high"] {
 /* Fixed Slot · 챌린지 위치 고정용 공간 예약 */
 .rp.rp--today .rp-fixed-input {
   margin: 14px 0;
-  min-height: 300px;
+  min-height: 180px;
   transition: background 0.2s ease, padding 0.2s ease;
 }
 .rp.rp--today .rp-fixed-input.is-filled {
@@ -903,38 +903,34 @@ html[data-contrast="high"] {
 
 /* Cell editor */
 .mqm-cell-edit { display: flex; flex-direction: column; gap: 10px; }
-.mqm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.mqm-chip {
+
+/* 통일 드롭다운 (수면·식사·복약·운동·수분·기분·음주 공용) */
+.mqm-select {
+  width: 100%;
   min-height: 36px;
-  padding: 8px 12px;
+  padding: 7px 28px 7px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: 8px;
   background: var(--color-surface);
   color: var(--color-text);
-  cursor: pointer;
-  transition: all 0.15s ease;
+  font-size: 13px;
+  font-weight: 500;
   font-family: inherit;
-}
-.mqm-chip:hover { border-color: var(--color-text); }
-.mqm-chip.is-selected { background: var(--color-cta-bg); color: var(--color-cta-text, #fff); border-color: var(--color-cta-bg); font-weight: 600; }
-
-.mqm-stepper { display: inline-flex; align-items: center; gap: 12px; }
-.mqm-stepper__btn {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: var(--color-card-surface-subtle);
-  color: var(--color-text);
-  font-size: 16px; font-weight: 600; line-height: 1;
-  border: 1px solid var(--color-border);
   cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: all 0.15s ease;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+                    linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  transition: border-color 0.15s ease;
 }
-.mqm-stepper__btn:hover:not(:disabled) { background: var(--color-text); color: #fff; }
-.mqm-stepper__btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.mqm-stepper__val { min-width: 48px; text-align: center; font-size: 14px; font-weight: 700; }
+.mqm-select:hover { border-color: var(--color-text); }
+.mqm-select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+  border-color: var(--color-text);
+}
 
 .mqm-cell-edit__error {
   font-size: 11px;

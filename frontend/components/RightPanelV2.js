@@ -52,15 +52,30 @@ const RpRow = memo(function RpRow({ cardDef, isActive, value, valueMuted, onClic
 /**
  * 요약 문장 생성 (log 기반 derived)
  * — 도메인 규칙: 의료 표현 금지 · 중립 톤
+ * — boolean false(쉼/건너뜀/안 마심)도 "기록됨"으로 카운트
  */
 function buildSummaryLine(log) {
-  if (!log) return '오늘 기록을 차근차근 쌓아볼까요';
-  const hasSleep = log.sleep_quality || log.sleep_duration_bucket;
-  const hasMeal = log.breakfast_status || log.lunch_status || log.dinner_status;
-  if (hasSleep && hasMeal) return '수면도 식사도 기록됐어요 👍';
-  if (hasSleep && !hasMeal) return '수면 기록 완료 · 식사도 이어서';
-  if (!hasSleep && hasMeal) return '식사 기록 완료 · 수면도 이어서';
-  return '오늘 기록을 차근차근 쌓아볼까요';
+  if (!log) return '오늘 기록을 차근차근 쌓아볼까요?';
+
+  const has = {
+    sleep: log.sleep_quality != null || log.sleep_duration_bucket != null,
+    meal: log.breakfast_status != null || log.lunch_status != null || log.dinner_status != null,
+    exercise: log.exercise_done != null,
+    water: log.water_cups != null && log.water_cups > 0,
+    mood: log.mood_level != null,
+    medication: log.took_medication != null,
+    alcohol: log.alcohol_today != null,
+  };
+  const count = Object.values(has).filter(Boolean).length;
+
+  if (count === 0) return '오늘 기록을 차근차근 쌓아볼까요?';
+  if (count >= 5) return '오늘 거의 다 챙기셨어요. 마무리까지 같이 해볼까요?';
+  if (has.sleep && has.meal && !has.exercise) return '수면·식사 챙기셨네요. 운동도 살짝 이어가 볼까요?';
+  if (has.water && !has.exercise) return '물 충분히 드시고 계시네요. 걷기도 조금씩 늘려볼까요?';
+  if (has.exercise && !has.meal) return '운동 체크 남기셨어요. 식사도 챙기면 더 좋아요.';
+  if (has.sleep && !has.meal) return '푹 주무셨네요. 식사는 어떠셨나요?';
+  if (has.meal && !has.sleep) return '식사 기록 남기셨네요. 수면도 함께 남겨볼까요?';
+  return '오늘 기록 이어가고 계세요. 계속 함께 해요.';
 }
 
 function countAnswered(log) {

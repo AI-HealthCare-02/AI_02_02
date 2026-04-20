@@ -114,50 +114,35 @@ export function invalidateMissedCache() {
 
 /* ───── 입력 위젯 (간소화 · 셀 인라인 편집용) ───── */
 
-function ChipGroup({ options, value, onChange }) {
+/**
+ * 통일된 드롭다운 위젯. boolean/number 값은 문자열로 직렬화해 <option>에 바인딩하고,
+ * onChange에서 parse 콜백으로 원래 타입 복원.
+ */
+function SelectField({ value, options, placeholder = '선택', onChange, parse = (v) => v }) {
+  const toStr = (v) => (v === null || v === undefined ? '' : String(v));
   return (
-    <div className="mqm-chips" role="radiogroup">
+    <select
+      className="mqm-select"
+      value={toStr(value)}
+      onChange={(e) => onChange(parse(e.target.value))}
+    >
+      <option value="" disabled>
+        {placeholder}
+      </option>
       {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          role="radio"
-          aria-checked={value === opt.value}
-          className={`mqm-chip ${value === opt.value ? 'is-selected' : ''}`}
-          onClick={() => onChange(opt.value)}
-        >
+        <option key={toStr(opt.value)} value={toStr(opt.value)}>
           {opt.label}
-        </button>
+        </option>
       ))}
-    </div>
+    </select>
   );
 }
 
-function Stepper({ value, onChange, min = 0, max = 20, step = 1, unit = '잔' }) {
-  return (
-    <div className="mqm-stepper">
-      <button
-        type="button"
-        className="mqm-stepper__btn"
-        onClick={() => onChange(Math.max(min, value - step))}
-        disabled={value <= min}
-        aria-label="감소"
-      >
-        −
-      </button>
-      <span className="mqm-stepper__val">{value}{unit}</span>
-      <button
-        type="button"
-        className="mqm-stepper__btn"
-        onClick={() => onChange(Math.min(max, value + step))}
-        disabled={value >= max}
-        aria-label="증가"
-      >
-        +
-      </button>
-    </div>
-  );
-}
+const parseBool = (v) => (v === 'true' ? true : v === 'false' ? false : null);
+const parseInt10 = (v) => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? n : 0;
+};
 
 /**
  * 카테고리별 간이 편집기 (cell inline edit)
@@ -185,79 +170,87 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
     switch (categoryKey) {
       case 'sleep':
         return (
-          <ChipGroup
+          <SelectField
+            value={draft.sleep_quality}
             options={[
               { value: 'excellent', label: '잘 잤음' },
               { value: 'good', label: '그럭저럭' },
               { value: 'normal', label: '뒤척임' },
               { value: 'bad', label: '푹 못 잠' },
             ]}
-            value={draft.sleep_quality}
             onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
           />
         );
       case 'meal':
         return (
-          <ChipGroup
+          <SelectField
+            value={draft.breakfast_status}
             options={[
               { value: 'hearty', label: '든든히' },
               { value: 'light', label: '간단히' },
               { value: 'skipped', label: '못먹음' },
             ]}
-            value={draft.breakfast_status}
             onChange={(v) => setDraft({ ...draft, breakfast_status: v })}
           />
         );
       case 'medication':
         return (
-          <ChipGroup
+          <SelectField
+            value={draft.took_medication}
             options={[
               { value: true, label: '드셨어요' },
               { value: false, label: '건너뜀' },
             ]}
-            value={draft.took_medication}
+            parse={parseBool}
             onChange={(v) => setDraft({ ...draft, took_medication: v })}
           />
         );
       case 'exercise':
         return (
-          <ChipGroup
+          <SelectField
+            value={draft.exercise_done}
             options={[
               { value: true, label: '했음' },
               { value: false, label: '쉼' },
             ]}
-            value={draft.exercise_done}
+            parse={parseBool}
             onChange={(v) => setDraft({ ...draft, exercise_done: v })}
           />
         );
       case 'water':
         return (
-          <Stepper
-            value={draft.water_cups ?? 0}
+          <SelectField
+            value={draft.water_cups}
+            options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
+              value: n,
+              label: n === 10 ? '10잔 이상' : `${n}잔`,
+            }))}
+            parse={parseInt10}
             onChange={(v) => setDraft({ ...draft, water_cups: v })}
           />
         );
       case 'mood':
         return (
-          <ChipGroup
+          <SelectField
+            value={draft.mood_level}
             options={[
               { value: 'great', label: '아주 좋음' },
               { value: 'good', label: '좋음' },
               { value: 'normal', label: '보통' },
               { value: 'hard', label: '힘듦' },
             ]}
-            value={draft.mood_level}
             onChange={(v) => setDraft({ ...draft, mood_level: v })}
           />
         );
       case 'alcohol':
         return (
-          <ChipGroup
+          <SelectField
+            value={draft.alcohol_today}
             options={[
               { value: false, label: '안 마심' },
               { value: true, label: '마심' },
             ]}
-            value={draft.alcohol_today}
+            parse={parseBool}
             onChange={(v) => setDraft({ ...draft, alcohol_today: v })}
           />
         );
@@ -366,12 +359,7 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
     onClose();
   }, [editingCell, onClose]);
 
-  const handleCellClick = (key, date, isToday) => {
-    if (isToday) {
-      setToast(t('rightPanel.missedModal.todayLockedHint'));
-      setTimeout(() => setToast(null), 2500);
-      return;
-    }
+  const handleCellClick = (key, date) => {
     setEditingCell({ key, date });
   };
 
@@ -421,11 +409,10 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
   if (!open) return null;
   if (typeof document === 'undefined') return null;
 
-  // Day columns 구성
+  // Day columns 구성 — 오늘은 우측 Today 카드에서 입력하므로 모달에서는 제외
   const dayCols = [
-    { date: todayISO, label: t('rightPanel.missedModal.columns.today'), log: todayLog, isToday: true },
-    { date: pastDates[0], label: t('rightPanel.missedModal.columns.yesterday'), log: pastDays?.[0]?.log, isToday: false },
-    { date: pastDates[1], label: t('rightPanel.missedModal.columns.dayBefore'), log: pastDays?.[1]?.log, isToday: false },
+    { date: pastDates[0], label: t('rightPanel.missedModal.columns.yesterday'), log: pastDays?.[0]?.log },
+    { date: pastDates[1], label: t('rightPanel.missedModal.columns.dayBefore'), log: pastDays?.[1]?.log },
   ];
 
   return createPortal(
@@ -488,17 +475,17 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
                     return (
                       <td
                         key={col.date}
-                        className={`mqm-cell mqm-cell--empty ${col.isToday ? 'mqm-cell--locked' : ''}`}
+                        className="mqm-cell mqm-cell--empty"
                         role="button"
                         tabIndex={0}
-                        onClick={() => handleCellClick(cat.key, col.date, col.isToday)}
+                        onClick={() => handleCellClick(cat.key, col.date)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            handleCellClick(cat.key, col.date, col.isToday);
+                            handleCellClick(cat.key, col.date);
                           }
                         }}
-                        aria-label={`${col.label} ${cat.name} 미입력${col.isToday ? ' · 오늘 기록은 우측 카드에서 입력' : ' · 클릭하면 입력'}`}
+                        aria-label={`${col.label} ${cat.name} 미입력 · 클릭하면 입력`}
                       >
                         <span className="mqm-cell__plus" aria-hidden="true">＋</span>
                         <span>{t('rightPanel.missedModal.empty')}</span>
