@@ -510,6 +510,46 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 
+const DETAIL_CACHE_PREFIX = 'danaa:report:detail:v1';
+const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function detailCacheKey(userId, periodDays) {
+  return userId == null ? null : `${DETAIL_CACHE_PREFIX}:u${userId}:${periodDays}`;
+}
+
+function readDetailCache(cacheKey) {
+  if (typeof window === 'undefined' || !cacheKey) return null;
+  try {
+    const raw = sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts > DETAIL_CACHE_TTL_MS) return null;
+    return parsed.payload;
+  } catch {
+    return null;
+  }
+}
+
+function writeDetailCache(cacheKey, payload) {
+  if (typeof window === 'undefined' || !cacheKey) return;
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), payload }));
+  } catch {
+    // ignore
+  }
+}
+
+function clearDetailCaches() {
+  if (typeof window === 'undefined') return;
+  try {
+    Object.keys(sessionStorage)
+      .filter((key) => key.startsWith(`${DETAIL_CACHE_PREFIX}:`))
+      .forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+}
+
 export default function ReportDetailPage() {
   const [periodDays, setPeriodDays] = useState(7);
   const [status,  setStatus]  = useState(null);
@@ -519,12 +559,40 @@ export default function ReportDetailPage() {
   const [error,   setError]   = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      setLoaded(false); setError('');
+      setError('');
+
+      // user_id가 확인된 경우에만 사용자별 상세 캐시를 사용한다.
+      // 확인 실패 시 캐시를 건너뛰어 계정 전환 간 데이터 노출을 막는다.
+      let currentUserId = null;
+      try {
+        const userRes = await api('/api/v1/users/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          currentUserId = userData?.id ?? null;
+        }
+      } catch {
+        currentUserId = null;
+      }
+      const cacheKey = detailCacheKey(currentUserId, periodDays);
+
+      const cached = readDetailCache(cacheKey);
+      if (cached) {
+        setStatus(cached.status);
+        setSummary(cached.summary);
+        setLogs(cached.logs || []);
+        setLoaded(true);
+      } else {
+        setLoaded(false);
+      }
+
       try {
         const statusRes = await api('/api/v1/onboarding/status');
         if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
         const statusData = await statusRes.json();
+        if (cancelled) return;
         setStatus(statusData);
 
         if (statusData.is_completed) {
@@ -533,26 +601,46 @@ export default function ReportDetailPage() {
             api(`/api/v1/analysis/summary?period=${periodDays}`),
             ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
           ]);
-          setSummary(summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null);
+          if (cancelled) return;
+          const summaryData = summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null;
+          setSummary(summaryData);
           const dailyLogs = await Promise.all(
             dailyResponses.map(async (res, i) => {
               if (res.status !== 'fulfilled' || !res.value.ok) return { log_date: dates[i] };
               return res.value.json();
             }),
           );
+          if (cancelled) return;
           setLogs(dailyLogs);
+          writeDetailCache(cacheKey, { status: statusData, summary: summaryData, logs: dailyLogs });
           if (summaryRes.status === 'rejected' || !summaryRes.value?.ok) setError('일부 데이터를 불러오지 못했어요.');
+        } else {
+          writeDetailCache(cacheKey, { status: statusData, summary: null, logs: [] });
         }
       } catch (err) {
         console.error('report_detail_load_failed', err);
-        setError('상세 리포트를 불러오지 못했어요.');
-        setSummary(null); setLogs([]);
+        if (!cancelled) {
+          setError('상세 리포트를 불러오지 못했어요.');
+          setSummary(null); setLogs([]);
+        }
       } finally {
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     }
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [periodDays]);
+
+  // 건강 기록 저장 이벤트로 상세 캐시도 무효화
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handler = () => clearDetailCaches();
+    window.addEventListener('danaa:report-cache-refresh', handler);
+    return () => window.removeEventListener('danaa:report-cache-refresh', handler);
+  }, []);
 
   const hasOnboarding = Boolean(status?.is_completed);
   const currentLogs   = useMemo(() => logs.slice(-periodDays),                  [logs, periodDays]);

@@ -389,6 +389,11 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
+    // 리포트 캐시 무효화 — 건강 기록이 바뀌었으니 다음 리포트 진입 시 서버 값으로 재조회
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('danaa:report-cache-refresh'));
+    }
+
     // field_results 분석
     const skipped = [];
     const accepted = [];

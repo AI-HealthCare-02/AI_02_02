@@ -85,7 +85,9 @@ async def _generate_weekly_reports() -> tuple[int, int, int]:
                     skip_count += 1
                     continue
 
-                await service.recalculate_risk(user.id)
+                # 코칭(OpenAI)은 자정 일괄 호출 비용 방지 차 생략 —
+                # 사용자가 리포트 진입 시 `/risk/coaching`이 on-demand로 생성한다.
+                await service.recalculate_risk(user.id, generate_coaching=False)
                 ok_count += 1
 
             except Exception:

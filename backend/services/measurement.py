@@ -33,6 +33,9 @@ class MeasurementService:
             source=data.source,
             measured_at=data.measured_at,
         )
+        # 허리둘레·체중 등은 위험도에 직접 영향 → 리포트 캐시 무효화
+        from backend.services.risk_analysis import invalidate_report_caches
+        await invalidate_report_caches(user_id)
         return MeasurementResponse(
             id=m.id,
             measurement_type=m.measurement_type,

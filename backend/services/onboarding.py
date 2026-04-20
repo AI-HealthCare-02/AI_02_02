@@ -194,6 +194,10 @@ class OnboardingService:
                 defaults={"state": EngagementState.ACTIVE},
             )
 
+        # 프로필 최초 생성 — 코칭 입력도 달라지므로 코칭 캐시까지 같이 터뜨림
+        from backend.services.risk_analysis import invalidate_report_caches
+        await invalidate_report_caches(user_id, include_coaching=True)
+
         return SurveyResponse(
             health_profile_id=profile.id,
             user_group=user_group,

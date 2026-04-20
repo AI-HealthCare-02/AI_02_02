@@ -732,6 +732,13 @@ export default function SettingsPage() {
                   localStorage.removeItem('danaa_tutorial_pending');
                   localStorage.removeItem('danaa_challenges');
                   localStorage.removeItem('danaa_conversations');
+                  try {
+                    Object.keys(sessionStorage)
+                      .filter((key) => key.startsWith('danaa:report:'))
+                      .forEach((key) => sessionStorage.removeItem(key));
+                  } catch {
+                    // ignore
+                  }
                   window.location.href = '/login';
                 }}
                 className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"

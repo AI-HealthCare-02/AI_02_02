@@ -290,6 +290,10 @@ class HealthDailyService:
         if update_fields:
             await log.save(update_fields=list(dict.fromkeys(update_fields + ["updated_at"])))
 
+        # 건강 기록 변경 → 위험도/이력/요약 캐시 무효화 (코칭은 유지, 다음 6h 내엔 재사용)
+        from backend.services.risk_analysis import invalidate_report_caches
+        await invalidate_report_caches(user_id)
+
         return DailyLogPatchResponse(
             daily_log=await self._attach_missing_summary(
                 user_id=user_id,

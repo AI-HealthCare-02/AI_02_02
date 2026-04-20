@@ -75,9 +75,20 @@ async def run_daily_cron() -> None:
 async def _recalculate_all_risks() -> tuple[int, int]:
     """전체 활성 사용자의 FINDRISC 위험도를 순차 재계산한다.
 
+    AI 코칭(OpenAI) 생성은 스킵 — 자정 일괄 호출은 비용 폭발 원인.
+    대신 재계산 후 ``report:risk:{user_id}`` 캐시를 미리 워밍해서
+    다음 날 첫 리포트 진입자에게 즉시 응답한다.
+
     Returns:
         (성공 건수, 실패 건수) 튜플
     """
+    from backend.core.cache import set_cached
+    from backend.services.risk_analysis import (
+        CACHE_TTL_RISK_SECONDS,
+        invalidate_report_caches,
+        risk_current_cache_key,
+    )
+
     service = RiskAnalysisService()
     ok_count = 0
     fail_count = 0
@@ -91,7 +102,15 @@ async def _recalculate_all_risks() -> tuple[int, int]:
 
         for user in users:
             try:
-                await service.recalculate_risk(user.id)
+                detail = await service.recalculate_risk(user.id, generate_coaching=False)
+                # 기존 report:* 캐시 무효화 후 최신 값 프리워밍
+                await invalidate_report_caches(user.id)
+                if detail is not None:
+                    await set_cached(
+                        risk_current_cache_key(user.id),
+                        detail.model_dump(mode="json"),
+                        ttl_seconds=CACHE_TTL_RISK_SECONDS,
+                    )
                 ok_count += 1
             except Exception:
                 fail_count += 1
