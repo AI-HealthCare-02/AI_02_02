@@ -92,6 +92,84 @@ def test_state_layer_formats_live_state_and_explains_pending_card_reason():
     assert "기분 상태" not in layer
 
 
+# ─── 신규 intent 5종: 섹션 매핑 확인 ────────────────────────────────────
+
+
+def test_help_layer_right_panel_intent():
+    context = ChatAppContext(
+        intent=ChatAppIntent.RIGHT_PANEL_HELP,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert "- 우측 Today 패널:" in layer
+    # 다른 섹션은 포함되지 않아야 함
+    assert "- 채팅:" not in layer
+    assert "- 리포트:" not in layer
+
+
+def test_help_layer_sidebar_intent():
+    context = ChatAppContext(
+        intent=ChatAppIntent.SIDEBAR_HELP,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert "- 사이드바:" in layer
+    assert "왼쪽" in layer or "새 대화" in layer
+
+
+def test_help_layer_settings_intent_mentions_password():
+    context = ChatAppContext(
+        intent=ChatAppIntent.SETTINGS_HELP,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert "- 설정:" in layer
+    assert "비밀번호" in layer or "테마" in layer
+
+
+def test_help_layer_onboarding_intent():
+    context = ChatAppContext(
+        intent=ChatAppIntent.ONBOARDING_HELP,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert "- 온보딩:" in layer
+
+
+def test_help_layer_missed_modal_intent():
+    context = ChatAppContext(
+        intent=ChatAppIntent.MISSED_MODAL_HELP,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert "- 미응답 모달:" in layer
+    assert "어제" in layer or "그제" in layer or "오늘" in layer
+
+
+# ─── 길이 제한 ─────────────────────────────────────────────────────────
+
+
+def test_help_layer_single_intent_within_1500_chars():
+    context = ChatAppContext(
+        intent=ChatAppIntent.RIGHT_PANEL_HELP,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert len(layer) <= 1500, f"단일 intent help_layer가 1500자 초과: {len(layer)}"
+
+
+def test_help_layer_mixed_intent_within_2200_chars():
+    context = ChatAppContext(
+        intent=ChatAppIntent.MIXED,
+        help_snapshot=build_default_help_snapshot(),
+    )
+    layer = build_app_help_layer(context)
+    assert len(layer) <= 2200, f"MIXED help_layer가 2200자 초과: {len(layer)}"
+
+
+# ─── 기존 호환성 ────────────────────────────────────────────────────────
+
+
 def test_logger_redacts_app_context_fields():
     event = {
         "message": "test",
