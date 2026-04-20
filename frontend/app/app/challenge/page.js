@@ -422,7 +422,7 @@ export default function ChallengePage() {
       return {
         template_id: item.template_id,
         badge_tier: 'unranked',
-        badge_label: 'UNRANKED',
+        badge_label: '미획득',
         name: item.name,
         category: item.category,
         code: item.code,
