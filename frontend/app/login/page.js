@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { MessageCircle } from 'lucide-react';
 import { api, setToken } from '../../hooks/useApi';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_SOCIAL_AUTH_BASE
+  || process.env.NEXT_PUBLIC_API_BASE
+  || 'http://localhost:8000';
 
 const TERMS_CONTENT = `다나아 서비스 이용약관
 

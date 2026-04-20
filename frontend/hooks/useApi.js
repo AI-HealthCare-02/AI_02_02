@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '');
 const TOKEN_KEY = 'danaa_token';
 const DEV_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
 const REFRESH_COOKIE = 'refresh_token'; // httpOnly — 백엔드가 관리
