@@ -351,13 +351,30 @@ function LoadingScreen({ step }) {
 }
 
 // ── sessionStorage 메모리 캐시 유틸 (5분 TTL) ───────────────────────────────
-const REPORT_CACHE_KEY = 'danaa:report:dashboard:v1';
+const REPORT_CACHE_PREFIX = 'danaa:report:dashboard:v1';
 const REPORT_CACHE_TTL_MS = 5 * 60 * 1000;
 
-function readReportCache() {
-  if (typeof window === 'undefined') return null;
+function reportCacheKey(userId) {
+  return userId == null ? null : `${REPORT_CACHE_PREFIX}:u${userId}`;
+}
+
+function removeSessionKeysByPrefix(prefix) {
+  if (typeof window === 'undefined') return;
   try {
-    const raw = sessionStorage.getItem(REPORT_CACHE_KEY);
+    Object.keys(sessionStorage)
+      .filter((key) => key === prefix || key.startsWith(`${prefix}:`))
+      .forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+}
+
+function readReportCache(userId) {
+  if (typeof window === 'undefined') return null;
+  const key = reportCacheKey(userId);
+  if (!key) return null;
+  try {
+    const raw = sessionStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.ts || Date.now() - parsed.ts > REPORT_CACHE_TTL_MS) return null;
@@ -367,22 +384,19 @@ function readReportCache() {
   }
 }
 
-function writeReportCache(payload) {
+function writeReportCache(userId, payload) {
   if (typeof window === 'undefined') return;
+  const key = reportCacheKey(userId);
+  if (!key) return;
   try {
-    sessionStorage.setItem(REPORT_CACHE_KEY, JSON.stringify({ ts: Date.now(), payload }));
+    sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), payload }));
   } catch {
     // quota 초과 등 무시
   }
 }
 
 function clearReportCache() {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.removeItem(REPORT_CACHE_KEY);
-  } catch {
-    // ignore
-  }
+  removeSessionKeysByPrefix(REPORT_CACHE_PREFIX);
 }
 
 export default function ReportPage() {
@@ -419,8 +433,21 @@ export default function ReportPage() {
     async function load() {
       setError('');
 
+      // 사용자별 캐시 키를 만들 수 있을 때만 sessionStorage를 사용한다.
+      // user_id가 없으면 계정 전환 시 다른 사람 리포트가 보일 수 있어 캐시를 건너뛴다.
+      let currentUserId = null;
+      try {
+        const userRes = await api('/api/v1/users/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          currentUserId = userData?.id ?? null;
+        }
+      } catch {
+        currentUserId = null;
+      }
+
       // ① sessionStorage 캐시 HIT → 즉시 렌더 + 백그라운드 재검증
-      const cached = readReportCache();
+      const cached = readReportCache(currentUserId);
       if (cached) {
         setStatus(cached.status);
         setRisk(cached.risk);
@@ -438,7 +465,7 @@ export default function ReportPage() {
         setStatus(statusData);
 
         if (!statusData.is_completed) {
-          writeReportCache({ status: statusData, risk: null, history: [], summary: null });
+          writeReportCache(currentUserId, { status: statusData, risk: null, history: [], summary: null });
           return;
         }
 
@@ -460,7 +487,7 @@ export default function ReportPage() {
         setHistory(historyJson.history || []);
         setSummary(summaryData);
 
-        writeReportCache({
+        writeReportCache(currentUserId, {
           status: statusData,
           risk: riskData,
           history: historyJson.history || [],
