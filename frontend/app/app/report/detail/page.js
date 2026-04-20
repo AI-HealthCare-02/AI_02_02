@@ -18,6 +18,26 @@ const CATEGORY_META = {
   hydration: { label: '수분',   icon: Droplets,        color: '#3b82f6', bg: 'bg-blue-50',    text: 'text-blue-500',    goal: '1.2L'  },
 };
 
+const REFERENCE_LINES = {
+  sleep:     { value: 7,   label: '기준 7h'    },
+  diet:      { value: 70,  label: '기준 70점'  },
+  exercise:  { value: 21,  label: '기준 21분'  },
+  hydration: { value: 1.2, label: '기준 1.2L' },
+};
+
+const CHART_WIDTH = 640;
+const CHART_HEIGHT = 170;
+const CHART_LEFT = 40;
+const CHART_RIGHT = 16;
+const CHART_TOP = 14;
+const CHART_BOTTOM = 28;
+const CHART_RIGHT_X = CHART_WIDTH - CHART_RIGHT;
+const CHART_BASE_Y = CHART_HEIGHT - CHART_BOTTOM;
+const TOOLTIP_WIDTH = 138;
+const TOOLTIP_HEIGHT = 54;
+const TOOLTIP_OFFSET = 10;
+const REFERENCE_LINE_COLOR = 'color-mix(in srgb, var(--color-text) 52%, #ef4444 48%)';
+
 const SLEEP_HOURS = {
   under_5: 4.5, between_5_6: 5.5, between_6_7: 6.5, between_7_8: 7.5, over_8: 8.5,
 };
@@ -61,12 +81,38 @@ function maxSeriesValue(series) {
   return values.length ? Math.max(...values, 1) : 1;
 }
 
-function seriesToPoints(series, maxValue, width = 640, height = 170) {
-  const left = 40, right = 16, top = 14, bottom = 28;
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function valueToChartY(value, maxValue, height = CHART_HEIGHT) {
+  const safeMax = Math.max(maxValue || 1, 1);
+  return height - CHART_BOTTOM - (value / safeMax) * (height - CHART_TOP - CHART_BOTTOM);
+}
+
+function getTooltipPosition(x, y) {
+  const placeLeft = x + TOOLTIP_OFFSET + TOOLTIP_WIDTH > CHART_RIGHT_X;
+  const tooltipX = placeLeft ? x - TOOLTIP_WIDTH - TOOLTIP_OFFSET : x + TOOLTIP_OFFSET;
+  return {
+    x: clamp(tooltipX, CHART_LEFT, CHART_RIGHT_X - TOOLTIP_WIDTH),
+    y: clamp(y - TOOLTIP_HEIGHT - TOOLTIP_OFFSET, CHART_TOP, CHART_BASE_Y - TOOLTIP_HEIGHT),
+  };
+}
+
+function formatSeriesValue(category, value) {
+  if (value == null) return '기록 없음';
+  if (category === 'sleep') return `${Number(value).toFixed(Number.isInteger(value) ? 0 : 1)}시간`;
+  if (category === 'diet') return `${Math.round(value)}점`;
+  if (category === 'exercise') return `${Math.round(value)}분`;
+  if (category === 'hydration') return `${Number(value).toFixed(1)}L`;
+  return String(value);
+}
+
+function seriesToPoints(series, maxValue, width = CHART_WIDTH, height = CHART_HEIGHT) {
   return series.map((value, i) => {
-    const x = left + i * ((width - left - right) / Math.max(1, series.length - 1));
+    const x = CHART_LEFT + i * ((width - CHART_LEFT - CHART_RIGHT) / Math.max(1, series.length - 1));
     if (value == null) return [x, null];
-    return [x, height - bottom - (value / maxValue) * (height - top - bottom)];
+    return [x, valueToChartY(value, maxValue, height)];
   });
 }
 
@@ -212,19 +258,59 @@ function ComparisonCard({ item }) {
 function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
   const meta           = CATEGORY_META[category];
   const Icon           = meta.icon;
+  const referenceLine  = REFERENCE_LINES[category];
+  const [activeDatum, setActiveDatum] = useState(null);
   const currentSeries  = useMemo(() => buildSeries(currentLogs, category),  [currentLogs, category]);
   const previousSeries = useMemo(() => buildSeries(previousLogs, category), [previousLogs, category]);
   const labels         = useMemo(() => currentLogs.map((l) => formatDateLabel(l.log_date)), [currentLogs]);
-  const maxValue       = useMemo(() => maxSeriesValue([currentSeries, previousSeries]), [currentSeries, previousSeries]);
+  const maxValue       = useMemo(
+    () => maxSeriesValue([currentSeries, previousSeries, referenceLine ? [referenceLine.value] : []]),
+    [currentSeries, previousSeries, referenceLine],
+  );
   const currentPoints  = useMemo(() => seriesToPoints(currentSeries, maxValue),  [currentSeries, maxValue]);
   const previousPoints = useMemo(() => seriesToPoints(previousSeries, maxValue), [previousSeries, maxValue]);
   const smoothPath     = useMemo(() => buildSmoothPath(currentPoints),  [currentPoints]);
-  const areaPath       = useMemo(() => buildAreaPath(currentPoints, 142), [currentPoints]);
+  const areaPath       = useMemo(() => buildAreaPath(currentPoints, CHART_BASE_Y), [currentPoints]);
+  const referenceY     = referenceLine ? valueToChartY(referenceLine.value, maxValue) : null;
+  const referenceLabelY = referenceY == null ? null : Math.max(CHART_TOP + 4, referenceY - 6);
+  const showReferenceLabel = labels.length <= 10;
   const gradId         = `grad-${category}`;
+  const chartTitleId   = `chart-title-${category}`;
+  const chartDescId    = `chart-desc-${category}`;
+  const tooltipId      = `chart-tooltip-${category}`;
+  const referenceValue = referenceLine ? formatSeriesValue(category, referenceLine.value) : '';
+  const activeTooltip  = activeDatum ? getTooltipPosition(activeDatum.x, activeDatum.y) : null;
 
   const delta   = comparison?.delta_pct;
   const isUp    = (delta ?? 0) > 0;
   const isDown  = (delta ?? 0) < 0;
+
+  useEffect(() => {
+    setActiveDatum(null);
+  }, [category, currentLogs]);
+
+  function showDatum(index) {
+    const value = currentSeries[index];
+    const point = currentPoints[index];
+    if (value == null || !point || point[1] == null) {
+      setActiveDatum(null);
+      return;
+    }
+    setActiveDatum({
+      index,
+      x: point[0],
+      y: point[1],
+      label: labels[index] || '',
+      value,
+      valueLabel: formatSeriesValue(category, value),
+    });
+  }
+
+  function datumAriaLabel(index) {
+    const label = labels[index] || '';
+    const value = formatSeriesValue(category, currentSeries[index]);
+    return `${label} ${meta.label} 현재 값 ${value}. 비교 기준 ${referenceValue}`;
+  }
 
   return (
     <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
@@ -249,7 +335,17 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
         )}
       </div>
 
-      <svg width="100%" viewBox="0 0 640 170" style={{ display: 'block' }}>
+      <svg
+        width="100%"
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        role="group"
+        aria-labelledby={`${chartTitleId} ${chartDescId}`}
+        style={{ display: 'block' }}
+      >
+        <title id={chartTitleId}>{meta.label} 추이 그래프</title>
+        <desc id={chartDescId}>
+          현재 값, 이전 기간, 비교 기준선을 함께 표시합니다. 데이터 포인트에 포커스하거나 마우스를 올리면 현재 값을 확인할 수 있습니다.
+        </desc>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor={meta.color} stopOpacity="0.2" />
@@ -257,9 +353,37 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
           </linearGradient>
         </defs>
 
-        <line x1="40" y1="142" x2="624" y2="142" stroke="#e7e5e4" />
-        <line x1="40" y1="88"  x2="624" y2="88"  stroke="#f5f5f4" strokeDasharray="4 4" />
-        <line x1="40" y1="34"  x2="624" y2="34"  stroke="#f5f5f4" strokeDasharray="4 4" />
+        <line x1={CHART_LEFT} y1={CHART_BASE_Y} x2={CHART_RIGHT_X} y2={CHART_BASE_Y} stroke="#e7e5e4" />
+        <line x1={CHART_LEFT} y1="88"  x2={CHART_RIGHT_X} y2="88"  stroke="#f5f5f4" strokeDasharray="4 4" />
+        <line x1={CHART_LEFT} y1="34"  x2={CHART_RIGHT_X} y2="34"  stroke="#f5f5f4" strokeDasharray="4 4" />
+
+        {referenceLine && referenceY != null && (
+          <g aria-hidden="true">
+            <line
+              x1={CHART_LEFT}
+              y1={referenceY}
+              x2={CHART_RIGHT_X}
+              y2={referenceY}
+              stroke={REFERENCE_LINE_COLOR}
+              strokeOpacity="0.72"
+              strokeWidth="1.25"
+              strokeDasharray="10 7"
+              strokeLinecap="round"
+            />
+            {showReferenceLabel && (
+              <text
+                x={CHART_RIGHT_X - 4}
+                y={referenceLabelY}
+                textAnchor="end"
+                fontSize="11"
+                fontWeight="600"
+                fill={REFERENCE_LINE_COLOR}
+              >
+                {referenceLine.label}
+              </text>
+            )}
+          </g>
+        )}
 
         <polyline
           points={buildPrevPolyline(previousPoints)}
@@ -273,11 +397,28 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
 
         {category === 'exercise' ? (
           currentSeries.map((value, i) => {
+            if (value == null) return null;
             const x = currentPoints[i]?.[0] ?? 0;
-            const y = currentPoints[i]?.[1] ?? 142;
+            const y = currentPoints[i]?.[1] ?? CHART_BASE_Y;
+            const barHeight = Math.max(0, CHART_BASE_Y - y);
+            const hitHeight = Math.max(36, barHeight);
+            const hitY = CHART_BASE_Y - hitHeight;
             return (
-              <rect key={`bar-${i}`} x={x - 7} y={y} width="14" height={Math.max(0, 142 - y)} rx="4"
-                fill={meta.color} opacity="0.8" />
+              <g
+                key={`bar-${i}`}
+                role="img"
+                tabIndex={0}
+                aria-label={datumAriaLabel(i)}
+                aria-describedby={activeDatum?.index === i ? tooltipId : undefined}
+                onPointerEnter={() => showDatum(i)}
+                onPointerMove={() => showDatum(i)}
+                onPointerLeave={() => setActiveDatum(null)}
+                onFocus={() => showDatum(i)}
+                onBlur={() => setActiveDatum(null)}
+              >
+                <rect x={x - 7} y={y} width="14" height={barHeight} rx="4" fill={meta.color} opacity="0.8" />
+                <rect x={x - 12} y={hitY} width="24" height={hitHeight} rx="6" fill="transparent" pointerEvents="all" />
+              </g>
             );
           })
         ) : (
@@ -286,7 +427,19 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
             {smoothPath && <path d={smoothPath} fill="none" stroke={meta.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
             {currentPoints.map(([x, y], i) =>
               y == null ? null : (
-                <g key={`pt-${i}`}>
+                <g
+                  key={`pt-${i}`}
+                  role="img"
+                  tabIndex={0}
+                  aria-label={datumAriaLabel(i)}
+                  aria-describedby={activeDatum?.index === i ? tooltipId : undefined}
+                  onPointerEnter={() => showDatum(i)}
+                  onPointerMove={() => showDatum(i)}
+                  onPointerLeave={() => setActiveDatum(null)}
+                  onFocus={() => showDatum(i)}
+                  onBlur={() => setActiveDatum(null)}
+                >
+                  <circle cx={x} cy={y} r="14" fill="transparent" pointerEvents="all" />
                   {i === currentPoints.length - 1 && <circle cx={x} cy={y} r="12" fill={meta.color} opacity="0.1" />}
                   <circle cx={x} cy={y} r="4" fill="white" stroke={meta.color} strokeWidth="2.5" />
                 </g>
@@ -300,18 +453,52 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
             {i % Math.max(1, Math.ceil(labels.length / 6)) === 0 || i === labels.length - 1 ? label : ''}
           </text>
         ))}
+
+        {activeTooltip && activeDatum && (
+          <g id={tooltipId} role="tooltip" pointerEvents="none">
+            <rect
+              x={activeTooltip.x}
+              y={activeTooltip.y}
+              width={TOOLTIP_WIDTH}
+              height={TOOLTIP_HEIGHT}
+              rx="8"
+              fill="var(--color-surface)"
+              stroke="var(--color-border)"
+              strokeWidth="1"
+            />
+            <rect x={activeTooltip.x + 9} y={activeTooltip.y + 10} width="3" height="34" rx="1.5" fill={meta.color} />
+            <text x={activeTooltip.x + 20} y={activeTooltip.y + 18} fontSize="10" fontWeight="600" fill="var(--color-text-muted)">
+              {activeDatum.label}
+            </text>
+            <text x={activeTooltip.x + 20} y={activeTooltip.y + 34} fontSize="12" fontWeight="700" fill="var(--color-text)">
+              현재 값: {activeDatum.valueLabel}
+            </text>
+            <text x={activeTooltip.x + 20} y={activeTooltip.y + 48} fontSize="10" fontWeight="600" fill="var(--color-text-muted)">
+              비교 기준: {referenceValue}
+            </text>
+          </g>
+        )}
       </svg>
 
       <div className="mt-3 flex items-center justify-between gap-4">
         <div className="flex gap-4 text-[11px] text-stone-400">
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-4 rounded" style={{ backgroundColor: meta.color }} />
-            현재
+            현재 값
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-4 border-t-2 border-dashed border-stone-300" />
-            이전
+            이전 기간
           </div>
+          {referenceLine && (
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-4 border-t border-dashed"
+                style={{ borderTopColor: REFERENCE_LINE_COLOR, opacity: 0.72 }}
+              />
+              비교 기준
+            </div>
+          )}
         </div>
         <div className="text-[12px] text-stone-500">
           {categoryInterpretation(meta, comparison)}

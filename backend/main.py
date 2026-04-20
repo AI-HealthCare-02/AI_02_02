@@ -119,7 +119,7 @@ app = FastAPI(
     openapi_url=None if _is_prod else "/api/openapi.json",
 )
 
-setup_cors(app)
 setup_rate_limit(app)
+setup_cors(app)
 
 app.include_router(v1_routers)

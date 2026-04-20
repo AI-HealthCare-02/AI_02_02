@@ -140,7 +140,7 @@ function getTrendInsight(points, mode, summary) {
 
 function ReportTabs() {
   return (
-    <div className="border-b border-black/[.06]">
+    <div>
       <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
         <div className="inline-flex items-center border-b-2 border-nature-500 px-5 py-3 text-[14px] font-semibold text-nature-900">
           대시보드
@@ -417,7 +417,7 @@ export default function ReportPage() {
   if (!loaded) {
     return (
       <div className="theme-report-page flex h-full flex-col">
-        <header className="flex h-12 shrink-0 items-center border-b border-[#F5F5F4] bg-white px-4">
+        <header className="flex h-12 shrink-0 items-center px-4">
           <span className="text-[14px] font-medium text-nature-900">리포트</span>
         </header>
         <ReportTabs />
@@ -428,7 +428,7 @@ export default function ReportPage() {
 
   return (
     <div className="theme-report-page flex h-full flex-col">
-      <header className="h-12 shrink-0 border-b border-[#F5F5F4] bg-white px-4">
+      <header className="h-12 shrink-0 px-4">
         <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
       </header>
       <ReportTabs />
