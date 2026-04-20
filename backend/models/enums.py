@@ -329,6 +329,7 @@ class ChallengeStatus(StrEnum):
     PAUSED = "paused"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class CheckinStatus(StrEnum):

@@ -40,15 +40,37 @@ class ChallengeService:
         await delete_cached(f"dash:challenge:{user_id}")
 
     async def get_overview(self, user_id: int) -> ChallengeOverviewResponse:
-        """챌린지 전체 조회 (활성 + 완료 + 추천)."""
+        """챌린지 전체 조회 (활성 + 완료 + 추천).
+
+        ``today_checked``는 ``ChallengeCheckin`` 테이블을 **오늘 날짜로 직접 조회**하여
+        매 요청마다 계산한다 — 자정 크론 누락/타임존 드리프트에도 내구성 확보.
+        """
         user_challenges = await UserChallenge.filter(
             user_id=user_id,
         ).prefetch_related("template").order_by("-created_at")
+
+        today = date.today()
+        active_uc_ids = [
+            uc.id for uc in user_challenges if uc.status == ChallengeStatus.ACTIVE
+        ]
+        today_checked_ids: set[int] = set()
+        if active_uc_ids:
+            today_checked_ids = set(
+                await ChallengeCheckin.filter(
+                    user_challenge_id__in=active_uc_ids,
+                    checkin_date=today,
+                ).values_list("user_challenge_id", flat=True)
+            )
 
         active: list[ChallengeOverviewItem] = []
         completed: list[ChallengeOverviewItem] = []
 
         for uc in user_challenges:
+            computed_today_checked = (
+                uc.id in today_checked_ids
+                if uc.status == ChallengeStatus.ACTIVE
+                else bool(uc.today_checked)
+            )
             item = ChallengeOverviewItem(
                 user_challenge_id=uc.id,
                 template_id=uc.template_id,
@@ -63,7 +85,7 @@ class ChallengeService:
                 started_at=uc.started_at,
                 target_days=uc.target_days,
                 days_completed=uc.days_completed,
-                today_checked=uc.today_checked,
+                today_checked=computed_today_checked,
                 selection_source=uc.selection_source,
             )
             if uc.status == ChallengeStatus.ACTIVE:
@@ -71,12 +93,25 @@ class ChallengeService:
             elif uc.status == ChallengeStatus.COMPLETED:
                 completed.append(item)
 
+        # 오늘 체크인한 템플릿 ID 집합 — 당일 재참여 차단 플래그 계산용
+        checked_today_template_ids: set[int] = set()
+        user_uc_ids = [uc.id for uc in user_challenges]
+        if user_uc_ids:
+            rows = await ChallengeCheckin.filter(
+                user_challenge_id__in=user_uc_ids,
+                checkin_date=today,
+            ).values("user_challenge_id")
+            checked_uc_id_set = {r["user_challenge_id"] for r in rows}
+            checked_today_template_ids = {
+                uc.template_id for uc in user_challenges if uc.id in checked_uc_id_set
+            }
+
         # 추천 챌린지
         from backend.models.health import HealthProfile
         profile = await HealthProfile.get_or_none(user_id=user_id)
         user_group = profile.user_group.value if profile and hasattr(profile.user_group, "value") else (profile.user_group if profile else "C")
-        recommended = await self._get_recommended(user_id, user_group)
-        catalog = await self._get_catalog(user_id, user_group, recommended)
+        recommended = await self._get_recommended(user_id, user_group, checked_today_template_ids)
+        catalog = await self._get_catalog(user_id, user_group, recommended, checked_today_template_ids)
 
         return ChallengeOverviewResponse(
             active=active,
@@ -126,6 +161,20 @@ class ChallengeService:
                 detail="이미 진행 중인 챌린지입니다.",
             )
 
+        # 같은 템플릿을 오늘 체크인한 이력이 있으면 당일 재참여 차단
+        # (취소 후 재선택 시 하루에 같은 챌린지 2번 체크인되는 왜곡 방지)
+        today = date.today()
+        checkin_today = await ChallengeCheckin.filter(
+            user_challenge__user_id=user_id,
+            user_challenge__template_id=template_id,
+            checkin_date=today,
+        ).exists()
+        if checkin_today:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="오늘 체크인한 챌린지는 내일부터 다시 시작할 수 있습니다.",
+            )
+
         now = datetime.now(tz=config.TIMEZONE)
         uc = await UserChallenge.create(
             user_id=user_id,
@@ -144,6 +193,41 @@ class ChallengeService:
             started_at=uc.started_at,
             target_days=uc.target_days,
         )
+
+    async def cancel_challenge(
+        self, user_id: int, user_challenge_id: int
+    ) -> dict:
+        """챌린지 취소 (soft delete, ``status=CANCELLED``).
+
+        - 진행 중(``ACTIVE``)인 챌린지만 취소 가능.
+        - 오늘 체크인 기록이 있어도 **취소는 허용** — 체크인 레코드는 이력으로 보존.
+        - 다만 같은 템플릿의 **당일 재참여**는 ``join_challenge``에서 차단되어
+          하루에 같은 챌린지 2번 체크인되는 데이터 왜곡을 방지한다.
+        """
+        uc = await UserChallenge.get_or_none(
+            id=user_challenge_id, user_id=user_id,
+        )
+        if not uc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="챌린지를 찾을 수 없습니다.",
+            )
+        if uc.status != ChallengeStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="진행 중인 챌린지만 취소할 수 있습니다.",
+            )
+
+        uc.status = ChallengeStatus.CANCELLED
+        uc.completed_at = datetime.now(tz=config.TIMEZONE)
+        uc.today_checked = False
+        await uc.save()
+        await self._invalidate_user_caches(user_id)
+
+        return {
+            "user_challenge_id": uc.id,
+            "status": uc.status.value,
+        }
 
     async def checkin(
         self,
@@ -242,7 +326,10 @@ class ChallengeService:
         )
 
     async def _get_recommended(
-        self, user_id: int, user_group: str
+        self,
+        user_id: int,
+        user_group: str,
+        checked_today_template_ids: set[int] | None = None,
     ) -> list[ChallengeRecommendedItem]:
         """추천 챌린지 목록."""
         # 이미 진행중인 템플릿 ID
@@ -250,6 +337,7 @@ class ChallengeService:
             user_id=user_id, status=ChallengeStatus.ACTIVE,
         ).values_list("template_id", flat=True)
 
+        blocked = checked_today_template_ids or set()
         templates = await ChallengeTemplate.filter(is_active=True)
         recommended: list[ChallengeRecommendedItem] = []
 
@@ -265,6 +353,7 @@ class ChallengeService:
                 category=t.category,
                 description=t.description,
                 default_duration_days=t.default_duration_days,
+                blocked_today=t.id in blocked,
             ))
 
         return recommended[:5]
@@ -274,8 +363,10 @@ class ChallengeService:
         user_id: int,
         user_group: str,
         recommended: list[ChallengeRecommendedItem],
+        checked_today_template_ids: set[int] | None = None,
     ) -> list[ChallengeCatalogItem]:
         recommended_ids = {item.template_id for item in recommended}
+        blocked = checked_today_template_ids or set()
         templates = await ChallengeTemplate.filter(is_active=True).order_by("category", "id")
 
         catalog: list[ChallengeCatalogItem] = []
@@ -292,6 +383,7 @@ class ChallengeService:
                     description=template.description,
                     default_duration_days=template.default_duration_days,
                     is_recommended=template.id in recommended_ids,
+                    blocked_today=template.id in blocked,
                 )
             )
 

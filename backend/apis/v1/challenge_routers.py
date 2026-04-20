@@ -40,6 +40,22 @@ async def join_challenge(
     )
 
 
+@challenge_router.post("/{user_challenge_id}/cancel", status_code=status.HTTP_200_OK)
+async def cancel_challenge(
+    user_challenge_id: int,
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[ChallengeService, Depends(ChallengeService)],
+) -> Response:
+    """챌린지 취소 (진행 중인 챌린지만, 오늘 체크인 전)."""
+    result = await service.cancel_challenge(
+        user_id=user.id, user_challenge_id=user_challenge_id,
+    )
+    return Response(
+        content=result,
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @challenge_router.post("/{user_challenge_id}/checkin", status_code=status.HTTP_200_OK)
 async def checkin(
     user_challenge_id: int,

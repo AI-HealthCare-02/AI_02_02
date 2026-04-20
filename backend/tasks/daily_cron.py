@@ -1,9 +1,10 @@
-"""매일 자정(KST) 크론 — FINDRISC 재계산 + 참여 상태 갱신.
+"""매일 자정(KST) 크론 — FINDRISC 재계산 + 참여 상태 갱신 + 챌린지 일일 리셋.
 
 실행 시점: 매일 00:00 KST (APScheduler CronTrigger)
 처리 내용:
   1. 전체 활성 사용자 FINDRISC 위험도 재계산 (BATCH_SIZE=100, 순차 처리)
   2. 전체 사용자 참여 상태(EngagementState) 갱신 — ORM 2회 조회 + 배치 업데이트
+  3. 활성 챌린지의 ``today_checked`` 필드를 False로 리셋 (hot path 캐시 일관성)
 
 분산 락으로 다중 인스턴스 환경에서 중복 실행을 방지한다.
 """
@@ -19,7 +20,8 @@ from tortoise.functions import Count, Max
 from backend.core import config
 from backend.core.logger import setup_logger
 from backend.models.assessments import UserEngagement
-from backend.models.enums import EngagementState
+from backend.models.challenges import UserChallenge
+from backend.models.enums import ChallengeStatus, EngagementState
 from backend.models.health import DailyHealthLog
 from backend.models.users import User
 from backend.services.risk_analysis import RiskAnalysisService
@@ -50,14 +52,17 @@ async def run_daily_cron() -> None:
 
         risk_ok, risk_fail = await _recalculate_all_risks()
         eng_ok, eng_fail = await _update_all_engagements()
+        reset_count = await _reset_challenge_today_checked()
 
         elapsed = time.monotonic() - t0
         logger.info(
-            "=== 일일 크론 완료 — risk(ok=%d, fail=%d) engagement(ok=%d, fail=%d) elapsed=%.1fs ===",
+            "=== 일일 크론 완료 — risk(ok=%d, fail=%d) engagement(ok=%d, fail=%d) "
+            "today_reset=%d elapsed=%.1fs ===",
             risk_ok,
             risk_fail,
             eng_ok,
             eng_fail,
+            reset_count,
             elapsed,
         )
 
@@ -203,3 +208,30 @@ async def _update_all_engagements() -> tuple[int, int]:
 
     logger.info("참여 상태 갱신 완료 — ok=%d, fail=%d", ok_count, fail_count)
     return ok_count, fail_count
+
+
+# ──────────────────────────────────────────────
+#  3) 챌린지 today_checked 일일 리셋
+# ──────────────────────────────────────────────
+
+
+async def _reset_challenge_today_checked() -> int:
+    """활성 챌린지의 ``today_checked`` 플래그를 False로 일괄 초기화.
+
+    ``get_overview`` 는 ``ChallengeCheckin`` 조회로 오늘 체크인 여부를 동적 계산하지만,
+    ``UserChallenge.today_checked`` 필드 역시 일관성을 위해 매일 자정에 리셋한다.
+    크론 누락 시에도 동적 계산이 우선이므로 UX에는 영향 없다.
+
+    Returns:
+        갱신된 레코드 수 (백엔드 로그/모니터링용).
+    """
+    try:
+        count = await UserChallenge.filter(
+            status=ChallengeStatus.ACTIVE,
+            today_checked=True,
+        ).update(today_checked=False)
+        logger.info("챌린지 today_checked 리셋 완료 — count=%d", count)
+        return count
+    except Exception:
+        logger.exception("챌린지 today_checked 리셋 실패")
+        return 0
