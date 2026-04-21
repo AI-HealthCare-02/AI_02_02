@@ -1,0 +1,142 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Brain,
+  Calendar,
+  FolderKanban,
+  HeartPulse,
+  Inbox,
+  ListChecks,
+  Shield,
+  StickyNote,
+} from 'lucide-react';
+
+import { STORAGE_KEY, loadThoughts } from '../../../lib/doit_store';
+import ClassifiedBoard from '../../../components/doit/ClassifiedBoard';
+
+export default function DoItOsDashboard() {
+  const [thoughts, setThoughts] = useState([]);
+
+  useEffect(() => {
+    setThoughts(loadThoughts());
+    const onStorage = (event) => {
+      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const recent = useMemo(
+    () => thoughts.filter((t) => !t.category).slice(-5).reverse(),
+    [thoughts],
+  );
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[1400px] px-6 py-8 md:px-10">
+        <header className="mb-8">
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--color-text)]">
+            Do it OS
+          </h1>
+          <p className="mt-2 text-[15px] text-[var(--color-text-secondary)]">
+            오늘 머릿속을 꺼내서 정리해요.
+          </p>
+        </header>
+
+        <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div className="doit-card">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Inbox size={16} className="text-[var(--color-text-secondary)]" />
+                <h2 className="text-[15px] font-semibold">생각 Inbox</h2>
+              </div>
+              <span className="text-[12px] text-[var(--color-text-hint)]">
+                미분류 최근 {recent.length}개
+              </span>
+            </div>
+
+            {recent.length === 0 ? (
+              <p className="py-6 text-center text-[13px] text-[var(--color-text-hint)]">
+                아직 적은 메모가 없어요
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {recent.map((t) => (
+                  <li
+                    key={t.id}
+                    className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2 text-[13px] leading-[1.5]"
+                  >
+                    <p className="line-clamp-2 text-[var(--color-text)]">{t.text}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <Link
+              href="/app/do-it-os/thinking"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+            >
+              <Brain size={13} />
+              더 적으러 가기
+            </Link>
+          </div>
+
+          <div className="doit-card">
+            <div className="mb-3 flex items-center gap-2">
+              <Calendar size={16} className="text-[var(--color-text-secondary)]" />
+              <h2 className="text-[15px] font-semibold">오늘 일정</h2>
+            </div>
+            <div className="py-6 text-center text-[13px] text-[var(--color-text-hint)]">
+              오늘 예정된 일정이 없어요 (준비 중)
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-5 doit-card">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ListChecks size={16} className="text-[var(--color-text-secondary)]" />
+              <h2 className="text-[15px] font-semibold">정리 결과 보드</h2>
+            </div>
+            <Link
+              href="/app/do-it-os/classify"
+              className="text-[12px] text-[var(--color-text-secondary)] hover:underline"
+            >
+              정리하러 가기 →
+            </Link>
+          </div>
+          <ClassifiedBoard
+            thoughts={thoughts}
+            compact
+            emptyHint="생각을 정리하면 여기에 모여요"
+          />
+        </section>
+
+        <section className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {[
+            { icon: FolderKanban, label: '프로젝트', href: '/app/do-it-os/project', desc: '큰 흐름을 묶어요' },
+            { icon: StickyNote, label: '노트', href: '/app/do-it-os/note', desc: '참고할 생각을 보관' },
+            { icon: HeartPulse, label: '건강 단서', href: '/app/do-it-os/note', desc: '몸과 마음 메모' },
+            { icon: Shield, label: '저장 원칙', href: '/app/do-it-os', desc: 'AI가 임의 저장 안 해요' },
+          ].map((card) => (
+            <Link
+              key={card.label}
+              href={card.href}
+              className="doit-card-strip"
+            >
+              <card.icon size={15} className="text-[var(--color-text-secondary)]" />
+              <div className="mt-1.5 text-[13px] font-medium text-[var(--color-text)]">
+                {card.label}
+              </div>
+              <div className="mt-0.5 text-[11.5px] leading-[1.45] text-[var(--color-text-hint)]">
+                {card.desc}
+              </div>
+            </Link>
+          ))}
+        </section>
+      </div>
+    </div>
+  );
+}

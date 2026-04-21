@@ -5,13 +5,22 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   BarChart3,
+  Brain,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
   Droplet,
+  FolderKanban,
   Heart,
   HeartPulse,
   HelpCircle,
+  LayoutGrid,
+  ListChecks,
   MessageSquare,
   Scale,
+  StickyNote,
   Target,
+  Zap,
 } from 'lucide-react';
 
 import AppGuideModal from './AppGuideModal';
@@ -22,10 +31,25 @@ const CHAT_PATH = '/app/chat';
 const CHAT_NEW_QUERY_KEY = 'new';
 const CHAT_NEW_QUERY_VALUE = '1';
 
+const DOIT_HREF = '/app/do-it-os';
+
 const navItems = [
   { icon: MessageSquare, label: 'AI 채팅', href: CHAT_PATH },
   { icon: BarChart3, label: '리포트', href: '/app/report' },
   { icon: Target, label: '챌린지', href: '/app/challenge' },
+  {
+    icon: Zap,
+    label: 'Do it OS',
+    href: DOIT_HREF,
+    subitems: [
+      { icon: LayoutGrid, label: '대시보드', href: DOIT_HREF },
+      { icon: Brain, label: '생각 쏟기', href: `${DOIT_HREF}/thinking` },
+      { icon: ListChecks, label: '정리 명료화', href: `${DOIT_HREF}/classify` },
+      { icon: FolderKanban, label: '프로젝트', href: `${DOIT_HREF}/project` },
+      { icon: Calendar, label: '일정', href: `${DOIT_HREF}/schedule` },
+      { icon: StickyNote, label: '노트', href: `${DOIT_HREF}/note` },
+    ],
+  },
 ];
 
 const categories = [
@@ -67,6 +91,7 @@ export default function Sidebar({ productGuide = null }) {
   const [userName, setUserName] = useState('사용자');
   const [userGroup, setUserGroup] = useState('온보딩 미완료');
   const [userInitial, setUserInitial] = useState('?');
+  const [expandedKeys, setExpandedKeys] = useState(() => new Set(['Do it OS']));
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,6 +143,15 @@ export default function Sidebar({ productGuide = null }) {
     setActiveSessionId(Number.isFinite(sessionId) && sessionId > 0 ? sessionId : null);
     setActiveIsNew(isNew);
   }, [pathname, searchParams]);
+
+  const toggleExpanded = (label) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handler = (event) => {
@@ -206,21 +240,71 @@ export default function Sidebar({ productGuide = null }) {
           {navItems.map((item) => {
             const href = item.href === CHAT_PATH ? chatHref : item.href;
             const active = pathname.startsWith(item.href);
+            const hasSub = Boolean(item.subitems?.length);
+            const isExpanded = expandedKeys.has(item.label);
+
             return (
-              <Link
-                key={item.label}
-                href={href}
-                className={`flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[14px] whitespace-nowrap transition-colors ${
-                  active
-                    ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
-                    : 'text-neutral-400 hover:bg-cream-400'
-                }`}
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                  <item.icon size={18} />
-                </span>
-                {open && <span>{item.label}</span>}
-              </Link>
+              <div key={item.label}>
+                {hasSub && open ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(item.label)}
+                    aria-expanded={isExpanded}
+                    aria-label={`${item.label} 하위 메뉴 ${isExpanded ? '접기' : '펼치기'}`}
+                    className={`flex h-10 w-full items-center gap-2.5 overflow-hidden rounded-lg px-2 text-left text-[14px] whitespace-nowrap transition-colors ${
+                      active
+                        ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
+                        : 'text-neutral-400 hover:bg-cream-400'
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                      <item.icon size={18} />
+                    </span>
+                    <span className="flex-1">{item.label}</span>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-text-hint)]">
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    href={href}
+                    className={`flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[14px] whitespace-nowrap transition-colors ${
+                      active
+                        ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
+                        : 'text-neutral-400 hover:bg-cream-400'
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                      <item.icon size={18} />
+                    </span>
+                    {open && <span>{item.label}</span>}
+                  </Link>
+                )}
+
+                {hasSub && open && isExpanded && (
+                  <ul className="mb-1 ml-4 mt-0.5 space-y-0.5 border-l-2 border-[var(--color-border)] pl-2.5">
+                    {item.subitems.map((sub) => {
+                      const subActive = pathname === sub.href;
+                      return (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            className={`flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors ${
+                              subActive
+                                ? 'bg-[var(--color-nav-active)] font-medium text-nature-900'
+                                : 'text-neutral-400 hover:bg-cream-400'
+                            }`}
+                          >
+                            <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${subActive ? 'bg-nature-500' : 'bg-[var(--color-text-hint)]/60'}`} />
+                            <sub.icon size={13} className="shrink-0" />
+                            <span className="truncate">{sub.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             );
           })}
         </nav>

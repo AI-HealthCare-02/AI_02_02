@@ -1,0 +1,205 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { Calendar, Inbox, Undo2 } from 'lucide-react';
+
+import {
+  getByCategory,
+  loadThoughts,
+  saveThoughts,
+  unclassifyThought,
+  updateThoughtMeta,
+} from '../../lib/doit_store';
+
+function formatTime(iso) {
+  try {
+    const d = new Date(iso);
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  } catch {
+    return '';
+  }
+}
+
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function bucketByDate(items) {
+  const today = todayIso();
+  const tomorrow = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const buckets = { overdue: [], today: [], tomorrow: [], upcoming: [], unscheduled: [] };
+  for (const t of items) {
+    if (!t.scheduledDate) {
+      buckets.unscheduled.push(t);
+    } else if (t.scheduledDate < today) {
+      buckets.overdue.push(t);
+    } else if (t.scheduledDate === today) {
+      buckets.today.push(t);
+    } else if (t.scheduledDate === tomorrow) {
+      buckets.tomorrow.push(t);
+    } else {
+      buckets.upcoming.push(t);
+    }
+  }
+  // 날짜 오름차순 정렬 (overdue·upcoming)
+  buckets.overdue.sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate));
+  buckets.upcoming.sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate));
+  return buckets;
+}
+
+export default function CategoryListView({
+  categoryId,
+  categoryTone,
+  title,
+  subtitle,
+  icon: Icon,
+  showDate = false,
+}) {
+  const [thoughts, setThoughts] = useState([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setThoughts(loadThoughts());
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveThoughts(thoughts);
+  }, [thoughts, hydrated]);
+
+  const items = getByCategory(thoughts, categoryId);
+
+  const handleUnclassify = (id) => {
+    setThoughts((prev) => unclassifyThought(prev, id));
+  };
+  const handleDateChange = (id, date) => {
+    setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledDate: date || null }));
+  };
+
+  const renderItem = (t) => (
+    <li
+      key={t.id}
+      className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
+    >
+      <div className="flex items-start gap-2">
+        <p className="flex-1 text-[14px] leading-[1.55] text-[var(--color-text)] whitespace-pre-wrap break-words">
+          {t.text}
+        </p>
+        <button
+          type="button"
+          onClick={() => handleUnclassify(t.id)}
+          aria-label="Inbox로 되돌리기"
+          className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] text-[var(--color-text-hint)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
+        >
+          <Undo2 size={12} />
+          Inbox로
+        </button>
+      </div>
+      <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-hint)]">
+        <span>쏟은 시각 · {formatTime(t.createdAt)}</span>
+        {showDate && (
+          <label className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-[11.5px]">
+            <Calendar size={11} />
+            <input
+              type="date"
+              value={t.scheduledDate || ''}
+              onChange={(event) => handleDateChange(t.id, event.target.value)}
+              className="border-none bg-transparent text-[11.5px] text-[var(--color-text)] focus:outline-none"
+            />
+          </label>
+        )}
+      </div>
+    </li>
+  );
+
+  const empty = (
+    <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-6 py-12 text-center">
+      <p className="text-[14px] text-[var(--color-text-secondary)]">
+        아직 <strong>{title}</strong>로 정리한 메모가 없어요.
+      </p>
+      <p className="mt-1 text-[13px] text-[var(--color-text-hint)]">
+        <Link href="/app/do-it-os/classify" className="underline hover:no-underline">
+          정리 명료화
+        </Link>
+        {' '}페이지에서 <strong>{title}</strong>로 분류해 보세요.
+      </p>
+    </div>
+  );
+
+  const renderBuckets = () => {
+    const buckets = bucketByDate(items);
+    const sections = [
+      { key: 'overdue', label: '기한 지남', items: buckets.overdue, hint: '빠르게 확인해 주세요' },
+      { key: 'today', label: '오늘', items: buckets.today },
+      { key: 'tomorrow', label: '내일', items: buckets.tomorrow },
+      { key: 'upcoming', label: '앞으로', items: buckets.upcoming },
+      { key: 'unscheduled', label: '날짜 미정', items: buckets.unscheduled, hint: '날짜를 설정하면 위로 이동해요' },
+    ];
+
+    return (
+      <div className="space-y-6">
+        {sections.map((sec) => sec.items.length > 0 && (
+          <div key={sec.key}>
+            <div className="mb-2 flex items-baseline gap-2">
+              <h2 className="text-[14px] font-semibold text-[var(--color-text)]">
+                {sec.label}
+              </h2>
+              <span className="text-[12px] text-[var(--color-text-hint)]">
+                {sec.items.length}개{sec.hint ? ` · ${sec.hint}` : ''}
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {sec.items.map(renderItem)}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[900px] px-6 py-8 md:px-10">
+        <header className="mb-6">
+          <div className="flex items-center gap-1.5">
+            {Icon && <Icon size={18} className="text-[var(--color-text-secondary)]" />}
+            <h1 className="text-[22px] font-bold tracking-tight text-[var(--color-text)]">
+              {title}
+            </h1>
+            <span
+              className={`doit-cat-chip doit-cat-${categoryTone} ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium`}
+            >
+              {items.length}개
+            </span>
+          </div>
+          {subtitle && (
+            <p className="mt-1 text-[13.5px] text-[var(--color-text-secondary)]">
+              {subtitle}
+            </p>
+          )}
+        </header>
+
+        <section>
+          {items.length === 0 ? empty : showDate ? renderBuckets() : (
+            <ul className="space-y-2">{items.map(renderItem)}</ul>
+          )}
+        </section>
+
+        <div className="mt-8 flex items-center gap-2 text-[12px] text-[var(--color-text-hint)]">
+          <Inbox size={12} />
+          <Link href="/app/do-it-os/classify" className="hover:underline">
+            미분류 Inbox로 이동
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

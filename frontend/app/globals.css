@@ -985,3 +985,195 @@ html[data-contrast="high"] {
   .mqm-head { padding: 18px 18px 12px; }
   .mqm-body { padding: 12px 14px 18px; }
 }
+
+/* ── Do it OS ───────────────────────────────────────────────
+ * 메모 카드 5색 파스텔 (라이트/다크) + 대시보드·캔버스 스타일.
+ * 규칙: 다른 기능에서 var(--doit-*) 참조 금지. Do it OS 전용.
+ * 색상 확정 근거: docs/design/do_it_os_undecided_resolved.md §2 (버전 B, 2026-04-21)
+ */
+
+html[data-theme="light"] {
+  --doit-memo-cream:    #FFF5E6;
+  --doit-memo-stone:    #F0EDE8;
+  --doit-memo-mint:     #EBF4EF;
+  --doit-memo-lavender: #EDE8F4;
+  --doit-memo-blush:    #F7E9E9;
+  --doit-memo-text:     #111111;
+  --doit-memo-border:   rgba(0, 0, 0, 0.04);
+}
+
+:root,
+html[data-theme="dark"] {
+  --doit-memo-cream:    #544327;
+  --doit-memo-stone:    #4D4538;
+  --doit-memo-mint:     #374F40;
+  --doit-memo-lavender: #423C54;
+  --doit-memo-blush:    #544040;
+  --doit-memo-text:     #ECECEC;
+  --doit-memo-border:   rgba(255, 255, 255, 0.04);
+}
+
+.doit-card {
+  border-radius: 16px;
+  padding: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.doit-card-strip {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
+  text-decoration: none;
+}
+.doit-card-strip:hover {
+  background: var(--color-surface-hover);
+}
+
+.doit-canvas {
+  position: relative;
+  min-height: 360px;
+}
+
+.doit-memo {
+  position: absolute;
+  border-radius: 14px;
+  padding: 14px 16px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.10);
+  border: 1px solid var(--doit-memo-border);
+  color: var(--doit-memo-text);
+  overflow: hidden;
+  opacity: 0;
+  animation: doitMemoIn 0.24s ease-out forwards;
+  transform-origin: center;
+}
+
+.doit-memo-text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+.doit-memo-meta {
+  position: absolute;
+  left: 16px;
+  bottom: 8px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.doit-memo-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.08);
+  color: inherit;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+html[data-theme="dark"] .doit-memo-close {
+  background: rgba(255, 255, 255, 0.08);
+}
+.doit-memo:hover .doit-memo-close,
+.doit-memo:focus-within .doit-memo-close {
+  opacity: 1;
+}
+.doit-memo-close:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+html[data-theme="dark"] .doit-memo-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+@keyframes doitMemoIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doit-memo { animation: none; opacity: 1; }
+}
+
+/* ── Do it OS 카테고리 태그 (5종: blue·yellow·brown·gray·green) ─────────
+ * 사용처: ClassifyView chip, ClassifiedBoard 라벨, 보드 상단 색띠.
+ */
+
+.doit-cat-chip {
+  white-space: nowrap;
+}
+
+html[data-theme="light"] .doit-cat-blue   { background: #E8F1FD; color: #2E5A85; border-color: rgba(74, 127, 181, 0.35); }
+html[data-theme="light"] .doit-cat-yellow { background: #FFF5EB; color: #8E5400; border-color: rgba(224, 120, 0, 0.35); }
+html[data-theme="light"] .doit-cat-brown  { background: #F0E8DB; color: #6B4A28; border-color: rgba(107, 74, 40, 0.35); }
+html[data-theme="light"] .doit-cat-gray   { background: #EFEFEC; color: #555555; border-color: rgba(85, 85, 85, 0.3); }
+html[data-theme="light"] .doit-cat-green  { background: #EBF7ED; color: #2D5E2F; border-color: rgba(45, 94, 47, 0.35); }
+
+:root .doit-cat-blue,
+html[data-theme="dark"] .doit-cat-blue   { background: rgba(74, 127, 181, 0.15); color: #8FB4DE; border-color: rgba(143, 180, 222, 0.3); }
+:root .doit-cat-yellow,
+html[data-theme="dark"] .doit-cat-yellow { background: rgba(224, 120, 0, 0.15); color: #E0A856; border-color: rgba(224, 168, 86, 0.3); }
+:root .doit-cat-brown,
+html[data-theme="dark"] .doit-cat-brown  { background: rgba(133, 98, 59, 0.18); color: #C8A176; border-color: rgba(200, 161, 118, 0.3); }
+:root .doit-cat-gray,
+html[data-theme="dark"] .doit-cat-gray   { background: rgba(200, 200, 200, 0.08); color: #B0B0B0; border-color: rgba(176, 176, 176, 0.25); }
+:root .doit-cat-green,
+html[data-theme="dark"] .doit-cat-green  { background: rgba(61, 124, 63, 0.15); color: #81C086; border-color: rgba(129, 192, 134, 0.3); }
+
+button.doit-cat-chip { cursor: pointer; transition: filter 0.15s ease, transform 0.15s ease; }
+button.doit-cat-chip:hover { filter: brightness(0.95); }
+html[data-theme="dark"] button.doit-cat-chip:hover { filter: brightness(1.15); }
+button.doit-cat-chip:active { transform: scale(0.97); }
+
+.doit-cat-board.doit-cat-blue   { border-top: 3px solid rgba(74, 127, 181, 0.55); }
+.doit-cat-board.doit-cat-yellow { border-top: 3px solid rgba(224, 120, 0, 0.55); }
+.doit-cat-board.doit-cat-brown  { border-top: 3px solid rgba(133, 98, 59, 0.55); }
+.doit-cat-board.doit-cat-gray   { border-top: 3px solid rgba(128, 128, 128, 0.5); }
+.doit-cat-board.doit-cat-green  { border-top: 3px solid rgba(61, 124, 63, 0.55); }
+
+/* 분류 영수증 토스트 */
+.doit-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 16px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.92);
+  color: #ECECEC;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(6px);
+  animation: doitToastIn 0.2s ease-out;
+}
+html[data-theme="light"] .doit-toast {
+  background: rgba(17, 17, 17, 0.95);
+}
+
+@keyframes doitToastIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doit-toast { animation: none; }
+}
