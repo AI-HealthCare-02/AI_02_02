@@ -107,16 +107,24 @@ export default function ThoughtCanvas() {
     return () => resize.disconnect();
   }, []);
 
+  // 생각 쏟기 캔버스는 "미분류 메모"만 보여준다.
+  // 분류된 메모는 정리 명료화·투영 뷰(프로젝트/일정/노트)에서 관리.
+  const visibleThoughts = useMemo(
+    () => thoughts.filter((t) => !t.category),
+    [thoughts],
+  );
+
   const addThought = useCallback(() => {
     const text = draft.trim();
     if (!text) return;
     if (thoughts.length >= MAX_THOUGHTS) return;
-    const lastColor = thoughts.length > 0 ? thoughts[thoughts.length - 1].color : null;
+    const lastVisible = visibleThoughts[visibleThoughts.length - 1];
+    const lastColor = lastVisible ? lastVisible.color : null;
     const next = createThought(text, canvasSize, lastColor);
     setThoughts((prev) => [...prev, next]);
     setDraft('');
     requestAnimationFrame(() => textareaRef.current?.focus());
-  }, [draft, thoughts, canvasSize]);
+  }, [draft, thoughts.length, visibleThoughts, canvasSize]);
 
   const removeThought = useCallback((id) => {
     setThoughts((prev) => prev.filter((t) => t.id !== id));
@@ -129,7 +137,7 @@ export default function ThoughtCanvas() {
     }
   };
 
-  const isEmpty = thoughts.length === 0;
+  const isEmpty = visibleThoughts.length === 0;
 
   const capacityWarning = useMemo(() => {
     if (thoughts.length >= MAX_THOUGHTS * 0.9) {
@@ -172,13 +180,15 @@ export default function ThoughtCanvas() {
         {isEmpty ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="max-w-sm px-6 text-center text-[14px] leading-[1.6] text-[var(--color-text-hint)]">
-              아직 아무것도 없어요.
+              {thoughts.length === 0
+                ? '아직 아무것도 없어요.'
+                : '미분류 메모가 없어요. 모두 정리되었네요!'}
               <br />
-              떠오르는 것부터 적어보세요.
+              {thoughts.length === 0 ? '떠오르는 것부터 적어보세요.' : '또 떠오르는 것을 적어보세요.'}
             </p>
           </div>
         ) : (
-          thoughts.map((t) => (
+          visibleThoughts.map((t) => (
             <div
               key={t.id}
               className="doit-memo group"
@@ -227,8 +237,8 @@ export default function ThoughtCanvas() {
           </button>
         </div>
         <p className="mx-auto mt-2 max-w-[860px] text-[11.5px] text-[var(--color-text-hint)]">
-          {thoughts.length > 0
-            ? `지금 캔버스에 ${thoughts.length}개의 생각이 있어요.`
+          {visibleThoughts.length > 0
+            ? `지금 캔버스에 ${visibleThoughts.length}개의 생각이 있어요 · 정리되면 사라져요`
             : 'AI는 스스로 기록하지 않아요. 사용자가 확인한 것만 저장해요.'}
         </p>
       </div>

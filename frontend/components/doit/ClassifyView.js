@@ -7,14 +7,18 @@ import { ArrowRight, Inbox, ListChecks, Undo2 } from 'lucide-react';
 import {
   CATEGORIES,
   CATEGORY_LABELS,
+  STORAGE_KEY,
   classifyThought,
   getSummary,
   getUnclassified,
   loadThoughts,
   saveThoughts,
+  todayIso,
   unclassifyThought,
+  updateThoughtMeta,
 } from '../../lib/doit_store';
 import ClassifiedBoard from './ClassifiedBoard';
+import DateChip from './DateChip';
 
 const TOAST_MS = 3200;
 
@@ -43,6 +47,11 @@ export default function ClassifyView() {
   useEffect(() => {
     setThoughts(loadThoughts());
     setHydrated(true);
+    const onStorage = (event) => {
+      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   useEffect(() => {
@@ -57,23 +66,68 @@ export default function ClassifyView() {
   const unclassified = getUnclassified(thoughts);
   const summary = getSummary(thoughts);
 
+  const clearToastTimer = () => {
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+  };
+
+  const scheduleToastDismiss = useCallback((ms = TOAST_MS) => {
+    clearToastTimer();
+    toastTimerRef.current = window.setTimeout(() => setToast(null), ms);
+  }, []);
+
   const handleClassify = useCallback((id, category) => {
     setLeaving({ id, category });
+
+    // 일정(schedule) 분류 시 기본 날짜를 오늘로 자동 설정 → 원클릭 만족
+    const meta = category === 'schedule' ? { scheduledDate: todayIso() } : {};
+
     window.setTimeout(() => {
-      setThoughts((prev) => classifyThought(prev, id, category));
+      setThoughts((prev) => classifyThought(prev, id, category, meta));
       setLeaving(null);
     }, 220);
 
-    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
-    setToast({ id, category, label: CATEGORY_LABELS[category] });
-    toastTimerRef.current = window.setTimeout(() => setToast(null), TOAST_MS);
-  }, []);
+    setToast({
+      id,
+      category,
+      label: CATEGORY_LABELS[category],
+      scheduledDate: meta.scheduledDate || null,
+    });
+    scheduleToastDismiss();
+  }, [scheduleToastDismiss]);
+
+  const handleToastDateChange = useCallback(
+    (nextDate) => {
+      if (!toast) return;
+      setThoughts((prev) =>
+        updateThoughtMeta(prev, toast.id, { scheduledDate: nextDate || null }),
+      );
+      setToast((prev) => (prev ? { ...prev, scheduledDate: nextDate || null } : prev));
+      scheduleToastDismiss();
+    },
+    [toast, scheduleToastDismiss],
+  );
 
   const handleUndo = useCallback(() => {
     if (!toast) return;
     setThoughts((prev) => unclassifyThought(prev, toast.id));
-    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    clearToastTimer();
     setToast(null);
+  }, [toast]);
+
+  // Escape 키로 토스트 닫기
+  useEffect(() => {
+    if (!toast) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        clearToastTimer();
+        setToast(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [toast]);
 
   return (
@@ -104,19 +158,39 @@ export default function ClassifyView() {
 
           {unclassified.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-6 py-10 text-center">
-              <p className="text-[14px] text-[var(--color-text-secondary)]">
-                정리할 메모가 없어요.
-              </p>
-              <p className="mt-1 text-[13px] text-[var(--color-text-hint)]">
-                먼저 떠오르는 걸 쏟아볼까요?
-              </p>
-              <Link
-                href="/app/do-it-os/thinking"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-cta-bg)] px-3.5 py-1.5 text-[13px] font-medium text-[var(--color-cta-text)] transition-opacity hover:opacity-90"
-              >
-                쏟으러 가기
-                <ArrowRight size={13} />
-              </Link>
+              {summary.total === 0 ? (
+                <>
+                  <p className="text-[14px] text-[var(--color-text-secondary)]">
+                    정리할 메모가 없어요.
+                  </p>
+                  <p className="mt-1 text-[13px] text-[var(--color-text-hint)]">
+                    먼저 떠오르는 걸 쏟아볼까요?
+                  </p>
+                  <Link
+                    href="/app/do-it-os/thinking"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-cta-bg)] px-3.5 py-1.5 text-[13px] font-medium text-[var(--color-cta-text)] transition-opacity hover:opacity-90"
+                  >
+                    쏟으러 가기
+                    <ArrowRight size={13} />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-[14px] text-[var(--color-text-secondary)]">
+                    모두 정리되었어요! 🎉
+                  </p>
+                  <p className="mt-1 text-[13px] text-[var(--color-text-hint)]">
+                    지금까지 {summary.total}개 중 전부 카테고리에 담았어요. 새 생각이 떠오르면 또 쏟아보세요.
+                  </p>
+                  <Link
+                    href="/app/do-it-os/thinking"
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-1.5 text-[13px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                  >
+                    쏟으러 가기
+                    <ArrowRight size={13} />
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <ul className="space-y-2.5">
@@ -167,10 +241,27 @@ export default function ClassifyView() {
       </div>
 
       {toast && (
-        <div className="doit-toast" role="status" aria-live="polite">
+        <div
+          className="doit-toast"
+          role="status"
+          aria-live="polite"
+          onMouseEnter={clearToastTimer}
+          onMouseLeave={() => scheduleToastDismiss()}
+        >
           <span className="text-[13px]">
             <strong className="font-semibold">{toast.label}</strong>에 저장됐어요
           </span>
+          {toast.category === 'schedule' && (
+            <DateChip
+              date={toast.scheduledDate}
+              onChange={handleToastDateChange}
+              onOpenStart={clearToastTimer}
+              onOpenEnd={() => scheduleToastDismiss()}
+              variant="dark"
+              size="sm"
+              placeholder="날짜"
+            />
+          )}
           <button
             type="button"
             onClick={handleUndo}

@@ -2,15 +2,18 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Calendar, Inbox, Undo2 } from 'lucide-react';
+import { ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
+  STORAGE_KEY,
   getByCategory,
   loadThoughts,
   saveThoughts,
+  todayIso,
   unclassifyThought,
   updateThoughtMeta,
 } from '../../lib/doit_store';
+import DateChip from './DateChip';
 
 function formatTime(iso) {
   try {
@@ -19,11 +22,6 @@ function formatTime(iso) {
   } catch {
     return '';
   }
-}
-
-function todayIso() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function bucketByDate(items) {
@@ -61,6 +59,7 @@ export default function CategoryListView({
   subtitle,
   icon: Icon,
   showDate = false,
+  hideHeader = false,
 }) {
   const [thoughts, setThoughts] = useState([]);
   const [hydrated, setHydrated] = useState(false);
@@ -68,6 +67,11 @@ export default function CategoryListView({
   useEffect(() => {
     setThoughts(loadThoughts());
     setHydrated(true);
+    const onStorage = (event) => {
+      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   useEffect(() => {
@@ -84,41 +88,84 @@ export default function CategoryListView({
     setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledDate: date || null }));
   };
 
-  const renderItem = (t) => (
-    <li
-      key={t.id}
-      className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
-    >
-      <div className="flex items-start gap-2">
-        <p className="flex-1 text-[14px] leading-[1.55] text-[var(--color-text)] whitespace-pre-wrap break-words">
-          {t.text}
-        </p>
-        <button
-          type="button"
-          onClick={() => handleUnclassify(t.id)}
-          aria-label="Inbox로 되돌리기"
-          className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] text-[var(--color-text-hint)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
-        >
-          <Undo2 size={12} />
-          Inbox로
-        </button>
-      </div>
-      <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-hint)]">
-        <span>쏟은 시각 · {formatTime(t.createdAt)}</span>
-        {showDate && (
-          <label className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-0.5 text-[11.5px]">
-            <Calendar size={11} />
-            <input
-              type="date"
-              value={t.scheduledDate || ''}
-              onChange={(event) => handleDateChange(t.id, event.target.value)}
-              className="border-none bg-transparent text-[11.5px] text-[var(--color-text)] focus:outline-none"
+  const renderItem = (t) => {
+    const hasDetail = categoryId === 'project';
+    const detailHref = hasDetail ? `/app/do-it-os/${categoryId}/${t.id}` : null;
+    const isDone = categoryId === 'project' && t.projectStatus === 'done';
+
+    const body = (
+      <>
+        <div className="flex items-start gap-2">
+          <p
+            className={`flex-1 text-[14px] leading-[1.55] whitespace-pre-wrap break-words ${
+              isDone
+                ? 'text-[var(--color-text-hint)] line-through'
+                : 'text-[var(--color-text)]'
+            }`}
+          >
+            {t.text}
+          </p>
+          {hasDetail && (
+            <ChevronRight
+              size={14}
+              className="mt-1 shrink-0 text-[var(--color-text-hint)] transition-transform group-hover:translate-x-0.5"
             />
-          </label>
+          )}
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleUnclassify(t.id);
+            }}
+            aria-label="Inbox로 되돌리기"
+            className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] text-[var(--color-text-hint)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
+          >
+            <Undo2 size={12} />
+            Inbox로
+          </button>
+        </div>
+        {categoryId === 'project' && t.description && (
+          <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-[1.5] text-[var(--color-text-secondary)] whitespace-pre-wrap">
+            {t.description}
+          </p>
         )}
-      </div>
-    </li>
-  );
+        <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-hint)]">
+          <span>쏟은 시각 · {formatTime(t.createdAt)}</span>
+          {categoryId === 'project' && t.projectStatus && t.projectStatus !== 'active' && (
+            <span className="rounded-full bg-[var(--color-card-surface-subtle)] px-2 py-0.5 text-[11px]">
+              {t.projectStatus === 'onhold' ? '잠시 중단' : '완료'}
+            </span>
+          )}
+          {showDate && (
+            <div className="ml-auto" onClick={(event) => event.preventDefault()}>
+              <DateChip
+                date={t.scheduledDate}
+                onChange={(value) => handleDateChange(t.id, value)}
+              />
+            </div>
+          )}
+        </div>
+      </>
+    );
+
+    return (
+      <li key={t.id}>
+        {hasDetail ? (
+          <Link
+            href={detailHref}
+            className="group block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:bg-[var(--color-surface-hover)]"
+          >
+            {body}
+          </Link>
+        ) : (
+          <div className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            {body}
+          </div>
+        )}
+      </li>
+    );
+  };
 
   const empty = (
     <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-6 py-12 text-center">
@@ -166,26 +213,28 @@ export default function CategoryListView({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className={hideHeader ? '' : 'flex-1 overflow-y-auto'}>
       <div className="mx-auto w-full max-w-[900px] px-6 py-8 md:px-10">
-        <header className="mb-6">
-          <div className="flex items-center gap-1.5">
-            {Icon && <Icon size={18} className="text-[var(--color-text-secondary)]" />}
-            <h1 className="text-[22px] font-bold tracking-tight text-[var(--color-text)]">
-              {title}
-            </h1>
-            <span
-              className={`doit-cat-chip doit-cat-${categoryTone} ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium`}
-            >
-              {items.length}개
-            </span>
-          </div>
-          {subtitle && (
-            <p className="mt-1 text-[13.5px] text-[var(--color-text-secondary)]">
-              {subtitle}
-            </p>
-          )}
-        </header>
+        {!hideHeader && (
+          <header className="mb-6">
+            <div className="flex items-center gap-1.5">
+              {Icon && <Icon size={18} className="text-[var(--color-text-secondary)]" />}
+              <h1 className="text-[22px] font-bold tracking-tight text-[var(--color-text)]">
+                {title}
+              </h1>
+              <span
+                className={`doit-cat-chip doit-cat-${categoryTone} ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium`}
+              >
+                {items.length}개
+              </span>
+            </div>
+            {subtitle && (
+              <p className="mt-1 text-[13.5px] text-[var(--color-text-secondary)]">
+                {subtitle}
+              </p>
+            )}
+          </header>
+        )}
 
         <section>
           {items.length === 0 ? empty : showDate ? renderBuckets() : (

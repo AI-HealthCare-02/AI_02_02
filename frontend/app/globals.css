@@ -1147,6 +1147,118 @@ button.doit-cat-chip:active { transform: scale(0.97); }
 .doit-cat-board.doit-cat-gray   { border-top: 3px solid rgba(128, 128, 128, 0.5); }
 .doit-cat-board.doit-cat-green  { border-top: 3px solid rgba(61, 124, 63, 0.55); }
 
+/* ── Do it OS 달력 뷰 ──────────────────────────── */
+.doit-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.doit-calendar-cell {
+  aspect-ratio: 1 / 1;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  border: 1px solid transparent;
+  color: var(--color-text);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  text-align: left;
+}
+.doit-calendar-cell:hover {
+  background: var(--color-surface-hover);
+}
+.doit-calendar-cell.out-of-month {
+  opacity: 0.38;
+}
+.doit-calendar-today {
+  background: var(--color-card-surface-subtle);
+  font-weight: 600;
+}
+.doit-calendar-selected {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px;
+}
+.doit-calendar-num {
+  font-size: 12.5px;
+  line-height: 1;
+}
+.doit-calendar-dots {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: auto;
+  align-items: center;
+}
+.doit-calendar-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-text-secondary);
+  opacity: 0.8;
+}
+.doit-calendar-more {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  margin-left: 1px;
+}
+
+/* ── Do it OS 프로젝트 상세 ─────────────────────── */
+.doit-project-status-pill-active {
+  background: rgba(74, 127, 181, 0.12);
+  color: #2E5A85;
+  border-color: rgba(74, 127, 181, 0.4);
+}
+html[data-theme="dark"] .doit-project-status-pill-active,
+:root .doit-project-status-pill-active {
+  background: rgba(74, 127, 181, 0.22);
+  color: #A8C9E6;
+  border-color: rgba(143, 180, 222, 0.45);
+}
+html[data-theme="light"] .doit-project-status-pill-active {
+  background: rgba(74, 127, 181, 0.12);
+  color: #2E5A85;
+  border-color: rgba(74, 127, 181, 0.4);
+}
+
+.doit-project-status-pill-onhold {
+  background: rgba(224, 120, 0, 0.12);
+  color: #8E5400;
+  border-color: rgba(224, 120, 0, 0.4);
+}
+html[data-theme="dark"] .doit-project-status-pill-onhold,
+:root .doit-project-status-pill-onhold {
+  background: rgba(224, 168, 86, 0.18);
+  color: #E0C088;
+  border-color: rgba(224, 168, 86, 0.4);
+}
+html[data-theme="light"] .doit-project-status-pill-onhold {
+  background: rgba(224, 120, 0, 0.12);
+  color: #8E5400;
+  border-color: rgba(224, 120, 0, 0.4);
+}
+
+.doit-project-status-pill-done {
+  background: rgba(61, 124, 63, 0.12);
+  color: #2D5E2F;
+  border-color: rgba(61, 124, 63, 0.4);
+}
+html[data-theme="dark"] .doit-project-status-pill-done,
+:root .doit-project-status-pill-done {
+  background: rgba(61, 124, 63, 0.18);
+  color: #9DCCA0;
+  border-color: rgba(129, 192, 134, 0.4);
+}
+html[data-theme="light"] .doit-project-status-pill-done {
+  background: rgba(61, 124, 63, 0.12);
+  color: #2D5E2F;
+  border-color: rgba(61, 124, 63, 0.4);
+}
+
 /* 분류 영수증 토스트 */
 .doit-toast {
   position: fixed;

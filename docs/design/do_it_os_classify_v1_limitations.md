@@ -1,9 +1,36 @@
-# Do it OS 정리 명료화 v1 — 반영 범위 · 한계 · Phase 4+ 예약 목록
+# Do it OS 정리 명료화 v1/v2 — 반영 범위 · 한계 · Phase 6+ 예약 목록
 
-> **작성**: 2026-04-21
-> **대상 범위**: `frontend/components/doit/ClassifyView.js`, `ClassifiedBoard.js`, `CategoryListView.js`, `lib/doit_store.js`, 각 투영 뷰 페이지
+> **작성**: 2026-04-21 (v1) · 2026-04-21 (v2 업데이트)
+> **대상 범위**: `frontend/components/doit/*`, `frontend/lib/doit_store.js`, 각 투영 뷰 페이지 + `/project/[id]`
 > **왜 있는 문서인가**: Codex 원본(`codex_NEW_DESKTOP_Dev_phase4`)이 **001~010 마이그레이션**을 거쳐 도달한 "점진적 명료화(progressive clarify)" 설계와 비교해 우리가 **무엇을 의도적으로 건너뛰었는지** 기록. 나중에 확장할 때 트리거 기준 제공.
 > **원칙**: 플랜 과잉설계 방지 (`feedback_plan_quality.md`). 실 사용 피드백 없이 이론적 완성도만 올리지 않는다.
+
+## v1 → v2 변경점 (Phase 5 · 2026-04-21)
+
+### 새로 해결된 것
+- ✅ **대시보드 "오늘 일정" 실데이터 연동** — `getTodayScheduled(thoughts)` + `getOverdueScheduled(thoughts)` 유틸. 상위 3건 + "+N개 더" + "기한 지남 N" 배지.
+- ✅ **정리 명료화 토스트 내 인라인 날짜 피커** — 일정 분류 시 기본값 오늘 자동 세팅, 토스트 내 `DateChip(variant="dark")` 즉시 편집. 포커스·hover 중에는 타이머 정지, Escape/되돌리기 즉시 취소.
+- ✅ **프로젝트 상세 페이지** — `/app/do-it-os/project/[id]` dynamic route. 제목·설명·다음 행동 textarea/input debounce(700ms) 자동 저장, 상태 토글 3단계(진행 중·잠시 중단·완료), "분류 해제" confirm.
+- ✅ **일정 페이지 리스트 ↔ 달력 뷰 토글** — 순수 React 7×6 그리드, 월 내비 + "오늘" 버튼, 셀별 도트 최대 3 + "+", 우측 선택 날짜 패널(인라인 DateChip, Inbox로 되돌리기). 모바일은 세로 스택 폴백.
+
+### 데이터 스키마 확장 (하위호환)
+- `description: string | null` — 프로젝트 설명
+- `nextAction: string | null` — 프로젝트 다음 행동
+- `projectStatus: 'active'|'onhold'|'done'|null` — 프로젝트 상태
+- `classifyThought(list, id, category, meta={})` — 시그니처에 meta 추가, 기존 호출 100% 호환
+- 공용 유틸: `todayIso`, `getTodayScheduled`, `getOverdueScheduled`, `getProjectById`, `PROJECT_STATUS_OPTIONS`
+
+### 연계 매트릭스 (v2 기준)
+
+| 작업 | 영향받는 화면 | 반영? |
+|---|---|---|
+| 일정 분류 + 오늘 날짜(자동) | 캔버스(사라짐) · 명료화 리스트(사라짐) · 정리 결과 보드 · **대시보드 오늘 일정** · 일정 리스트 버킷 · 달력 셀 도트 | ✅ 전 화면 동기 |
+| 날짜 변경 (리스트 DateChip) | 달력 뷰 · 대시보드 오늘 일정 | ✅ |
+| 날짜 변경 (달력 우측 패널) | 리스트 뷰 · 대시보드 오늘 일정 | ✅ |
+| 프로젝트 상세에서 description/상태 편집 | 프로젝트 리스트 카드 미리보기 + "완료" 취소선 + 상태 뱃지 | ✅ |
+| 프로젝트 분류 해제 | description/nextAction/projectStatus 동시 null 초기화 (dangling 방지) | ✅ |
+
+### 여전히 남은 한계 (Phase 6+)
 
 ---
 
@@ -31,7 +58,7 @@
 
 ---
 
-## 2. 명시적으로 놓친 것 (Phase 4+ 예약 목록)
+## 2. 명시적으로 놓친 것 (Phase 6+ 예약 목록)
 
 ### 2-1. 할 일(todo) 세분화 · 할 일 전용 페이지 (⭐ 최우선)
 

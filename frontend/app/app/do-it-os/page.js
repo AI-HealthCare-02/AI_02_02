@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
+  ArrowRight,
   Brain,
   Calendar,
   FolderKanban,
@@ -13,8 +15,14 @@ import {
   StickyNote,
 } from 'lucide-react';
 
-import { STORAGE_KEY, loadThoughts } from '../../../lib/doit_store';
+import {
+  STORAGE_KEY,
+  getOverdueScheduled,
+  getTodayScheduled,
+  loadThoughts,
+} from '../../../lib/doit_store';
 import ClassifiedBoard from '../../../components/doit/ClassifiedBoard';
+import { formatFriendlyDate } from '../../../components/doit/DateChip';
 
 export default function DoItOsDashboard() {
   const [thoughts, setThoughts] = useState([]);
@@ -30,6 +38,14 @@ export default function DoItOsDashboard() {
 
   const recent = useMemo(
     () => thoughts.filter((t) => !t.category).slice(-5).reverse(),
+    [thoughts],
+  );
+
+  const todaySchedules = useMemo(() => getTodayScheduled(thoughts), [thoughts]);
+  const todayPreview = todaySchedules.slice(0, 3);
+  const todayOverflow = todaySchedules.length - todayPreview.length;
+  const overdueCount = useMemo(
+    () => getOverdueScheduled(thoughts).length,
     [thoughts],
   );
 
@@ -84,13 +100,67 @@ export default function DoItOsDashboard() {
           </div>
 
           <div className="doit-card">
-            <div className="mb-3 flex items-center gap-2">
-              <Calendar size={16} className="text-[var(--color-text-secondary)]" />
-              <h2 className="text-[15px] font-semibold">오늘 일정</h2>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Calendar size={16} className="text-[var(--color-text-secondary)]" />
+                <h2 className="text-[15px] font-semibold">오늘 일정</h2>
+                {todaySchedules.length > 0 && (
+                  <span className="text-[12px] text-[var(--color-text-hint)]">
+                    {todaySchedules.length}개
+                  </span>
+                )}
+              </div>
+              {overdueCount > 0 && (
+                <Link
+                  href="/app/do-it-os/schedule"
+                  className="inline-flex items-center gap-1 rounded-full bg-[rgba(224,120,0,0.22)] px-2.5 py-0.5 text-[11px] font-semibold text-[#8E5400] hover:bg-[rgba(224,120,0,0.32)] dark:text-[#E0A856]"
+                >
+                  <AlertTriangle size={11} />
+                  기한 지남 {overdueCount}
+                </Link>
+              )}
             </div>
-            <div className="py-6 text-center text-[13px] text-[var(--color-text-hint)]">
-              오늘 예정된 일정이 없어요 (준비 중)
-            </div>
+
+            {todayPreview.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
+                <p className="text-[13px] text-[var(--color-text-hint)]">
+                  오늘 예정된 일정이 없어요
+                </p>
+                <Link
+                  href="/app/do-it-os/classify"
+                  className="mt-2 text-[12px] text-[var(--color-text-secondary)] hover:underline"
+                >
+                  일정으로 정리하러 가기 →
+                </Link>
+              </div>
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {todayPreview.map((t) => (
+                    <li
+                      key={t.id}
+                      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2"
+                    >
+                      <p className="line-clamp-2 text-[13px] leading-[1.5] text-[var(--color-text)]">
+                        {t.text}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                {todayOverflow > 0 && (
+                  <p className="mt-2 text-[11.5px] text-[var(--color-text-hint)]">
+                    +{todayOverflow}개 더
+                  </p>
+                )}
+                <Link
+                  href="/app/do-it-os/schedule"
+                  className="mt-3 inline-flex items-center gap-1 text-[12px] text-[var(--color-text-secondary)] hover:underline"
+                >
+                  일정 전체 보기
+                  <ArrowRight size={11} />
+                </Link>
+              </>
+            )}
           </div>
         </section>
 

@@ -33,10 +33,12 @@ export function saveThoughts(thoughts) {
   }
 }
 
-export function classifyThought(thoughts, id, category) {
+export function classifyThought(thoughts, id, category, meta = {}) {
   const now = new Date().toISOString();
   return thoughts.map((t) =>
-    t.id === id ? { ...t, category, classifiedAt: now } : t,
+    t.id === id
+      ? { ...t, category, classifiedAt: now, ...meta }
+      : t,
   );
 }
 
@@ -49,6 +51,9 @@ export function unclassifyThought(thoughts, id) {
           classifiedAt: null,
           scheduledDate: null,
           urgency: null,
+          description: null,
+          nextAction: null,
+          projectStatus: null,
         }
       : t,
   );
@@ -88,3 +93,41 @@ export function getSummary(thoughts) {
   }
   return summary;
 }
+
+// ── 날짜 유틸 (공용화) ─────────────────────────────────────────
+export function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ── 일정 투영 뷰 ────────────────────────────────────────────
+export function getTodayScheduled(thoughts) {
+  const today = todayIso();
+  return thoughts.filter(
+    (t) => t.category === 'schedule' && t.scheduledDate === today,
+  );
+}
+
+export function getOverdueScheduled(thoughts) {
+  const today = todayIso();
+  return thoughts.filter(
+    (t) =>
+      t.category === 'schedule' &&
+      t.scheduledDate &&
+      t.scheduledDate < today,
+  );
+}
+
+// ── 프로젝트 단건 조회 ────────────────────────────────────────
+export function getProjectById(thoughts, id) {
+  return (
+    thoughts.find((t) => t.id === id && t.category === 'project') || null
+  );
+}
+
+// ── 프로젝트 상태 상수 ────────────────────────────────────────
+export const PROJECT_STATUS_OPTIONS = [
+  { id: 'active', label: '진행 중' },
+  { id: 'onhold', label: '잠시 중단' },
+  { id: 'done', label: '완료' },
+];
