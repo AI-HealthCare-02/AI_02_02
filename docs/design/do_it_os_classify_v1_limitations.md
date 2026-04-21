@@ -5,6 +5,35 @@
 > **왜 있는 문서인가**: Codex 원본(`codex_NEW_DESKTOP_Dev_phase4`)이 **001~010 마이그레이션**을 거쳐 도달한 "점진적 명료화(progressive clarify)" 설계와 비교해 우리가 **무엇을 의도적으로 건너뛰었는지** 기록. 나중에 확장할 때 트리거 기준 제공.
 > **원칙**: 플랜 과잉설계 방지 (`feedback_plan_quality.md`). 실 사용 피드백 없이 이론적 완성도만 올리지 않는다.
 
+## v2 → v3 변경점 (Phase 6 · 2026-04-21)
+
+### 새로 해결된 것
+- ✅ **5 카테고리 일관성** — `ClassifiedBoard` 카드가 Link 래핑되어 클릭 시 카테고리 페이지로 이동 (todo·health는 대시보드로 폴백). `CategoryListView` 의 `CATEGORIES_WITH_DETAIL = {project, note}` 확장으로 노트 카드도 상세 진입.
+- ✅ **점진 분류 패널 (B안)** — `ClassifySlidePanel`. 일정 카테고리만 2단계 (날짜 → 시간, skip 가능). 다른 카테고리는 0단계 "저장" 버튼만. ESC·배경 클릭·[취소] 시 localStorage 변경 0.
+- ✅ **노트 상세 페이지** — `/app/do-it-os/note/[id]` dynamic route. `NoteDetailView` 에 제목·본문(textarea resize-y) 700ms debounce 저장. ProjectDetailView 60% 재사용.
+- ✅ **프로젝트 "다음 행동" 카드 프리셋** — `NextActionCardGrid` 10개 (할 일 추가·일정 잡기·노트 작성·회의 준비·연락하기·조사·학습·결정하기·피드백·리뷰·마감 연장). 클릭 → 새 thought 자동 생성 + 토스트 `[label] 생성됐어요 [보기] [되돌리기]`. 자유 입력은 `<details>` 접힘으로 보존.
+- ✅ **일정 시간 (`scheduledTime`)** — TimeChip 신규. 리스트 뷰·달력 선택 패널에 인라인 편집, 달력 우측 패널은 시간 오름차순 정렬.
+
+### 데이터 스키마 확장 (하위호환)
+- `scheduledTime: 'HH:MM' | null` (일정 전용)
+- `noteBody: string | null` (노트 상세 본문)
+- `projectLinkId: string | null` (G6이 만드는 thought에 예약. UI는 Phase 7+)
+- `getNoteById(list, id)` 유틸 신설
+- `unclassifyThought` → 위 3필드 동시 nullify (dangling 방지)
+
+### 연계 매트릭스 (v3)
+
+| 작업 | 반영되는 화면 |
+|---|---|
+| 일정 패널 저장(오늘 + 14:30) | 캔버스(사라짐) · 명료화 리스트(사라짐) · 정리 결과 보드 · 대시보드 오늘 일정 · 일정 리스트(시간 뱃지) · 달력 우측 패널(14:30 정렬) |
+| 패널 [취소] / ESC / 배경 | localStorage 변경 0, thought 여전히 미분류 |
+| 프로젝트 다음 행동 "할 일 추가" | 새 thought 자동 생성 + 토스트 + 대시보드 todo/정리 결과 보드 반영 |
+| 노트 상세 body 편집 | 리스트 카드 미리보기(Phase 7+ 예약 — 현재 카드엔 본문 미표시) |
+
+### 여전히 남은 한계 (Phase 7+)
+
+---
+
 ## v1 → v2 변경점 (Phase 5 · 2026-04-21)
 
 ### 새로 해결된 것

@@ -1259,6 +1259,49 @@ html[data-theme="light"] .doit-project-status-pill-done {
   border-color: rgba(61, 124, 63, 0.4);
 }
 
+/* ── Do it OS 점진 분류 패널 ──────────────────────── */
+.doit-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 55;
+  animation: doit-panel-fade 0.18s ease-out;
+}
+html[data-theme="dark"] .doit-panel-backdrop,
+:root .doit-panel-backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.doit-classify-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: min(420px, 100vw);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  animation: doit-panel-in 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: right center;
+}
+
+@keyframes doit-panel-in {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to   { transform: translateX(0);    opacity: 1;   }
+}
+@keyframes doit-panel-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doit-classify-panel,
+  .doit-panel-backdrop { animation: none; }
+}
+
 /* 분류 영수증 토스트 */
 .doit-toast {
   position: fixed;

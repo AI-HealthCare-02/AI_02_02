@@ -14,6 +14,7 @@ import {
   updateThoughtMeta,
 } from '../../lib/doit_store';
 import DateChip, { formatFriendlyDate } from './DateChip';
+import TimeChip from './TimeChip';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -98,7 +99,12 @@ export default function CalendarView({ categoryId = 'schedule' }) {
   );
 
   const selectedItems = useMemo(
-    () => items.filter((t) => t.scheduledDate === selected),
+    () =>
+      items
+        .filter((t) => t.scheduledDate === selected)
+        .sort((a, b) =>
+          (a.scheduledTime || '99:99').localeCompare(b.scheduledTime || '99:99'),
+        ),
     [items, selected],
   );
 
@@ -126,6 +132,10 @@ export default function CalendarView({ categoryId = 'schedule' }) {
 
   const handleDateChange = (id, date) => {
     setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledDate: date || null }));
+  };
+
+  const handleTimeChange = (id, time) => {
+    setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledTime: time || null }));
   };
 
   const handleUnclassify = (id) => {
@@ -239,13 +249,24 @@ export default function CalendarView({ categoryId = 'schedule' }) {
                   <p className="text-[13px] leading-[1.5] text-[var(--color-text)] whitespace-pre-wrap">
                     {t.text}
                   </p>
-                  <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--color-text-hint)]">
+                  <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--color-text-hint)]">
+                    {t.scheduledTime && (
+                      <span className="font-semibold text-[var(--color-text)]">
+                        {t.scheduledTime}
+                      </span>
+                    )}
                     <span>쏟은 시각 {formatTime(t.createdAt)}</span>
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-1">
                       <DateChip
                         date={t.scheduledDate}
                         onChange={(value) => handleDateChange(t.id, value)}
                         size="sm"
+                      />
+                      <TimeChip
+                        time={t.scheduledTime}
+                        onChange={(value) => handleTimeChange(t.id, value)}
+                        size="sm"
+                        placeholder="시간"
                       />
                     </div>
                   </div>

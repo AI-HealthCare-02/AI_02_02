@@ -23,19 +23,31 @@
 
 ```
 frontend/app/app/do-it-os/
-├─ page.js                   # 대시보드 (3열 그리드 + 하단 strip)
-├─ thinking/page.js          # 생각넣기 캔버스
-├─ classify/page.js          # 생각정리 (MVP 는 "준비 중")
-├─ project/page.js           # 프로젝트 (MVP 는 "준비 중")
-├─ schedule/page.js          # 일정 (MVP 는 "준비 중")
-└─ note/page.js              # 노트 (MVP 는 "준비 중")
+├─ page.js                   # 대시보드
+├─ thinking/page.js          # 생각쏟기 캔버스
+├─ classify/page.js          # 정리 명료화 (점진 분류 패널 진입)
+├─ project/page.js           # 프로젝트 리스트
+├─ project/[id]/page.js      # 프로젝트 상세 dynamic route (Phase 5)
+├─ schedule/page.js          # 일정 (리스트/달력 토글)
+├─ note/page.js              # 노트 리스트
+└─ note/[id]/page.js         # 노트 상세 dynamic route (Phase 6)
 
 frontend/components/doit/
-├─ ThoughtCanvas.js          # 캔버스 + 메모 카드
-├─ MemoCard.js               # 개별 메모 렌더
-└─ DoitSidebarItem.js        # 사이드바 nested 항목 (선택)
+├─ ThoughtCanvas.js           # 캔버스 + 메모 카드
+├─ ClassifyView.js            # 정리 명료화 본체
+├─ ClassifySlidePanel.js      # 점진 분류 패널 (Phase 6, B안)
+├─ ClassifiedBoard.js         # 5 카테고리 Link 카드 (대시보드·명료화 공유)
+├─ CategoryListView.js        # 카테고리별 리스트 (프로젝트·노트 상세 진입)
+├─ CalendarView.js            # 월 7×6 그리드 (일정)
+├─ DateChip.js                # 날짜 칩 (공용)
+├─ TimeChip.js                # 시간 칩 (일정, Phase 6)
+├─ ProjectDetailView.js       # 프로젝트 상세
+├─ NoteDetailView.js          # 노트 상세 (Phase 6)
+├─ NextActionCardGrid.js      # 프로젝트 다음 행동 10 프리셋 (Phase 6)
+└─ ComingSoonPlaceholder.js   # 준비 중 안내
 
-frontend/doit_mvp_test.mjs   # Playwright E2E (6 시나리오 이내)
+frontend/lib/doit_store.js    # localStorage 유틸 + 공용 상수
+frontend/doit_mvp_test.mjs    # Playwright E2E (6 시나리오 이내)
 ```
 
 ### 2-2. Do it OS MVP 에서 **수정 가능한 파일**

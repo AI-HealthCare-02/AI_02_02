@@ -6,11 +6,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   FolderKanban,
-  Link2,
   PenLine,
   Sparkles,
   Trash2,
 } from 'lucide-react';
+import NextActionCardGrid from './NextActionCardGrid';
 
 import {
   PROJECT_STATUS_OPTIONS,
@@ -235,28 +235,28 @@ export default function ProjectDetailView({ projectId }) {
           />
         </section>
 
-        <section className="mt-4">
+        <section className="mt-6">
           <div className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--color-text)]">
             <Sparkles size={13} className="text-[var(--color-text-secondary)]" />
             다음 행동
           </div>
-          <input
-            type="text"
-            value={nextAction}
-            onChange={handleNextActionChange}
-            placeholder="다음으로 할 일 한 가지 (작고 구체적으로)"
-            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[13.5px] text-[var(--color-text)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-border-focus)] focus:outline-none"
-          />
-        </section>
-
-        <section className="mt-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-4 py-4">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--color-text)]">
-            <Link2 size={13} className="text-[var(--color-text-secondary)]" />
-            연결된 메모
-          </div>
-          <p className="text-[12.5px] leading-[1.55] text-[var(--color-text-hint)]">
-            이 프로젝트와 연결된 할 일·노트를 묶어서 볼 수 있어요. 곧 지원할게요.
+          <p className="mb-3 text-[12px] text-[var(--color-text-hint)]">
+            카드 하나를 고르면 그 자리에서 새 메모가 생성돼요. 생성된 항목은 해당 카테고리에 바로 쌓여요.
           </p>
+          <NextActionCardGrid projectId={projectId} projectTitle={title || project.text} />
+
+          <details className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2">
+            <summary className="cursor-pointer text-[12px] text-[var(--color-text-secondary)] select-none">
+              직접 한 줄로 적기 (선택)
+            </summary>
+            <input
+              type="text"
+              value={nextAction}
+              onChange={handleNextActionChange}
+              placeholder="다음으로 할 일 한 가지 (작고 구체적으로)"
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[13.5px] text-[var(--color-text)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-border-focus)] focus:outline-none"
+            />
+          </details>
         </section>
 
         <footer className="mt-8 flex items-center justify-between border-t border-[var(--color-border)] pt-4 text-[11.5px] text-[var(--color-text-hint)]">

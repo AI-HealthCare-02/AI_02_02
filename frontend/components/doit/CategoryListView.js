@@ -14,6 +14,7 @@ import {
   updateThoughtMeta,
 } from '../../lib/doit_store';
 import DateChip from './DateChip';
+import TimeChip from './TimeChip';
 
 function formatTime(iso) {
   try {
@@ -87,9 +88,14 @@ export default function CategoryListView({
   const handleDateChange = (id, date) => {
     setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledDate: date || null }));
   };
+  const handleTimeChange = (id, time) => {
+    setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledTime: time || null }));
+  };
+
+  const CATEGORIES_WITH_DETAIL = new Set(['project', 'note']);
 
   const renderItem = (t) => {
-    const hasDetail = categoryId === 'project';
+    const hasDetail = CATEGORIES_WITH_DETAIL.has(categoryId);
     const detailHref = hasDetail ? `/app/do-it-os/${categoryId}/${t.id}` : null;
     const isDone = categoryId === 'project' && t.projectStatus === 'done';
 
@@ -138,11 +144,22 @@ export default function CategoryListView({
             </span>
           )}
           {showDate && (
-            <div className="ml-auto" onClick={(event) => event.preventDefault()}>
+            <div
+              className="ml-auto flex items-center gap-1.5"
+              onClick={(event) => event.preventDefault()}
+            >
               <DateChip
                 date={t.scheduledDate}
                 onChange={(value) => handleDateChange(t.id, value)}
               />
+              {t.scheduledDate && (
+                <TimeChip
+                  time={t.scheduledTime}
+                  onChange={(value) => handleTimeChange(t.id, value)}
+                  size="sm"
+                  placeholder="시간"
+                />
+              )}
             </div>
           )}
         </div>
@@ -154,7 +171,8 @@ export default function CategoryListView({
         {hasDetail ? (
           <Link
             href={detailHref}
-            className="group block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:bg-[var(--color-surface-hover)]"
+            prefetch={false}
+            className="group block cursor-pointer rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:border-[var(--color-border-focus)] hover:bg-[var(--color-surface-hover)]"
           >
             {body}
           </Link>

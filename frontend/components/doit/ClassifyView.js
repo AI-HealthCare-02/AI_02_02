@@ -18,6 +18,7 @@ import {
   updateThoughtMeta,
 } from '../../lib/doit_store';
 import ClassifiedBoard from './ClassifiedBoard';
+import ClassifySlidePanel from './ClassifySlidePanel';
 import DateChip from './DateChip';
 
 const TOAST_MS = 3200;
@@ -42,6 +43,7 @@ export default function ClassifyView() {
   const [hydrated, setHydrated] = useState(false);
   const [leaving, setLeaving] = useState(null);
   const [toast, setToast] = useState(null);
+  const [panel, setPanel] = useState(null); // { id, category } | null
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
@@ -78,12 +80,22 @@ export default function ClassifyView() {
     toastTimerRef.current = window.setTimeout(() => setToast(null), ms);
   }, []);
 
+  // 점진 분류 패널 오픈. 칩 클릭 = 즉시 저장 아님(취소 시 변경 0).
   const handleClassify = useCallback((id, category) => {
+    setPanel({ id, category });
+  }, []);
+
+  // 패널 [저장] — 한 번의 classifyThought로 카테고리 + 부속 메타 커밋
+  const handlePanelCommit = useCallback((draft) => {
+    if (!panel) return;
+    const { id, category } = panel;
+    const meta = {};
+    if (category === 'schedule') {
+      meta.scheduledDate = draft?.scheduledDate || todayIso();
+      meta.scheduledTime = draft?.scheduledTime || null;
+    }
+
     setLeaving({ id, category });
-
-    // 일정(schedule) 분류 시 기본 날짜를 오늘로 자동 설정 → 원클릭 만족
-    const meta = category === 'schedule' ? { scheduledDate: todayIso() } : {};
-
     window.setTimeout(() => {
       setThoughts((prev) => classifyThought(prev, id, category, meta));
       setLeaving(null);
@@ -96,7 +108,12 @@ export default function ClassifyView() {
       scheduledDate: meta.scheduledDate || null,
     });
     scheduleToastDismiss();
-  }, [scheduleToastDismiss]);
+    setPanel(null);
+  }, [panel, scheduleToastDismiss]);
+
+  const handlePanelCancel = useCallback(() => {
+    setPanel(null);
+  }, []);
 
   const handleToastDateChange = useCallback(
     (nextDate) => {
@@ -239,6 +256,14 @@ export default function ClassifyView() {
           <ClassifiedBoard thoughts={thoughts} emptyHint="아직 정리된 메모가 없어요" />
         </section>
       </div>
+
+      <ClassifySlidePanel
+        open={Boolean(panel)}
+        thought={panel ? thoughts.find((t) => t.id === panel.id) || null : null}
+        category={panel?.category || null}
+        onCommit={handlePanelCommit}
+        onCancel={handlePanelCancel}
+      />
 
       {toast && (
         <div

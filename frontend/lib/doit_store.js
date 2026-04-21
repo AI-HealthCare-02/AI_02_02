@@ -50,10 +50,12 @@ export function unclassifyThought(thoughts, id) {
           category: null,
           classifiedAt: null,
           scheduledDate: null,
+          scheduledTime: null,
           urgency: null,
           description: null,
           nextAction: null,
           projectStatus: null,
+          noteBody: null,
         }
       : t,
   );
@@ -122,6 +124,13 @@ export function getOverdueScheduled(thoughts) {
 export function getProjectById(thoughts, id) {
   return (
     thoughts.find((t) => t.id === id && t.category === 'project') || null
+  );
+}
+
+// ── 노트 단건 조회 ────────────────────────────────────────
+export function getNoteById(thoughts, id) {
+  return (
+    thoughts.find((t) => t.id === id && t.category === 'note') || null
   );
 }
 
