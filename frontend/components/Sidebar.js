@@ -35,9 +35,6 @@ const CHAT_NEW_QUERY_VALUE = '1';
 const DOIT_HREF = '/app/do-it-os';
 
 const navItems = [
-  { icon: MessageSquare, label: 'AI 채팅', href: CHAT_PATH },
-  { icon: BarChart3, label: '리포트', href: '/app/report' },
-  { icon: Target, label: '챌린지', href: '/app/challenge' },
   {
     icon: Zap,
     label: 'Do it OS',
@@ -52,6 +49,9 @@ const navItems = [
       { icon: Moon, label: '자기 전 정리', href: `${DOIT_HREF}/end-of-day` },
     ],
   },
+  { icon: MessageSquare, label: 'AI 채팅', href: CHAT_PATH },
+  { icon: BarChart3, label: '리포트', href: '/app/report' },
+  { icon: Target, label: '챌린지', href: '/app/challenge' },
 ];
 
 const categories = [
