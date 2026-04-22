@@ -76,6 +76,131 @@ function formatAvgLabel(category, value) {
   return `${value}`;
 }
 
+function buildScorecardComparisonMap(summary) {
+  const scorecard = summary?.scorecard || {};
+  return {
+    sleep: { key: 'sleep', score: scorecard.sleep_score ?? 0, current_value: null, delta_pct: null },
+    diet: { key: 'diet', score: scorecard.diet_score ?? 0, current_value: null, delta_pct: null },
+    exercise: { key: 'exercise', score: scorecard.exercise_score ?? 0, current_value: null, delta_pct: null },
+    hydration: { key: 'hydration', score: 0, current_value: null, delta_pct: null },
+  };
+}
+
+
+// FINDRISC 항목 레이블 (lucide 아이콘 없이 텍스트만)
+const FINDRISC_LABELS = {
+  age:             '나이',
+  bmi:             'BMI (체중)',
+  waist:           '허리둘레',
+  activity:        '운동 부족',
+  vegetable:       '채소 섭취 부족',
+  hypertension:    '고혈압 이력',
+  glucose_history: '고혈당 이력',
+  family:          '가족력',
+};
+
+// 대시보드용 — FINDRISC + AI 신호 종합 원인 분석
+function ScoreBreakdownSection({ risk }) {
+  if (!risk) return null;
+
+  const breakdown = risk.score_breakdown || {};
+  const totalFindrisc = risk.findrisc_score ?? 0;
+  const signals = risk.supporting_signals || [];
+  const actions = risk.recommended_actions || [];
+  const aiScore = risk.predicted_score_pct;
+  const hasAi = risk.model_enabled && aiScore != null;
+
+  // FINDRISC 기여 항목 (점수 > 0)
+  const findriscFactors = Object.entries(breakdown)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  // AI 신호를 FINDRISC 항목과 매핑해서 중복 제거
+  // signal 텍스트 → FINDRISC key 매핑
+  const signalToKey = {
+    'BMI 기반 비만 위험': 'bmi',
+    '운동 부족 경향': 'activity',
+    '수면 부족 경향': null,
+    '식습관 위험': 'vegetable',
+    '혈당 위험 구간 반영': 'glucose_history',
+    '혈압 위험 구간 반영': 'hypertension',
+    '복부비만 위험': 'waist',
+  };
+
+  // FINDRISC에 없는 AI 전용 신호만 추가
+  const findriscKeys = new Set(findriscFactors.map(([k]) => k));
+  const extraSignals = signals.filter((s) => {
+    const mapped = signalToKey[s];
+    return mapped === null || (mapped !== undefined && !findriscKeys.has(mapped));
+  });
+
+  if (findriscFactors.length === 0 && !hasAi) return null;
+
+  return (
+    <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[14px] font-semibold text-stone-800">현재 점수 원인 분석</div>
+          <div className="mt-0.5 text-[12px] text-stone-400">
+            생활습관 {totalFindrisc}점
+            {hasAi && ` · AI 예측 ${aiScore}점`}
+          </div>
+        </div>
+      </div>
+
+      {/* FINDRISC 항목별 기여 */}
+      {findriscFactors.length > 0 && (
+        <div className="space-y-2.5">
+          {findriscFactors.map(([key, value]) => {
+            const pct = Math.round((value / Math.max(totalFindrisc, 1)) * 100);
+            return (
+              <div key={key} className="flex items-center gap-3">
+                <div className="w-28 shrink-0 text-[12px] text-stone-600">
+                  {FINDRISC_LABELS[key] ?? key}
+                </div>
+                <div className="flex-1 h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-orange-400 transition-all duration-700"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="w-10 shrink-0 text-right text-[12px] font-semibold text-orange-500">
+                  +{value}점
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* AI 전용 추가 신호 */}
+      {hasAi && extraSignals.length > 0 && (
+        <div className={`space-y-1.5 ${findriscFactors.length > 0 ? 'mt-3 pt-3 border-t border-stone-100' : ''}`}>
+          {extraSignals.map((signal, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+              <AlertTriangle size={11} className="shrink-0 text-amber-400" />
+              <span className="text-[12px] text-stone-600">{signal}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 개선 액션 (최대 2개) */}
+      {hasAi && actions.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {actions.slice(0, 2).map((action, i) => (
+            <div key={i} className="flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2">
+              <CheckCircle size={11} className="mt-0.5 shrink-0 text-emerald-500" />
+              <span className="text-[12px] text-stone-600">{action}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
 function buildTrendPoints(history) {
   const recent = (history || []).slice(-7);
   if (!recent.length) return [];
@@ -531,7 +656,13 @@ export default function ReportPage() {
     return trendPoints.length > 1;
   }, [trendMode, trendPoints]);
   const comparisonMap = useMemo(
-    () => Object.fromEntries((summary?.comparisons || []).map((item) => [item.key, item])),
+    () => {
+      const comparisons = Array.isArray(summary?.comparisons) ? summary.comparisons : [];
+      if (comparisons.length > 0) {
+        return Object.fromEntries(comparisons.map((item) => [item.key, item]));
+      }
+      return buildScorecardComparisonMap(summary);
+    },
     [summary],
   );
   const trendInsight  = useMemo(() => getTrendInsight(trendPoints, trendMode, summary), [trendMode, trendPoints, summary]);
@@ -613,6 +744,8 @@ export default function ReportPage() {
                   badge={modelBadge}
                 />
               </div>
+
+              <ScoreBreakdownSection risk={risk} />
 
               {/* 변화 추이 */}
               <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">

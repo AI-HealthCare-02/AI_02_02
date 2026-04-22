@@ -18,6 +18,7 @@ from backend.models.assessments import UserEngagement
 from backend.models.consents import UserConsent
 from backend.models.enums import EngagementState, UserGroup
 from backend.models.health import HealthProfile
+from backend.models.settings import UserSettings
 from backend.models.users import User
 from backend.services.prediction import calculate_initial_findrisc
 
@@ -192,6 +193,15 @@ class OnboardingService:
             await UserEngagement.get_or_create(
                 user_id=user_id,
                 defaults={"state": EngagementState.ACTIVE},
+            )
+            settings, _ = await UserSettings.get_or_create(user_id=user_id)
+            settings.health_question_interval_minutes = (
+                90
+                if data.health_question_interval_minutes is None
+                else data.health_question_interval_minutes
+            )
+            await settings.save(
+                update_fields=["health_question_interval_minutes", "updated_at"]
             )
 
         # 프로필 최초 생성 — 코칭 입력도 달라지므로 코칭 캐시까지 같이 터뜨림

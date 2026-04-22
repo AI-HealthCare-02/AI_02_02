@@ -12,3 +12,8 @@ async def upgrade(db: BaseDBAsyncClient) -> str:
 async def downgrade(db: BaseDBAsyncClient) -> str:
     return """
         DROP INDEX IF EXISTS "uniq_risk_assess_user_period";"""
+
+
+MODELS_STATE = (
+    "eJyrVsrPVrJSMKwFAA3IAqI="
+)

@@ -31,6 +31,26 @@ const PRIVACY_CONTENT = `다나아 개인정보 처리방침
 
 5. 이용자 권리: 열람, 수정, 삭제, 동의 철회를 언제든 요청할 수 있습니다.`;
 
+function getLoginErrorMessage(status, detail) {
+  if (status === 429) return '로그인 시도가 너무 많아요. 잠시 후 다시 시도해주세요.';
+  if (status >= 500) return '서버에 문제가 생겼어요. 잠시 후 다시 시도해주세요.';
+
+  if (detail === 'Email not found.') {
+    return '가입된 이메일을 찾을 수 없어요. 이메일 주소를 다시 확인해주세요.';
+  }
+  if (detail === 'Password is incorrect.') {
+    return '비밀번호가 일치하지 않아요. 다시 입력해주세요.';
+  }
+  if (detail === 'Social account cannot use password login.') {
+    return '소셜 로그인으로 만든 계정이에요. 카카오, 구글, 네이버 로그인을 이용해주세요.';
+  }
+  if (detail === 'Account is locked.') {
+    return '계정이 잠겨 있어요. 관리자에게 문의해주세요.';
+  }
+
+  return '로그인에 실패했어요. 입력 정보를 확인한 뒤 다시 시도해주세요.';
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -62,10 +82,9 @@ export default function LoginPage() {
         } else {
           setError('로그인은 되었지만 온보딩 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.');
         }
-      } else if (res.status === 401) {
-        setError('이메일 또는 비밀번호가 일치하지 않습니다.');
       } else {
-        setError('로그인에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        const data = await res.json().catch(() => ({}));
+        setError(getLoginErrorMessage(res.status, data?.detail));
       }
     } catch {
       // 백엔드 미연결 — 개발용 fallback

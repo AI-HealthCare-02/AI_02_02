@@ -131,6 +131,7 @@ class SurveyRequest(BaseModel):
     smoking_status: SmokingStatus
     goals: list[str] = Field(default_factory=list)
     ai_consent: AiConsent
+    health_question_interval_minutes: int | None = Field(default=90, ge=0, le=240)
 
     @field_validator("gender", mode="before")
     @classmethod
@@ -174,6 +175,16 @@ class SurveyRequest(BaseModel):
         for item in v:
             if item not in valid:
                 raise ValueError(f"Invalid treatment: {item}. Must be one of {sorted(valid)}")
+        return v
+
+    @field_validator("health_question_interval_minutes")
+    @classmethod
+    def validate_health_question_interval_minutes(cls, v: int | None) -> int:
+        if v is None:
+            return 90
+        allowed = {0, 60, 90, 120}
+        if v not in allowed:
+            raise ValueError(f"health_question_interval_minutes must be one of {sorted(allowed)}")
         return v
 
 

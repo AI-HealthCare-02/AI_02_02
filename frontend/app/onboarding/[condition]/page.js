@@ -144,7 +144,7 @@ export default function OnboardingFlow() {
       lifestyle_alcohol: a[12]?.[1] ?? null,
       lifestyle_smoking: a[12]?.[2] ?? null,
       goals: a[13] ?? [],
-      freq: a[14] ?? null,
+      freq: a[15] ?? null,
     };
     try { localStorage.setItem('danaa_onboarding', JSON.stringify(data)); } catch {}
   }, [height, weight]);

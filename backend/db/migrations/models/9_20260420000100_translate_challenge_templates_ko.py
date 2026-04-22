@@ -43,3 +43,8 @@ async def downgrade(db: BaseDBAsyncClient) -> str:
             "description"='Drink at least 6 cups of water daily.',
             "evidence_summary"='Hydration target for completed challenge examples.'
         WHERE "code"='water_6cups';"""
+
+
+MODELS_STATE = (
+    "eJyrVsrPVrJSMKwFAA3IAqI="
+)

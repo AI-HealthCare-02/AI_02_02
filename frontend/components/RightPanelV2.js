@@ -101,13 +101,52 @@ function formatLastInputTime(log) {
 // 값 표시 헬퍼 (각 카드별 display value)
 function displayValue(key, log) {
   if (!log) return { value: null, muted: true };
+  if (key === 'sleep') {
+    const dur = log.sleep_duration_bucket;
+    const q = log.sleep_quality;
+    if (!dur && !q) return { value: null, muted: true };
+    const durationLabels = {
+      under_5: '5시간 미만',
+      between_5_6: '5~6시간',
+      between_6_7: '6~7시간',
+      between_7_8: '7~8시간',
+      over_8: '8시간 이상',
+      less_5: '5시간 미만',
+      '5_6': '5~6시간',
+      '6_7': '6~7시간',
+      '7_8': '7~8시간',
+      '8_plus': '8시간 이상',
+    };
+    const qualityLabels = {
+      very_good: '아주 좋음',
+      excellent: '아주 좋음',
+      good: '좋음',
+      normal: '보통',
+      bad: '나쁨',
+      very_bad: '아주 나쁨',
+    };
+    const parts = [durationLabels[dur], qualityLabels[q]].filter(Boolean);
+    return { value: parts.join(' · ') || null, muted: false };
+  }
+  if (key === 'water') {
+    const cups = Number(log.water_cups || 0);
+    if (cups > 0) return { value: `${cups}잔`, muted: false };
+    return { value: null, muted: true };
+  }
   switch (key) {
     case 'sleep': {
       const dur = log.sleep_duration_bucket;
       const q = log.sleep_quality;
       if (!dur && !q) return { value: null, muted: true };
       const DURATION = { less_5: '5h 미만', '5_6': '5.5h', '6_7': '6.5h', '7_8': '7.5h', '8_plus': '8h+' };
-      const QUALITY = { excellent: '잘 잤음', good: '그럭저럭', normal: '뒤척임', bad: '푹 못 잠' };
+      const QUALITY = {
+        very_good: '아주 좋음',
+        excellent: '아주 좋음',
+        good: '좋음',
+        normal: '보통',
+        bad: '나쁨',
+        very_bad: '아주 나쁨',
+      };
       const parts = [DURATION[dur], QUALITY[q]].filter(Boolean);
       return { value: parts.join(' · ') || null, muted: false };
     }

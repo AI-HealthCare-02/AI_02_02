@@ -50,6 +50,12 @@ DATA_FIELDS: list[str] = [
     "alcohol_amount_level",
 ]
 
+MEAL_STATUS_FIELDS = {"breakfast_status", "lunch_status", "dinner_status"}
+LEGACY_MEAL_STATUS_ALIASES = {
+    "light": "hearty",
+    "simple": "hearty",
+}
+
 
 def _log_to_response(log: DailyHealthLog) -> DailyLogResponse:
     """DailyHealthLog → DailyLogResponse 변환."""
@@ -253,6 +259,8 @@ class HealthDailyService:
                 continue
             if field_name not in DATA_FIELDS:
                 continue
+            if field_name in MEAL_STATUS_FIELDS and isinstance(value, str):
+                value = LEGACY_MEAL_STATUS_ALIASES.get(value, value)
             existing = getattr(log, field_name, None)
             if existing is not None and not allow_same_day_replace:
                 # First Answer Wins — 이미 값이 있으면 스킵
