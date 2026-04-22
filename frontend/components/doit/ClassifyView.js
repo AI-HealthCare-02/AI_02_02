@@ -2,26 +2,30 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, Inbox, ListChecks, Undo2 } from 'lucide-react';
+import { ArrowRight, Cloud, Hourglass, Inbox, ListChecks, Undo2, X } from 'lucide-react';
 
 import {
   CATEGORIES,
   CATEGORY_LABELS,
   STORAGE_KEY,
   classifyThought,
+  discardThought,
+  getByCategory,
   getSummary,
   getUnclassified,
   loadThoughts,
+  restoreDiscarded,
   saveThoughts,
   todayIso,
   unclassifyThought,
   updateThoughtMeta,
 } from '../../lib/doit_store';
 import ClassifiedBoard from './ClassifiedBoard';
-import ClassifySlidePanel from './ClassifySlidePanel';
+import ClassifyInlinePanel from './ClassifyInlinePanel';
 import DateChip from './DateChip';
 
 const TOAST_MS = 3200;
+const DISCARD_TOAST_MS = 5000;
 
 function formatTime(iso) {
   try {
@@ -38,12 +42,16 @@ function formatTime(iso) {
   }
 }
 
+// 카드에서 노출할 primary 칩만 (waiting/someday 제외 — 게이트 '아니오' 경로로만 진입)
+const PRIMARY_CATEGORIES = CATEGORIES.filter((c) => c.primary);
+
 export default function ClassifyView() {
   const [thoughts, setThoughts] = useState([]);
   const [hydrated, setHydrated] = useState(false);
   const [leaving, setLeaving] = useState(null);
   const [toast, setToast] = useState(null);
-  const [panel, setPanel] = useState(null); // { id, category } | null
+  // Phase 7: 인라인 명료화 활성 카드. 단일 state로 자동 언마운트 보장.
+  const [activeClarify, setActiveClarify] = useState(null); // { id, category } | null
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
@@ -67,6 +75,8 @@ export default function ClassifyView() {
 
   const unclassified = getUnclassified(thoughts);
   const summary = getSummary(thoughts);
+  const waitingList = getByCategory(thoughts, 'waiting');
+  const somedayList = getByCategory(thoughts, 'someday');
 
   const clearToastTimer = () => {
     if (toastTimerRef.current) {
@@ -80,44 +90,58 @@ export default function ClassifyView() {
     toastTimerRef.current = window.setTimeout(() => setToast(null), ms);
   }, []);
 
-  // 점진 분류 패널 오픈. 칩 클릭 = 즉시 저장 아님(취소 시 변경 0).
-  const handleClassify = useCallback((id, category) => {
-    setPanel({ id, category });
+  // 칩 클릭 → 같은 카드에 인라인 열기 (즉시 저장 아님)
+  const handleChipClick = useCallback((id, category) => {
+    setActiveClarify({ id, category });
   }, []);
 
-  // 패널 [저장] — 한 번의 classifyThought로 카테고리 + 부속 메타 커밋
-  const handlePanelCommit = useCallback((draft) => {
-    if (!panel) return;
-    const { id, category } = panel;
-    const meta = {};
-    if (category === 'schedule') {
-      meta.scheduledDate = draft?.scheduledDate || todayIso();
-      meta.scheduledTime = draft?.scheduledTime || null;
-    }
-
-    setLeaving({ id, category });
-    window.setTimeout(() => {
-      setThoughts((prev) => classifyThought(prev, id, category, meta));
-      setLeaving(null);
-    }, 220);
-
-    setToast({
-      id,
-      category,
-      label: CATEGORY_LABELS[category],
-      scheduledDate: meta.scheduledDate || null,
-    });
-    scheduleToastDismiss();
-    setPanel(null);
-  }, [panel, scheduleToastDismiss]);
-
-  const handlePanelCancel = useCallback(() => {
-    setPanel(null);
+  const handleInlineCancel = useCallback(() => {
+    setActiveClarify(null);
   }, []);
+
+  // 인라인 커밋 — category + meta + clarification 한번에 반영
+  const handleInlineCommit = useCallback(
+    (id, patch) => {
+      const { category, meta, clarification } = patch;
+      const fullMeta = { ...(meta ?? {}), clarification };
+      setLeaving({ id, category });
+      window.setTimeout(() => {
+        setThoughts((prev) => classifyThought(prev, id, category, fullMeta));
+        setLeaving(null);
+      }, 220);
+
+      setToast({
+        kind: 'classify',
+        id,
+        category,
+        label: CATEGORY_LABELS[category],
+        scheduledDate: meta?.scheduledDate || null,
+      });
+      scheduleToastDismiss();
+      setActiveClarify(null);
+    },
+    [scheduleToastDismiss],
+  );
+
+  // 인라인에서 "버리기" — discardThought (노트에 섞이지 않음)
+  const handleInlineDiscard = useCallback(
+    (id) => {
+      setLeaving({ id, category: null });
+      window.setTimeout(() => {
+        setThoughts((prev) => discardThought(prev, id, 'classify'));
+        setLeaving(null);
+      }, 220);
+
+      setToast({ kind: 'discard', id });
+      scheduleToastDismiss(DISCARD_TOAST_MS);
+      setActiveClarify(null);
+    },
+    [scheduleToastDismiss],
+  );
 
   const handleToastDateChange = useCallback(
     (nextDate) => {
-      if (!toast) return;
+      if (!toast || toast.kind !== 'classify') return;
       setThoughts((prev) =>
         updateThoughtMeta(prev, toast.id, { scheduledDate: nextDate || null }),
       );
@@ -129,10 +153,18 @@ export default function ClassifyView() {
 
   const handleUndo = useCallback(() => {
     if (!toast) return;
-    setThoughts((prev) => unclassifyThought(prev, toast.id));
+    if (toast.kind === 'classify') {
+      setThoughts((prev) => unclassifyThought(prev, toast.id));
+    } else if (toast.kind === 'discard') {
+      setThoughts((prev) => restoreDiscarded(prev, toast.id));
+    }
     clearToastTimer();
     setToast(null);
   }, [toast]);
+
+  const handleUnclassifyAux = useCallback((id) => {
+    setThoughts((prev) => unclassifyThought(prev, id));
+  }, []);
 
   // Escape 키로 토스트 닫기
   useEffect(() => {
@@ -213,6 +245,7 @@ export default function ClassifyView() {
             <ul className="space-y-2.5">
               {unclassified.map((t) => {
                 const isLeaving = leaving?.id === t.id;
+                const inlineOpen = activeClarify?.id === t.id;
                 return (
                   <li
                     key={t.id}
@@ -227,17 +260,32 @@ export default function ClassifyView() {
                       {formatTime(t.createdAt)}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {CATEGORIES.map((cat) => (
+                      {PRIMARY_CATEGORIES.map((cat) => (
                         <button
                           key={cat.id}
                           type="button"
-                          onClick={() => handleClassify(t.id, cat.id)}
+                          onClick={() => handleChipClick(t.id, cat.id)}
                           disabled={isLeaving}
+                          aria-pressed={inlineOpen && activeClarify?.category === cat.id}
                           className={`doit-cat-chip doit-cat-${cat.tone} rounded-full border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-40`}
                         >
                           {cat.label}
                         </button>
                       ))}
+                    </div>
+                    <div
+                      className={`doit-inline-panel ${inlineOpen ? 'is-open' : ''}`}
+                      aria-hidden={!inlineOpen}
+                    >
+                      {inlineOpen && (
+                        <ClassifyInlinePanel
+                          thought={t}
+                          initialCategory={activeClarify.category}
+                          onCommit={(patch) => handleInlineCommit(t.id, patch)}
+                          onCancel={handleInlineCancel}
+                          onDiscard={handleInlineDiscard}
+                        />
+                      )}
                     </div>
                   </li>
                 );
@@ -246,7 +294,34 @@ export default function ClassifyView() {
           )}
         </section>
 
-        <section>
+        {(waitingList.length > 0 || somedayList.length > 0) && (
+          <section className="mt-6 border-t border-[var(--color-border)] pt-4">
+            <h4 className="mb-2 text-[12px] uppercase tracking-wide text-[var(--color-text-hint)]">
+              보조 분류
+            </h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <AuxColumn
+                icon={<Hourglass size={12} />}
+                label="대기 중"
+                tone="violet"
+                items={waitingList}
+                onUnclassify={handleUnclassifyAux}
+                renderMeta={(t) =>
+                  t.waitingFor ? `· ${t.waitingFor}` : null
+                }
+              />
+              <AuxColumn
+                icon={<Cloud size={12} />}
+                label="언젠가"
+                tone="mist"
+                items={somedayList}
+                onUnclassify={handleUnclassifyAux}
+              />
+            </div>
+          </section>
+        )}
+
+        <section className="mt-8">
           <div className="mb-3 flex items-center gap-2">
             <span className="text-[13px] font-medium text-[var(--color-text)]">정리된 생각</span>
             <span className="text-[12px] text-[var(--color-text-hint)]">
@@ -257,15 +332,7 @@ export default function ClassifyView() {
         </section>
       </div>
 
-      <ClassifySlidePanel
-        open={Boolean(panel)}
-        thought={panel ? thoughts.find((t) => t.id === panel.id) || null : null}
-        category={panel?.category || null}
-        onCommit={handlePanelCommit}
-        onCancel={handlePanelCancel}
-      />
-
-      {toast && (
+      {toast && toast.kind === 'classify' && (
         <div
           className="doit-toast"
           role="status"
@@ -287,6 +354,19 @@ export default function ClassifyView() {
               placeholder="날짜"
             />
           )}
+          {toast.category === 'project' && (
+            <Link
+              href={`/app/do-it-os/project/${toast.id}`}
+              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/20"
+              onClick={() => {
+                clearToastTimer();
+                setToast(null);
+              }}
+            >
+              상세에서 이어쓰기
+              <ArrowRight size={11} />
+            </Link>
+          )}
           <button
             type="button"
             onClick={handleUndo}
@@ -297,6 +377,85 @@ export default function ClassifyView() {
           </button>
         </div>
       )}
+
+      {toast && toast.kind === 'discard' && (
+        <div
+          className="doit-toast"
+          role="status"
+          aria-live="polite"
+          onMouseEnter={clearToastTimer}
+          onMouseLeave={() => scheduleToastDismiss(DISCARD_TOAST_MS)}
+        >
+          <span className="text-[13px]">버렸어요</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/20"
+          >
+            <Undo2 size={12} />
+            되돌리기
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AuxColumn({ icon, label, tone, items, onUnclassify, renderMeta }) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-3">
+        <div className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-hint)]">
+          <span className={`doit-cat-chip doit-cat-${tone} inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium`}>
+            {icon}
+            {label}
+          </span>
+          <span>· 비어 있음</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className={`doit-cat-chip doit-cat-${tone} inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11.5px] font-medium`}>
+          {icon}
+          {label}
+        </span>
+        <span className="text-[11.5px] text-[var(--color-text-hint)]">{items.length}개</span>
+      </div>
+      <ul className="space-y-1.5">
+        {items.slice(0, 6).map((t) => (
+          <li
+            key={t.id}
+            className="group/item flex items-start gap-1.5 rounded-lg bg-[var(--color-card-surface-subtle)] px-2.5 py-1.5"
+          >
+            <p className="flex-1 text-[12.5px] leading-[1.5] text-[var(--color-text)] line-clamp-2">
+              {t.text}
+              {renderMeta && renderMeta(t) && (
+                <span className="ml-1 text-[11.5px] text-[var(--color-text-hint)]">
+                  {renderMeta(t)}
+                </span>
+              )}
+            </p>
+            {onUnclassify && (
+              <button
+                type="button"
+                onClick={() => onUnclassify(t.id)}
+                aria-label="분류 해제"
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full opacity-0 transition-opacity group-hover/item:opacity-60 hover:opacity-100"
+              >
+                <X size={10} />
+              </button>
+            )}
+          </li>
+        ))}
+        {items.length > 6 && (
+          <li className="text-center text-[11px] text-[var(--color-text-hint)]">
+            + {items.length - 6}개 더
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

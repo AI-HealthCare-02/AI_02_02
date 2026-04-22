@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import NextActionCardGrid from './NextActionCardGrid';
+import ProjectLinkedNextActions from './ProjectLinkedNextActions';
 
 import {
   PROJECT_STATUS_OPTIONS,
@@ -257,6 +258,8 @@ export default function ProjectDetailView({ projectId }) {
               className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-[13.5px] text-[var(--color-text)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-border-focus)] focus:outline-none"
             />
           </details>
+
+          <ProjectLinkedNextActions projectId={projectId} />
         </section>
 
         <footer className="mt-8 flex items-center justify-between border-t border-[var(--color-border)] pt-4 text-[11.5px] text-[var(--color-text-hint)]">

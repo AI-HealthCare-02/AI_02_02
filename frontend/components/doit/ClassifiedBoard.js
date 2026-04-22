@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight, Cloud, Hourglass, X } from 'lucide-react';
 
-import { CATEGORIES, getByCategory } from '../../lib/doit_store';
+import { CATEGORIES, getByCategory, getSummary } from '../../lib/doit_store';
 
 // todo·health 전용 페이지는 Phase 7+. Phase 6는 대시보드/노트로 폴백.
 const CATEGORY_HREF = {
@@ -20,7 +20,7 @@ export default function ClassifiedBoard({
   emptyHint = '아직 정리된 메모가 없어요',
   compact = false,
 }) {
-  const total = thoughts.filter((t) => t.category).length;
+  const total = thoughts.filter((t) => t.category && !t.discardedAt).length;
 
   if (total === 0) {
     return (
@@ -34,9 +34,14 @@ export default function ClassifiedBoard({
     ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
     : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5';
 
+  // 메인 보드는 primary 카테고리만 (waiting/someday는 하단 보조 행)
+  const primary = CATEGORIES.filter((c) => c.primary);
+  const summary = getSummary(thoughts);
+
   return (
+    <div className="flex flex-col gap-4">
     <div className={`grid gap-3 ${gridCols}`}>
-      {CATEGORIES.map((cat) => {
+      {primary.map((cat) => {
         const list = getByCategory(thoughts, cat.id);
         const href = CATEGORY_HREF[cat.id] || '/app/do-it-os';
         return (
@@ -101,6 +106,19 @@ export default function ClassifiedBoard({
           </Link>
         );
       })}
+    </div>
+      <div className="rounded-lg bg-[var(--color-card-surface-subtle)] p-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[var(--color-text-secondary)]">
+          <span className="inline-flex items-center gap-1">
+            <Hourglass size={12} className="text-[var(--color-text-hint)]" />
+            대기 중 {summary.byCategory.waiting || 0}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Cloud size={12} className="text-[var(--color-text-hint)]" />
+            언젠가 {summary.byCategory.someday || 0}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

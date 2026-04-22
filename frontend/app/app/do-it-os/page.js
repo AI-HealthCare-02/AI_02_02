@@ -11,6 +11,7 @@ import {
   HeartPulse,
   Inbox,
   ListChecks,
+  Moon,
   Shield,
   StickyNote,
 } from 'lucide-react';
@@ -18,10 +19,12 @@ import {
 import {
   STORAGE_KEY,
   getOverdueScheduled,
+  getSummary,
   getTodayScheduled,
   loadThoughts,
 } from '../../../lib/doit_store';
 import ClassifiedBoard from '../../../components/doit/ClassifiedBoard';
+import EveningCta from '../../../components/doit/EveningCta';
 import { formatFriendlyDate } from '../../../components/doit/DateChip';
 
 export default function DoItOsDashboard() {
@@ -48,6 +51,10 @@ export default function DoItOsDashboard() {
     () => getOverdueScheduled(thoughts).length,
     [thoughts],
   );
+  const summary = useMemo(() => getSummary(thoughts), [thoughts]);
+  const waitingCount = summary.byCategory?.waiting ?? 0;
+  const somedayCount = summary.byCategory?.someday ?? 0;
+  const todayUnfinishedCount = todaySchedules.length;
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -60,6 +67,14 @@ export default function DoItOsDashboard() {
             오늘 머릿속을 꺼내서 정리해요.
           </p>
         </header>
+
+        <div className="mb-3 flex gap-3 text-[12px] text-[var(--color-text-hint)]">
+          <span>미분류 {summary.unclassified}</span>
+          <span>·</span>
+          <span>대기 중 {waitingCount}</span>
+          <span>·</span>
+          <span>언젠가 {somedayCount}</span>
+        </div>
 
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div className="doit-card">
@@ -164,6 +179,11 @@ export default function DoItOsDashboard() {
           </div>
         </section>
 
+        <EveningCta
+          unclassified={summary.unclassified}
+          todayUnfinished={todayUnfinishedCount}
+        />
+
         <section className="mt-5 doit-card">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -184,11 +204,12 @@ export default function DoItOsDashboard() {
           />
         </section>
 
-        <section className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <section className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
           {[
             { icon: FolderKanban, label: '프로젝트', href: '/app/do-it-os/project', desc: '큰 흐름을 묶어요' },
             { icon: StickyNote, label: '노트', href: '/app/do-it-os/note', desc: '참고할 생각을 보관' },
             { icon: HeartPulse, label: '건강 단서', href: '/app/do-it-os/note', desc: '몸과 마음 메모' },
+            { icon: Moon, label: '자기 전 정리', href: '/app/do-it-os/end-of-day', desc: '오늘의 생각을 내려놓아요' },
             { icon: Shield, label: '저장 원칙', href: '/app/do-it-os', desc: 'AI가 임의 저장 안 해요' },
           ].map((card) => (
             <Link

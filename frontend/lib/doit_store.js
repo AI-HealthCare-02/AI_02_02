@@ -1,16 +1,59 @@
 export const STORAGE_KEY = 'danaa_doit_thoughts_v1';
 
 export const CATEGORIES = [
-  { id: 'todo', label: '할 일', tone: 'blue' },
-  { id: 'schedule', label: '일정', tone: 'yellow' },
-  { id: 'project', label: '프로젝트', tone: 'brown' },
-  { id: 'note', label: '노트', tone: 'gray' },
-  { id: 'health', label: '건강 단서', tone: 'green' },
+  { id: 'todo', label: '할 일', tone: 'blue', primary: true },
+  { id: 'schedule', label: '일정', tone: 'yellow', primary: true },
+  { id: 'project', label: '프로젝트', tone: 'brown', primary: true },
+  { id: 'note', label: '노트', tone: 'gray', primary: true },
+  { id: 'health', label: '건강 단서', tone: 'green', primary: true },
+  { id: 'waiting', label: '대기 중', tone: 'violet', primary: false },
+  { id: 'someday', label: '언젠가', tone: 'mist', primary: false },
 ];
 
 export const CATEGORY_LABELS = Object.fromEntries(
   CATEGORIES.map((c) => [c.id, c.label]),
 );
+
+// ── 정규화 ─────────────────────────────────────────
+// Phase 6 이전 데이터와 Phase 7 nested 스키마를 한 결로 맞춘다.
+export function normalizeThought(raw) {
+  if (!raw || typeof raw !== 'object') return raw;
+  return {
+    id: raw.id,
+    text: raw.text ?? '',
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    category: raw.category ?? null,
+    classifiedAt: raw.classifiedAt ?? null,
+    scheduledDate: raw.scheduledDate ?? null,
+    scheduledTime: raw.scheduledTime ?? null,
+    description: raw.description ?? null,
+    nextAction: raw.nextAction ?? null,
+    projectStatus: raw.projectStatus ?? null,
+    noteBody: raw.noteBody ?? null,
+    projectLinkId: raw.projectLinkId ?? null,
+    x: raw.x ?? 0,
+    y: raw.y ?? 0,
+    rotation: raw.rotation ?? 0,
+    color: raw.color ?? 'yellow',
+    width: raw.width ?? 220,
+    height: raw.height ?? 220,
+    urgency: raw.urgency ?? null,
+    // Phase 7 추가 필드
+    clarification: {
+      actionable: raw.clarification?.actionable ?? null,
+      decision: raw.clarification?.decision ?? null,
+      source: raw.clarification?.source ?? null,
+    },
+    plannedDate: raw.plannedDate ?? null,
+    waitingFor: raw.waitingFor ?? null,
+    somedayReason: raw.somedayReason ?? null,
+    discardedAt: raw.discardedAt ?? null,
+    endOfDay: {
+      ritualDate: raw.endOfDay?.ritualDate ?? null,
+      action: raw.endOfDay?.action ?? null,
+    },
+  };
+}
 
 export function loadThoughts() {
   if (typeof window === 'undefined') return [];
@@ -18,7 +61,7 @@ export function loadThoughts() {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const list = JSON.parse(raw);
-    return Array.isArray(list) ? list : [];
+    return Array.isArray(list) ? list.map(normalizeThought) : [];
   } catch {
     return [];
   }
@@ -56,6 +99,15 @@ export function unclassifyThought(thoughts, id) {
           nextAction: null,
           projectStatus: null,
           noteBody: null,
+          // Phase 7: classify flow에서 심은 필드 초기화
+          waitingFor: null,
+          somedayReason: null,
+          plannedDate: null,
+          clarification: {
+            actionable: t.clarification?.actionable ?? null,
+            decision: null,
+            source: null,
+          },
         }
       : t,
   );
@@ -71,22 +123,26 @@ export function updateThoughtMeta(thoughts, id, meta) {
   );
 }
 
+// ⭐ 모든 공개 리스트 헬퍼는 !discardedAt 필터 필수 (노트 섞임 방지)
 export function getUnclassified(thoughts) {
-  return thoughts.filter((t) => !t.category);
+  return thoughts.filter((t) => t.category == null && !t.discardedAt);
 }
 
 export function getByCategory(thoughts, category) {
-  return thoughts.filter((t) => t.category === category);
+  return thoughts.filter((t) => t.category === category && !t.discardedAt);
 }
 
 export function getSummary(thoughts) {
+  // total은 "활성(버리지 않은)" 생각 기준. 버린 건 집계·노출에서 제외.
   const summary = {
-    total: thoughts.length,
+    total: 0,
     unclassified: 0,
     byCategory: {},
   };
   for (const c of CATEGORIES) summary.byCategory[c.id] = 0;
   for (const t of thoughts) {
+    if (t.discardedAt) continue;
+    summary.total += 1;
     if (t.category && summary.byCategory[t.category] !== undefined) {
       summary.byCategory[t.category] += 1;
     } else {
@@ -102,11 +158,17 @@ export function todayIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+export function tomorrowIso() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // ── 일정 투영 뷰 ────────────────────────────────────────────
 export function getTodayScheduled(thoughts) {
   const today = todayIso();
   return thoughts.filter(
-    (t) => t.category === 'schedule' && t.scheduledDate === today,
+    (t) => t.category === 'schedule' && t.scheduledDate === today && !t.discardedAt,
   );
 }
 
@@ -116,21 +178,26 @@ export function getOverdueScheduled(thoughts) {
     (t) =>
       t.category === 'schedule' &&
       t.scheduledDate &&
-      t.scheduledDate < today,
+      t.scheduledDate < today &&
+      !t.discardedAt,
   );
 }
 
 // ── 프로젝트 단건 조회 ────────────────────────────────────────
 export function getProjectById(thoughts, id) {
   return (
-    thoughts.find((t) => t.id === id && t.category === 'project') || null
+    thoughts.find(
+      (t) => t.id === id && t.category === 'project' && !t.discardedAt,
+    ) || null
   );
 }
 
 // ── 노트 단건 조회 ────────────────────────────────────────
 export function getNoteById(thoughts, id) {
   return (
-    thoughts.find((t) => t.id === id && t.category === 'note') || null
+    thoughts.find(
+      (t) => t.id === id && t.category === 'note' && !t.discardedAt,
+    ) || null
   );
 }
 
@@ -140,3 +207,105 @@ export const PROJECT_STATUS_OPTIONS = [
   { id: 'onhold', label: '잠시 중단' },
   { id: 'done', label: '완료' },
 ];
+
+// ── Phase 7: Discard 재설계 ──────────────────────────────────
+// ⭐ discardedAt만 찍고 category는 null로 되돌림 (노트 목록 오염 방지)
+export function discardThought(list, id, source = 'end_of_day') {
+  const now = new Date().toISOString();
+  const today = todayIso();
+  return list.map((t) =>
+    t.id === id
+      ? {
+          ...t,
+          category: null,
+          classifiedAt: null,
+          discardedAt: now,
+          clarification: {
+            ...(t.clarification ?? {}),
+            decision: 'discard',
+            source,
+          },
+          endOfDay:
+            source === 'end_of_day'
+              ? { ritualDate: today, action: 'discard' }
+              : t.endOfDay ?? { ritualDate: null, action: null },
+        }
+      : t,
+  );
+}
+
+// 버린 생각 복구 — discardedAt만 null. 과거 category는 복원하지 않음 (단순성).
+export function restoreDiscarded(list, id) {
+  return list.map((t) =>
+    t.id === id ? { ...t, discardedAt: null } : t,
+  );
+}
+
+// ── Phase 7: 프로젝트 연결된 다음 행동 ────────────────────────
+export function getLinkedNextActions(list, projectId) {
+  return list.filter(
+    (t) =>
+      t.projectLinkId === projectId &&
+      t.category &&
+      t.id !== projectId &&
+      !t.discardedAt,
+  );
+}
+
+// ── Phase 7: 자기 전 리츄얼 헬퍼 ────────────────────────────
+// 오늘 자기 전 리츄얼용: 오늘 일정(완료 플래그 없으므로 오늘자 전체 반환)
+export function getTodayUnfinishedSchedule(list) {
+  const today = todayIso();
+  return list.filter(
+    (t) =>
+      t.category === 'schedule' &&
+      t.scheduledDate === today &&
+      !t.discardedAt,
+  );
+}
+
+// 내일 하기 — plannedDate만 세팅, 카테고리는 유지
+export function planForTomorrow(list, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return list;
+  const tomorrow = tomorrowIso();
+  const today = todayIso();
+  const idSet = new Set(ids);
+  return list.map((t) =>
+    idSet.has(t.id)
+      ? {
+          ...t,
+          plannedDate: tomorrow,
+          endOfDay: { ritualDate: today, action: 'plan_tomorrow' },
+        }
+      : t,
+  );
+}
+
+// 받은편지함 유지 — 카테고리 유지, 리츄얼 로그만
+export function keepInInbox(list, id) {
+  const today = todayIso();
+  return list.map((t) =>
+    t.id === id
+      ? { ...t, endOfDay: { ritualDate: today, action: 'keep' } }
+      : t,
+  );
+}
+
+// 대기 중으로 이동 — classifyThought 재사용
+export function moveToWaiting(list, id) {
+  const today = todayIso();
+  return list.map((t) => {
+    if (t.id !== id) return t;
+    return {
+      ...t,
+      category: 'waiting',
+      classifiedAt: new Date().toISOString(),
+      clarification: {
+        ...(t.clarification ?? {}),
+        decision: 'waiting',
+        source: 'end_of_day',
+      },
+      endOfDay: { ritualDate: today, action: 'waiting' },
+    };
+  });
+}

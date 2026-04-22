@@ -1332,3 +1332,79 @@ html[data-theme="light"] .doit-toast {
 @media (prefers-reduced-motion: reduce) {
   .doit-toast { animation: none; }
 }
+
+/* ── Do it OS Phase 7: violet / mist 카테고리 톤 (waiting·someday) ─────
+ * 기존 5톤(blue·yellow·brown·gray·green) 패턴을 그대로 복제. 라이트/다크 분기.
+ */
+:root {
+  --doit-cat-violet-bg: rgba(168, 140, 220, 0.15);
+  --doit-cat-violet-fg: #C9B4EC;
+  --doit-cat-violet-border: rgba(168, 140, 220, 0.35);
+  --doit-cat-mist-bg: rgba(160, 170, 190, 0.14);
+  --doit-cat-mist-fg: #B4BDCB;
+  --doit-cat-mist-border: rgba(160, 170, 190, 0.32);
+}
+html[data-theme="light"] {
+  --doit-cat-violet-bg: #F1ECFA;
+  --doit-cat-violet-fg: #5C3F8A;
+  --doit-cat-violet-border: rgba(92, 63, 138, 0.3);
+  --doit-cat-mist-bg: #EDEEF2;
+  --doit-cat-mist-fg: #4A5262;
+  --doit-cat-mist-border: rgba(74, 82, 98, 0.3);
+}
+.doit-cat-chip.doit-cat-violet,
+.doit-cat-board.doit-cat-violet {
+  background: var(--doit-cat-violet-bg);
+  color: var(--doit-cat-violet-fg);
+  border-color: var(--doit-cat-violet-border);
+}
+.doit-cat-chip.doit-cat-mist,
+.doit-cat-board.doit-cat-mist {
+  background: var(--doit-cat-mist-bg);
+  color: var(--doit-cat-mist-fg);
+  border-color: var(--doit-cat-mist-border);
+}
+
+/* ── Do it OS Phase 7: 인라인 명료화 패널 (max-height 확장) ─────────
+ * ClassifyInlinePanel 카드 내부 확장용. 400px 초과 시 overflow-y:auto.
+ */
+.doit-inline-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition:
+    max-height 0.22s ease-out,
+    opacity 0.22s ease-out,
+    margin-top 0.22s ease-out;
+}
+.doit-inline-panel.is-open {
+  max-height: 400px;
+  opacity: 1;
+  margin-top: 12px;
+  overflow-y: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .doit-inline-panel { transition: none; }
+}
+
+/* ── Do it OS Phase 7: 인라인 패널 하단 액션 영역 ─────────────── */
+.doit-inline-panel .doit-inline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── Do it OS Phase 7: 저녁 리츄얼 CTA 카드 ─────────────────── */
+.doit-evening-cta {
+  background: var(--doit-cat-violet-bg);
+  border: 1px solid var(--doit-cat-violet-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  animation: doitToastIn 0.24s cubic-bezier(.25,.46,.45,.94);
+}
+
+/* ── Do it OS Phase 7: 리츄얼 단계 페이드 전환 ─────────────────── */
+.doit-ritual-step {
+  animation: fadeIn 0.22s ease-out;
+}

@@ -1,0 +1,437 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, ArrowRight, Moon, Trash2, Undo2 } from 'lucide-react';
+
+import {
+  discardThought,
+  getTodayUnfinishedSchedule,
+  getUnclassified,
+  keepInInbox,
+  loadThoughts,
+  moveToWaiting,
+  planForTomorrow,
+  saveThoughts,
+} from '../../lib/doit_store';
+import RitualThoughtInput from './RitualThoughtInput';
+
+const STEPS = [
+  { id: 1, label: '쏟기', hint: '머릿속에 맴도는 것들을 종이에 옮기면 뇌가 쉴 수 있어요.' },
+  { id: 2, label: '내일 고르기', hint: '욕심내지 말고 내일 꼭 할 것 1~3개만 골라주세요.' },
+  { id: 3, label: '버리기/보관', hint: '지금 결정 안 해도 되는 건 가볍게 버려도 돼요.' },
+];
+
+const DASHBOARD_HREF = '/app/do-it-os';
+
+export default function EndOfDayRitual() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [thoughts, setThoughts] = useState([]);
+  const [selectedTomorrow, setSelectedTomorrow] = useState(() => new Set());
+  const [spilledCount, setSpilledCount] = useState(0);
+  const [tomorrowCount, setTomorrowCount] = useState(0);
+  const [discardedCount, setDiscardedCount] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // 초기 로딩
+  useEffect(() => {
+    const loaded = loadThoughts();
+    setThoughts(loaded);
+    setSpilledCount(getUnclassified(loaded).length);
+  }, []);
+
+  // ESC → 대시보드 복귀
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        router.push(DASHBOARD_HREF);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [router]);
+
+  // 토스트 자동 닫힘
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const unclassified = useMemo(() => getUnclassified(thoughts), [thoughts]);
+  const todayUnfinished = useMemo(
+    () => getTodayUnfinishedSchedule(thoughts),
+    [thoughts],
+  );
+
+  const step2Candidates = useMemo(
+    () => [
+      ...unclassified.map((t) => ({ ...t, _source: 'unclassified' })),
+      ...todayUnfinished.map((t) => ({ ...t, _source: 'today' })),
+    ],
+    [unclassified, todayUnfinished],
+  );
+
+  const leftoverUnclassified = useMemo(
+    () => unclassified.filter((t) => !selectedTomorrow.has(t.id)),
+    [unclassified, selectedTomorrow],
+  );
+
+  const refreshThoughts = () => {
+    setThoughts(loadThoughts());
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedTomorrow((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handlePlanForTomorrow = () => {
+    if (isSaving || selectedTomorrow.size === 0) return;
+    setIsSaving(true);
+    try {
+      const ids = Array.from(selectedTomorrow);
+      const next = planForTomorrow(loadThoughts(), ids);
+      saveThoughts(next);
+      setThoughts(next);
+      setTomorrowCount(ids.length);
+      setStep(3);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSkipTomorrow = () => {
+    setTomorrowCount(selectedTomorrow.size);
+    setStep(3);
+  };
+
+  const handleDiscard = (id) => {
+    const prev = loadThoughts();
+    const next = discardThought(prev, id, 'end_of_day');
+    saveThoughts(next);
+    setThoughts(next);
+    setDiscardedCount((n) => n + 1);
+    setToast({
+      type: 'discard',
+      id,
+      prev,
+      message: '버렸어요',
+    });
+  };
+
+  const handleKeepInInbox = (id) => {
+    const prev = loadThoughts();
+    const next = keepInInbox(prev, id);
+    saveThoughts(next);
+    setThoughts(next);
+    setToast({
+      type: 'keep',
+      id,
+      prev,
+      message: '내일 다시 생각해볼게요',
+    });
+  };
+
+  const handleMoveToWaiting = (id) => {
+    const prev = loadThoughts();
+    const next = moveToWaiting(prev, id);
+    saveThoughts(next);
+    setThoughts(next);
+    setToast({
+      type: 'waiting',
+      id,
+      prev,
+      message: '대기 중으로 옮겼어요',
+    });
+  };
+
+  const handleUndo = () => {
+    if (!toast?.prev) return;
+    saveThoughts(toast.prev);
+    setThoughts(toast.prev);
+    if (toast.type === 'discard') {
+      setDiscardedCount((n) => Math.max(0, n - 1));
+    }
+    setToast(null);
+  };
+
+  const goToDashboard = () => router.push(DASHBOARD_HREF);
+
+  const totalStep3Actions = leftoverUnclassified.length;
+  const isComplete = step === 3 && totalStep3Actions === 0;
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[720px] px-6 py-10 md:px-8">
+        {/* 헤더 */}
+        <header className="mb-8">
+          <div className="mb-3 flex items-center gap-2 text-[13px] text-[var(--color-text-hint)]">
+            <Moon size={14} />
+            <span>자기 전 정리</span>
+          </div>
+          <h1 className="text-[26px] font-bold tracking-tight text-[var(--color-text)]">
+            오늘 머릿속의 것들을 내려놓아요
+          </h1>
+          <p className="mt-2 text-[14px] text-[var(--color-text-secondary)]">
+            {STEPS[step - 1]?.hint}
+          </p>
+        </header>
+
+        {/* 스텝 인디케이터 */}
+        <div className="mb-6 flex items-center gap-2" aria-label="리츄얼 단계">
+          {STEPS.map((s, idx) => {
+            const active = s.id === step;
+            const done = s.id < step;
+            return (
+              <div key={s.id} className="flex flex-1 items-center gap-2">
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border text-[12px] font-semibold transition-colors ${
+                    active
+                      ? 'border-[var(--color-text)] bg-[var(--color-text)] text-[var(--color-surface)]'
+                      : done
+                      ? 'border-[var(--color-text-secondary)] bg-[var(--color-text-secondary)] text-[var(--color-surface)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-hint)]'
+                  }`}
+                  aria-current={active ? 'step' : undefined}
+                >
+                  {s.id}
+                </span>
+                <span
+                  className={`text-[12px] ${
+                    active
+                      ? 'font-semibold text-[var(--color-text)]'
+                      : 'text-[var(--color-text-hint)]'
+                  }`}
+                >
+                  {s.label}
+                </span>
+                {idx < STEPS.length - 1 && (
+                  <span className="mx-1 h-px flex-1 bg-[var(--color-border)]" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 본문 */}
+        <section className="doit-card">
+          {step === 1 && (
+            <div>
+              <RitualThoughtInput onCount={setSpilledCount} />
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={goToDashboard}
+                  className="inline-flex items-center gap-1 text-[13px] text-[var(--color-text-hint)] hover:text-[var(--color-text-secondary)]"
+                >
+                  <ArrowLeft size={13} />
+                  그만하기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90"
+                >
+                  다음 · 내일 고르기
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--color-text)]">
+                내일 다시 볼 것을 골라요
+              </h2>
+              <p className="mt-1.5 text-[12.5px] text-[var(--color-text-hint)]">
+                미분류 {unclassified.length}개 · 오늘 남은 일정 {todayUnfinished.length}개
+              </p>
+
+              {step2Candidates.length === 0 ? (
+                <p className="mt-6 rounded-lg border border-dashed border-[var(--color-border)] px-3 py-8 text-center text-[13px] text-[var(--color-text-hint)]">
+                  고를 항목이 없어요. 다음 단계로 넘어가요.
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-1.5">
+                  {step2Candidates.map((t) => {
+                    const checked = selectedTomorrow.has(t.id);
+                    return (
+                      <li key={t.id}>
+                        <label
+                          className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                            checked
+                              ? 'border-[var(--color-text-secondary)] bg-[var(--color-card-surface-subtle)]'
+                              : 'border-[var(--color-border)] hover:bg-[var(--color-card-surface-subtle)]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSelect(t.id)}
+                            className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-text-secondary)]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-[13.5px] leading-[1.5] text-[var(--color-text)]">
+                              {t.text}
+                            </p>
+                            {t._source === 'today' && (
+                              <span className="mt-1 inline-block text-[11px] text-[var(--color-text-hint)]">
+                                오늘 남은 일정
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center gap-1 text-[13px] text-[var(--color-text-hint)] hover:text-[var(--color-text-secondary)]"
+                >
+                  <ArrowLeft size={13} />
+                  쏟기로
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSkipTomorrow}
+                    className="rounded-full border border-[var(--color-border)] px-3.5 py-2 text-[13px] text-[var(--color-text-secondary)] hover:bg-[var(--color-card-surface-subtle)]"
+                  >
+                    건너뛰기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePlanForTomorrow}
+                    disabled={isSaving || selectedTomorrow.size === 0}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    내일 하기 ({selectedTomorrow.size})
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && !isComplete && (
+            <div>
+              <h2 className="text-[15px] font-semibold text-[var(--color-text)]">
+                남은 생각을 정리해요
+              </h2>
+              <p className="mt-1.5 text-[12.5px] text-[var(--color-text-hint)]">
+                각 항목을 버릴지, 내일 다시 생각할지, 대기 중으로 옮길지 선택해요.
+              </p>
+
+              <ul className="mt-4 space-y-2">
+                {leftoverUnclassified.map((t) => (
+                  <li
+                    key={t.id}
+                    className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-3"
+                  >
+                    <p className="line-clamp-2 text-[13.5px] leading-[1.5] text-[var(--color-text)]">
+                      {t.text}
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleDiscard(t.id)}
+                        className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      >
+                        <Trash2 size={11} />
+                        버리기
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleKeepInInbox(t.id)}
+                        className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      >
+                        내일도 고민
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveToWaiting(t.id)}
+                        className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                      >
+                        대기중
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-6 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="inline-flex items-center gap-1 text-[13px] text-[var(--color-text-hint)] hover:text-[var(--color-text-secondary)]"
+                >
+                  <ArrowLeft size={13} />
+                  내일 고르기로
+                </button>
+                <button
+                  type="button"
+                  onClick={goToDashboard}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90"
+                >
+                  마치기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isComplete && (
+            <div className="py-6 text-center">
+              <h2 className="text-[18px] font-bold text-[var(--color-text)]">
+                오늘도 수고하셨어요
+              </h2>
+              <ul className="mx-auto mt-4 max-w-[260px] space-y-1 text-[13.5px] text-[var(--color-text-secondary)]">
+                <li>쏟은 {spilledCount}개</li>
+                <li>내일 고른 {tomorrowCount}개</li>
+                <li>버린 {discardedCount}개</li>
+              </ul>
+              <button
+                type="button"
+                onClick={goToDashboard}
+                className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90"
+              >
+                대시보드로
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          )}
+        </section>
+
+        <p className="mt-4 text-center text-[11.5px] text-[var(--color-text-hint)]">
+          Esc 를 누르면 대시보드로 돌아가요. 각 단계는 자동으로 저장돼요.
+        </p>
+      </div>
+
+      {toast && (
+        <div className="doit-toast" role="status" aria-live="polite">
+          <span className="text-[13px]">{toast.message}</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium transition-colors hover:bg-white/20"
+          >
+            <Undo2 size={12} />
+            되돌리기
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

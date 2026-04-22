@@ -17,6 +17,7 @@ import {
   LayoutGrid,
   ListChecks,
   MessageSquare,
+  Moon,
   Scale,
   StickyNote,
   Target,
@@ -48,6 +49,7 @@ const navItems = [
       { icon: FolderKanban, label: '프로젝트', href: `${DOIT_HREF}/project` },
       { icon: Calendar, label: '일정', href: `${DOIT_HREF}/schedule` },
       { icon: StickyNote, label: '노트', href: `${DOIT_HREF}/note` },
+      { icon: Moon, label: '자기 전 정리', href: `${DOIT_HREF}/end-of-day` },
     ],
   },
 ];
