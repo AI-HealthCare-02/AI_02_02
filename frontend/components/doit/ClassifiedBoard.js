@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Cloud, Hourglass, X } from 'lucide-react';
 
@@ -14,12 +15,26 @@ const CATEGORY_HREF = {
   health: '/app/do-it-os/note',
 };
 
+// Phase 7.1 Bug 2 — 상세 페이지가 실제로 존재하는 카테고리. 나머지는 인라인 확장 토글로 대체.
+const DETAIL_ROUTES = new Set(['project', 'note', 'schedule']);
+
 export default function ClassifiedBoard({
   thoughts,
   onUnclassify,
   emptyHint = '아직 정리된 메모가 없어요',
   compact = false,
 }) {
+  const [expandedCategories, setExpandedCategories] = useState(() => new Set());
+
+  const toggleExpand = (catId) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId);
+      else next.add(catId);
+      return next;
+    });
+  };
+
   const total = thoughts.filter((t) => t.category && !t.discardedAt).length;
 
   if (total === 0) {
@@ -44,13 +59,16 @@ export default function ClassifiedBoard({
       {primary.map((cat) => {
         const list = getByCategory(thoughts, cat.id);
         const href = CATEGORY_HREF[cat.id] || '/app/do-it-os';
-        return (
-          <Link
-            key={cat.id}
-            href={href}
-            aria-label={`${cat.label} 카테고리 ${list.length}개 보기`}
-            className={`doit-cat-board doit-cat-${cat.tone} group block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-focus)]`}
-          >
+        const hasDetail = DETAIL_ROUTES.has(cat.id);
+        const expanded = expandedCategories.has(cat.id);
+        const previewLimit = compact ? 3 : 10;
+        const visible = expanded ? list : list.slice(0, previewLimit);
+        const overflow = list.length - previewLimit;
+
+        const cardClassName = `doit-cat-board doit-cat-${cat.tone} group block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 transition-colors hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-border-focus)]`;
+
+        const cardBody = (
+          <>
             <div className="mb-2 flex items-center justify-between">
               <span
                 className={`doit-cat-chip doit-cat-${cat.tone} rounded-full border px-2 py-0.5 text-[11.5px] font-medium`}
@@ -59,10 +77,12 @@ export default function ClassifiedBoard({
               </span>
               <span className="inline-flex items-center gap-0.5 text-[11.5px] text-[var(--color-text-hint)]">
                 {list.length}개
-                <ArrowRight
-                  size={10}
-                  className="opacity-0 transition-opacity group-hover:opacity-70"
-                />
+                {hasDetail && (
+                  <ArrowRight
+                    size={10}
+                    className="opacity-0 transition-opacity group-hover:opacity-70"
+                  />
+                )}
               </span>
             </div>
 
@@ -72,7 +92,7 @@ export default function ClassifiedBoard({
               </p>
             ) : (
               <ul className="space-y-1.5">
-                {list.slice(0, compact ? 3 : 10).map((t) => (
+                {visible.map((t) => (
                   <li
                     key={t.id}
                     className="group/item flex items-start gap-1.5 rounded-lg bg-[var(--color-card-surface-subtle)] px-2.5 py-1.5"
@@ -96,14 +116,49 @@ export default function ClassifiedBoard({
                     )}
                   </li>
                 ))}
-                {compact && list.length > 3 && (
+                {overflow > 0 && !hasDetail && (
+                  <li>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleExpand(cat.id);
+                      }}
+                      className="doit-expand-toggle w-full rounded-lg border border-dashed border-[var(--color-border)] px-2 py-1 text-center text-[11.5px] text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)]"
+                    >
+                      {expanded ? '접기 ▴' : `+ ${overflow}개 더 ▾`}
+                    </button>
+                  </li>
+                )}
+                {overflow > 0 && hasDetail && (
                   <li className="text-center text-[11px] text-[var(--color-text-hint)]">
-                    + {list.length - 3}개 더
+                    + {overflow}개 더
                   </li>
                 )}
               </ul>
             )}
+          </>
+        );
+
+        return hasDetail ? (
+          <Link
+            key={cat.id}
+            href={href}
+            aria-label={`${cat.label} 카테고리 ${list.length}개 보기`}
+            className={cardClassName}
+          >
+            {cardBody}
           </Link>
+        ) : (
+          <div
+            key={cat.id}
+            role="region"
+            aria-label={`${cat.label} ${list.length}개`}
+            className={cardClassName}
+          >
+            {cardBody}
+          </div>
         );
       })}
     </div>

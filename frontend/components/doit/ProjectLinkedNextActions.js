@@ -97,13 +97,21 @@ export default function ProjectLinkedNextActions({ projectId, onChange }) {
           {items.map((t) => {
             const tone = toneOf(t.category);
             const catLabel = labelOf(t.category);
+            const isCompleted = !!t.completedAt;
             return (
               <li
                 key={t.id}
-                className="flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2"
+                className={`flex items-start gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2 ${
+                  isCompleted ? 'doit-item-completed' : ''
+                }`}
               >
                 <span className="flex-1 text-[13px] leading-[1.5] text-[var(--color-text)]">
                   {truncate(t.text)}
+                  {isCompleted && (
+                    <span className="ml-2 text-[11px] text-[var(--color-text-hint)]">
+                      완료
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`doit-cat-chip doit-cat-${tone} inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium`}

@@ -6,8 +6,11 @@ import { ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
   STORAGE_KEY,
+  completeThought,
   getByCategory,
+  getCompleted,
   loadThoughts,
+  reopenThought,
   saveThoughts,
   todayIso,
   unclassifyThought,
@@ -23,6 +26,18 @@ function formatTime(iso) {
   } catch {
     return '';
   }
+}
+
+function formatRelative(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  const d = Math.floor(h / 24);
+  return `${d}일 전`;
 }
 
 function bucketByDate(items) {
@@ -80,7 +95,10 @@ export default function CategoryListView({
     saveThoughts(thoughts);
   }, [thoughts, hydrated]);
 
-  const items = getByCategory(thoughts, categoryId);
+  const showCheckbox = categoryId === 'todo' || categoryId === 'schedule';
+  const activeItems = getByCategory(thoughts, categoryId);
+  const completedItems = showCheckbox ? getCompleted(thoughts, categoryId) : [];
+  const items = activeItems;
 
   const handleUnclassify = (id) => {
     setThoughts((prev) => unclassifyThought(prev, id));
@@ -91,6 +109,11 @@ export default function CategoryListView({
   const handleTimeChange = (id, time) => {
     setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledTime: time || null }));
   };
+  const handleToggleComplete = (id, currentlyCompleted) => {
+    setThoughts((prev) =>
+      currentlyCompleted ? reopenThought(prev, id) : completeThought(prev, id),
+    );
+  };
 
   const CATEGORIES_WITH_DETAIL = new Set(['project', 'note']);
 
@@ -98,10 +121,21 @@ export default function CategoryListView({
     const hasDetail = CATEGORIES_WITH_DETAIL.has(categoryId);
     const detailHref = hasDetail ? `/app/do-it-os/${categoryId}/${t.id}` : null;
     const isDone = categoryId === 'project' && t.projectStatus === 'done';
+    const isCompleted = !!t.completedAt;
 
     const body = (
       <>
         <div className="flex items-start gap-2">
+          {showCheckbox && (
+            <input
+              type="checkbox"
+              checked={isCompleted}
+              onChange={() => handleToggleComplete(t.id, isCompleted)}
+              onClick={(event) => event.stopPropagation()}
+              aria-label={`${t.text.slice(0, 20)} 완료 체크`}
+              className="mt-1 h-4 w-4 shrink-0 cursor-pointer"
+            />
+          )}
           <p
             className={`flex-1 text-[14px] leading-[1.55] whitespace-pre-wrap break-words ${
               isDone
@@ -110,6 +144,11 @@ export default function CategoryListView({
             }`}
           >
             {t.text}
+            {isCompleted && (
+              <span className="ml-2 text-[11.5px] text-[var(--color-text-hint)]">
+                완료 · {formatRelative(t.completedAt)}
+              </span>
+            )}
           </p>
           {hasDetail && (
             <ChevronRight
@@ -166,8 +205,10 @@ export default function CategoryListView({
       </>
     );
 
+    const itemClass = isCompleted ? 'doit-item-completed' : '';
+
     return (
-      <li key={t.id}>
+      <li key={t.id} className={itemClass}>
         {hasDetail ? (
           <Link
             href={detailHref}
@@ -259,6 +300,17 @@ export default function CategoryListView({
             <ul className="space-y-2">{items.map(renderItem)}</ul>
           )}
         </section>
+
+        {showCheckbox && completedItems.length > 0 && (
+          <details className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)]">
+            <summary className="cursor-pointer px-3 py-2 text-[12.5px] font-medium text-[var(--color-text-secondary)]">
+              완료된 일 {completedItems.length}개
+            </summary>
+            <ul className="space-y-2 px-3 pb-3 pt-1">
+              {completedItems.map(renderItem)}
+            </ul>
+          </details>
+        )}
 
         <div className="mt-8 flex items-center gap-2 text-[12px] text-[var(--color-text-hint)]">
           <Inbox size={12} />

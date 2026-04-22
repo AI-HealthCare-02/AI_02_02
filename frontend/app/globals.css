@@ -1408,3 +1408,29 @@ html[data-theme="light"] {
 .doit-ritual-step {
   animation: fadeIn 0.22s ease-out;
 }
+
+/* ── Do it OS Phase 7.1 — Alpha: ClassifiedBoard 확장 토글 ─────── */
+.doit-expand-toggle {
+  cursor: pointer;
+  background: transparent;
+}
+.doit-expand-toggle:hover {
+  border-color: var(--color-border-focus);
+}
+
+/* Phase 7.1 — Beta: completion states */
+.doit-item-completed {
+  opacity: 0.6;
+}
+.doit-item-completed p,
+.doit-item-completed > span {
+  text-decoration: line-through;
+}
+
+/* Phase 7.1 — Gamma: handled item variant in ritual Step 3 */
+.doit-item-handled {
+  opacity: 0.5;
+}
+.doit-item-handled p {
+  text-decoration: line-through;
+}

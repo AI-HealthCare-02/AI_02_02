@@ -48,6 +48,7 @@ export function normalizeThought(raw) {
     waitingFor: raw.waitingFor ?? null,
     somedayReason: raw.somedayReason ?? null,
     discardedAt: raw.discardedAt ?? null,
+    completedAt: raw.completedAt ?? null,
     endOfDay: {
       ritualDate: raw.endOfDay?.ritualDate ?? null,
       action: raw.endOfDay?.action ?? null,
@@ -103,6 +104,7 @@ export function unclassifyThought(thoughts, id) {
           waitingFor: null,
           somedayReason: null,
           plannedDate: null,
+          completedAt: null,
           clarification: {
             actionable: t.clarification?.actionable ?? null,
             decision: null,
@@ -129,19 +131,34 @@ export function getUnclassified(thoughts) {
 }
 
 export function getByCategory(thoughts, category) {
-  return thoughts.filter((t) => t.category === category && !t.discardedAt);
+  return thoughts.filter(
+    (t) => t.category === category && !t.discardedAt && !t.completedAt,
+  );
 }
 
 export function getSummary(thoughts) {
-  // total은 "활성(버리지 않은)" 생각 기준. 버린 건 집계·노출에서 제외.
+  // total은 "활성(버리지 않은·완료되지 않은)" 생각 기준.
+  // 버린 건 전부 제외. 완료된 건 totalCompleted / byCategoryCompleted로 분리 집계.
   const summary = {
     total: 0,
+    totalCompleted: 0,
     unclassified: 0,
     byCategory: {},
+    byCategoryCompleted: {},
   };
-  for (const c of CATEGORIES) summary.byCategory[c.id] = 0;
+  for (const c of CATEGORIES) {
+    summary.byCategory[c.id] = 0;
+    summary.byCategoryCompleted[c.id] = 0;
+  }
   for (const t of thoughts) {
     if (t.discardedAt) continue;
+    if (t.completedAt) {
+      summary.totalCompleted += 1;
+      if (t.category && summary.byCategoryCompleted[t.category] !== undefined) {
+        summary.byCategoryCompleted[t.category] += 1;
+      }
+      continue;
+    }
     summary.total += 1;
     if (t.category && summary.byCategory[t.category] !== undefined) {
       summary.byCategory[t.category] += 1;
@@ -150,6 +167,31 @@ export function getSummary(thoughts) {
     }
   }
   return summary;
+}
+
+// ── Phase 7.1: 완료 개념 ─────────────────────────────────
+// todo·schedule만 완료 가능. note·health·project(=projectStatus)·waiting·someday 불가.
+const COMPLETABLE_CATEGORIES = new Set(['todo', 'schedule']);
+
+export function isCompletable(thought) {
+  return !!thought && COMPLETABLE_CATEGORIES.has(thought.category);
+}
+
+export function completeThought(list, id) {
+  const now = new Date().toISOString();
+  return list.map((t) =>
+    t.id === id && isCompletable(t) ? { ...t, completedAt: now } : t,
+  );
+}
+
+export function reopenThought(list, id) {
+  return list.map((t) => (t.id === id ? { ...t, completedAt: null } : t));
+}
+
+export function getCompleted(list, category) {
+  return list.filter(
+    (t) => t.category === category && !!t.completedAt && !t.discardedAt,
+  );
 }
 
 // ── 날짜 유틸 (공용화) ─────────────────────────────────────────
@@ -168,7 +210,11 @@ export function tomorrowIso() {
 export function getTodayScheduled(thoughts) {
   const today = todayIso();
   return thoughts.filter(
-    (t) => t.category === 'schedule' && t.scheduledDate === today && !t.discardedAt,
+    (t) =>
+      t.category === 'schedule' &&
+      t.scheduledDate === today &&
+      !t.discardedAt &&
+      !t.completedAt,
   );
 }
 
@@ -179,7 +225,8 @@ export function getOverdueScheduled(thoughts) {
       t.category === 'schedule' &&
       t.scheduledDate &&
       t.scheduledDate < today &&
-      !t.discardedAt,
+      !t.discardedAt &&
+      !t.completedAt,
   );
 }
 
@@ -242,6 +289,11 @@ export function restoreDiscarded(list, id) {
 }
 
 // ── Phase 7: 프로젝트 연결된 다음 행동 ────────────────────────
+/**
+ * History view — 프로젝트 상세에서 "연결된 다음 행동"으로 노출.
+ * 의도적으로 **완료(completedAt) 항목도 포함**한다 (이력성 뷰).
+ * 필터가 필요하면 caller에서 개별 처리.
+ */
 export function getLinkedNextActions(list, projectId) {
   return list.filter(
     (t) =>
@@ -253,14 +305,15 @@ export function getLinkedNextActions(list, projectId) {
 }
 
 // ── Phase 7: 자기 전 리츄얼 헬퍼 ────────────────────────────
-// 오늘 자기 전 리츄얼용: 오늘 일정(완료 플래그 없으므로 오늘자 전체 반환)
+// 오늘 자기 전 리츄얼용: 오늘자 일정 중 미완료만. Phase 7.1 기준 이름과 동작 일치.
 export function getTodayUnfinishedSchedule(list) {
   const today = todayIso();
   return list.filter(
     (t) =>
       t.category === 'schedule' &&
       t.scheduledDate === today &&
-      !t.discardedAt,
+      !t.discardedAt &&
+      !t.completedAt,
   );
 }
 

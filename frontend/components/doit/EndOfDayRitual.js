@@ -17,7 +17,7 @@ import {
 import RitualThoughtInput from './RitualThoughtInput';
 
 const STEPS = [
-  { id: 1, label: '쏟기', hint: '머릿속에 맴도는 것들을 종이에 옮기면 뇌가 쉴 수 있어요.' },
+  { id: 1, label: '쏟기 (선택)', hint: '아직 덜 꺼낸 생각이 있으면 여기에 마저 적어도 돼요. 이미 낮에 쏟아놨다면 바로 다음 단계로 가요.' },
   { id: 2, label: '내일 고르기', hint: '욕심내지 말고 내일 꼭 할 것 1~3개만 골라주세요.' },
   { id: 3, label: '버리기/보관', hint: '지금 결정 안 해도 되는 건 가볍게 버려도 돼요.' },
 ];
@@ -34,6 +34,17 @@ export default function EndOfDayRitual() {
   const [discardedCount, setDiscardedCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [handledIds, setHandledIds] = useState(() => new Set());
+  const [step3Snapshot, setStep3Snapshot] = useState([]);
+
+  const addHandled = (id) =>
+    setHandledIds((prev) => new Set(prev).add(id));
+  const removeHandled = (id) =>
+    setHandledIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
 
   // 초기 로딩
   useEffect(() => {
@@ -79,6 +90,21 @@ export default function EndOfDayRitual() {
     [unclassified, selectedTomorrow],
   );
 
+  // Step 3 진입 시 처리 대상 스냅샷 (moveToWaiting 등으로 category 변해도 리스트 유지)
+  useEffect(() => {
+    if (step === 3 && step3Snapshot.length === 0) {
+      setStep3Snapshot(leftoverUnclassified.map((t) => t.id));
+    }
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const step3Items = useMemo(
+    () =>
+      step3Snapshot
+        .map((id) => thoughts.find((t) => t.id === id))
+        .filter(Boolean),
+    [step3Snapshot, thoughts],
+  );
+
   const refreshThoughts = () => {
     setThoughts(loadThoughts());
   };
@@ -118,6 +144,7 @@ export default function EndOfDayRitual() {
     saveThoughts(next);
     setThoughts(next);
     setDiscardedCount((n) => n + 1);
+    addHandled(id);
     setToast({
       type: 'discard',
       id,
@@ -131,6 +158,7 @@ export default function EndOfDayRitual() {
     const next = keepInInbox(prev, id);
     saveThoughts(next);
     setThoughts(next);
+    addHandled(id);
     setToast({
       type: 'keep',
       id,
@@ -144,12 +172,56 @@ export default function EndOfDayRitual() {
     const next = moveToWaiting(prev, id);
     saveThoughts(next);
     setThoughts(next);
+    addHandled(id);
     setToast({
       type: 'waiting',
       id,
       prev,
       message: '대기 중으로 옮겼어요',
     });
+  };
+
+  // Step 3 row-level 취소 — 각 action의 역연산
+  const handleCancelHandled = (id) => {
+    const prev = loadThoughts();
+    const next = prev.map((t) => {
+      if (t.id !== id) return t;
+      const action = t.endOfDay?.action;
+      const base = {
+        ...t,
+        endOfDay: { ...(t.endOfDay ?? {}), action: null },
+      };
+      if (action === 'waiting') {
+        // moveToWaiting → waiting 분류 해제 (미분류로 복귀)
+        return {
+          ...base,
+          category: null,
+          classifiedAt: null,
+          clarification: {
+            ...(t.clarification ?? {}),
+            decision: null,
+            source: null,
+          },
+        };
+      }
+      if (action === 'discard') {
+        // discardThought → discardedAt 해제 (미분류로 복귀)
+        return {
+          ...base,
+          discardedAt: null,
+          clarification: {
+            ...(t.clarification ?? {}),
+            decision: null,
+            source: null,
+          },
+        };
+      }
+      // 'keep' 또는 'plan_tomorrow' — endOfDay.action만 클리어
+      return base;
+    });
+    saveThoughts(next);
+    setThoughts(next);
+    removeHandled(id);
   };
 
   const handleUndo = () => {
@@ -159,13 +231,21 @@ export default function EndOfDayRitual() {
     if (toast.type === 'discard') {
       setDiscardedCount((n) => Math.max(0, n - 1));
     }
+    if (toast.id != null) {
+      removeHandled(toast.id);
+    }
     setToast(null);
   };
 
   const goToDashboard = () => router.push(DASHBOARD_HREF);
 
-  const totalStep3Actions = leftoverUnclassified.length;
-  const isComplete = step === 3 && totalStep3Actions === 0;
+  // isComplete: Step 3 스냅샷 기준. 비어있으면 Step 2에서 건너뛰기한 것 → 바로 완료.
+  // 스냅샷에 항목이 있으면 모두 처리됐을 때 완료.
+  const isComplete =
+    step === 3 &&
+    (step3Snapshot.length === 0
+      ? leftoverUnclassified.length === 0
+      : step3Snapshot.every((id) => handledIds.has(id)));
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -225,7 +305,10 @@ export default function EndOfDayRitual() {
           {step === 1 && (
             <div>
               <RitualThoughtInput onCount={setSpilledCount} />
-              <div className="mt-6 flex items-center justify-between">
+              <p className="mb-3 mt-6 text-[11.5px] text-[var(--color-text-hint)]">
+                낮에 쏟아놓은 생각은 다음 단계에서 전부 한 번에 봐요.
+              </p>
+              <div className="flex items-center justify-between">
                 <button
                   type="button"
                   onClick={goToDashboard}
@@ -336,40 +419,79 @@ export default function EndOfDayRitual() {
               </p>
 
               <ul className="mt-4 space-y-2">
-                {leftoverUnclassified.map((t) => (
-                  <li
-                    key={t.id}
-                    className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-3"
-                  >
-                    <p className="line-clamp-2 text-[13.5px] leading-[1.5] text-[var(--color-text)]">
-                      {t.text}
-                    </p>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleDiscard(t.id)}
-                        className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                {step3Items.map((t) => {
+                  const isHandled = handledIds.has(t.id);
+                  const action = t.endOfDay?.action;
+                  const badge =
+                    action === 'plan_tomorrow'
+                      ? '내일 하기로'
+                      : action === 'keep'
+                      ? '내일 결정 예정'
+                      : action === 'waiting'
+                      ? '대기 중으로 옮김'
+                      : action === 'discard'
+                      ? '버림'
+                      : null;
+                  return (
+                    <li
+                      key={t.id}
+                      className={`rounded-lg border px-3 py-3 ${
+                        isHandled
+                          ? 'doit-item-handled border-[var(--color-border)] bg-[var(--color-card-surface-subtle)]/40'
+                          : 'border-[var(--color-border)] bg-[var(--color-card-surface-subtle)]'
+                      }`}
+                    >
+                      <p
+                        className={`line-clamp-2 text-[13.5px] leading-[1.5] ${
+                          isHandled
+                            ? 'text-[var(--color-text-hint)] line-through'
+                            : 'text-[var(--color-text)]'
+                        }`}
                       >
-                        <Trash2 size={11} />
-                        버리기
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleKeepInInbox(t.id)}
-                        className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                      >
-                        내일도 고민
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveToWaiting(t.id)}
-                        className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
-                      >
-                        대기중
-                      </button>
-                    </div>
-                  </li>
-                ))}
+                        {t.text}
+                      </p>
+                      {isHandled && badge ? (
+                        <div className="mt-2.5 flex items-center gap-2">
+                          <span className="rounded-full bg-[var(--color-card-surface-subtle)] px-2.5 py-1 text-[11.5px] font-medium text-[var(--color-text-secondary)]">
+                            {badge}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelHandled(t.id)}
+                            className="text-[11.5px] text-[var(--color-text-hint)] underline-offset-2 hover:underline"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDiscard(t.id)}
+                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                          >
+                            <Trash2 size={11} />
+                            버리기
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleKeepInInbox(t.id)}
+                            className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                          >
+                            내일도 고민
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveToWaiting(t.id)}
+                            className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                          >
+                            대기중
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
 
               <div className="mt-6 flex items-center justify-between">
@@ -387,6 +509,8 @@ export default function EndOfDayRitual() {
                   className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90"
                 >
                   마치기
+                  {step3Snapshot.length > 0 &&
+                    ` (${handledIds.size}/${step3Snapshot.length} 처리됨)`}
                 </button>
               </div>
             </div>

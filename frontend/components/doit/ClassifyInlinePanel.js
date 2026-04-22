@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
 
-import { CATEGORY_LABELS, todayIso } from '../../lib/doit_store';
+import { CATEGORIES, CATEGORY_LABELS, todayIso } from '../../lib/doit_store';
 import ActionableGate from './ActionableGate';
 import DateChip from './DateChip';
 import TimeChip from './TimeChip';
@@ -30,6 +30,9 @@ import WaitingInput from './WaitingInput';
 // 게이트를 거치는 카테고리 (나머지는 category_input 바로 진입)
 const GATED_CATEGORIES = new Set(['todo', 'schedule', 'project', 'waiting']);
 
+// Phase 7.1 — 헤더 chip 색상 조회 (label 은 CATEGORY_LABELS 재사용)
+const toneOf = (catId) => CATEGORIES.find((c) => c.id === catId)?.tone ?? 'gray';
+
 export default function ClassifyInlinePanel({
   thought,
   initialCategory,
@@ -53,6 +56,18 @@ export default function ClassifyInlinePanel({
 
   const firstFocusRef = useRef(null);
   const rootRef = useRef(null);
+
+  // Phase 7.1 Bug 1 — initialCategory prop 변경을 반영 (useState(initialCategory) antipattern 수정)
+  useEffect(() => {
+    setCategory(initialCategory);
+    setPhase(GATED_CATEGORIES.has(initialCategory) ? 'gate' : 'category_input');
+    setActionable(null);
+    setDraft({
+      scheduledDate: initialCategory === 'schedule' ? todayIso() : null,
+      scheduledTime: null,
+      waitingFor: '',
+    });
+  }, [initialCategory]);
 
   // ESC → 닫기 (데이터 변경 0)
   useEffect(() => {
@@ -184,9 +199,16 @@ export default function ClassifyInlinePanel({
       className="rounded-xl border border-[var(--color-border-focus)] bg-[var(--color-card-surface-subtle)] p-3"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-[11.5px] font-medium text-[var(--color-text-secondary)]">
-          {phaseHeader}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className={`doit-cat-chip doit-cat-${toneOf(category)} inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium`}
+          >
+            {CATEGORY_LABELS[category] || category}
+          </span>
+          <span className="text-[11.5px] text-[var(--color-text-secondary)]">
+            {phase === 'gate' ? '실행 가능 여부부터 확인해요' : phaseHeader}
+          </span>
+        </div>
         <button
           type="button"
           onClick={onCancel}
