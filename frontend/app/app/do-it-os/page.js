@@ -14,6 +14,7 @@ import {
   Moon,
   Shield,
   StickyNote,
+  X,
 } from 'lucide-react';
 
 import {
@@ -43,6 +44,7 @@ function formatRelative(iso) {
 
 export default function DoItOsDashboard() {
   const [thoughts, setThoughts] = useState([]);
+  const [guideSeen, setGuideSeen] = useState(true);
 
   useEffect(() => {
     setThoughts(loadThoughts());
@@ -52,6 +54,21 @@ export default function DoItOsDashboard() {
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
+
+  useEffect(() => {
+    try {
+      setGuideSeen(localStorage.getItem('danaa_doit_guide_seen_v1') === '1');
+    } catch {
+      setGuideSeen(true);
+    }
+  }, []);
+
+  const markGuideSeen = () => {
+    try {
+      localStorage.setItem('danaa_doit_guide_seen_v1', '1');
+    } catch {}
+    setGuideSeen(true);
+  };
 
   const recent = useMemo(
     () => thoughts.filter((t) => !t.category).slice(-5).reverse(),
@@ -81,6 +98,36 @@ export default function DoItOsDashboard() {
             오늘 머릿속을 꺼내서 정리해요.
           </p>
         </header>
+
+        {!guideSeen && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--color-primary-light)] bg-[var(--color-primary-light)]/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]" aria-hidden="true">📖</span>
+              <span className="text-[13.5px] text-[var(--color-text)]">
+                Do it OS가 처음이에요? 3분 가이드로 전체 흐름을 먼저 익혀보세요.
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <a
+                href="/do-it-os-guide.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={markGuideSeen}
+                className="inline-flex items-center gap-1 rounded-full bg-[var(--color-primary)] px-3 py-1.5 text-[12.5px] font-medium text-[var(--color-cta-text)] hover:opacity-90"
+              >
+                가이드 보기 →
+              </a>
+              <button
+                type="button"
+                onClick={markGuideSeen}
+                aria-label="배너 닫기"
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-hint)] hover:bg-[var(--color-surface-hover)]"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mb-3 flex gap-3 text-[12px] text-[var(--color-text-hint)]">
           <span>미분류 {summary.unclassified}</span>

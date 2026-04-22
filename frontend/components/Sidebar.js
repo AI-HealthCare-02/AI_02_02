@@ -94,6 +94,7 @@ export default function Sidebar({ productGuide = null }) {
   const [userGroup, setUserGroup] = useState('온보딩 미완료');
   const [userInitial, setUserInitial] = useState('?');
   const [expandedKeys, setExpandedKeys] = useState(() => new Set(['Do it OS']));
+  const [guideSeen, setGuideSeen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -102,6 +103,21 @@ export default function Sidebar({ productGuide = null }) {
   useEffect(() => {
     if (window.innerWidth < 768) setOpen(false);
   }, []);
+
+  useEffect(() => {
+    try {
+      setGuideSeen(localStorage.getItem('danaa_doit_guide_seen_v1') === '1');
+    } catch {
+      setGuideSeen(true);
+    }
+  }, []);
+
+  const markGuideSeen = () => {
+    try {
+      localStorage.setItem('danaa_doit_guide_seen_v1', '1');
+    } catch {}
+    setGuideSeen(true);
+  };
 
   useEffect(() => {
     async function loadSidebarState() {
@@ -382,6 +398,23 @@ export default function Sidebar({ productGuide = null }) {
             >
               <HelpCircle size={15} />
             </button>
+            <a
+              href="/do-it-os-guide.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={markGuideSeen}
+              className="relative flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
+              aria-label="Do it OS 학습 가이드 새 탭으로 열기"
+              title="Do it OS 학습 가이드"
+            >
+              <Zap size={13} />
+              {!guideSeen && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"
+                />
+              )}
+            </a>
             <span className="text-sm">
               <currentCat.icon size={16} />
             </span>
@@ -460,13 +493,32 @@ export default function Sidebar({ productGuide = null }) {
                 <div className="text-[15px] font-medium text-nature-900">{userName}</div>
                 <div className="text-[13px] text-[var(--color-text-hint)]">{userGroup}</div>
               </div>
-              <Link
-                href="/app/settings"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
-                aria-label="설정 열기"
-              >
-                ⚙
-              </Link>
+              <div className="flex items-center gap-1.5">
+                <a
+                  href="/do-it-os-guide.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={markGuideSeen}
+                  className="relative flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
+                  aria-label="Do it OS 학습 가이드 새 탭으로 열기"
+                  title="Do it OS 학습 가이드"
+                >
+                  <Zap size={13} />
+                  {!guideSeen && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"
+                    />
+                  )}
+                </a>
+                <Link
+                  href="/app/settings"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
+                  aria-label="설정 열기"
+                >
+                  ⚙
+                </Link>
+              </div>
             </div>
           </div>
         )}

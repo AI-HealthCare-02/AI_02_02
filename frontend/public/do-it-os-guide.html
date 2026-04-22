@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Do it OS 학습 가이드 · 처음 사용자용 (Phase 7.3.1)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+/* danaa-visual-style tokens */
+:root {
+  --color-primary: #0EA5E9;
+  --color-primary-hover: #0284C7;
+  --color-primary-light: #E0F2FE;
+  --color-accent: #10B981;
+  --color-accent-light: #D1FAE5;
+  --color-danger: #EF4444;
+  --color-danger-light: #FEE2E2;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-info: #7C3AED;
+  --color-info-light: #EDE9FE;
+  --color-text: #1E293B;
+  --color-text-muted: #475569;
+  --color-text-hint: #64748B;
+  --color-text-inv: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #F8FAFC;
+  --color-surface-alt: #F1F5F9;
+  --color-surface-dark: #0F172A;
+  --color-border: #E2E8F0;
+  --color-border-strong: #CBD5E1;
+
+  --font-sans: Pretendard, "Pretendard Variable", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", D2Coding, Consolas, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
+  --gap-xs: 6px;
+  --gap-sm: 10px;
+  --gap: 16px;
+  --gap-md: 24px;
+  --gap-lg: 32px;
+
+  --shadow-soft: 0 1px 3px rgba(15,23,42,.06);
+  --shadow-card: 0 2px 8px rgba(15,23,42,.08);
+  --shadow-float: 0 8px 24px rgba(15,23,42,.10);
+
+  /* 카테고리 7색 톤 */
+  --cat-todo: #2E5A85;     --cat-todo-bg: #E8F1FD;
+  --cat-schedule: #8E5400; --cat-schedule-bg: #FFF5EB;
+  --cat-project: #6B4A28;  --cat-project-bg: #F0E8DB;
+  --cat-note: #555555;     --cat-note-bg: #EFEFEC;
+  --cat-health: #2D5E2F;   --cat-health-bg: #EBF7ED;
+  --cat-waiting: #5C3F8A;  --cat-waiting-bg: #F1ECFA;
+  --cat-someday: #4A5262;  --cat-someday-bg: #EDEEF2;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 레이아웃 */
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--gap-lg) var(--gap-md);
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--gap-lg);
+}
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; }
+  .toc { position: static !important; }
+}
+
+/* TOC (좌측 고정) */
+.toc {
+  position: sticky;
+  top: var(--gap-md);
+  align-self: start;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  padding: var(--gap) var(--gap-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+.toc h4 {
+  margin: 0 0 var(--gap-sm);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-text-hint);
+}
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: step;
+}
+.toc li {
+  counter-increment: step;
+  margin-bottom: 2px;
+}
+.toc a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: background .15s ease;
+}
+.toc a::before {
+  content: counter(step) ".";
+  color: var(--color-primary);
+  font-weight: 700;
+  margin-right: 6px;
+}
+.toc a:hover { background: var(--color-primary-light); }
+.toc a.active { background: var(--color-primary); color: var(--color-text-inv); }
+.toc a.active::before { color: var(--color-text-inv); }
+
+/* 본문 */
+main { min-width: 0; }
+
+/* 헤더 */
+header.intro {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-info));
+  color: var(--color-text-inv);
+  padding: var(--gap-lg);
+  border-radius: var(--radius-card);
+  margin-bottom: var(--gap-lg);
+  box-shadow: var(--shadow-float);
+}
+header.intro .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: 11.5px;
+  opacity: .85;
+  margin-bottom: 8px;
+}
+header.intro h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+}
+header.intro p {
+  margin: 0;
+  font-size: 16px;
+  opacity: .95;
+  max-width: 680px;
+  line-height: 1.55;
+}
+header.intro .intro-map {
+  margin-top: var(--gap-md);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+header.intro .intro-step {
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.35);
+  color: #FFFFFF;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 600;
+  backdrop-filter: blur(2px);
+}
+header.intro .intro-step-arrow {
+  color: rgba(255,255,255,.75);
+  font-weight: 700;
+}
+
+/* 단계 섹션 */
+section.step {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--gap-md);
+  margin-bottom: var(--gap-lg);
+  box-shadow: var(--shadow-card);
+  scroll-margin-top: var(--gap-md);
+}
+section.step:target {
+  box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-float);
+}
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+  padding-bottom: var(--gap);
+  border-bottom: 1px solid var(--color-border);
+}
+.step-badge {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-text-inv);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: var(--shadow-soft);
+}
+.step-badge.accent { background: var(--color-accent); }
+.step-badge.info { background: var(--color-info); }
+.step-badge.warning { background: var(--color-warning); }
+.step-title h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.step-title .subtitle {
+  font-size: 13.5px;
+  color: var(--color-text-hint);
+  font-weight: 500;
+}
+
+/* 질문 블록 */
+.qa {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+  margin: var(--gap) 0;
+}
+.qa-item {
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--gap);
+  border-left: 4px solid var(--color-primary);
+}
+.qa-item.accent { border-left-color: var(--color-accent); }
+.qa-item.warning { border-left-color: var(--color-warning); }
+.qa-item.info { border-left-color: var(--color-info); }
+.qa-item.danger { border-left-color: var(--color-danger); }
+.qa-q {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.qa-q::before {
+  content: "Q";
+  background: var(--color-primary);
+  color: var(--color-text-inv);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.qa-item.accent .qa-q::before { background: var(--color-accent); }
+.qa-item.warning .qa-q::before { background: var(--color-warning); }
+.qa-item.info .qa-q::before { background: var(--color-info); }
+.qa-item.danger .qa-q::before { background: var(--color-danger); }
+.qa-a {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.65;
+}
+.qa-a code {
+  font-family: var(--font-mono);
+  background: var(--color-surface-alt);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 12.5px;
+  color: var(--color-info);
+}
+
+/* 와이어프레임 (SVG containing box) */
+.wireframe {
+  background: var(--color-surface-soft);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--gap);
+  margin: var(--gap) 0;
+  text-align: center;
+}
+.wireframe svg {
+  max-width: 100%;
+  height: auto;
+}
+.wireframe-caption {
+  font-size: 12px;
+  color: var(--color-text-hint);
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* 액션 리스트 */
+.action-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--gap) 0;
+  counter-reset: action;
+}
+.action-list li {
+  counter-increment: action;
+  position: relative;
+  padding: 10px 12px 10px 48px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.action-list li::before {
+  content: counter(action);
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-text-inv);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.action-list li strong {
+  color: var(--color-text);
+}
+.action-list li kbd {
+  font-family: var(--font-mono);
+  background: var(--color-surface-dark);
+  color: var(--color-text-inv);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* 카테고리 칩 */
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-xs);
+  margin: var(--gap-sm) 0;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  font-size: 13px;
+  font-weight: 500;
+}
+.chip-todo { background: var(--cat-todo-bg); color: var(--cat-todo); border-color: rgba(46,90,133,.35); }
+.chip-schedule { background: var(--cat-schedule-bg); color: var(--cat-schedule); border-color: rgba(142,84,0,.35); }
+.chip-project { background: var(--cat-project-bg); color: var(--cat-project); border-color: rgba(107,74,40,.35); }
+.chip-note { background: var(--cat-note-bg); color: var(--cat-note); border-color: rgba(85,85,85,.35); }
+.chip-health { background: var(--cat-health-bg); color: var(--cat-health); border-color: rgba(45,94,47,.35); }
+.chip-waiting { background: var(--cat-waiting-bg); color: var(--cat-waiting); border-color: rgba(92,63,138,.35); }
+.chip-someday { background: var(--cat-someday-bg); color: var(--cat-someday); border-color: rgba(74,82,98,.35); }
+
+/* 흐름 화살표 */
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface-alt);
+  padding: var(--gap);
+  border-radius: var(--radius-md);
+  margin: var(--gap) 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.flow-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.flow-arrow { color: var(--color-primary); font-weight: 700; }
+.flow-branch {
+  padding-left: 24px;
+  border-left: 2px solid var(--color-primary);
+  margin-left: 12px;
+}
+
+/* 카드 그리드 */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--gap);
+  margin: var(--gap) 0;
+}
+.mini-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--gap);
+  border-top: 4px solid var(--color-primary);
+}
+.mini-card h4 {
+  margin: 0 0 8px;
+  font-size: 14.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mini-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+.mini-card .tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* 과학 근거 카드 (섹션 A) */
+.science-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--gap);
+  margin: var(--gap) 0;
+}
+.science-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: var(--gap);
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.science-card.accent { border-left-color: var(--color-accent); }
+.science-card.info { border-left-color: var(--color-info); }
+.science-card.warning { border-left-color: var(--color-warning); }
+.science-card.danger { border-left-color: var(--color-danger); }
+.science-card-header { display: flex; flex-direction: column; gap: 4px; }
+.science-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  width: fit-content;
+}
+.science-card.accent .science-badge { background: var(--color-accent-light); color: #047857; }
+.science-card.info .science-badge { background: var(--color-info-light); color: #5B21B6; }
+.science-card.warning .science-badge { background: var(--color-warning-light); color: #92400E; }
+.science-card.danger .science-badge { background: var(--color-danger-light); color: #991B1B; }
+.science-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+.science-year {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-hint);
+  font-weight: 500;
+}
+.science-card blockquote {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  border-left: 3px solid var(--color-border-strong);
+}
+.science-explain {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+.science-remedy {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+}
+.science-card.accent .science-remedy { background: var(--color-accent-light); }
+.science-card.info .science-remedy { background: var(--color-info-light); }
+.science-card.warning .science-remedy { background: var(--color-warning-light); }
+.science-card.danger .science-remedy { background: var(--color-danger-light); }
+.science-remedy strong {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--color-primary-hover);
+  margin-bottom: 4px;
+}
+.science-card.accent .science-remedy strong { color: #047857; }
+.science-card.info .science-remedy strong { color: #5B21B6; }
+.science-card.warning .science-remedy strong { color: #92400E; }
+.science-card.danger .science-remedy strong { color: #991B1B; }
+.science-remedy p { margin: 0; line-height: 1.55; font-size: 13px; color: var(--color-text); }
+.science-remedy em { font-style: italic; color: var(--color-text); font-weight: 600; }
+
+/* 비교표 */
+.compare-table-wrap {
+  overflow-x: auto;
+  margin: var(--gap) 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  background: var(--color-surface);
+  min-width: 600px;
+}
+.compare-table thead th {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-weight: 700;
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--color-border);
+  font-size: 13px;
+}
+.compare-table thead th.highlight {
+  background: var(--color-primary);
+  color: var(--color-text-inv);
+}
+.compare-table tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  vertical-align: top;
+}
+.compare-table tbody td.highlight {
+  background: var(--color-primary-light);
+  color: var(--color-text);
+  font-weight: 600;
+}
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table tbody td:first-child {
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface-soft);
+}
+
+/* 인용/강조 블록 */
+.callout {
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
+  border-left: 4px solid var(--color-warning);
+  padding: var(--gap);
+  border-radius: var(--radius-md);
+  margin: var(--gap) 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.callout.info { background: var(--color-info-light); border-color: var(--color-info); }
+.callout.accent { background: var(--color-accent-light); border-color: var(--color-accent); }
+.callout.primary { background: var(--color-primary-light); border-color: var(--color-primary); }
+.callout .callout-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 경로 표시 */
+.path {
+  font-family: var(--font-mono);
+  background: var(--color-surface-dark);
+  color: var(--color-text-inv);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  display: inline-block;
+}
+
+/* 배너 (섹션 진입) */
+.banner {
+  background: linear-gradient(90deg, var(--color-primary-light), transparent);
+  border-left: 4px solid var(--color-primary);
+  padding: var(--gap-sm) var(--gap);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--gap);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* 신규 기능 배지 */
+.feature-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.feature-badge.phase71 { background: var(--color-accent-light); color: #047857; }
+.feature-badge.phase72 { background: var(--color-primary-light); color: var(--color-primary-hover); }
+.feature-badge.phase73 { background: var(--color-info-light); color: #5B21B6; }
+.feature-badge.phase731 { background: var(--color-warning-light); color: #92400E; }
+
+/* 푸터 */
+footer {
+  text-align: center;
+  padding: var(--gap-lg) 0;
+  color: var(--color-text-hint);
+  font-size: 12.5px;
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--gap-lg);
+}
+
+/* FAQ */
+details.faq {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px var(--gap);
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: box-shadow .2s ease;
+}
+details.faq[open] { box-shadow: var(--shadow-card); }
+details.faq summary {
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--color-text);
+  list-style: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+details.faq summary::-webkit-details-marker { display: none; }
+details.faq summary::before {
+  content: "▸";
+  color: var(--color-primary);
+  font-size: 14px;
+  transition: transform .15s ease;
+  display: inline-block;
+}
+details.faq[open] summary::before { transform: rotate(90deg); }
+details.faq .faq-body {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+/* 링크 */
+a.inline {
+  color: var(--color-primary-hover);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px dashed currentColor;
+}
+a.inline:hover { color: var(--color-primary); }
+
+/* 다크 테마 대응 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-text: #E2E8F0;
+    --color-text-muted: #CBD5E1;
+    --color-text-hint: #94A3B8;
+    --color-surface: #1E293B;
+    --color-surface-soft: #0F172A;
+    --color-surface-alt: #334155;
+    --color-border: #334155;
+    --color-border-strong: #475569;
+  }
+  body { background: var(--color-surface-soft); }
+  .compare-table tbody td:first-child { background: var(--color-surface-alt); }
+  .science-card blockquote { background: var(--color-surface-alt); }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- ==================== TOC ==================== -->
+<aside class="toc" id="toc">
+  <h4>📖 학습 순서</h4>
+  <ol>
+    <li><a href="#intro">Do it OS가 뭐예요?</a></li>
+    <li><a href="#science">왜 쓰는지 · 근거 5선</a></li>
+    <li><a href="#step1">대시보드 들어가기</a></li>
+    <li><a href="#step2">생각 쏟기 (판단 없이)</a></li>
+    <li><a href="#step3">정리 명료화 (인라인)</a></li>
+    <li><a href="#step4">카테고리별 관리하기</a></li>
+    <li><a href="#step5">자기 전 정리 (자이가르닉)</a></li>
+    <li><a href="#step6">다음 날 순환 구조</a></li>
+    <li><a href="#faq">자주 묻는 질문</a></li>
+  </ol>
+</aside>
+
+<!-- ==================== MAIN ==================== -->
+<main>
+
+<!-- 인트로 -->
+<header class="intro" id="intro">
+  <div class="eyebrow">다나아 · Do it OS 학습 가이드 · Phase 7.3.1</div>
+  <h1>머릿속이 복잡한가요?<br>Do it OS에 내려놓으세요.</h1>
+  <p>Do it OS는 "머릿속에서 뱅뱅 도는 생각"을 밖으로 꺼내서 제자리로 보내주는 도구예요. 이 가이드는 처음 사용자도 순서대로 따라가면 바로 쓸 수 있게 준비됐습니다. 심리학·인지과학 근거부터 실제 화면 와이어프레임까지 한 번에 담았어요.</p>
+  <div class="intro-map" aria-label="전체 흐름 5단계 지도">
+    <span class="intro-step">① 생각 쏟기</span>
+    <span class="intro-step-arrow">→</span>
+    <span class="intro-step">② 명료화</span>
+    <span class="intro-step-arrow">→</span>
+    <span class="intro-step">③ 카테고리 관리</span>
+    <span class="intro-step-arrow">→</span>
+    <span class="intro-step">④ 자기 전 정리</span>
+    <span class="intro-step-arrow">→</span>
+    <span class="intro-step">⑤ 다음 날 순환</span>
+  </div>
+</header>
+
+<!-- ==================== SECTION A: 과학적 근거 ==================== -->
+<section class="step" id="science">
+  <div class="step-header">
+    <div class="step-badge info">🧠</div>
+    <div class="step-title">
+      <h2>먼저 "왜 쓰는지" 심층 — 5가지 과학적 근거</h2>
+      <div class="subtitle">도구가 아니라 사고 설계. 이 5개 연구가 Do it OS 전체 흐름을 만들어요.</div>
+    </div>
+  </div>
+
+  <div class="banner">🔬 "왜 그렇게 하는가?"를 알면 "그렇게 안 하면 왜 힘든가?"가 저절로 보여요.</div>
+
+  <div class="science-grid">
+    <!-- A-1 자이가르닉 -->
+    <article class="science-card">
+      <header class="science-card-header">
+        <span class="science-badge">근거 1</span>
+        <h3>자이가르닉 효과 (Zeigarnik Effect)</h3>
+        <p class="science-year">1927 · Bluma Zeigarnik (리투아니아 심리학자)</p>
+      </header>
+      <blockquote>"완결되지 않은 과제가 완결된 과제보다 2배 더 기억에 남는다"</blockquote>
+      <p class="science-explain">빈 카페에서 웨이터 관찰 연구에서 출발. 아직 내지 않은 주문은 또렷하게 기억하지만 계산이 끝난 주문은 거의 잊어버림. 현대 인지과학에서는 미완결 "열린 루프(open loop)"가 작업 기억을 지속 점유하면서 인지 부하를 누적시켜 수면 방해와 주의력 저하를 일으킨다고 해석해요.</p>
+      <div class="science-remedy">
+        <strong>Do it OS 처방</strong>
+        <p><em>자기 전 정리 리츄얼</em>에서 남은 생각을 모두 <em>버리기 / 내일 / 대기</em> 중 하나로 결정 → 열린 루프 0으로 수렴 → 뇌가 쉬게 함.</p>
+      </div>
+    </article>
+
+    <!-- A-2 GTD -->
+    <article class="science-card accent">
+      <header class="science-card-header">
+        <span class="science-badge">근거 2</span>
+        <h3>GTD: Getting Things Done</h3>
+        <p class="science-year">2001 · David Allen (생산성 컨설턴트)</p>
+      </header>
+      <blockquote>"The mind is for having ideas, not holding them.<br>(머리는 아이디어가 떠오르는 곳이지, 저장하는 곳이 아니다)"</blockquote>
+      <p class="science-explain">Allen의 원본 5단계는 <strong>Capture → Clarify → Organize → Reflect → Engage</strong>. 30년간 실무 컨설팅에서 검증된 모델이지만, 단계가 많고 용어가 낯설어 처음 사용자에게 학습 장벽이 있어요.</p>
+      <div class="science-remedy">
+        <strong>Do it OS 처방</strong>
+        <p>5단계를 <em>3단계(쏟기 → 명료화 → 관리)</em>로 단순화. Reflect·Engage는 자기 전 정리 리츄얼과 다음 날 순환 구조로 자연스럽게 흡수 → 초보자 학습 부담 낮춤.</p>
+      </div>
+    </article>
+
+    <!-- A-3 작업 기억 -->
+    <article class="science-card info">
+      <header class="science-card-header">
+        <span class="science-badge">근거 3</span>
+        <h3>작업 기억 한계 (Working Memory Capacity)</h3>
+        <p class="science-year">1956 Miller → 2001 Cowan (심리학자)</p>
+      </header>
+      <blockquote>"Magical Number Seven, Plus or Minus Two → 실제로는 4±1개"</blockquote>
+      <p class="science-explain">Miller의 유명한 7±2 규칙을 Cowan이 2001년 재검증한 결과, 청킹·시연·장기기억 보조 없이 순수 작업기억 용량은 <strong>4±1</strong>에 불과했어요. 열린 루프가 7개를 넘으면 전두엽 과부하로 "결정 피로(decision fatigue)"가 생겨 의사결정 품질이 급격히 떨어져요.</p>
+      <div class="science-remedy">
+        <strong>Do it OS 처방</strong>
+        <p>머릿속 대신 <em>외부 시스템에 위임</em> → 작업 기억 용량 해방. "다 적었으니 잊어도 되는" 상태 확보가 인지 자원 해방의 핵심.</p>
+      </div>
+    </article>
+
+    <!-- A-4 외부화 -->
+    <article class="science-card warning">
+      <header class="science-card-header">
+        <span class="science-badge">근거 4</span>
+        <h3>외부화 효과 (Externalization)</h3>
+        <p class="science-year">2010 · David Kirsh (UC San Diego 인지과학)</p>
+      </header>
+      <blockquote>"적는 행위 자체가 사고를 재구성한다 — 단순 저장이 아니다"</blockquote>
+      <p class="science-explain">Kirsh의 연구는 "외부 표상"이 단순히 메모리를 대체하는 것이 아니라, 사고 과정을 직접 재구성한다는 것을 보여줘요. "분류"는 인지적 처리 — 카테고리 선택 자체가 생각을 명확하게 만들고, 손가락으로 칩을 누르는 물리적 동작은 결정의 물리적 각인이 됩니다.</p>
+      <div class="science-remedy">
+        <strong>Do it OS 처방</strong>
+        <p><em>인라인 명료화 패널</em>로 가장 짧은 동선에서 외부화 완성. 카드 내부에서 칩 → 게이트 → 저장까지 한 화면으로 → 마찰 최소 + 외부화 품질 최대.</p>
+      </div>
+    </article>
+
+    <!-- A-5 2분 규칙 + 결정 피로 -->
+    <article class="science-card danger">
+      <header class="science-card-header">
+        <span class="science-badge">근거 5</span>
+        <h3>2분 규칙 + 결정 피로</h3>
+        <p class="science-year">2001 Allen · 2007 Baumeister (의지력 연구)</p>
+      </header>
+      <blockquote>"2분 안에 끝날 일은 지금 바로" · "결정할수록 전두엽이 지친다"</blockquote>
+      <p class="science-explain">GTD의 2분 규칙은 "저장 오버헤드가 실행 시간보다 크면 바로 해라"는 원칙. Baumeister의 2007년 의지력 연구는 하루 동안 내리는 결정이 쌓일수록 저녁에는 의지력이 고갈되어 판단이 흐려진다는 것을 증명했어요.</p>
+      <div class="science-remedy">
+        <strong>Do it OS 처방</strong>
+        <p><em>"실행 가능한가?" 단일 게이트</em>로 결정 압력 최소화. 7개 카테고리 중 고르기 전에 단 하나의 질문만 통과 → 저녁까지 의지력 보존.</p>
+      </div>
+    </article>
+  </div>
+
+  <!-- 비교표 -->
+  <h3 style="margin: var(--gap-md) 0 var(--gap-sm); font-size: 17px; font-weight: 700;">📊 비교: 다나아 Do it OS vs 전통 To-do vs Notion vs Todoist</h3>
+  <div class="compare-table-wrap">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>전통 To-do</th>
+          <th>Notion</th>
+          <th>Todoist</th>
+          <th class="highlight">Do it OS (다나아)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>GTD 기반 단계</td>
+          <td>없음</td>
+          <td>5단계 풀 구현 (템플릿)</td>
+          <td>부분 반영</td>
+          <td class="highlight">3단계로 단순화</td>
+        </tr>
+        <tr>
+          <td>자이가르닉 리츄얼</td>
+          <td>없음</td>
+          <td>플러그인 수동 설정</td>
+          <td>없음</td>
+          <td class="highlight">기본 내장 (자기 전 정리)</td>
+        </tr>
+        <tr>
+          <td>명료화 동선</td>
+          <td>수동 편집</td>
+          <td>드로어/팝업 이동 큼</td>
+          <td>빠른 추가 (1줄)</td>
+          <td class="highlight">카드 내부 인라인 패널</td>
+        </tr>
+        <tr>
+          <td>완료 처리</td>
+          <td>체크박스만</td>
+          <td>복잡한 속성 필터</td>
+          <td>체크 후 자동 숨김</td>
+          <td class="highlight">체크박스 + "완료 N개 ▾" 폴더블</td>
+        </tr>
+        <tr>
+          <td>데이터 저장</td>
+          <td>서버 DB</td>
+          <td>서버 DB (협업)</td>
+          <td>서버 DB (동기화)</td>
+          <td class="highlight">브라우저 로컬스토리지 (프라이빗)</td>
+        </tr>
+        <tr>
+          <td>학습 곡선</td>
+          <td>낮음 · 기능 제한</td>
+          <td>높음 · 자유도 큼</td>
+          <td>중간</td>
+          <td class="highlight">균형 (3단계 · 7 카테고리)</td>
+        </tr>
+        <tr>
+          <td>건강 단서 격리</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td class="highlight">건강 DB 자동 연결 0 (프라이빗)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">💡 요약</div>
+    Do it OS는 "적은 기능 · 단순한 흐름 · 프라이빗 기본값" 3가지를 원칙으로 해요. Notion처럼 뭐든 할 수 있는 건 아니지만, 자이가르닉 리츄얼과 인라인 명료화 같은 "인지 과학에 뿌리를 둔 디폴트"가 있어요.
+  </div>
+</section>
+
+<!-- ==================== STEP 1 ==================== -->
+<section class="step" id="step1">
+  <div class="step-header">
+    <div class="step-badge">1</div>
+    <div class="step-title">
+      <h2>대시보드에 들어가기</h2>
+      <div class="subtitle">어디로 들어가고, 뭐가 보이나요?</div>
+    </div>
+  </div>
+
+  <div class="banner">🗺 "Do it OS는 왼쪽 사이드바에 있어요."</div>
+
+  <div class="wireframe">
+    <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="사이드바에서 Do it OS 위치">
+      <rect x="0" y="0" width="720" height="280" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
+      <!-- 사이드바 -->
+      <rect x="8" y="8" width="220" height="264" fill="#F8FAFC" stroke="#E2E8F0" rx="8"/>
+      <text x="24" y="36" font-family="Pretendard" font-size="14" font-weight="700" fill="#1E293B">DA-NA-A</text>
+      <line x1="20" y1="48" x2="216" y2="48" stroke="#E2E8F0"/>
+      <!-- 메뉴 -->
+      <text x="24" y="76" font-family="Pretendard" font-size="12" fill="#475569">💬 AI 채팅</text>
+      <text x="24" y="100" font-family="Pretendard" font-size="12" fill="#475569">📊 리포트</text>
+      <text x="24" y="124" font-family="Pretendard" font-size="12" fill="#475569">🏆 챌린지</text>
+      <!-- 하이라이트 Do it OS -->
+      <rect x="16" y="138" width="204" height="126" rx="8" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="2"/>
+      <text x="24" y="158" font-family="Pretendard" font-size="13" font-weight="700" fill="#0284C7">⚡ Do it OS</text>
+      <text x="38" y="178" font-family="Pretendard" font-size="11" fill="#475569">📋 대시보드</text>
+      <text x="38" y="194" font-family="Pretendard" font-size="11" fill="#475569">🧠 생각 쏟기</text>
+      <text x="38" y="210" font-family="Pretendard" font-size="11" fill="#475569">✅ 정리 명료화</text>
+      <text x="38" y="226" font-family="Pretendard" font-size="11" fill="#475569">📂 프로젝트 · 📅 일정 · 📝 노트</text>
+      <text x="38" y="244" font-family="Pretendard" font-size="11" fill="#475569">🌙 자기 전 정리</text>
+      <!-- 화살표 -->
+      <path d="M 234 200 L 264 200" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
+        </marker>
+      </defs>
+      <!-- 설명 카드 -->
+      <rect x="274" y="40" width="432" height="210" rx="12" fill="#FFFBEB" stroke="#F59E0B"/>
+      <text x="290" y="68" font-family="Pretendard" font-size="14" font-weight="700" fill="#92400E">🎯 첫 진입 순서</text>
+      <text x="290" y="94" font-family="Pretendard" font-size="12" fill="#1E293B">1. 사이드바에서 <tspan font-weight="700" fill="#0284C7">"Do it OS"</tspan> 클릭</text>
+      <text x="290" y="118" font-family="Pretendard" font-size="12" fill="#1E293B">2. 7개 하위 메뉴가 펼쳐져요</text>
+      <text x="290" y="142" font-family="Pretendard" font-size="12" fill="#1E293B">3. 기본은 <tspan font-weight="700" fill="#0284C7">"대시보드"</tspan>로 진입 (전체 상태 보기)</text>
+      <text x="290" y="166" font-family="Pretendard" font-size="12" fill="#1E293B">4. 여기서 <tspan font-weight="700" fill="#10B981">미분류 · 오늘 일정 · 분류 결과</tspan>를 한눈에 확인</text>
+      <text x="290" y="210" font-family="Pretendard" font-size="11" fill="#64748B">* 메뉴 아이콘은 루시드 리액트(lucide-react) 기본 셋이에요.</text>
+    </svg>
+    <div class="wireframe-caption">사이드바 구조 · Do it OS는 7개 하위 메뉴를 가진 상위 메뉴</div>
+  </div>
+
+  <div class="qa">
+    <div class="qa-item">
+      <p class="qa-q">대시보드에 뭐가 보여요?</p>
+      <p class="qa-a">① <strong>미분류·대기중·언젠가 통계</strong> 한 줄 / ② <strong>생각 Inbox</strong> (아직 분류 안 된 메모 미리보기) / ③ <strong>오늘 일정</strong> (오늘 날짜로 지정된 일정 상위 3개) / ④ <strong>정리 결과 보드</strong> (5개 주요 카테고리별 저장된 항목 프리뷰) / ⑤ <strong>액션 스트립 5장</strong> (프로젝트·노트·건강 단서·저장 원칙·자기 전 정리 바로가기) / ⑥ <strong>🌙 "내일 하기로" 배지 섹션</strong> (어제 골라둔 항목들) / ⑦ <strong>저녁 CTA</strong> (21시 이후 조건부) / ⑧ 최근 사용 흐름 힌트</p>
+    </div>
+    <div class="qa-item accent">
+      <p class="qa-q">어디서부터 시작해야 해요?</p>
+      <p class="qa-a">지금이 <strong>낮이면 → Step 2 "생각 쏟기"</strong>부터. 지금이 <strong>밤(21시 이후)이면 → Step 5 "자기 전 정리"</strong>로 바로 가도 돼요. 대시보드 자체는 "현재 상태 확인" 용도예요.</p>
+    </div>
+    <div class="qa-item info">
+      <p class="qa-q">첫 사용이면 뭐부터 해볼까요?</p>
+      <p class="qa-a">3분 투어 추천: ① 대시보드에서 현재 상태 훑어보기 → ② "생각 쏟기"에 머릿속 3~5개 던지기 → ③ "정리 명료화"에서 첫 카드 하나만 분류해보기. 이 세 가지만 해도 전체 흐름이 감 잡혀요.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== STEP 2 ==================== -->
+<section class="step" id="step2">
+  <div class="step-header">
+    <div class="step-badge">2</div>
+    <div class="step-title">
+      <h2>생각 쏟기 — 판단 없이 마구 꺼내기</h2>
+      <div class="subtitle">모든 흐름의 출발점. "나중에 어디 갈지"는 전혀 신경 쓰지 마세요.</div>
+    </div>
+  </div>
+
+  <div class="banner">🧠 "머릿속에 맴도는 것"을 모두 종이 조각에 던진다고 상상하세요.</div>
+
+  <ol class="action-list">
+    <li>사이드바에서 <strong>🧠 생각 쏟기</strong> 클릭 → <span class="path">/app/do-it-os/thinking</span> 화면으로 이동</li>
+    <li>화면 하단의 입력창에 생각을 <strong>한 문장씩 자유롭게</strong> 적기 (판단·분류 금지)</li>
+    <li><kbd>Enter</kbd> 또는 "쏟아내기" 버튼으로 저장 → 화면 중앙 캔버스에 <strong>파스텔 메모 카드</strong>로 올라옴</li>
+    <li>원하는 만큼 반복. 이 단계에서는 <strong>"많이 꺼낼수록 좋다"</strong>는 게 유일한 규칙</li>
+  </ol>
+
+  <div class="wireframe">
+    <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="생각 쏟기 캔버스">
+      <rect x="0" y="0" width="720" height="320" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
+      <!-- 상단 타이틀 -->
+      <text x="24" y="34" font-family="Pretendard" font-size="16" font-weight="700" fill="#1E293B">🧠 생각 쏟기</text>
+      <text x="24" y="52" font-family="Pretendard" font-size="11.5" fill="#64748B">머릿속에 있는 것 아무거나. 판단은 나중에!</text>
+      <!-- 캔버스 -->
+      <rect x="24" y="68" width="672" height="180" rx="12" fill="#F8FAFC" stroke="#E2E8F0" stroke-dasharray="4 4"/>
+      <!-- 메모 카드들 (5색 파스텔, 랜덤 회전) -->
+      <g transform="translate(60 86) rotate(-3)">
+        <rect width="150" height="80" rx="6" fill="#FFF5E6" stroke="#E6CC99"/>
+        <text x="10" y="22" font-family="Pretendard" font-size="11" fill="#7A5921">병원 예약 확인</text>
+        <text x="10" y="38" font-family="Pretendard" font-size="11" fill="#7A5921">해야 됨</text>
+      </g>
+      <g transform="translate(240 100) rotate(2)">
+        <rect width="150" height="80" rx="6" fill="#EBF4EF" stroke="#B2D5C5"/>
+        <text x="10" y="22" font-family="Pretendard" font-size="11" fill="#2D5E2F">아침에 무릎이</text>
+        <text x="10" y="38" font-family="Pretendard" font-size="11" fill="#2D5E2F">뻐근함</text>
+      </g>
+      <g transform="translate(420 80) rotate(-2)">
+        <rect width="150" height="80" rx="6" fill="#EDE8F4" stroke="#C4B8D9"/>
+        <text x="10" y="22" font-family="Pretendard" font-size="11" fill="#5C3F8A">동호회 모임</text>
+        <text x="10" y="38" font-family="Pretendard" font-size="11" fill="#5C3F8A">토요일?</text>
+      </g>
+      <g transform="translate(150 150) rotate(4)">
+        <rect width="150" height="80" rx="6" fill="#F7E9E9" stroke="#E5BDBD"/>
+        <text x="10" y="22" font-family="Pretendard" font-size="11" fill="#8B3E3E">이번 달 책</text>
+        <text x="10" y="38" font-family="Pretendard" font-size="11" fill="#8B3E3E">세컨드 브레인</text>
+      </g>
+      <g transform="translate(470 160) rotate(-1)">
+        <rect width="150" height="80" rx="6" fill="#F0EDE8" stroke="#C9C0B2"/>
+        <text x="10" y="22" font-family="Pretendard" font-size="11" fill="#5C503D">운동 루틴</text>
+        <text x="10" y="38" font-family="Pretendard" font-size="11" fill="#5C503D">재조정</text>
+      </g>
+      <!-- 입력창 -->
+      <rect x="24" y="264" width="550" height="40" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <text x="36" y="290" font-family="Pretendard" font-size="12" fill="#94A3B8">여기에 생각을 자유롭게 적어주세요...</text>
+      <rect x="586" y="264" width="110" height="40" rx="8" fill="#0EA5E9"/>
+      <text x="620" y="290" font-family="Pretendard" font-size="13" font-weight="600" fill="#FFFFFF">쏟아내기</text>
+    </svg>
+    <div class="wireframe-caption">캔버스에 파스텔 메모 카드 5색(크림·스톤·민트·라벤더·블러시)이 랜덤 위치·회전으로 배치됨</div>
+  </div>
+
+  <div class="qa">
+    <div class="qa-item warning">
+      <p class="qa-q">"이거 할 일인지 노트인지 모르겠어요"</p>
+      <p class="qa-a"><strong>정답입니다.</strong> 이 단계에서는 판단을 안 하는 게 핵심이에요. 판단은 <strong>Step 3 (정리 명료화)</strong>에서 한꺼번에 해요. 이 단계에서 고민하면 생각이 더 안 나와요.</p>
+    </div>
+    <div class="qa-item accent">
+      <p class="qa-q">얼마나 많이 쏟아야 돼요?</p>
+      <p class="qa-a">보통 한 번에 <strong>5~15개</strong>. 머릿속에서 뱅뱅 돌던 게 다 나왔다 싶을 때까지. <strong>"더 없나?" 자문</strong>해보고 그래도 안 나오면 충분한 거예요.</p>
+    </div>
+    <div class="qa-item info">
+      <p class="qa-q">쏟은 건 어디에 저장돼요?</p>
+      <p class="qa-a">브라우저의 <code>localStorage</code>에 저장돼요 (서버에 안 감). 키 이름은 <code>danaa_doit_thoughts_v1</code>. 같은 브라우저에서만 보여요.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">⏩ 쏟기 다음은?</div>
+    이제 꺼낸 생각들을 <strong>제자리로 보내주는</strong> 정리 명료화 단계입니다. 다음 Step 3으로 이동하세요.
+  </div>
+</section>
+
+<!-- ==================== STEP 3 ==================== -->
+<section class="step" id="step3">
+  <div class="step-header">
+    <div class="step-badge">3</div>
+    <div class="step-title">
+      <h2>정리 명료화 — 카드 안에서 바로 분류</h2>
+      <div class="subtitle">Do it OS 핵심 기능. 각 생각을 7개 카테고리 중 하나로 보내요.</div>
+    </div>
+  </div>
+
+  <div class="banner">✅ "생각 쏟기에서 나온 메모를 하나씩 제자리로 보내는 단계."</div>
+
+  <ol class="action-list">
+    <li>사이드바 <strong>✅ 정리 명료화</strong> 클릭 → <span class="path">/app/do-it-os/classify</span></li>
+    <li>미분류 메모가 한 장씩 카드로 나열됨. <strong>카드에 7개 칩</strong>이 달려있어요</li>
+    <li>카드의 <strong>분류 칩을 클릭</strong>하면 → <strong>같은 카드 안에서 인라인 패널이 펼쳐짐</strong> ⭐ (오른쪽 드로어 아님!)</li>
+    <li>패널 안에서 <strong>"실행 가능한가요?" 게이트</strong>가 먼저 뜸 → 예/아니오 선택</li>
+    <li>카테고리별로 추가 입력 (날짜·시간·맡긴 사람 등) 후 <strong>저장</strong></li>
+  </ol>
+
+  <!-- 7개 카테고리 -->
+  <h3 style="margin: var(--gap-md) 0 var(--gap-sm); font-size: 16px;">📌 7개 분류 카테고리</h3>
+  <div class="chips-row">
+    <span class="chip chip-todo">할 일</span>
+    <span class="chip chip-schedule">일정</span>
+    <span class="chip chip-project">프로젝트</span>
+    <span class="chip chip-note">노트</span>
+    <span class="chip chip-health">건강 단서</span>
+    <span class="chip chip-waiting">대기 중</span>
+    <span class="chip chip-someday">언젠가</span>
+  </div>
+  <p style="font-size: 13px; color: var(--color-text-hint); margin: 4px 0 var(--gap);">앞 5개(할 일·일정·프로젝트·노트·건강 단서)는 <strong>주요 카테고리</strong>, 뒤 2개(대기 중·언젠가)는 <strong>보조 분류</strong>(사이드바 메뉴 없음, 명료화 페이지 하단 섹션에서 관리)</p>
+
+  <!-- 인라인 패널 와이어프레임 -->
+  <div class="wireframe">
+    <svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="인라인 명료화 패널">
+      <rect x="0" y="0" width="720" height="440" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
+      <!-- 카드 (닫힌 상태) -->
+      <rect x="40" y="30" width="640" height="86" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+      <text x="60" y="58" font-family="Pretendard" font-size="13" font-weight="600" fill="#1E293B">💭 "병원 예약 확인 해야 됨"</text>
+      <g transform="translate(60 72)">
+        <rect x="0" y="0" width="56" height="22" rx="11" fill="#E8F1FD" stroke="#7AA5D6"/><text x="28" y="15" font-size="10.5" text-anchor="middle" fill="#2E5A85">할 일</text>
+        <rect x="64" y="0" width="46" height="22" rx="11" fill="#FFF5EB" stroke="#E09F66"/><text x="87" y="15" font-size="10.5" text-anchor="middle" fill="#8E5400">일정</text>
+        <rect x="118" y="0" width="60" height="22" rx="11" fill="#F0E8DB" stroke="#B99A73"/><text x="148" y="15" font-size="10.5" text-anchor="middle" fill="#6B4A28">프로젝트</text>
+        <rect x="186" y="0" width="46" height="22" rx="11" fill="#EFEFEC" stroke="#8A8A8A"/><text x="209" y="15" font-size="10.5" text-anchor="middle" fill="#555555">노트</text>
+        <rect x="240" y="0" width="70" height="22" rx="11" fill="#EBF7ED" stroke="#7AB07C"/><text x="275" y="15" font-size="10.5" text-anchor="middle" fill="#2D5E2F">건강 단서</text>
+        <rect x="318" y="0" width="56" height="22" rx="11" fill="#F1ECFA" stroke="#A389C4"/><text x="346" y="15" font-size="10.5" text-anchor="middle" fill="#5C3F8A">대기 중</text>
+        <rect x="382" y="0" width="56" height="22" rx="11" fill="#EDEEF2" stroke="#8695AA"/><text x="410" y="15" font-size="10.5" text-anchor="middle" fill="#4A5262">언젠가</text>
+      </g>
+      <!-- 화살표 -->
+      <path d="M 100 120 L 100 145" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#arrow2)"/>
+      <text x="110" y="138" font-family="Pretendard" font-size="11" fill="#EF4444" font-weight="600">"일정" 칩 클릭</text>
+      <defs>
+        <marker id="arrow2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
+        </marker>
+      </defs>
+
+      <!-- 확장된 카드 (인라인 패널 열림) -->
+      <rect x="40" y="160" width="640" height="250" rx="10" fill="#FFFFFF" stroke="#0EA5E9" stroke-width="2"/>
+      <text x="60" y="188" font-family="Pretendard" font-size="13" font-weight="600" fill="#1E293B">💭 "병원 예약 확인 해야 됨"</text>
+      <!-- 인라인 패널 구분선 -->
+      <line x1="60" y1="204" x2="660" y2="204" stroke="#E0F2FE" stroke-dasharray="3 3"/>
+      <!-- 게이트 -->
+      <text x="60" y="228" font-family="Pretendard" font-size="12" font-weight="700" fill="#0284C7">Step 0. 실행할 수 있는 일인가요?</text>
+      <rect x="60" y="240" width="130" height="32" rx="8" fill="#10B981"/>
+      <text x="125" y="260" font-family="Pretendard" font-size="12" font-weight="600" text-anchor="middle" fill="#FFFFFF">예, 실행 가능</text>
+      <rect x="200" y="240" width="160" height="32" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <text x="280" y="260" font-family="Pretendard" font-size="12" text-anchor="middle" fill="#64748B">아니오, 참고 정보로만</text>
+      <!-- 카테고리 입력 -->
+      <text x="60" y="300" font-family="Pretendard" font-size="12" font-weight="700" fill="#0284C7">Step 1. 일정 상세</text>
+      <rect x="60" y="312" width="110" height="28" rx="14" fill="#FFF5EB" stroke="#E09F66"/>
+      <text x="115" y="330" font-family="Pretendard" font-size="11" text-anchor="middle" fill="#8E5400">📅 오늘 4/22</text>
+      <rect x="180" y="312" width="90" height="28" rx="14" fill="#FFF5EB" stroke="#E09F66"/>
+      <text x="225" y="330" font-family="Pretendard" font-size="11" text-anchor="middle" fill="#8E5400">⏰ 14:30</text>
+      <!-- 저장 버튼 -->
+      <rect x="540" y="370" width="120" height="32" rx="8" fill="#0EA5E9"/>
+      <text x="600" y="390" font-family="Pretendard" font-size="12" font-weight="600" text-anchor="middle" fill="#FFFFFF">✓ 저장</text>
+      <rect x="430" y="370" width="100" height="32" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <text x="480" y="390" font-family="Pretendard" font-size="12" text-anchor="middle" fill="#64748B">취소</text>
+      <text x="60" y="400" font-family="Pretendard" font-size="10.5" fill="#94A3B8">ESC로도 취소 가능 (데이터 변경 0)</text>
+    </svg>
+    <div class="wireframe-caption">칩 클릭 → 같은 카드 내부에서 게이트 + 입력 + 저장이 다 이뤄짐 (오른쪽 드로어 없음!)</div>
+  </div>
+
+  <!-- 게이트 분기 -->
+  <h3 style="margin: var(--gap-md) 0 var(--gap-sm); font-size: 16px;">🚪 게이트 분기: "실행 가능한가요?"</h3>
+  <div class="card-grid">
+    <div class="mini-card" style="border-top-color: var(--color-accent);">
+      <div class="tag" style="background: var(--color-accent-light); color: var(--color-accent);">예 (실행 가능)</div>
+      <h4>→ 해당 카테고리로 저장</h4>
+      <p><strong>todo</strong>: "2분 안에 끝날 일이면 지금 바로 해보세요" 힌트 + 저장<br><strong>schedule</strong>: 날짜 + 시간 입력<br><strong>project</strong>: 즉시 저장 (토스트에 "상세에서 이어쓰기" 링크)<br><strong>waiting</strong>: "누구에게 맡겼나요?" 입력</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--color-text-muted);">
+      <div class="tag" style="background: var(--color-surface-alt); color: var(--color-text-muted);">아니오 (참고만)</div>
+      <h4>→ 3가지 선택지</h4>
+      <p><strong>노트로 보관</strong>: 참고 자료로 저장 (나중에 볼 수 있음)<br><strong>언젠가</strong>: 지금은 안 함, 나중에 다시 볼지 결정<br><strong>버리기</strong>: 토스트에 "되돌리기" 5초 표시 (복구 가능)</p>
+    </div>
+  </div>
+
+  <!-- 게이트 스킵 -->
+  <div class="callout info">
+    <div class="callout-title">⏭ 게이트를 건너뛰는 카테고리</div>
+    <strong>note · health · someday</strong>는 이미 "참고 정보"에 해당해서 게이트 없이 바로 저장돼요. 칩 하나 → 저장 버튼 → 끝.
+  </div>
+</section>
+
+<!-- ==================== STEP 4 ==================== -->
+<section class="step" id="step4">
+  <div class="step-header">
+    <div class="step-badge">4</div>
+    <div class="step-title">
+      <h2>카테고리별 관리 — 상세 페이지에서 이어 쓰기</h2>
+      <div class="subtitle">분류가 끝나면 각 카테고리 페이지에서 이어서 편집 · 완료 체크 · 분류 해제까지.</div>
+    </div>
+  </div>
+
+  <div class="banner">📂 Phase 7.1~7.2 업데이트: <strong>체크박스 · 완료 폴더블 · 분류 해제 · 되돌리기 토스트</strong> 도입</div>
+
+  <div class="card-grid">
+    <div class="mini-card" style="border-top-color: var(--cat-schedule);">
+      <div class="tag" style="background: var(--cat-schedule-bg); color: var(--cat-schedule);">📅 일정<span class="feature-badge phase71">Phase 7.1</span></div>
+      <h4>좌측 체크박스 + 완료 폴더블</h4>
+      <p>각 일정 카드 좌측에 <strong>체크박스</strong>. 체크 시 본문에 <strong>strike 처리</strong> + "완료된 일정 N개 ▾" foldable 섹션으로 자동 이동. 폴더블을 펼치면 과거 완료 기록이 히스토리로 남아요. 체크 해제하면 활성 목록으로 복귀.</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--cat-todo);">
+      <div class="tag" style="background: var(--cat-todo-bg); color: var(--cat-todo);">✅ 할 일<span class="feature-badge phase71">Phase 7.1</span></div>
+      <h4>체크박스 + 분류 해제 버튼</h4>
+      <p>일정과 동일한 <strong>체크박스</strong> 동작. 카드 우측에 <strong>"분류 해제"</strong> 버튼 (이전 이름: "Inbox로"). 호버 시 "미분류로 돌려보내기" 툴팁. 클릭하면 <strong>5초 되돌리기 토스트</strong>.<span class="feature-badge phase72">Phase 7.2</span></p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--cat-project);">
+      <div class="tag" style="background: var(--cat-project-bg); color: var(--cat-project);">📂 프로젝트</div>
+      <h4>연결된 다음 행동 + 히스토리</h4>
+      <p>프로젝트 카드 클릭 → 상세. 설명·상태(진행중/잠시중단/완료) 편집, 10가지 다음 행동 프리셋 카드로 하위 할 일 추가. <strong>⭐ "연결된 다음 행동" 섹션</strong>에 완료 항목도 <em>history view</em>로 남음.</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--cat-note);">
+      <div class="tag" style="background: var(--cat-note-bg); color: var(--cat-note);">📝 노트</div>
+      <h4>제목 + 본문 + 자동 저장</h4>
+      <p>노트 카드 클릭 → 상세. 제목·본문 textarea. <strong>0.7초 입력 멈춤 감지</strong> → 자동 저장. "저장됨" 표시. 상세 페이지에도 <strong>"분류 해제"</strong> 버튼 있음.</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--cat-waiting);">
+      <div class="tag" style="background: var(--cat-waiting-bg); color: var(--cat-waiting);">⏳ 대기 중</div>
+      <h4>명료화 페이지 하단 보조 섹션</h4>
+      <p>사이드바에 별도 메뉴 없음. <strong>정리 명료화 페이지 하단의 "보조 분류" 섹션</strong>에서 관리. "누구에게 맡겼는지" 메모와 함께 표시. <strong>"분류 해제"</strong> 버튼도 동일하게 제공.</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--cat-someday);">
+      <div class="tag" style="background: var(--cat-someday-bg); color: var(--cat-someday);">☁️ 언젠가</div>
+      <h4>"보류함"</h4>
+      <p>지금은 안 하지만 완전히 버리긴 애매한 것. 나중에 다시 생각날 때 복구 가능. <strong>대시보드 통계 1줄</strong>에 수량 표시. 마음이 바뀌면 "분류 해제"로 미분류로 되돌리기 가능.</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--cat-health);">
+      <div class="tag" style="background: var(--cat-health-bg); color: var(--cat-health);">🩺 건강 단서</div>
+      <h4>몸·마음 관련 메모 (DB 격리)</h4>
+      <p>"무릎이 뻐근함", "수면이 얕았음" 같은 자기 관찰 기록. <strong>다나아 건강 DB와 자동 연결되지 않음</strong> (개인 메모로만 격리됨). 챌린지·리포트에도 전달되지 않아요.</p>
+    </div>
+  </div>
+
+  <div class="callout primary">
+    <div class="callout-title">🔄 "분류 해제" 공통 동작 <span class="feature-badge phase71">Phase 7.1</span><span class="feature-badge phase72">Phase 7.2</span></div>
+    모든 카테고리 카드·상세 페이지에 <strong>"분류 해제"</strong> 버튼이 있어요. 클릭하면:
+    <ul style="margin: 8px 0 0; padding-left: 20px;">
+      <li><code>category</code>를 <code>null</code>로 초기화 (미분류 상태)</li>
+      <li><code>scheduledDate</code>, <code>scheduledTime</code>, <code>completedAt</code> 필드도 초기화</li>
+      <li>화면 하단에 <strong>5초 되돌리기 토스트</strong> 표시 → 클릭하면 원래 카테고리로 복구</li>
+      <li>정리 명료화 페이지의 <strong>미분류 카드</strong>로 복귀</li>
+    </ul>
+  </div>
+
+  <div class="callout accent">
+    <div class="callout-title">✨ Tip: 프로젝트 ↔ 다음 행동 연결</div>
+    프로젝트 상세에서 "다음 행동 카드 그리드"에서 새 할 일을 만들면 자동으로 <code>projectLinkId</code>가 저장돼요. 그 할 일은 분류 후 프로젝트 상세의 "연결된 다음 행동" 섹션에 자동 표시. 완료 체크 후에도 히스토리로 남아 "무엇을 해왔는지" 한눈에 보여요.
+  </div>
+</section>
+
+<!-- ==================== STEP 5 ==================== -->
+<section class="step" id="step5">
+  <div class="step-header">
+    <div class="step-badge warning">5</div>
+    <div class="step-title">
+      <h2>자기 전 정리 — 자이가르닉 리츄얼</h2>
+      <div class="subtitle">하루를 끝내기 전 3분. 뇌가 쉴 수 있게 해주는 3단계.</div>
+    </div>
+  </div>
+
+  <div class="banner">🌙 <strong>자이가르닉 효과</strong>: 완결되지 않은 일은 뇌가 계속 매달려요. 끄적여서 밖에 놓기만 해도 뇌가 풀어줍니다.</div>
+
+  <ol class="action-list">
+    <li><strong>21시 이후</strong> 대시보드 방문 → <strong>"자기 전 정리" CTA 카드</strong>가 자동으로 나타남 (미분류 또는 오늘 남은 일정이 있을 때만)</li>
+    <li>또는 언제든지 사이드바 <strong>🌙 자기 전 정리</strong> 클릭 → <span class="path">/app/do-it-os/end-of-day</span></li>
+    <li>3단계 리츄얼 자동 진행 — 각 단계마다 자동 저장, <kbd>ESC</kbd>로 언제든 중단 가능</li>
+  </ol>
+
+  <!-- Phase 7.2 섹션 분리 설명 -->
+  <div class="callout info">
+    <div class="callout-title">🆕 Phase 7.2 업데이트 · Step 2 섹션 분리 <span class="feature-badge phase72">Phase 7.2</span></div>
+    Step 2 "내일 고르기"가 <strong>2개 섹션</strong>으로 나뉘어요:
+    <ul style="margin: 8px 0 0; padding-left: 20px;">
+      <li><strong>📥 미분류 섹션</strong>: 명료화 안 된 메모를 인라인 분류 칩 5개(할 일·일정·프로젝트·노트·건강 단서)로 즉석 분류</li>
+      <li><strong>📅 오늘 남은 일정 섹션</strong>: 완료 체크박스 + 🕐 시간 표시 → 완료하거나 내일로 넘기기</li>
+    </ul>
+  </div>
+
+  <!-- 3단계 시각화 (원본 재활용 + 업데이트) -->
+  <div class="wireframe">
+    <svg viewBox="0 0 720 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="자기 전 리츄얼 3단계">
+      <rect x="0" y="0" width="720" height="340" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
+      <!-- 스테퍼 -->
+      <circle cx="80" cy="40" r="18" fill="#10B981"/>
+      <text x="80" y="46" font-family="Pretendard" font-size="14" font-weight="700" text-anchor="middle" fill="#FFFFFF">1</text>
+      <line x1="102" y1="40" x2="268" y2="40" stroke="#10B981" stroke-width="2"/>
+      <circle cx="290" cy="40" r="18" fill="#10B981"/>
+      <text x="290" y="46" font-family="Pretendard" font-size="14" font-weight="700" text-anchor="middle" fill="#FFFFFF">2</text>
+      <line x1="312" y1="40" x2="478" y2="40" stroke="#10B981" stroke-width="2"/>
+      <circle cx="500" cy="40" r="18" fill="#10B981"/>
+      <text x="500" y="46" font-family="Pretendard" font-size="14" font-weight="700" text-anchor="middle" fill="#FFFFFF">3</text>
+      <line x1="522" y1="40" x2="628" y2="40" stroke="#E2E8F0" stroke-width="2"/>
+      <circle cx="650" cy="40" r="18" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
+      <text x="650" y="46" font-family="Pretendard" font-size="14" font-weight="700" text-anchor="middle" fill="#64748B">🎉</text>
+
+      <!-- Step 1 카드 -->
+      <rect x="30" y="80" width="200" height="240" rx="12" fill="#FEF3C7" stroke="#F59E0B"/>
+      <text x="50" y="110" font-family="Pretendard" font-size="15" font-weight="700" fill="#92400E">① 쏟기</text>
+      <text x="50" y="132" font-family="Pretendard" font-size="11.5" fill="#78350F">머릿속 남은 것 꺼내기</text>
+      <line x1="45" y1="144" x2="215" y2="144" stroke="#F59E0B" stroke-dasharray="3 3"/>
+      <text x="50" y="168" font-family="Pretendard" font-size="11" fill="#1E293B">💭 오늘 하루 정리해보면...</text>
+      <text x="50" y="188" font-family="Pretendard" font-size="11" fill="#1E293B">💭 내일 미팅 자료 확인</text>
+      <text x="50" y="208" font-family="Pretendard" font-size="11" fill="#1E293B">💭 장보기 리스트</text>
+      <rect x="50" y="222" width="160" height="30" rx="6" fill="#FFFFFF" stroke="#F59E0B"/>
+      <text x="60" y="241" font-family="Pretendard" font-size="11" fill="#94A3B8">생각 적기...</text>
+      <rect x="50" y="262" width="160" height="28" rx="6" fill="#F59E0B"/>
+      <text x="130" y="280" font-family="Pretendard" font-size="11.5" font-weight="600" text-anchor="middle" fill="#FFFFFF">다음 →</text>
+
+      <!-- Step 2 카드 -->
+      <rect x="260" y="80" width="200" height="240" rx="12" fill="#E0F2FE" stroke="#0EA5E9"/>
+      <text x="280" y="110" font-family="Pretendard" font-size="15" font-weight="700" fill="#0C4A6E">② 내일 고르기</text>
+      <text x="280" y="132" font-family="Pretendard" font-size="11.5" fill="#075985">꼭 할 1~3개만 체크</text>
+      <line x1="275" y1="144" x2="445" y2="144" stroke="#0EA5E9" stroke-dasharray="3 3"/>
+      <g transform="translate(280 156)">
+        <rect x="0" y="0" width="12" height="12" rx="2" fill="#0EA5E9"/>
+        <text x="8" y="10" font-size="10" font-weight="700" text-anchor="middle" fill="#FFFFFF">✓</text>
+        <text x="22" y="10" font-family="Pretendard" font-size="11" fill="#1E293B">미팅 자료 확인</text>
+      </g>
+      <g transform="translate(280 180)">
+        <rect x="0" y="0" width="12" height="12" rx="2" fill="#0EA5E9"/>
+        <text x="8" y="10" font-size="10" font-weight="700" text-anchor="middle" fill="#FFFFFF">✓</text>
+        <text x="22" y="10" font-family="Pretendard" font-size="11" fill="#1E293B">운동 30분</text>
+      </g>
+      <g transform="translate(280 204)">
+        <rect x="0" y="0" width="12" height="12" rx="2" fill="#FFFFFF" stroke="#CBD5E1"/>
+        <text x="22" y="10" font-family="Pretendard" font-size="11" fill="#94A3B8">장보기 (내일 말고)</text>
+      </g>
+      <g transform="translate(280 228)">
+        <rect x="0" y="0" width="12" height="12" rx="2" fill="#FFFFFF" stroke="#CBD5E1"/>
+        <text x="22" y="10" font-family="Pretendard" font-size="11" fill="#94A3B8">책 읽기</text>
+      </g>
+      <rect x="280" y="262" width="160" height="28" rx="6" fill="#0EA5E9"/>
+      <text x="360" y="280" font-family="Pretendard" font-size="11.5" font-weight="600" text-anchor="middle" fill="#FFFFFF">내일 하기 (2개)</text>
+
+      <!-- Step 3 카드 -->
+      <rect x="490" y="80" width="200" height="240" rx="12" fill="#FEE2E2" stroke="#EF4444"/>
+      <text x="510" y="110" font-family="Pretendard" font-size="15" font-weight="700" fill="#7F1D1D">③ 버리기/보관</text>
+      <text x="510" y="132" font-family="Pretendard" font-size="11.5" fill="#991B1B">남은 건 어떻게 할까요?</text>
+      <line x1="505" y1="144" x2="675" y2="144" stroke="#EF4444" stroke-dasharray="3 3"/>
+      <text x="510" y="166" font-family="Pretendard" font-size="11" font-weight="600" fill="#1E293B">💭 장보기 리스트</text>
+      <g transform="translate(510 176)">
+        <rect x="0" y="0" width="48" height="20" rx="4" fill="#EF4444"/>
+        <text x="24" y="14" font-family="Pretendard" font-size="10" font-weight="600" text-anchor="middle" fill="#FFFFFF">버리기</text>
+        <rect x="54" y="0" width="70" height="20" rx="4" fill="#FFFFFF" stroke="#F59E0B"/>
+        <text x="89" y="14" font-family="Pretendard" font-size="10" text-anchor="middle" fill="#92400E">내일도 고민</text>
+        <rect x="128" y="0" width="52" height="20" rx="4" fill="#FFFFFF" stroke="#7C3AED"/>
+        <text x="154" y="14" font-family="Pretendard" font-size="10" text-anchor="middle" fill="#5B21B6">대기중</text>
+      </g>
+      <text x="510" y="222" font-family="Pretendard" font-size="11" font-weight="600" fill="#1E293B">💭 책 읽기</text>
+      <g transform="translate(510 232)">
+        <rect x="0" y="0" width="48" height="20" rx="4" fill="#FFFFFF" stroke="#EF4444"/>
+        <text x="24" y="14" font-family="Pretendard" font-size="10" text-anchor="middle" fill="#7F1D1D">버리기</text>
+        <rect x="54" y="0" width="70" height="20" rx="4" fill="#F59E0B"/>
+        <text x="89" y="14" font-family="Pretendard" font-size="10" font-weight="600" text-anchor="middle" fill="#FFFFFF">내일도 고민</text>
+        <rect x="128" y="0" width="52" height="20" rx="4" fill="#FFFFFF" stroke="#7C3AED"/>
+        <text x="154" y="14" font-family="Pretendard" font-size="10" text-anchor="middle" fill="#5B21B6">대기중</text>
+      </g>
+      <rect x="510" y="272" width="160" height="28" rx="6" fill="#10B981"/>
+      <text x="590" y="290" font-family="Pretendard" font-size="11.5" font-weight="600" text-anchor="middle" fill="#FFFFFF">완료 →</text>
+    </svg>
+    <div class="wireframe-caption">3단계 리츄얼 · Phase 7.3: Step 3 버튼 색상 구분(빨강/노랑/보라) · 단계 간 자동 저장</div>
+  </div>
+
+  <!-- Phase 7.2 Step 2 섹션 분리 SVG -->
+  <div class="wireframe">
+    <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Step 2 섹션 분리">
+      <rect x="0" y="0" width="720" height="260" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
+      <text x="24" y="30" font-family="Pretendard" font-size="15" font-weight="700" fill="#1E293B">② Step 2 섹션 분리 <tspan font-size="11" fill="#0EA5E9" font-weight="600">(Phase 7.2)</tspan></text>
+      <!-- 미분류 섹션 -->
+      <rect x="20" y="48" width="335" height="196" rx="10" fill="#F1F5F9" stroke="#CBD5E1"/>
+      <text x="34" y="74" font-family="Pretendard" font-size="13" font-weight="700" fill="#334155">📥 미분류 섹션</text>
+      <text x="34" y="94" font-family="Pretendard" font-size="11" fill="#64748B">아직 분류 안 된 메모 · 인라인 칩으로 즉석 처리</text>
+      <rect x="34" y="104" width="307" height="40" rx="6" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="44" y="126" font-family="Pretendard" font-size="12" fill="#1E293B">💭 "동호회 모임 토요일?"</text>
+      <!-- 인라인 칩 5개 -->
+      <g transform="translate(34 156)">
+        <rect x="0" y="0" width="52" height="22" rx="11" fill="#E8F1FD" stroke="#7AA5D6"/><text x="26" y="15" font-size="10" text-anchor="middle" fill="#2E5A85">할 일</text>
+        <rect x="58" y="0" width="42" height="22" rx="11" fill="#FFF5EB" stroke="#E09F66"/><text x="79" y="15" font-size="10" text-anchor="middle" fill="#8E5400">일정</text>
+        <rect x="108" y="0" width="60" height="22" rx="11" fill="#F0E8DB" stroke="#B99A73"/><text x="138" y="15" font-size="10" text-anchor="middle" fill="#6B4A28">프로젝트</text>
+        <rect x="176" y="0" width="42" height="22" rx="11" fill="#EFEFEC" stroke="#8A8A8A"/><text x="197" y="15" font-size="10" text-anchor="middle" fill="#555555">노트</text>
+        <rect x="226" y="0" width="70" height="22" rx="11" fill="#EBF7ED" stroke="#7AB07C"/><text x="261" y="15" font-size="10" text-anchor="middle" fill="#2D5E2F">건강 단서</text>
+      </g>
+      <text x="34" y="202" font-family="Pretendard" font-size="10.5" fill="#94A3B8">→ 즉석 분류 후 자동으로 다음 카드로 이동</text>
+      <text x="34" y="224" font-family="Pretendard" font-size="10.5" fill="#7C3AED" font-style="italic">💡 Phase 7.3.1: Step 1에서 쏟은 메모도 여기 즉시 반영</text>
+
+      <!-- 오늘 일정 섹션 -->
+      <rect x="365" y="48" width="335" height="196" rx="10" fill="#FFF5EB" stroke="#F59E0B"/>
+      <text x="379" y="74" font-family="Pretendard" font-size="13" font-weight="700" fill="#92400E">📅 오늘 남은 일정</text>
+      <text x="379" y="94" font-family="Pretendard" font-size="11" fill="#78350F">완료 체크 or 내일로 넘기기</text>
+      <g transform="translate(379 108)">
+        <rect x="0" y="0" width="14" height="14" rx="2" fill="#10B981"/>
+        <text x="9" y="11" font-size="11" font-weight="700" text-anchor="middle" fill="#FFFFFF">✓</text>
+        <text x="24" y="11" font-family="Pretendard" font-size="12" fill="#1E293B" text-decoration="line-through" opacity="0.6">병원 예약 (14:30)</text>
+      </g>
+      <g transform="translate(379 136)">
+        <rect x="0" y="0" width="14" height="14" rx="2" fill="#FFFFFF" stroke="#F59E0B"/>
+        <text x="24" y="11" font-family="Pretendard" font-size="12" fill="#1E293B">🕐 18:00 저녁 약속</text>
+      </g>
+      <g transform="translate(379 164)">
+        <rect x="0" y="0" width="14" height="14" rx="2" fill="#FFFFFF" stroke="#F59E0B"/>
+        <text x="24" y="11" font-family="Pretendard" font-size="12" fill="#1E293B">🕐 20:30 독서 30분</text>
+      </g>
+      <text x="379" y="210" font-family="Pretendard" font-size="10.5" fill="#78350F">→ 체크 = 완료 / 빈 체크박스 = 🌙 내일로 넘기기</text>
+    </svg>
+    <div class="wireframe-caption">Phase 7.2: Step 2가 "미분류 분류" + "오늘 일정 마무리" 2개 섹션으로 분리. 각각 독립적으로 처리.</div>
+  </div>
+
+  <!-- Phase 7.3 호버 색상 설명 -->
+  <div class="callout info">
+    <div class="callout-title">🎨 Phase 7.3 · Step 3 호버 색상 구분 <span class="feature-badge phase73">Phase 7.3</span></div>
+    Step 3에서 각 메모 옆 3개 버튼이 호버 시 명확한 의미 전달 색으로 바뀝니다:
+    <ul style="margin: 8px 0 0; padding-left: 20px;">
+      <li><strong style="color: var(--color-danger);">🗑 버리기</strong>: 빨강 호버 (결정의 무게)</li>
+      <li><strong style="color: var(--color-warning);">⏸ 내일도 고민</strong>: 노랑 호버 (보류 · 다음 날 미분류로 복귀)</li>
+      <li><strong style="color: var(--color-info);">👥 대기중</strong>: 보라 호버 (맡김 · 다른 사람 기다리기)</li>
+    </ul>
+  </div>
+
+  <!-- Phase 7.3.1 fix -->
+  <div class="callout primary">
+    <div class="callout-title">🔧 Phase 7.3.1 버그 수정 <span class="feature-badge phase731">Phase 7.3.1</span></div>
+    <strong>Step 1에서 쏟은 메모가 Step 2에 즉시 반영됩니다.</strong> 이전엔 Step 1에서 추가 생각을 적으면 Step 2로 넘어갔을 때 미분류 섹션에 보이지 않았는데, 지금은 상태가 공유되어 바로 나타나요. 생각 → 분류 흐름이 끊기지 않습니다.
+  </div>
+
+  <div class="qa">
+    <div class="qa-item info">
+      <p class="qa-q">"버리기"는 진짜 삭제되나요?</p>
+      <p class="qa-a"><strong>아니요, 복구 가능해요.</strong> 버리기 클릭 → 토스트에 "버렸어요 · [되돌리기]" 5초 표시. 클릭하면 복구. 토스트가 사라진 후에도 내부적으로는 <code>discardedAt</code> 타임스탬프만 기록되고, 어느 카테고리 목록에도 안 보이도록 숨겨집니다 (물리적 삭제 아님).</p>
+    </div>
+    <div class="qa-item accent">
+      <p class="qa-q">꼭 21시 이후에만 해야 되나요?</p>
+      <p class="qa-a"><strong>아니요.</strong> 아무 때나 사이드바 → 자기 전 정리 클릭하면 돼요. "21시 이후 CTA"는 대시보드에 <strong>은근한 알림</strong>으로 나오는 것이고, 리츄얼 페이지 자체는 언제나 접근 가능.</p>
+    </div>
+    <div class="qa-item warning">
+      <p class="qa-q">"내일도 고민"을 고르면 어떻게 돼요?</p>
+      <p class="qa-a"><code>endOfDay.action='keep'</code>으로 기록만 남고, <strong>카테고리는 유지</strong>됩니다. 다음 날 명료화 페이지 <strong>미분류 섹션</strong>에서 다시 볼 수 있어요. 오늘 결정 안 해도 괜찮다는 느슨한 처리.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">💡 하루를 잘 마무리하는 비결</div>
+    리츄얼의 진짜 목적은 "일을 다 끝내는 것"이 아니에요. <strong>"내일 뭐부터 할지 결정해두는 것"</strong>이에요. 뇌는 "결정이 끝난 것"에는 매달리지 않아요. 1~3개만 골라놓으면 그게 핵심.
+  </div>
+</section>
+
+<!-- ==================== STEP 6 ==================== -->
+<section class="step" id="step6">
+  <div class="step-header">
+    <div class="step-badge accent">6</div>
+    <div class="step-title">
+      <h2>다음 날 순환 — 🌙 내일 하기로 배지와 달력 필터</h2>
+      <div class="subtitle">전체 흐름은 매일 반복돼요. Phase 7.2~7.3 추가 기능 포함.</div>
+    </div>
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-line">🌅 <strong>아침</strong> <span class="flow-arrow">→</span> 대시보드 진입 <span class="flow-arrow">→</span> 어제 "내일 하기"로 고른 할 일 확인 (🌙 배지)</div>
+    <div class="flow-line">☀️ <strong>낮</strong> <span class="flow-arrow">→</span> 생각 떠오를 때마다 "생각 쏟기"에 던지기</div>
+    <div class="flow-line">🕐 <strong>중간</strong> <span class="flow-arrow">→</span> 짬 날 때 "정리 명료화"에서 한꺼번에 분류</div>
+    <div class="flow-line">🌙 <strong>저녁 21시 이후</strong> <span class="flow-arrow">→</span> 자기 전 정리 리츄얼 CTA 자동 표시</div>
+    <div class="flow-line">😴 <strong>자기 전</strong> <span class="flow-arrow">→</span> 리츄얼 3단계 (쏟기 → 내일 고르기 → 버리기/보관) → 뇌가 쉼</div>
+    <div class="flow-line">🔁 <strong>다음 날</strong> <span class="flow-arrow">→</span> 맨 위로 순환</div>
+  </div>
+
+  <div class="callout primary">
+    <div class="callout-title">🌙 "내일 하기로" 배지 (4곳 동기 표시) <span class="feature-badge phase72">Phase 7.2</span><span class="feature-badge phase73">Phase 7.3</span></div>
+    자기 전 정리 Step 2에서 체크한 항목은 다음 날 <strong>4곳</strong>에 동시에 🌙 배지로 표시돼요:
+    <ol style="margin: 8px 0 0; padding-left: 20px;">
+      <li><strong>대시보드</strong>: "🌙 내일 하기로" 섹션 전용 카드</li>
+      <li><strong>정리 명료화</strong>: 미분류 카드 우상단 🌙 배지</li>
+      <li><strong>카테고리 페이지</strong>: 할 일·일정 목록 항목에 🌙 배지</li>
+      <li><strong>정리 결과 보드</strong>: 해당 카테고리 미리보기에도 🌙 표시</li>
+    </ol>
+    "내가 어제 뭘 하기로 했더라?" 고민할 필요 없이 어디서든 바로 알 수 있어요.
+  </div>
+
+  <div class="callout accent">
+    <div class="callout-title">📅 일정 페이지 필터 <span class="feature-badge phase72">Phase 7.2</span><span class="feature-badge phase73">Phase 7.3</span></div>
+    일정 페이지 <strong>달력 뷰</strong>에 기간 필터가 추가됐어요 (리스트 뷰는 그대로):
+    <ul style="margin: 8px 0 0; padding-left: 20px;">
+      <li><strong>오늘</strong>: 오늘 하루만 표시</li>
+      <li><strong>이번 주</strong>: 월~일 7일 표시</li>
+      <li><strong>이번 달</strong>: 달력 전체 표시 (기본값)</li>
+      <li><strong>전체</strong>: 과거·미래 모든 일정 표시 (스크롤 가능)</li>
+    </ul>
+  </div>
+
+  <div class="card-grid">
+    <div class="mini-card">
+      <div class="tag">📊 대시보드 통계</div>
+      <h4>한눈에 상태 파악</h4>
+      <p><strong>미분류 N · 대기 중 M · 언젠가 K</strong> 3개 숫자가 상단에 표시. 큰 숫자가 보이면 정리 명료화 타이밍.</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--color-accent);">
+      <div class="tag" style="background: var(--color-accent-light); color: var(--color-accent);">📅 오늘 일정 카드</div>
+      <h4>자동으로 오늘 일정 표시</h4>
+      <p>어제 <code>plannedDate</code>를 오늘로 설정한 항목들 + schedule 카테고리 중 오늘 날짜 + 기한 지남 배지 (있을 때).</p>
+    </div>
+    <div class="mini-card" style="border-top-color: var(--color-warning);">
+      <div class="tag" style="background: var(--color-warning-light); color: var(--color-warning);">🌙 저녁 CTA</div>
+      <h4>21시 이후 조건부 표시</h4>
+      <p>미분류가 남아있거나 오늘 일정이 남아있으면 대시보드에 <strong>저녁 CTA 카드</strong>가 자동 등장. 없으면 표시 안 함.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FAQ ==================== -->
+<section class="step" id="faq">
+  <div class="step-header">
+    <div class="step-badge">?</div>
+    <div class="step-title">
+      <h2>자주 묻는 질문</h2>
+      <div class="subtitle">실수했을 때·잘 모를 때 참고하세요</div>
+    </div>
+  </div>
+
+  <details class="faq">
+    <summary>"분류 해제"가 뭔가요? 어디로 가나요?</summary>
+    <div class="faq-body">
+      <strong>"분류 해제"는 카드를 미분류 상태로 되돌리는 기능이에요.</strong> 이전엔 "Inbox로"라는 이름이었는데 헷갈려서 Phase 7.1부터 "분류 해제"로 바뀌었어요.<br><br>
+      <strong>동작</strong>:
+      <ul style="margin: 6px 0; padding-left: 20px;">
+        <li><code>category = null</code>로 초기화</li>
+        <li><code>scheduledDate</code>, <code>scheduledTime</code>, <code>completedAt</code> 함께 초기화</li>
+        <li>→ <strong>정리 명료화 페이지의 미분류 카드</strong>로 복귀</li>
+        <li>화면 하단에 <strong>5초 되돌리기 토스트</strong> 표시 (클릭하면 원래 카테고리로 복구)</li>
+      </ul>
+      모든 카테고리 카드·상세 페이지 우측에 버튼이 있어요. 마음이 바뀌면 언제든 쓰세요.
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>"내일도 고민"을 누르면 어떻게 돼요?</summary>
+    <div class="faq-body">
+      <code>endOfDay.action='keep'</code>으로 기록만 남고, 항목의 <strong>카테고리는 그대로 유지</strong>됩니다. 실제 효과:
+      <ul style="margin: 6px 0; padding-left: 20px;">
+        <li>자기 전 정리 Step 3에서는 해당 항목이 사라져요</li>
+        <li>다음 날 정리 명료화 페이지 <strong>미분류 섹션</strong>에서 다시 볼 수 있어요</li>
+        <li>결정을 미뤄도 데이터가 손실되지 않아요</li>
+      </ul>
+      "버리기"랑 다르게 <strong>결정 연기</strong>일 뿐, 삭제가 아니에요.
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>완료 체크가 영구 삭제인가요?</summary>
+    <div class="faq-body">
+      <strong>아니요, 데이터는 그대로 보존돼요.</strong> 할 일·일정 카드 좌측 체크박스를 누르면:
+      <ul style="margin: 6px 0; padding-left: 20px;">
+        <li><code>completedAt</code>에 타임스탬프 기록</li>
+        <li>본문 <strong>strike 처리</strong></li>
+        <li>목록에서 <strong>"완료된 일 N개 ▾"</strong> foldable 섹션으로 이동 (숨김 아님)</li>
+        <li>폴더블을 펼치면 과거 완료 항목 모두 확인 가능</li>
+        <li><strong>다시 체크 해제하면 활성 목록으로 복귀</strong></li>
+      </ul>
+      프로젝트 상세의 "연결된 다음 행동"에서도 완료 항목이 history view로 남아 있어요.
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>"대기 중"과 "언젠가" 차이가 뭐예요?</summary>
+    <div class="faq-body">
+      <strong>대기 중 (waiting)</strong>: <strong>다른 사람에게 맡긴</strong> 상태. 내가 안 해도 되지만 결과를 기다려야 함. "누구에게 맡겼나요?" 입력 필드가 있음. 예: "개발팀 검토 대기", "아버지 답장 대기".<br><br>
+      <strong>언젠가 (someday)</strong>: <strong>지금은 안 함</strong>, 나중에 다시 볼지 결정. 기한·담당자 없음. 예: "언젠가 읽을 책", "나중에 해볼 운동".
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>데이터는 어디에 저장되나요? 서버에 가나요?</summary>
+    <div class="faq-body">
+      <strong>브라우저 로컬스토리지에만 저장</strong>돼요. 서버 호출 0. 키 이름은 <code>danaa_doit_thoughts_v1</code>. 다른 기기·다른 브라우저에서는 동기화되지 않아요. 개인 메모용.<br><br>
+      <strong>⚠️ 건강 단서 카테고리</strong>도 <strong>다나아 건강 기록 DB와 자동 연결되지 않음</strong>. 개인 관찰 메모로만 격리 보관. 챌린지·리포트·AI 채팅에 자동으로 전달되지 않아요. 원한다면 직접 복사해서 건강 기록에 입력해야 해요 (프라이빗 디폴트).
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>대기 중·언젠가 항목은 어디서 봐요?</summary>
+    <div class="faq-body">
+      사이드바에 별도 메뉴가 없어요 (과밀 방지). <strong>정리 명료화 페이지</strong>의 <strong>하단 "보조 분류" 섹션</strong>에서 2컬럼으로 볼 수 있어요. 그리고 대시보드 통계 1줄에 수량이 표시돼요.
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>ClassifyInlinePanel이 이전 Phase 6와 뭐가 달라요?</summary>
+    <div class="faq-body">
+      <strong>Phase 6</strong>: 칩 클릭 → 화면 오른쪽 끝에 슬라이드 드로어 → 저장 버튼도 드로어 안 → 마우스 이동 大.<br><br>
+      <strong>Phase 7 (현재)</strong>: 칩 클릭 → <strong>같은 카드 내부</strong>에서 인라인 패널이 max-height 애니메이션으로 확장 → 저장 버튼도 카드 안 → <strong>마우스 이동 최소</strong>. 여러 카드를 한 화면에서 빠르게 처리하는 흐름에 맞춰 개선됨. 근거: Kirsh 2010 외부화 효과 (짧은 동선일수록 외부화 품질 상승).
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>2분 규칙이 뭐예요?</summary>
+    <div class="faq-body">
+      GTD(Getting Things Done) 기법의 핵심 규칙. <strong>"2분 안에 끝낼 수 있는 일이면 저장하지 말고 지금 바로 해라"</strong>라는 원칙이에요. 저장했다가 나중에 처리하면 그 자체가 오버헤드. Do it OS는 "할 일" 분류 시 이 힌트를 1줄로 표시해서 바로 하도록 유도해요.
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>프로젝트에 "연결된 다음 행동"은 어떻게 추가해요?</summary>
+    <div class="faq-body">
+      프로젝트 상세 페이지 → "다음 행동 카드 그리드" 섹션에서 10개 프리셋(할 일·일정·노트·회의·연락·조사·결정·피드백·리뷰·마감) 중 하나 클릭 → 자동으로 새 할 일 생성되고 <code>projectLinkId</code>가 이 프로젝트로 설정됨. 그 후 해당 할 일은 정리 명료화에서 분류하면 프로젝트 상세에 자동 표시. 완료 체크 후에도 history view로 남아요.
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>자주 쓰는 단축키는?</summary>
+    <div class="faq-body">
+      <ul style="margin: 8px 0; padding-left: 20px;">
+        <li><kbd>Enter</kbd>: 생각 쏟기에서 메모 저장</li>
+        <li><kbd>ESC</kbd>: 인라인 명료화 패널 닫기 / 리츄얼 중단 (데이터 변경 0)</li>
+        <li><kbd>Tab</kbd>: 폼 내부 이동</li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="faq">
+    <summary>🌙 "내일 하기로" 배지는 언제 사라져요?</summary>
+    <div class="faq-body">
+      자기 전 정리 Step 2에서 체크한 항목은 <strong>다음 날 하루 동안</strong> 대시보드·명료화·카테고리·정리 결과 보드 4곳에 🌙 배지로 표시돼요. 사라지는 조건:
+      <ul style="margin: 6px 0; padding-left: 20px;">
+        <li><strong>완료 체크</strong>를 하면 배지 자동 제거</li>
+        <li>다음 자기 전 정리 리츄얼을 시작하면 지난 배지는 자동 초기화</li>
+        <li>카드를 "분류 해제"하면 배지도 함께 사라짐</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<footer>
+  다나아 Do it OS · Phase 7.3.1 학습 가이드 (2026-04-22) · <span class="path">feat/do-it-os-mvp</span> <code>471d5f9</code><br>
+  가이드 디자인 토큰: <code>danaa-visual-style</code> · Pretendard · 1200px 카드 그리드 · 다크 테마 대응<br>
+  인지과학 근거: Zeigarnik 1927 · Allen 2001 · Miller 1956 · Cowan 2001 · Kirsh 2010 · Baumeister 2007
+</footer>
+
+</main>
+</div>
+
+<script>
+// TOC active highlight on scroll
+(function () {
+  const links = Array.from(document.querySelectorAll('.toc a'));
+  const targets = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  function update() {
+    const scrollY = window.scrollY + 120;
+    let current = targets[0];
+    for (const el of targets) {
+      if (el.offsetTop <= scrollY) current = el;
+    }
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + (current && current.id ? current.id : '')));
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  update();
+})();
+</script>
+
+</body>
+</html>
