@@ -497,3 +497,99 @@ docker compose exec postgres psql -U postgres -d ai_health -c "\d risk_assessmen
 
 - 팀 협업 시 PR을 pull 받은 후에는 항상 `aerich upgrade`를 실행해야 한다. 마이그레이션을 빠뜨리면 API가 DB 컬럼을 찾지 못해 런타임 에러가 발생한다.
 - `aerich fix-migrations`는 포맷 불일치를 자동으로 수정해주지만, 근본적으로는 팀 전체가 동일한 버전의 Aerich를 사용하는 것이 중요하다. `pyproject.toml`에 버전을 고정해두는 이유가 여기 있다.
+## 2026-04-22: Web Push 알림이 오지 않을 때
+
+### 증상
+
+- 설정에서 브라우저 백그라운드 알림을 켰는데 오른쪽 아래 알림이 뜨지 않음
+- `push_subscriptions` 테이블에 row가 없거나, row는 있는데 발송이 안 됨
+- 알림은 뜨지만 클릭해도 질문 카드로 이동하지 않음
+
+### 확인 순서
+
+1. 백엔드 env 확인
+
+```dotenv
+WEB_PUSH_ENABLED=true
+WEB_PUSH_VAPID_PUBLIC_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY_B64=
+WEB_PUSH_VAPID_SUBJECT=mailto:admin@example.com
+WEB_PUSH_ACTION_API_BASE=
+```
+
+`WEB_PUSH_VAPID_PRIVATE_KEY` 또는 `WEB_PUSH_VAPID_PRIVATE_KEY_B64` 중 하나는 실제 값이 있어야 합니다. GitHub에는 실제 키를 올리지 않습니다.
+
+2. 마이그레이션 확인
+
+```bash
+docker compose up -d --build fastapi
+docker compose exec fastapi uv run aerich fix-migrations
+docker compose exec fastapi uv run aerich upgrade
+```
+
+`push_subscriptions` 테이블이 생성되어야 합니다.
+
+3. 브라우저 상태 확인
+
+- 사이트 알림 권한이 허용인지 확인
+- Windows/브라우저 알림 설정이 꺼져 있지 않은지 확인
+- 방해 금지 모드가 켜져 있지 않은지 확인
+- 서비스 워커 변경 후에는 브라우저 새로고침 또는 강력 새로고침 필요
+
+4. 클릭 동작 확인
+
+알림 클릭 target은 `/app/chat?from=push&bundle_key=...` 형태입니다. 클릭 후 채팅 화면에서 해당 미응답 질문 카드가 보여야 합니다.
+
+---
+
+## 2026-04-22: 오른쪽 패널 저장 실패가 간헐적으로 뜰 때
+
+### 증상
+
+- 식사/수면/기분 등을 누르면 화면에는 반영되지만 저장 상태가 에러로 바뀜
+- "저장 중 연결 문제가 있었어요. 잠시 후 다시 시도해주세요." 문구가 뜸
+
+### 확인 순서
+
+1. Network 탭에서 `PATCH /api/v1/health/daily/{YYYY-MM-DD}` 응답 확인
+2. 422라면 요청 payload의 enum 값이 백엔드 모델과 맞는지 확인
+3. 401이면 로그인 토큰 만료 또는 API base 설정 확인
+4. 500이면 FastAPI 로그에서 `today_log_save_failed` 또는 Tortoise enum 오류 확인
+
+현재 식사 legacy 값은 백엔드에서 방어합니다.
+
+- `light` -> `hearty`
+- `simple` -> `hearty`
+
+그래도 실패하면 실제 응답 status와 payload를 같이 확인해야 합니다.
+
+---
+
+## 2026-04-22: YouTube 추천 영상이 엉뚱한 주제로 나올 때
+
+### 원인
+
+영상 추천은 YouTube 계정 추천 알고리즘이 아니라, 앱 내부 채팅 내역을 요약해 검색 키워드를 만든 뒤 YouTube 검색 결과를 보여주는 방식입니다. 채팅 내역이 부족하면 기본 건강/생활습관 fallback 키워드가 사용됩니다.
+
+### 확인 순서
+
+- `GET /api/v1/recommendations/videos` 응답의 `query` 확인
+- 최근 대화가 반영되는지 확인
+- 너무 앱 사용법 관련 질문만 있으면 건강/운동/수면 fallback이 나오는지 확인
+
+---
+
+## 2026-04-22: 리포트가 빈 화면처럼 보일 때
+
+### 현재 동작
+
+리포트는 최근 7일 기록을 우선 사용합니다. 기록이 부족해도 `summary.scorecard` fallback으로 건강 요약 카드와 현재 점수 영향 요인을 보여주도록 보강했습니다.
+
+### 확인 순서
+
+- `GET /api/v1/risk/current`
+- `GET /api/v1/risk/history?weeks=7`
+- `GET /api/v1/analysis/summary?period=7`
+
+위 세 API 중 하나가 실패하면 리포트 일부가 비어 보일 수 있습니다.

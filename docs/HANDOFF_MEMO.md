@@ -694,3 +694,24 @@ docker compose up -d --no-deps fastapi
    - login -> onboarding -> complete -> logout/login -> direct main route
 2. If needed, backfill `onboarding_completed` for old accounts that already have `health_profiles`.
 3. Consider cleaning up the onboarding wizard mapping if product wants stricter server-side survey typing.
+# 2026-04-22 PR handoff: health engagement UX
+
+## Branch naming
+
+- 최종 PR 브랜치명: `feat/bJ_health-engagement-ux`
+- 이전 임시 브랜치명 `feat/bj_적절한문구`는 의미가 불명확해 새 브랜치명으로 교체한다.
+
+## Reviewer checklist
+
+- FastAPI 재빌드 후 Aerich 마이그레이션 10, 11 적용 확인
+- 프론트 재빌드 후 서비스 워커(`/sw.js`) 갱신 확인
+- 설정 > 브라우저 백그라운드 알림 토글 확인
+- 오른쪽 Today 패널 식사/수면 표시 문구 확인
+- 미입력 항목 모달에서 드롭다운 선택 후 `기록 저장하기` 동작 확인
+- 챌린지 `수행 완료`/`완료 취소` 토글 확인
+- 리포트 신규/기록 부족 상태에서 fallback 카드 확인
+- YouTube 추천 카드의 검색어가 최근 대화 기반으로 바뀌는지 확인
+
+## Known local artifact
+
+- `.aerich_models_state.txt`는 Aerich 로컬 상태 파일로 커밋하지 않는다.
