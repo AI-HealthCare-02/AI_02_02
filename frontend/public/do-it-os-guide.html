@@ -712,22 +712,8 @@ a.inline {
 }
 a.inline:hover { color: var(--color-primary); }
 
-/* 다크 테마 대응 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-text: #E2E8F0;
-    --color-text-muted: #CBD5E1;
-    --color-text-hint: #94A3B8;
-    --color-surface: #1E293B;
-    --color-surface-soft: #0F172A;
-    --color-surface-alt: #334155;
-    --color-border: #334155;
-    --color-border-strong: #475569;
-  }
-  body { background: var(--color-surface-soft); }
-  .compare-table tbody td:first-child { background: var(--color-surface-alt); }
-  .science-card blockquote { background: var(--color-surface-alt); }
-}
+/* 라이트 전용 — OS 다크 모드 무시 (가독성 우선) */
+html, body { color-scheme: light; }
 </style>
 </head>
 <body>
@@ -1636,7 +1622,7 @@ a.inline:hover { color: var(--color-primary); }
 
 <footer>
   다나아 Do it OS · Phase 7.3.1 학습 가이드 (2026-04-22) · <span class="path">feat/do-it-os-mvp</span> <code>471d5f9</code><br>
-  가이드 디자인 토큰: <code>danaa-visual-style</code> · Pretendard · 1200px 카드 그리드 · 다크 테마 대응<br>
+  가이드 디자인 토큰: <code>danaa-visual-style</code> · Pretendard · 1200px 카드 그리드 · 라이트 전용<br>
   인지과학 근거: Zeigarnik 1927 · Allen 2001 · Miller 1956 · Cowan 2001 · Kirsh 2010 · Baumeister 2007
 </footer>
 
