@@ -334,7 +334,11 @@ export default function EndOfDayRitual() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
+                  onClick={() => {
+                    // Step 1에서 쏟은 메모가 즉시 반영되도록 thoughts 리로드
+                    setThoughts(loadThoughts());
+                    setStep(2);
+                  }}
                   className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90"
                 >
                   다음 · 내일 고르기
