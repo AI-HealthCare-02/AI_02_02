@@ -114,7 +114,14 @@ export default function DoItOsDashboard() {
                     className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2 text-[13px] leading-[1.5]"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="line-clamp-2 text-[var(--color-text)]">{t.text}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-[var(--color-text)]">{t.text}</p>
+                        {t.plannedDate && (
+                          <span className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-[var(--doit-cat-violet-bg)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--doit-cat-violet-fg)]">
+                            🌙 내일 하기로
+                          </span>
+                        )}
+                      </div>
                       <span className="shrink-0 text-[11px] text-[var(--color-text-hint)]">
                         {formatRelative(t.createdAt)}
                       </span>

@@ -256,6 +256,13 @@ export default function ClassifyView() {
                     <p className="text-[14px] leading-[1.55] text-[var(--color-text)] whitespace-pre-wrap break-words">
                       {t.text}
                     </p>
+                    {t.plannedDate && (
+                      <div className="mt-1.5">
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--doit-cat-violet-bg)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--doit-cat-violet-fg)]">
+                          🌙 내일 하기로
+                        </span>
+                      </div>
+                    )}
                     <div className="mt-1 text-[11.5px] text-[var(--color-text-hint)]">
                       {formatTime(t.createdAt)}
                     </div>

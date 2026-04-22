@@ -551,7 +551,7 @@ export default function EndOfDayRitual() {
                           <button
                             type="button"
                             onClick={() => handleDiscard(t.id)}
-                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] transition-colors duration-150 hover:border-[rgba(220,80,80,0.55)] hover:bg-[rgba(220,80,80,0.14)] hover:text-[rgba(230,110,110,1)]"
                           >
                             <Trash2 size={11} />
                             버리기
@@ -559,14 +559,14 @@ export default function EndOfDayRitual() {
                           <button
                             type="button"
                             onClick={() => handleKeepInInbox(t.id)}
-                            className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                            className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] transition-colors duration-150 hover:border-[rgba(210,155,60,0.55)] hover:bg-[rgba(210,155,60,0.14)] hover:text-[rgba(220,170,80,1)]"
                           >
                             내일도 고민
                           </button>
                           <button
                             type="button"
                             onClick={() => handleMoveToWaiting(t.id)}
-                            className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                            className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1 text-[12px] text-[var(--color-text-secondary)] transition-colors duration-150 hover:border-[var(--doit-cat-violet-border)] hover:bg-[var(--doit-cat-violet-bg)] hover:text-[var(--doit-cat-violet-fg)]"
                           >
                             대기중
                           </button>

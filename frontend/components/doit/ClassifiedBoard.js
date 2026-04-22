@@ -97,9 +97,16 @@ export default function ClassifiedBoard({
                     key={t.id}
                     className="group/item flex items-start gap-1.5 rounded-lg bg-[var(--color-card-surface-subtle)] px-2.5 py-1.5"
                   >
-                    <p className="flex-1 text-[12.5px] leading-[1.5] text-[var(--color-text)] line-clamp-2">
-                      {t.text}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12.5px] leading-[1.5] text-[var(--color-text)] line-clamp-2">
+                        {t.text}
+                      </p>
+                      {t.plannedDate && (
+                        <span className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-[var(--doit-cat-violet-bg)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--doit-cat-violet-fg)]">
+                          🌙 내일 하기로
+                        </span>
+                      )}
+                    </div>
                     {onUnclassify && (
                       <button
                         type="button"

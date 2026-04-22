@@ -214,6 +214,11 @@ export default function CategoryListView({
         )}
         <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-hint)]">
           <span>쏟은 시각 · {formatTime(t.createdAt)}</span>
+          {t.plannedDate && (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--doit-cat-violet-bg)] px-1.5 py-0.5 text-[10.5px] font-medium text-[var(--doit-cat-violet-fg)]">
+              🌙 내일 하기로
+            </span>
+          )}
           {categoryId === 'project' && t.projectStatus && t.projectStatus !== 'active' && (
             <span className="rounded-full bg-[var(--color-card-surface-subtle)] px-2 py-0.5 text-[11px]">
               {t.projectStatus === 'onhold' ? '잠시 중단' : '완료'}

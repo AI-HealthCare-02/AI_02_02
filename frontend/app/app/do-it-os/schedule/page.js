@@ -54,7 +54,7 @@ function getDateRange(filter) {
 
 export default function SchedulePage() {
   const [view, setView] = useState('list');
-  const [dateFilter, setDateFilter] = useState('thisMonth');
+  const [dateFilter, setDateFilter] = useState('today');
 
   const dateRange = useMemo(() => getDateRange(dateFilter), [dateFilter]);
 
@@ -73,66 +73,67 @@ export default function SchedulePage() {
               날짜가 있는 생각이에요. 리스트 또는 달력 뷰로 확인해요.
             </p>
           </div>
-          <div
-            role="tablist"
-            aria-label="일정 보기 방식"
-            className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'list'}
-              onClick={() => setView('list')}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                view === 'list'
-                  ? 'bg-[var(--color-card-surface-subtle)] text-[var(--color-text)]'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-              }`}
+          <div className="flex items-center gap-2">
+            {view === 'calendar' && (
+              <div
+                role="tablist"
+                aria-label="일정 날짜 범위 필터"
+                className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
+              >
+                {DATE_FILTERS.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={dateFilter === f.id}
+                    onClick={() => setDateFilter(f.id)}
+                    className={`rounded-full px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
+                      dateFilter === f.id
+                        ? 'bg-[var(--color-primary)] text-[var(--color-cta-text)]'
+                        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div
+              role="tablist"
+              aria-label="일정 보기 방식"
+              className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
             >
-              <LayoutList size={12} />
-              리스트
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === 'calendar'}
-              onClick={() => setView('calendar')}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                view === 'calendar'
-                  ? 'bg-[var(--color-card-surface-subtle)] text-[var(--color-text)]'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
-              }`}
-            >
-              <Calendar size={12} />
-              달력
-            </button>
-          </div>
-        </header>
-
-        <div className="mb-4 flex items-center gap-2">
-          <div
-            role="tablist"
-            aria-label="일정 날짜 범위 필터"
-            className="inline-flex rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5"
-          >
-            {DATE_FILTERS.map((f) => (
               <button
-                key={f.id}
                 type="button"
                 role="tab"
-                aria-selected={dateFilter === f.id}
-                onClick={() => setDateFilter(f.id)}
-                className={`rounded-full px-3 py-1 text-[12.5px] font-medium transition-colors ${
-                  dateFilter === f.id
-                    ? 'bg-[var(--color-primary)] text-[var(--color-cta-text)]'
-                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                aria-selected={view === 'list'}
+                onClick={() => setView('list')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                  view === 'list'
+                    ? 'bg-[var(--color-card-surface-subtle)] text-[var(--color-text)]'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
                 }`}
               >
-                {f.label}
+                <LayoutList size={12} />
+                리스트
               </button>
-            ))}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === 'calendar'}
+                onClick={() => setView('calendar')}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
+                  view === 'calendar'
+                    ? 'bg-[var(--color-card-surface-subtle)] text-[var(--color-text)]'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                }`}
+              >
+                <Calendar size={12} />
+                달력
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
       </div>
 
       {view === 'list' ? (
@@ -144,7 +145,6 @@ export default function SchedulePage() {
           icon={Calendar}
           showDate
           hideHeader
-          dateRange={dateRange}
         />
       ) : (
         <CalendarView categoryId="schedule" dateRange={dateRange} />
