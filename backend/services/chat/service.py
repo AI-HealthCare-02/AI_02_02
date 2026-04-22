@@ -64,6 +64,9 @@ from backend.services.chat.persistence import (
     _save_response as save_response,
 )
 from backend.services.chat.persistence import (
+    delete_session as remove_session,
+)
+from backend.services.chat.persistence import (
     get_history as load_history,
 )
 from backend.services.chat.persistence import (
@@ -649,6 +652,9 @@ class ChatService:
 
     async def get_sessions(self, user_id: int, limit: int = 20):
         return await load_sessions(user_id, limit=limit)
+
+    async def delete_session(self, user_id: int, session_id: int) -> None:
+        await remove_session(user_id, session_id)
 
     async def save_health_answer(
         self,

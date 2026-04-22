@@ -190,6 +190,143 @@ function PeriodButton({ active, label, onClick }) {
 
 // ── 영향 분석 타일 ─────────────────────────────────────────────────────────────
 
+// ── 점수 상세 분석 (상세 리포트 전용) ─────────────────────────────────────────
+
+const FINDRISC_DETAIL = {
+  age:             { label: '나이',          desc: '나이가 높을수록 당뇨 위험이 올라가요.' },
+  bmi:             { label: 'BMI (체중)',     desc: 'BMI 25 이상이면 위험도가 높아져요.' },
+  waist:           { label: '허리둘레',       desc: '복부비만은 인슐린 저항성과 연관돼요.' },
+  activity:        { label: '운동 부족',      desc: '주 4일 이상 운동하면 점수가 낮아져요.' },
+  vegetable:       { label: '채소 섭취 부족', desc: '매일 채소를 충분히 먹으면 1점 줄어요.' },
+  hypertension:    { label: '고혈압 이력',    desc: '고혈압 약 복용 이력이 반영돼요.' },
+  glucose_history: { label: '고혈당 이력',    desc: '과거 고혈당 판정 이력이 반영돼요.' },
+  family:          { label: '가족력',         desc: '부모·형제 중 당뇨 환자가 있으면 반영돼요.' },
+};
+
+const LIFESTYLE_DETAIL = [
+  { key: 'sleep_score',     label: '수면',  icon: Moon,            color: '#6366f1', bg: 'bg-indigo-50',  text: 'text-indigo-600',  missingMsg: '수면 기록(수면 시간·질)을 추가하면 반영돼요.' },
+  { key: 'diet_score',      label: '식사',  icon: UtensilsCrossed, color: '#f59e0b', bg: 'bg-amber-50',   text: 'text-amber-600',   missingMsg: '채소 섭취·식사 균형·단음료·야식 기록이 필요해요.' },
+  { key: 'exercise_score',  label: '운동',  icon: Activity,        color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-600', missingMsg: '운동 여부·시간·걷기 기록을 추가하면 반영돼요.' },
+  { key: 'lifestyle_score', label: '종합',  icon: Droplets,        color: '#8b5cf6', bg: 'bg-violet-50',  text: 'text-violet-600',  missingMsg: null },
+];
+
+function getScoreTone(score) {
+  if (score >= 70) return { bar: 'bg-emerald-400', label: '양호', text: 'text-emerald-600', bg: 'bg-emerald-50' };
+  if (score >= 40) return { bar: 'bg-amber-400',   label: '보통', text: 'text-amber-600',   bg: 'bg-amber-50' };
+  return               { bar: 'bg-red-400',     label: '부족', text: 'text-red-500',     bg: 'bg-red-50' };
+}
+
+function DetailScoreSection({ risk }) {
+  if (!risk) return null;
+
+  const breakdown = risk.score_breakdown || {};
+  const totalFindrisc = risk.findrisc_score ?? 0;
+  const signals = risk.supporting_signals || [];
+
+  const factors = Object.entries(breakdown)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  return (
+    <div className="space-y-4">
+      {/* FINDRISC 세부 원인 */}
+      {factors.length > 0 && (
+        <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+          <div className="mb-1 text-[14px] font-semibold text-stone-800">
+            생활습관 위험도 {totalFindrisc}점 — 항목별 원인
+          </div>
+          <div className="mb-4 text-[12px] text-stone-400">
+            온보딩 설문 기반이에요. 생활습관을 바꾸면 점수가 낮아질 수 있어요.
+          </div>
+          <div className="space-y-4">
+            {factors.map(([key, value]) => {
+              const meta = FINDRISC_DETAIL[key];
+              const pct = Math.round((value / Math.max(totalFindrisc, 1)) * 100);
+              return (
+                <div key={key}>
+                  <div className="mb-1.5 flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-[13px] font-semibold text-stone-700">{meta?.label ?? key}</div>
+                      <div className="text-[11px] text-stone-400">{meta?.desc}</div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-orange-50 px-2.5 py-0.5 text-[12px] font-bold text-orange-500">
+                      +{value}점
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                    <div
+                      className="h-full rounded-full bg-orange-400 transition-all duration-700"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 생활습관 점수 상세 */}
+      <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+        <div className="mb-1 text-[14px] font-semibold text-stone-800">생활습관 점수 상세</div>
+        <div className="mb-4 text-[12px] text-stone-400">최근 7일 기록 기반이에요. 기록이 쌓일수록 정확해져요.</div>
+        <div className="space-y-4">
+          {LIFESTYLE_DETAIL.map((item) => {
+            const Icon = item.icon;
+            const score = risk[item.key] ?? 0;
+            const sc = getScoreTone(score);
+            const isEmpty = score === 0 && item.key !== 'lifestyle_score';
+            return (
+              <div key={item.key}>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.bg}`}>
+                      <Icon size={14} style={{ color: item.color }} />
+                    </div>
+                    <span className="text-[13px] font-semibold text-stone-700">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${sc.bg} ${sc.text}`}>
+                      {sc.label}
+                    </span>
+                    <span className="text-[15px] font-bold text-stone-800">{score}</span>
+                    <span className="text-[11px] text-stone-400">/100</span>
+                  </div>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${sc.bar}`}
+                    style={{ width: `${score}%` }}
+                  />
+                </div>
+                {isEmpty && item.missingMsg && (
+                  <div className="mt-1.5 text-[11px] text-stone-400">{item.missingMsg}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* AI 신호 */}
+      {signals.length > 0 && (
+        <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+          <div className="mb-1 text-[14px] font-semibold text-stone-800">AI 모델이 감지한 신호</div>
+          <div className="mb-3 text-[12px] text-stone-400">건강 프로필과 기록을 분석해 위험도에 반영된 항목이에요.</div>
+          <div className="space-y-2">
+            {signals.map((signal, i) => (
+              <div key={i} className="flex items-center gap-2.5 rounded-xl bg-stone-50 px-3 py-2.5">
+                <TrendingUp size={12} className="shrink-0 text-amber-400" />
+                <span className="text-[13px] text-stone-600">{signal}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
 function ImpactTile({ item, index }) {
   const styles = [
     { wrap: 'bg-stone-800 border-stone-700',  label: 'text-white',     sub: 'text-white/60',  bar: 'bg-white/25',  track: 'bg-white/10',  badge: 'bg-white/15 text-white',      rank: 'text-white/50' },
@@ -556,6 +693,7 @@ export default function ReportDetailPage() {
   const [summary, setSummary] = useState(null);
   const [logs,    setLogs]    = useState([]);
   const [loaded,  setLoaded]  = useState(false);
+  const [risk,    setRisk]    = useState(null);
   const [error,   setError]   = useState('');
 
   useEffect(() => {
@@ -597,8 +735,9 @@ export default function ReportDetailPage() {
 
         if (statusData.is_completed) {
           const dates = getLastNDates(periodDays * 2);
-          const [summaryRes, ...dailyResponses] = await Promise.allSettled([
+          const [summaryRes, riskRes, ...dailyResponses] = await Promise.allSettled([
             api(`/api/v1/analysis/summary?period=${periodDays}`),
+            api('/api/v1/risk/current'),
             ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
           ]);
           if (cancelled) return;
@@ -708,6 +847,8 @@ export default function ReportDetailPage() {
 
           {loaded && hasOnboarding && hasData && summary && (
             <>
+              <DetailScoreSection risk={risk} />
+
               {/* 핵심 요약 + 영향 분석 */}
               <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
                 <div className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">

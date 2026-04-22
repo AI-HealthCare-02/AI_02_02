@@ -5,6 +5,8 @@ import Link from 'next/link';
 
 import { api, setToken } from '../../../hooks/useApi';
 import { ONBOARDING_THEME_VARS } from '../../../lib/onboardingTheme';
+import { enablePushNotifications, getPushPermission } from '../../../lib/pushNotifications';
+import { formatUserGroupDisplay } from '../../../lib/userGroupLabels';
 
 const REQUEST_TIMEOUT_MS = 15000;
 
@@ -22,6 +24,7 @@ const SLEEP_MAP = ['under_5', 'between_5_6', 'between_7_8', 'over_8'];
 const ALCOHOL_MAP = ['none', 'sometimes', 'often', 'daily'];
 const SMOKING_MAP = ['non_smoker', 'former', 'current'];
 const GOAL_MAP = ['risk_assessment', 'health_tracking', 'diet_improvement', 'exercise_habit', 'weight_management', 'all'];
+const HEALTH_QUESTION_INTERVAL_MAP = [60, 90, 120, 0, null];
 
 function mapArray(indices, mapper) {
   if (!Array.isArray(indices)) return [];
@@ -33,6 +36,7 @@ function mapArray(indices, mapper) {
 
 function buildSurveyPayload(saved) {
   const lab = saved.lab || {};
+  const interval = HEALTH_QUESTION_INTERVAL_MAP[saved.freq];
 
   return {
     relation: RELATION_MAP[saved.relation] || 'curious',
@@ -52,6 +56,7 @@ function buildSurveyPayload(saved) {
     smoking_status: SMOKING_MAP[saved.lifestyle_smoking] || 'non_smoker',
     goals: mapArray(saved.goals, GOAL_MAP),
     ai_consent: 'agreed',
+    health_question_interval_minutes: interval === null || interval === undefined ? 90 : interval,
   };
 }
 
@@ -88,6 +93,10 @@ export default function OnboardingComplete() {
   const [submitState, setSubmitState] = useState('idle');
   const [error, setError] = useState('');
   const [progressLabel, setProgressLabel] = useState('준비 중입니다.');
+  const [resultGroup, setResultGroup] = useState(null);
+  const [pushPromptDismissed, setPushPromptDismissed] = useState(false);
+  const [pushSaving, setPushSaving] = useState(false);
+  const [pushMessage, setPushMessage] = useState(null);
 
   useEffect(() => {
     try {
@@ -113,6 +122,7 @@ export default function OnboardingComplete() {
         const status = await statusRes.json();
         if (!status.is_completed || cancelled) return;
 
+        setResultGroup(status.user_group || null);
         setProgressLabel('저장이 완료되었습니다. 아래 버튼을 눌러 메인으로 이동해주세요.');
         setSubmitState('done');
         window.clearInterval(intervalId);
@@ -182,6 +192,7 @@ export default function OnboardingComplete() {
         } catch {}
 
         if (!cancelled) {
+          setResultGroup(surveyData.user_group || null);
           setProgressLabel('저장이 완료되었습니다. 아래 버튼을 눌러 메인으로 이동해주세요.');
           setSubmitState('done');
         }
@@ -199,6 +210,19 @@ export default function OnboardingComplete() {
       cancelled = true;
     };
   }, [savedData, submitState]);
+
+  const enableBrowserPush = async () => {
+    setPushSaving(true);
+    setPushMessage(null);
+    try {
+      await enablePushNotifications();
+      setPushMessage({ type: 'success', text: '브라우저 알림을 켰어요. 선택한 주기에 맞춰 놓친 기록을 알려드릴게요.' });
+    } catch (err) {
+      setPushMessage({ type: 'error', text: err?.message || '브라우저 알림을 켜지 못했어요.' });
+    } finally {
+      setPushSaving(false);
+    }
+  };
 
   const summary = useMemo(() => calculateSummary(savedData || {}), [savedData]);
 
@@ -236,6 +260,12 @@ export default function OnboardingComplete() {
             <span className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>BMI</span>
             <span className="text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{summary.bmi}</span>
           </div>
+          {resultGroup && (
+            <div className="flex justify-between py-1.5" style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+              <span className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>관리 단계</span>
+              <span className="text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{formatUserGroupDisplay(resultGroup)}</span>
+            </div>
+          )}
           <div className="flex justify-between py-1.5">
             <span className="text-[13px]" style={{ color: 'var(--color-text-muted)' }}>운동 빈도</span>
             <span className="text-[13px] font-medium" style={{ color: 'var(--color-text)' }}>{summary.exercise}</span>
@@ -257,6 +287,58 @@ export default function OnboardingComplete() {
             style={{ background: '#E6F4EA', color: '#1E5631' }}
           >
             {progressLabel}
+          </div>
+        )}
+
+        {submitState === 'done' && !pushPromptDismissed && getPushPermission() !== 'granted' && (
+          <div
+            className="rounded-xl p-4 mb-4 text-left"
+            style={{
+              background: 'var(--color-surface-hover)',
+              border: '1px solid var(--color-border-light)',
+            }}
+          >
+            <div className="text-[14px] font-semibold mb-1" style={{ color: 'var(--color-text)' }}>
+              선택한 주기에 맞춰 건강 기록 알림을 받을까요?
+            </div>
+            <div className="text-[12px] leading-5 mb-3" style={{ color: 'var(--color-text-muted)' }}>
+              다른 사이트를 보고 있어도 지나간 시간대의 미입력 질문만 알려드려요.
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={enableBrowserPush}
+                disabled={pushSaving}
+                className="flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
+                style={{ background: 'var(--color-cta-bg)', color: 'var(--color-cta-text)' }}
+              >
+                {pushSaving ? '처리 중' : '브라우저 알림 켜기'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPushPromptDismissed(true)}
+                disabled={pushSaving}
+                className="rounded-lg px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
+                style={{
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text-muted)',
+                  border: '1px solid var(--color-border-light)',
+                }}
+              >
+                나중에
+              </button>
+            </div>
+            {pushMessage && (
+              <div
+                className="mt-3 rounded-lg px-3 py-2 text-[12px]"
+                style={{
+                  background: pushMessage.type === 'success' ? '#E6F4EA' : '#FDECEC',
+                  color: pushMessage.type === 'success' ? '#1E5631' : '#B42318',
+                }}
+              >
+                {pushMessage.text}
+              </div>
+            )}
           </div>
         )}
 

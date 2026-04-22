@@ -19,6 +19,7 @@ class SettingsResponse(BaseSerializerModel):
     weekly_report: bool = True
     reminder_time_morning: time | None = None
     reminder_time_evening: time | None = None
+    health_question_interval_minutes: int = 90
     max_bundles_per_day: int = 5
     preferred_times: list[str] = Field(default_factory=list)
     theme_preference: str = "dark"
@@ -34,6 +35,7 @@ class SettingsPatchRequest(BaseModel):
     weekly_report: bool | None = None
     reminder_time_morning: time | None = None
     reminder_time_evening: time | None = None
+    health_question_interval_minutes: int | None = Field(None, ge=0, le=240)
     max_bundles_per_day: int | None = Field(None, ge=1, le=10)
     preferred_times: list[str] | None = Field(None, max_length=3)
     theme_preference: str | None = None
@@ -60,3 +62,13 @@ class SettingsPatchRequest(BaseModel):
                 f"preferred_times must be subset of {sorted(ALLOWED_PREFERRED_TIMES)}"
             )
         return normalized
+
+    @field_validator("health_question_interval_minutes")
+    @classmethod
+    def validate_health_question_interval_minutes(cls, value: int | None) -> int | None:
+        if value is None:
+            return value
+        allowed = {0, 60, 90, 120}
+        if value not in allowed:
+            raise ValueError(f"health_question_interval_minutes must be one of {sorted(allowed)}")
+        return value
