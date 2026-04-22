@@ -1,5 +1,99 @@
 # Handoff Memo
 
+## 2026-04-22 Next-Day Handoff: Web Push Prod Setup After Merge
+
+### Current Branch / PR
+
+- Working branch: `feat/bJ_health-engagement-ux`
+- PR target should use the renamed branch, not the old temporary branch.
+- Old remote branch `feat/bj_적절한문구` was deleted from both `origin` and `upstream`.
+
+### Tomorrow's First Task
+
+After the PR is merged and the new FastAPI image is deployed, set up production Web Push env on EC2.
+
+Do **not** generate the production VAPID key from the current old container. The current deployed image does not include `py_vapid` yet, so it fails with:
+
+```bash
+/app/.venv/bin/python3: No module named py_vapid
+```
+
+Wait until the new image from this PR is deployed, then generate the key inside the updated `fastapi` container.
+
+### EC2 Commands After Merge/Deploy
+
+```bash
+cd ~/project
+docker compose ps
+docker compose exec fastapi uv run --group app python -m py_vapid --gen --json
+```
+
+Copy the generated `Application Server Key` into:
+
+```dotenv
+WEB_PUSH_VAPID_PUBLIC_KEY=
+```
+
+Then convert the generated private key:
+
+```bash
+docker compose exec fastapi sh -lc "base64 -w 0 private_key.pem"
+```
+
+Put that output into:
+
+```dotenv
+WEB_PUSH_VAPID_PRIVATE_KEY_B64=
+```
+
+Production env values to add/update in `~/project/envs/.prod.env` or the active production env file:
+
+```dotenv
+WEB_PUSH_ENABLED=true
+WEB_PUSH_VAPID_PUBLIC_KEY=<Application Server Key>
+WEB_PUSH_VAPID_PRIVATE_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY_B64=<base64 private key>
+WEB_PUSH_VAPID_SUBJECT=mailto:<team-email>
+WEB_PUSH_ACTION_API_BASE=https://<production-domain>
+```
+
+After storing the base64 value, remove PEM files from the container:
+
+```bash
+docker compose exec fastapi sh -lc "rm -f private_key.pem public_key.pem"
+```
+
+Then restart FastAPI so env is loaded:
+
+```bash
+docker compose up -d fastapi
+```
+
+Apply migrations:
+
+```bash
+docker compose exec fastapi uv run aerich fix-migrations
+docker compose exec fastapi uv run aerich upgrade
+```
+
+### Verification Checklist
+
+- `push_subscriptions` table exists.
+- Settings page shows "브라우저 백그라운드 알림" toggle.
+- Turning the toggle on creates a row in `push_subscriptions`.
+- Browser notification permission is allowed.
+- Notification click opens `/app/chat?from=push&bundle_key=...`.
+- Chat page shows the relevant unanswered question card.
+
+### Important Notes
+
+- Do not commit actual VAPID keys.
+- Local team members generate their own local VAPID keys.
+- Production uses one server-side VAPID key pair stored only in EC2 env.
+- `.aerich_models_state.txt` is a local Aerich artifact and should remain uncommitted.
+
+---
+
 ## 2026-04-21 Main Sync / Report PR Merge / Aerich Migration Format Handoff
 
 ### Current State
