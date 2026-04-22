@@ -27,6 +27,20 @@ import ClassifiedBoard from '../../../components/doit/ClassifiedBoard';
 import EveningCta from '../../../components/doit/EveningCta';
 import { formatFriendlyDate } from '../../../components/doit/DateChip';
 
+function formatRelative(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}일 전`;
+  const date = new Date(iso);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
 export default function DoItOsDashboard() {
   const [thoughts, setThoughts] = useState([]);
 
@@ -99,7 +113,12 @@ export default function DoItOsDashboard() {
                     key={t.id}
                     className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-2 text-[13px] leading-[1.5]"
                   >
-                    <p className="line-clamp-2 text-[var(--color-text)]">{t.text}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-2 text-[var(--color-text)]">{t.text}</p>
+                      <span className="shrink-0 text-[11px] text-[var(--color-text-hint)]">
+                        {formatRelative(t.createdAt)}
+                      </span>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Moon, Trash2, Undo2 } from 'lucide-react';
 
 import {
+  CATEGORIES,
+  classifyThought,
+  completeThought,
   discardThought,
   getTodayUnfinishedSchedule,
   getUnclassified,
@@ -77,14 +80,6 @@ export default function EndOfDayRitual() {
     [thoughts],
   );
 
-  const step2Candidates = useMemo(
-    () => [
-      ...unclassified.map((t) => ({ ...t, _source: 'unclassified' })),
-      ...todayUnfinished.map((t) => ({ ...t, _source: 'today' })),
-    ],
-    [unclassified, todayUnfinished],
-  );
-
   const leftoverUnclassified = useMemo(
     () => unclassified.filter((t) => !selectedTomorrow.has(t.id)),
     [unclassified, selectedTomorrow],
@@ -116,6 +111,26 @@ export default function EndOfDayRitual() {
       else next.add(id);
       return next;
     });
+  };
+
+  // Step 2 미분류 인라인 분류 — 분류되면 해당 섹션에서 자동으로 사라짐 (useMemo 재계산)
+  const handleQuickClassify = (id, category) => {
+    const prev = loadThoughts();
+    const next = classifyThought(prev, id, category, {
+      clarification: { actionable: true, decision: category, source: 'end_of_day' },
+    });
+    saveThoughts(next);
+    setThoughts(next);
+  };
+
+  // Step 2 오늘 일정 완료 체크 — completeThought는 isCompletable로 schedule/todo만 통과
+  const handleCompleteToday = (id, currentlyCompleted) => {
+    const prev = loadThoughts();
+    const next = currentlyCompleted
+      ? prev.map((t) => (t.id === id ? { ...t, completedAt: null } : t))
+      : completeThought(prev, id);
+    saveThoughts(next);
+    setThoughts(next);
   };
 
   const handlePlanForTomorrow = () => {
@@ -338,44 +353,112 @@ export default function EndOfDayRitual() {
                 미분류 {unclassified.length}개 · 오늘 남은 일정 {todayUnfinished.length}개
               </p>
 
-              {step2Candidates.length === 0 ? (
+              {unclassified.length === 0 && todayUnfinished.length === 0 ? (
                 <p className="mt-6 rounded-lg border border-dashed border-[var(--color-border)] px-3 py-8 text-center text-[13px] text-[var(--color-text-hint)]">
-                  고를 항목이 없어요. 다음 단계로 넘어가요.
+                  오늘 처리할 게 없네요! 바로 다음 단계로.
                 </p>
               ) : (
-                <ul className="mt-4 space-y-1.5">
-                  {step2Candidates.map((t) => {
-                    const checked = selectedTomorrow.has(t.id);
-                    return (
-                      <li key={t.id}>
-                        <label
-                          className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
-                            checked
-                              ? 'border-[var(--color-text-secondary)] bg-[var(--color-card-surface-subtle)]'
-                              : 'border-[var(--color-border)] hover:bg-[var(--color-card-surface-subtle)]'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleSelect(t.id)}
-                            className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-text-secondary)]"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="line-clamp-2 text-[13.5px] leading-[1.5] text-[var(--color-text)]">
-                              {t.text}
-                            </p>
-                            {t._source === 'today' && (
-                              <span className="mt-1 inline-block text-[11px] text-[var(--color-text-hint)]">
-                                오늘 남은 일정
-                              </span>
-                            )}
-                          </div>
-                        </label>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="mt-4">
+                  {/* 섹션 1: 미분류 — 인라인 분류 + 내일 하기 체크 */}
+                  {unclassified.length > 0 && (
+                    <section className="mb-5">
+                      <h3 className="mb-2 text-[13px] font-semibold text-[var(--color-text-secondary)]">
+                        📥 미분류 ({unclassified.length}개)
+                        <span className="ml-1 text-[11.5px] font-normal text-[var(--color-text-hint)]">
+                          먼저 분류해주세요
+                        </span>
+                      </h3>
+                      <ul className="space-y-2">
+                        {unclassified.map((t) => (
+                          <li
+                            key={t.id}
+                            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[13.5px] leading-[1.5] text-[var(--color-text)]">
+                                  {t.text}
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {CATEGORIES.filter((c) => c.primary).map((cat) => (
+                                    <button
+                                      key={cat.id}
+                                      type="button"
+                                      onClick={() => handleQuickClassify(t.id, cat.id)}
+                                      className={`doit-cat-chip doit-cat-${cat.tone} rounded-full border px-2 py-0.5 text-[11px] hover:opacity-80`}
+                                    >
+                                      {cat.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] text-[var(--color-text-secondary)]">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTomorrow.has(t.id)}
+                                  onChange={() => toggleSelect(t.id)}
+                                  className="h-4 w-4 accent-[var(--color-text-secondary)]"
+                                />
+                                내일 하기
+                              </label>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+
+                  {/* 섹션 2: 오늘 남은 일정 — 완료 체크 + 내일로 미루기 */}
+                  {todayUnfinished.length > 0 && (
+                    <section className="mb-5">
+                      <h3 className="mb-2 text-[13px] font-semibold text-[var(--color-text-secondary)]">
+                        📅 오늘 남은 일정 ({todayUnfinished.length}개)
+                        <span className="ml-1 text-[11.5px] font-normal text-[var(--color-text-hint)]">
+                          끝냈으면 체크
+                        </span>
+                      </h3>
+                      <ul className="space-y-2">
+                        {todayUnfinished.map((t) => (
+                          <li
+                            key={t.id}
+                            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-surface-subtle)] px-3 py-3"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={!!t.completedAt}
+                                  onChange={() => handleCompleteToday(t.id, !!t.completedAt)}
+                                  className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-text-secondary)]"
+                                  aria-label={`${t.text.slice(0, 20)} 완료 체크`}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[13.5px] leading-[1.5] text-[var(--color-text)]">
+                                    {t.text}
+                                  </p>
+                                  {t.scheduledTime && (
+                                    <span className="mt-1 inline-block text-[11px] text-[var(--color-text-hint)]">
+                                      🕐 {t.scheduledTime}
+                                    </span>
+                                  )}
+                                </div>
+                              </label>
+                              <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[12px] text-[var(--color-text-secondary)]">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTomorrow.has(t.id)}
+                                  onChange={() => toggleSelect(t.id)}
+                                  className="h-4 w-4 accent-[var(--color-text-secondary)]"
+                                />
+                                내일로
+                              </label>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
               )}
 
               <div className="mt-6 flex items-center justify-between">
@@ -401,7 +484,7 @@ export default function EndOfDayRitual() {
                     disabled={isSaving || selectedTomorrow.size === 0}
                     className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-text)] px-4 py-2 text-[13px] font-medium text-[var(--color-surface)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    내일 하기 ({selectedTomorrow.size})
+                    다음 · 버리기/보관 ({selectedTomorrow.size})
                     <ArrowRight size={13} />
                   </button>
                 </div>

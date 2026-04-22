@@ -54,15 +54,22 @@ function formatTime(iso) {
   }
 }
 
-export default function CalendarView({ categoryId = 'schedule' }) {
+export default function CalendarView({ categoryId = 'schedule', dateRange = null }) {
   const [thoughts, setThoughts] = useState([]);
   const [hydrated, setHydrated] = useState(false);
+  const [toast, setToast] = useState(null);
   const today = todayIso();
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
   });
   const [selected, setSelected] = useState(today);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     setThoughts(loadThoughts());
@@ -79,10 +86,14 @@ export default function CalendarView({ categoryId = 'schedule' }) {
     saveThoughts(thoughts);
   }, [thoughts, hydrated]);
 
-  const items = useMemo(
-    () => getByCategory(thoughts, categoryId),
-    [thoughts, categoryId],
-  );
+  const items = useMemo(() => {
+    const base = getByCategory(thoughts, categoryId);
+    if (!dateRange || !dateRange.start) return base;
+    return base.filter((t) => {
+      if (!t.scheduledDate) return false;
+      return t.scheduledDate >= dateRange.start && t.scheduledDate <= dateRange.end;
+    });
+  }, [thoughts, categoryId, dateRange]);
 
   const countsByDate = useMemo(() => {
     const map = {};
@@ -139,7 +150,19 @@ export default function CalendarView({ categoryId = 'schedule' }) {
   };
 
   const handleUnclassify = (id) => {
-    setThoughts((prev) => unclassifyThought(prev, id));
+    const prev = loadThoughts();
+    const target = prev.find((t) => t.id === id);
+    const next = unclassifyThought(prev, id);
+    saveThoughts(next);
+    setThoughts(next);
+    setToast({ id, prev, text: target?.text?.slice(0, 20) ?? '' });
+  };
+
+  const handleUndo = () => {
+    if (!toast?.prev) return;
+    saveThoughts(toast.prev);
+    setThoughts(toast.prev);
+    setToast(null);
   };
 
   const selectedFriendly =
@@ -273,10 +296,12 @@ export default function CalendarView({ categoryId = 'schedule' }) {
                   <button
                     type="button"
                     onClick={() => handleUnclassify(t.id)}
+                    title="미분류로 되돌림 · 날짜·시간·완료 기록이 함께 삭제돼요"
+                    aria-label="이 항목을 분류 해제하고 미분류로 되돌리기"
                     className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-[var(--color-text-hint)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
                   >
                     <Undo2 size={11} />
-                    Inbox로
+                    분류 해제
                   </button>
                 </li>
               ))}
@@ -291,6 +316,20 @@ export default function CalendarView({ categoryId = 'schedule' }) {
           미분류 Inbox로 이동
         </Link>
       </div>
+
+      {toast && (
+        <div className="doit-toast fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full bg-[var(--color-surface-dark)] px-4 py-2.5 text-[13px] text-[var(--color-text-inv)] shadow-lg">
+          <span>&ldquo;{toast.text}&rdquo; 분류를 해제했어요</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium hover:bg-white/20"
+          >
+            <Undo2 size={11} />
+            되돌리기
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -76,9 +76,11 @@ export default function CategoryListView({
   icon: Icon,
   showDate = false,
   hideHeader = false,
+  dateRange = null,
 }) {
   const [thoughts, setThoughts] = useState([]);
   const [hydrated, setHydrated] = useState(false);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     setThoughts(loadThoughts());
@@ -95,13 +97,47 @@ export default function CategoryListView({
     saveThoughts(thoughts);
   }, [thoughts, hydrated]);
 
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const showCheckbox = categoryId === 'todo' || categoryId === 'schedule';
-  const activeItems = getByCategory(thoughts, categoryId);
-  const completedItems = showCheckbox ? getCompleted(thoughts, categoryId) : [];
+  const rawActiveItems = getByCategory(thoughts, categoryId);
+  const rawCompletedItems = showCheckbox ? getCompleted(thoughts, categoryId) : [];
+
+  // 날짜 범위 필터 적용 (dateRange.start 가 null 이면 '전체' → 필터 해제)
+  const applyDateRange = (list) => {
+    if (!dateRange || !dateRange.start) return list;
+    return list.filter((t) => {
+      if (!t.scheduledDate) return false; // 날짜 미정은 필터 적용 시 제외
+      return t.scheduledDate >= dateRange.start && t.scheduledDate <= dateRange.end;
+    });
+  };
+
+  const activeItems = applyDateRange(rawActiveItems);
+  const completedItems = applyDateRange(rawCompletedItems);
   const items = activeItems;
 
   const handleUnclassify = (id) => {
-    setThoughts((prev) => unclassifyThought(prev, id));
+    const prev = loadThoughts();
+    const target = prev.find((t) => t.id === id);
+    const next = unclassifyThought(prev, id);
+    saveThoughts(next);
+    setThoughts(next);
+    setToast({
+      id,
+      prev,
+      text: target?.text?.slice(0, 20) ?? '',
+    });
+  };
+
+  const handleUndo = () => {
+    if (!toast?.prev) return;
+    saveThoughts(toast.prev);
+    setThoughts(toast.prev);
+    setToast(null);
   };
   const handleDateChange = (id, date) => {
     setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledDate: date || null }));
@@ -163,11 +199,12 @@ export default function CategoryListView({
               event.stopPropagation();
               handleUnclassify(t.id);
             }}
-            aria-label="Inbox로 되돌리기"
+            title="미분류로 되돌림 · 날짜·시간·완료 기록이 함께 삭제돼요"
+            aria-label="이 항목을 분류 해제하고 미분류로 되돌리기"
             className="flex h-7 items-center gap-1 rounded-full px-2 text-[11.5px] text-[var(--color-text-hint)] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text-secondary)]"
           >
             <Undo2 size={12} />
-            Inbox로
+            분류 해제
           </button>
         </div>
         {categoryId === 'project' && t.description && (
@@ -319,6 +356,20 @@ export default function CategoryListView({
           </Link>
         </div>
       </div>
+
+      {toast && (
+        <div className="doit-toast fixed bottom-28 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-[var(--color-surface-dark)] px-4 py-2.5 text-[13px] text-[var(--color-text-inv)] shadow-float">
+          <span>&quot;{toast.text}&quot; 분류를 해제했어요</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[12px] font-medium hover:bg-white/20"
+          >
+            <Undo2 size={11} />
+            되돌리기
+          </button>
+        </div>
+      )}
     </div>
   );
 }
