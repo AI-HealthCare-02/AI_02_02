@@ -4,6 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Check, Database, FileText, Lock, User as UserIcon } from 'lucide-react';
 import { api, clearToken } from '../../../hooks/useApi';
 import useTheme from '../../../hooks/useTheme';
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushPermission,
+  getPushSubscriptionState,
+} from '../../../lib/pushNotifications';
+import { formatUserGroupDisplay } from '../../../lib/userGroupLabels';
 
 const TERMS_TEXT = `다나아 서비스 이용약관
 
@@ -205,6 +212,10 @@ export default function SettingsPage() {
     challenge_reminder: true,
     weekly_report: true,
   });
+  const [pushPermission, setPushPermission] = useState('unsupported');
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSaving, setPushSaving] = useState(false);
+  const [pushMessage, setPushMessage] = useState(null);
   const [dataConsent, setDataConsent] = useState(true);
 
   const [profileSaving, setProfileSaving] = useState(false);
@@ -254,7 +265,7 @@ export default function SettingsPage() {
         });
         setEmailDraft(user.email || '');
         setProfileInfo({
-          group: onboarding.user_group || '-',
+          group: formatUserGroupDisplay(onboarding.user_group, '-'),
           bmi: onboarding.bmi ? String(onboarding.bmi) : '-',
         });
         setNotifications({
@@ -262,6 +273,9 @@ export default function SettingsPage() {
           challenge_reminder: settings.challenge_reminder ?? true,
           weekly_report: settings.weekly_report ?? true,
         });
+        const pushState = await getPushSubscriptionState();
+        setPushPermission(pushState.permission);
+        setPushEnabled(pushState.subscribed);
         setDataConsent(consent.health_data_consent ?? true);
       } catch {
         setProfileMessage({ type: 'error', text: '설정 정보를 불러오지 못했습니다.' });
@@ -324,6 +338,48 @@ export default function SettingsPage() {
       setNotifications((prev) => ({ ...prev, [key]: !value }));
     }
   }, []);
+
+  const enableBrowserPush = useCallback(async () => {
+    setPushSaving(true);
+    setPushMessage(null);
+    try {
+      await enablePushNotifications();
+      const pushState = await getPushSubscriptionState();
+      setPushPermission(pushState.permission);
+      setPushEnabled(pushState.subscribed);
+      setPushMessage({ type: 'success', text: '브라우저 알림을 켰어요.' });
+    } catch (error) {
+      const pushState = await getPushSubscriptionState();
+      setPushPermission(pushState.permission);
+      setPushEnabled(false);
+      setPushMessage({ type: 'error', text: error?.message || '브라우저 알림을 켜지 못했어요.' });
+    } finally {
+      setPushSaving(false);
+    }
+  }, []);
+
+  const disableBrowserPush = useCallback(async () => {
+    setPushSaving(true);
+    setPushMessage(null);
+    try {
+      await disablePushNotifications();
+      setPushPermission(getPushPermission());
+      setPushEnabled(false);
+      setPushMessage({ type: 'success', text: '브라우저 알림을 껐어요.' });
+    } catch {
+      setPushMessage({ type: 'error', text: '브라우저 알림을 끄지 못했어요.' });
+    } finally {
+      setPushSaving(false);
+    }
+  }, []);
+
+  const toggleBrowserPush = useCallback((value) => {
+    if (value) {
+      enableBrowserPush();
+    } else {
+      disableBrowserPush();
+    }
+  }, [disableBrowserPush, enableBrowserPush]);
 
   const updateConsent = useCallback(async (value) => {
     setDataConsent(value);
@@ -663,6 +719,34 @@ export default function SettingsPage() {
                 </div>
                 <Toggle value={notifications.chat_notification} onChange={(v) => toggleNotification('chat_notification', v)} />
               </div>
+              <div className="px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[13px] font-medium text-nature-900">브라우저 백그라운드 알림</div>
+                    <div className="mt-0.5 text-[12px] text-[var(--color-text-hint)]">
+                      다른 창을 보고 있어도 건강 기록 질문을 알림으로 받아요.
+                    </div>
+                  </div>
+                  <Toggle
+                    value={pushEnabled}
+                    onChange={toggleBrowserPush}
+                    disabled={pushSaving || pushPermission === 'unsupported' || pushPermission === 'denied'}
+                  />
+                </div>
+                {pushMessage && (
+                  <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[12px] font-medium text-red-700">
+                    {pushMessage.text}
+                  </div>
+                )}
+                <div className="mt-2 rounded-lg bg-cream-100 px-3 py-2 text-[12px] leading-5 text-neutral-600">
+                  브라우저나 Windows 알림 설정이 꺼져 있거나 방해 금지 모드가 켜져 있으면 알림이 표시되지 않을 수 있어요.
+                </div>
+                {pushPermission === 'unsupported' && (
+                  <div className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[12px] text-red-600">
+                    이 브라우저는 백그라운드 알림을 지원하지 않아요.
+                  </div>
+                )}
+              </div>
               <div className="flex items-center justify-between px-4 py-3">
                 <div>
                   <div className="text-[13px] font-medium text-nature-900">챌린지 리마인더</div>
@@ -732,6 +816,13 @@ export default function SettingsPage() {
                   localStorage.removeItem('danaa_tutorial_pending');
                   localStorage.removeItem('danaa_challenges');
                   localStorage.removeItem('danaa_conversations');
+                  try {
+                    Object.keys(sessionStorage)
+                      .filter((key) => key.startsWith('danaa:report:'))
+                      .forEach((key) => sessionStorage.removeItem(key));
+                  } catch {
+                    // ignore
+                  }
                   window.location.href = '/login';
                 }}
                 className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"

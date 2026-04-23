@@ -30,6 +30,11 @@ class ChatAppIntent(StrEnum):
     CHALLENGE_HELP = "challenge_help"
     CHALLENGE_STATE = "challenge_state"
     PENDING_SURVEYS = "pending_surveys"
+    SIDEBAR_HELP = "sidebar_help"
+    SETTINGS_HELP = "settings_help"
+    ONBOARDING_HELP = "onboarding_help"
+    RIGHT_PANEL_HELP = "right_panel_help"
+    MISSED_MODAL_HELP = "missed_modal_help"
     MIXED = "mixed"
 
 
@@ -39,6 +44,11 @@ class ChatAppHelpSnapshot:
     report_help: str
     challenge_help: str
     pending_help: str
+    sidebar_help: str | None = None
+    settings_help: str | None = None
+    onboarding_help: str | None = None
+    right_panel_help: str | None = None
+    missed_modal_help: str | None = None
 
 
 @dataclass(frozen=True)
@@ -135,11 +145,26 @@ def _fallback_help_snapshot() -> ChatAppHelpSnapshot:
             "오늘 아직 안 적은 질문은 채팅 답변 아래 카드에서 바로 기록할 수 있어요. "
             "오른쪽 패널의 미답변 질문은 입력창이 아니라 남은 질문 요약이에요."
         ),
+        sidebar_help=(
+            "왼쪽 사이드바에는 AI 채팅·리포트·챌린지 메인 메뉴와 '+ 새 대화' 버튼, 최근 대화 목록, 사용자 프로필이 모여 있어요."
+        ),
+        settings_help=(
+            "설정 페이지에서는 프로필(이름·생년월일·전화) 수정, 알림 on/off, 테마(다크/라이트) 선택, 비밀번호 변경, 로그아웃을 할 수 있어요."
+        ),
+        onboarding_help=(
+            "온보딩은 가입 직후 15단계 건강 설문으로, 약관·프로필·체형·의료력·검사수치·생활습관·목표 순으로 진행돼요. 완료되면 AI 채팅 자동 질문이 시작돼요."
+        ),
+        right_panel_help=(
+            "우측 Today 패널은 오늘 기록 카드 7종(수면·식사·복약·운동·수분·기분·음주), 상단 요약 문장, 도전 챌린지, 최근 3일 미응답 버튼을 한곳에 모은 영역이에요. 복약 카드는 A그룹(집중 관리 단계)에만 표시돼요."
+        ),
+        missed_modal_help=(
+            "미응답 질문 모달은 어제·그제 미기록 항목을 드롭다운으로 일괄 입력하는 팝업이에요. 오늘은 우측 Today 카드에서 입력해요."
+        ),
     )
 
 
 @lru_cache(maxsize=1)
-def _load_product_guide() -> dict[str, dict[str, str]] | None:
+def _load_product_guide() -> dict[str, dict] | None:
     try:
         raw = _GUIDE_PATH.read_text(encoding="utf-8")
         data = json.loads(raw)
@@ -154,17 +179,30 @@ def _load_product_guide() -> dict[str, dict[str, str]] | None:
         )
         return None
 
+    # 기존 4섹션은 필수 (v1 호환). 신규 5섹션은 optional.
     required_sections = {"chat", "report", "challenge", "pending"}
-    required_fields = {"headline", "what_it_is", "where_to_check", "next_action", "limitations"}
+    # v2 필수 최소 필드 — headline+summary만 있으면 OK (details/next_action/limitations는 optional).
+    # v1 구조(what_it_is/where_to_check/next_action/limitations)도 계속 호환 유지.
     if not isinstance(data, dict) or not required_sections.issubset(data.keys()):
         logger.warning("chat_product_guide_shape_invalid", path=str(_GUIDE_PATH))
         return None
 
     for section_name in required_sections:
         section = data.get(section_name)
-        if not isinstance(section, dict) or not required_fields.issubset(section.keys()):
+        if not isinstance(section, dict):
             logger.warning(
                 "chat_product_guide_section_invalid",
+                path=str(_GUIDE_PATH),
+                section=section_name,
+            )
+            return None
+        # v2: headline+summary가 있거나
+        # v1: what_it_is+where_to_check가 있어야 의미 있는 섹션으로 간주
+        has_v2 = "headline" in section and "summary" in section
+        has_v1 = "what_it_is" in section and "where_to_check" in section
+        if not (has_v2 or has_v1):
+            logger.warning(
+                "chat_product_guide_section_fields_missing",
                 path=str(_GUIDE_PATH),
                 section=section_name,
             )
@@ -173,10 +211,32 @@ def _load_product_guide() -> dict[str, dict[str, str]] | None:
     return data
 
 
-def _section_to_help_text(section: dict[str, str] | None, fallback: str) -> str:
+def _section_to_help_text(section: dict | None, fallback: str, *, max_details: int = 0) -> str:
+    """섹션 dict을 한 줄 help text로 변환. v2(summary+details) / v1(what_it_is…) 모두 지원.
+
+    max_details: summary 뒤에 붙일 details bullet 최대 개수 (0=summary만).
+    """
     if not section:
         return fallback
 
+    summary = section.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        parts: list[str] = [summary.strip()]
+        if max_details > 0:
+            details = section.get("details")
+            if isinstance(details, list):
+                picked = [str(item).strip() for item in details if isinstance(item, str) and item.strip()][:max_details]
+                if picked:
+                    parts.append(" ".join(f"• {item}" for item in picked))
+        next_action = section.get("next_action")
+        if isinstance(next_action, str) and next_action.strip() and max_details > 0:
+            parts.append(f"다음 행동: {next_action.strip()}")
+        limitations = section.get("limitations")
+        if isinstance(limitations, str) and limitations.strip() and max_details > 0:
+            parts.append(f"참고: {limitations.strip()}")
+        return " ".join(parts)
+
+    # v1 fallback
     ordered_keys = ("what_it_is", "where_to_check", "next_action", "limitations")
     parts = [
         str(section.get(key, "")).strip()
@@ -192,12 +252,35 @@ def build_default_help_snapshot() -> ChatAppHelpSnapshot:
     if guide is None:
         return fallback
 
+    def _get(section_key: str, fallback_text: str | None) -> str | None:
+        section = guide.get(section_key)
+        if not isinstance(section, dict):
+            return fallback_text
+        text = _section_to_help_text(section, fallback_text or "")
+        return text or fallback_text
+
     return ChatAppHelpSnapshot(
-        chat_help=_section_to_help_text(guide.get("chat"), fallback.chat_help),
-        report_help=_section_to_help_text(guide.get("report"), fallback.report_help),
-        challenge_help=_section_to_help_text(guide.get("challenge"), fallback.challenge_help),
-        pending_help=_section_to_help_text(guide.get("pending"), fallback.pending_help),
+        chat_help=_get("chat", fallback.chat_help) or fallback.chat_help,
+        report_help=_get("report", fallback.report_help) or fallback.report_help,
+        challenge_help=_get("challenge", fallback.challenge_help) or fallback.challenge_help,
+        pending_help=_get("pending", fallback.pending_help) or fallback.pending_help,
+        sidebar_help=_get("sidebar", fallback.sidebar_help),
+        settings_help=_get("settings", fallback.settings_help),
+        onboarding_help=_get("onboarding", fallback.onboarding_help),
+        right_panel_help=_get("right_panel", fallback.right_panel_help),
+        missed_modal_help=_get("missed_modal", fallback.missed_modal_help),
     )
+
+
+def _section_with_details(section_key: str, fallback_text: str | None, max_details: int = 2) -> str | None:
+    """intent와 일치할 때 사용 — summary + details 최대 N개까지 포함."""
+    guide = _load_product_guide()
+    if guide is None:
+        return fallback_text
+    section = guide.get(section_key)
+    if not isinstance(section, dict):
+        return fallback_text
+    return _section_to_help_text(section, fallback_text or "", max_details=max_details) or fallback_text
 
 
 def intent_requests_state(intent: ChatAppIntent) -> bool:
@@ -209,39 +292,77 @@ def intent_requests_state(intent: ChatAppIntent) -> bool:
     }
 
 
-def intent_requests_help(intent: ChatAppIntent) -> bool:
-    return intent in {
+_HELP_INTENTS = frozenset(
+    {
         ChatAppIntent.CHAT_HELP,
         ChatAppIntent.REPORT_HELP,
         ChatAppIntent.CHALLENGE_HELP,
+        ChatAppIntent.SIDEBAR_HELP,
+        ChatAppIntent.SETTINGS_HELP,
+        ChatAppIntent.ONBOARDING_HELP,
+        ChatAppIntent.RIGHT_PANEL_HELP,
+        ChatAppIntent.MISSED_MODAL_HELP,
         ChatAppIntent.MIXED,
-    } or intent_requests_state(intent)
+    }
+)
+
+HELP_LAYER_MAX_CHARS = 1500
+MIXED_HELP_LAYER_MAX_CHARS = 2200
+
+# 신규 intent 추가 시 이 테이블 1개 항목만 확장하면 됨 — (label, section_intent, section_key, snapshot_attr, also_triggered_by)
+# also_triggered_by: 이 섹션을 포함시킬 추가 intent (보통 *_STATE 연계 또는 빈 tuple)
+_INTENT_SECTION_MAP: tuple[tuple[str, ChatAppIntent, str, str, tuple[ChatAppIntent, ...]], ...] = (
+    ("채팅", ChatAppIntent.CHAT_HELP, "chat", "chat_help", ()),
+    ("리포트", ChatAppIntent.REPORT_HELP, "report", "report_help", (ChatAppIntent.REPORT_STATE,)),
+    ("챌린지", ChatAppIntent.CHALLENGE_HELP, "challenge", "challenge_help", (ChatAppIntent.CHALLENGE_STATE,)),
+    ("오늘 기록", ChatAppIntent.PENDING_SURVEYS, "pending", "pending_help", ()),
+    ("사이드바", ChatAppIntent.SIDEBAR_HELP, "sidebar", "sidebar_help", ()),
+    ("설정", ChatAppIntent.SETTINGS_HELP, "settings", "settings_help", ()),
+    ("온보딩", ChatAppIntent.ONBOARDING_HELP, "onboarding", "onboarding_help", ()),
+    ("우측 Today 패널", ChatAppIntent.RIGHT_PANEL_HELP, "right_panel", "right_panel_help", ()),
+    ("미응답 모달", ChatAppIntent.MISSED_MODAL_HELP, "missed_modal", "missed_modal_help", ()),
+)
+
+
+def intent_requests_help(intent: ChatAppIntent) -> bool:
+    return intent in _HELP_INTENTS or intent_requests_state(intent)
+
+
+def _section_line(label: str, intent: ChatAppIntent, section_intent: ChatAppIntent, section_key: str, fallback_text: str | None) -> str | None:
+    """intent와 섹션이 정확히 일치하면 details 2개까지, 아니면 summary만."""
+    if fallback_text is None:
+        return None
+    if intent == section_intent:
+        text = _section_with_details(section_key, fallback_text, max_details=2)
+    else:
+        text = fallback_text
+    if not text:
+        return None
+    return f"- {label}: {text}"
 
 
 def build_app_help_layer(context: ChatAppContext | None) -> str:
     if context is None or context.help_snapshot is None or not intent_requests_help(context.intent):
         return ""
 
+    snap = context.help_snapshot
+    intent = context.intent
     sections: list[str] = []
-    if context.intent in {ChatAppIntent.CHAT_HELP, ChatAppIntent.MIXED}:
-        sections.append(f"- 채팅: {context.help_snapshot.chat_help}")
-    if context.intent in {
-        ChatAppIntent.REPORT_HELP,
-        ChatAppIntent.REPORT_STATE,
-        ChatAppIntent.MIXED,
-    }:
-        sections.append(f"- 리포트: {context.help_snapshot.report_help}")
-    if context.intent in {
-        ChatAppIntent.CHALLENGE_HELP,
-        ChatAppIntent.CHALLENGE_STATE,
-        ChatAppIntent.MIXED,
-    }:
-        sections.append(f"- 챌린지: {context.help_snapshot.challenge_help}")
-    if context.intent == ChatAppIntent.PENDING_SURVEYS:
-        sections.append(f"- 오늘 기록: {context.help_snapshot.pending_help}")
+
+    for label, section_intent, section_key, snapshot_attr, also_triggered_by in _INTENT_SECTION_MAP:
+        triggers = {section_intent, ChatAppIntent.MIXED, *also_triggered_by}
+        if intent not in triggers:
+            continue
+        fallback_text = getattr(snap, snapshot_attr, None)
+        line = _section_line(label, intent, section_intent, section_key, fallback_text)
+        if line:
+            sections.append(line)
 
     if not sections:
         return ""
+
+    # 중복 제거 (같은 label·본문이 여러 번 포함되는 경우 방지)
+    deduped = list(dict.fromkeys(sections))
 
     answer_frame = (
         "\n\n## 앱 질문 답변 방식\n"
@@ -250,12 +371,34 @@ def build_app_help_layer(context: ChatAppContext | None) -> str:
         "3. 마지막에는 어디를 보거나 무엇을 하면 되는지 한 문장으로 안내하세요.\n"
         "상태가 없으면 값을 추측하지 말고, 확인 방법만 안내하세요."
     )
-    return "\n\n## 앱 기능 참고\n" + "\n".join(dict.fromkeys(sections)) + answer_frame
+
+    # 길이 제한 — MIXED는 다중 섹션이라 한도 2200, 단일 intent는 1500
+    char_budget = MIXED_HELP_LAYER_MAX_CHARS if intent == ChatAppIntent.MIXED else HELP_LAYER_MAX_CHARS
+    # 뒤쪽 섹션부터 줄여 전체가 한도 안에 들도록
+    while deduped:
+        body = "\n".join(deduped)
+        candidate = "\n\n## 앱 기능 참고\n" + body + answer_frame
+        if len(candidate) <= char_budget:
+            return candidate
+        deduped.pop()
+
+    # 최악 케이스: 섹션이 하나도 안 남으면 빈 문자열
+    return ""
 
 
 def _format_risk_level(value: str) -> str:
     label = _RISK_LEVEL_LABELS.get(value.lower(), value)
     return f"{label} ({value})" if label != value else value
+
+
+def _format_user_group(value: object) -> str:
+    raw = value.value if hasattr(value, "value") else value
+    labels = {
+        "A": "A그룹(집중 관리 단계)",
+        "B": "B그룹(주의 관리 단계)",
+        "C": "C그룹(일반 관리 단계)",
+    }
+    return labels.get(str(raw), str(raw))
 
 
 def _build_report_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
@@ -265,7 +408,7 @@ def _build_report_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
             f"- 온보딩 완료 여부: {'완료' if snapshot.onboarding_completed else '미완료'}"
         )
     if snapshot.user_group:
-        lines.append(f"- 사용자 그룹: {snapshot.user_group}")
+        lines.append(f"- 사용자 그룹: {_format_user_group(snapshot.user_group)}")
     if snapshot.initial_risk_level:
         lines.append(f"- 초기 위험도: {_format_risk_level(snapshot.initial_risk_level)}")
     return lines

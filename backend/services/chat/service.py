@@ -55,13 +55,16 @@ from backend.services.chat.enrich import (
 from backend.services.chat.enrich import (
     _try_rag_search as try_rag_search,
 )
-from backend.services.chat.intent import classify_chat_app_intent
+from backend.services.chat.intent import classify_chat_app_intent, select_app_state_domains
 from backend.services.chat.openai_client import has_any_llm_target
 from backend.services.chat.persistence import (
     _prepare_session as prepare_session,
 )
 from backend.services.chat.persistence import (
     _save_response as save_response,
+)
+from backend.services.chat.persistence import (
+    delete_session as remove_session,
 )
 from backend.services.chat.persistence import (
     get_history as load_history,
@@ -169,11 +172,17 @@ class ChatService:
         if not await self._can_use_live_app_state(user_id=user_id, profile=profile):
             return ChatAppContext(intent=intent, help_snapshot=help_snapshot)
 
+        # state_domains 게이트: 실제 필요한 도메인이 없으면 help만 반환해 DB 조회 스킵
+        state_domains = select_app_state_domains(message_text, intent)
+        if not state_domains:
+            return ChatAppContext(intent=intent, help_snapshot=help_snapshot)
+
         state_snapshot = await self._build_chat_app_state_snapshot(
             user_id=user_id,
             profile=profile,
             intent=intent,
             suppress_reason=suppress_reason,
+            domains=state_domains,
         )
         return ChatAppContext(
             intent=intent,
@@ -200,9 +209,18 @@ class ChatService:
         profile: HealthProfile | None,
         intent,
         suppress_reason: str | None = None,
+        domains: list[str] | None = None,
     ) -> ChatAppStateSnapshot | None:
         if profile is None:
             return None
+
+        # domains가 명시되면 해당 영역만 조회. 미지정(None)이면 기존 intent 기반 호환 동작.
+        if domains is None:
+            should_load_challenge = intent.value in {"challenge_state", "mixed"}
+            should_load_pending = intent.value in {"pending_surveys", "mixed"}
+        else:
+            should_load_challenge = "challenge" in domains
+            should_load_pending = "pending" in domains
 
         snapshot = ChatAppStateSnapshot(
             onboarding_completed=True,
@@ -215,7 +233,7 @@ class ChatService:
             ),
         )
 
-        if intent.value in {"challenge_state", "mixed"}:
+        if should_load_challenge:
             overview = await self.challenge_service.get_overview(user_id=user_id)
             snapshot = ChatAppStateSnapshot(
                 onboarding_completed=snapshot.onboarding_completed,
@@ -234,7 +252,7 @@ class ChatService:
                 ),
             )
 
-        if intent.value in {"pending_surveys", "mixed"}:
+        if should_load_pending:
             summary = await self.health_question_service.get_daily_missing_summary(user_id=user_id)
             card_availability = await self.health_question_service.get_card_availability(
                 user_id=user_id,
@@ -369,12 +387,16 @@ class ChatService:
                 app_help_text = build_app_help_layer(app_context)
                 app_state_text = build_app_state_layer(app_context)
 
+            state_domains_log: list[str] = []
+            if app_context is not None and app_context.has_live_state:
+                state_domains_log = list(select_app_state_domains(message, app_context.intent))
             logger.info(
                 "chat_app_context",
                 chat_req_id=chat_req_id,
                 user_id_hash=self._hash_user_id(user_id),
                 mode=config.CHAT_APP_CONTEXT_MODE.value,
                 intent=app_context.intent.value if app_context is not None else "none",
+                state_domains=state_domains_log,
                 had_help=bool(app_help_text),
                 had_state=bool(app_context and app_context.has_live_state and app_state_text),
                 state_keys=self._app_context_state_keys(app_context),
@@ -630,6 +652,9 @@ class ChatService:
 
     async def get_sessions(self, user_id: int, limit: int = 20):
         return await load_sessions(user_id, limit=limit)
+
+    async def delete_session(self, user_id: int, session_id: int) -> None:
+        await remove_session(user_id, session_id)
 
     async def save_health_answer(
         self,

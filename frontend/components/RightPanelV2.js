@@ -52,15 +52,30 @@ const RpRow = memo(function RpRow({ cardDef, isActive, value, valueMuted, onClic
 /**
  * 요약 문장 생성 (log 기반 derived)
  * — 도메인 규칙: 의료 표현 금지 · 중립 톤
+ * — boolean false(쉼/건너뜀/안 마심)도 "기록됨"으로 카운트
  */
 function buildSummaryLine(log) {
-  if (!log) return '오늘 기록을 차근차근 쌓아볼까요';
-  const hasSleep = log.sleep_quality || log.sleep_duration_bucket;
-  const hasMeal = log.breakfast_status || log.lunch_status || log.dinner_status;
-  if (hasSleep && hasMeal) return '수면도 식사도 기록됐어요 👍';
-  if (hasSleep && !hasMeal) return '수면 기록 완료 · 식사도 이어서';
-  if (!hasSleep && hasMeal) return '식사 기록 완료 · 수면도 이어서';
-  return '오늘 기록을 차근차근 쌓아볼까요';
+  if (!log) return '오늘 기록을 차근차근 쌓아볼까요?';
+
+  const has = {
+    sleep: log.sleep_quality != null || log.sleep_duration_bucket != null,
+    meal: log.breakfast_status != null || log.lunch_status != null || log.dinner_status != null,
+    exercise: log.exercise_done != null,
+    water: log.water_cups != null && log.water_cups > 0,
+    mood: log.mood_level != null,
+    medication: log.took_medication != null,
+    alcohol: log.alcohol_today != null,
+  };
+  const count = Object.values(has).filter(Boolean).length;
+
+  if (count === 0) return '오늘 기록을 차근차근 쌓아볼까요?';
+  if (count >= 5) return '오늘 거의 다 챙기셨어요. 마무리까지 같이 해볼까요?';
+  if (has.sleep && has.meal && !has.exercise) return '수면·식사 챙기셨네요. 운동도 살짝 이어가 볼까요?';
+  if (has.water && !has.exercise) return '물 충분히 드시고 계시네요. 걷기도 조금씩 늘려볼까요?';
+  if (has.exercise && !has.meal) return '운동 체크 남기셨어요. 식사도 챙기면 더 좋아요.';
+  if (has.sleep && !has.meal) return '푹 주무셨네요. 식사는 어떠셨나요?';
+  if (has.meal && !has.sleep) return '식사 기록 남기셨네요. 수면도 함께 남겨볼까요?';
+  return '오늘 기록 이어가고 계세요. 계속 함께 해요.';
 }
 
 function countAnswered(log) {
@@ -86,13 +101,52 @@ function formatLastInputTime(log) {
 // 값 표시 헬퍼 (각 카드별 display value)
 function displayValue(key, log) {
   if (!log) return { value: null, muted: true };
+  if (key === 'sleep') {
+    const dur = log.sleep_duration_bucket;
+    const q = log.sleep_quality;
+    if (!dur && !q) return { value: null, muted: true };
+    const durationLabels = {
+      under_5: '5시간 미만',
+      between_5_6: '5~6시간',
+      between_6_7: '6~7시간',
+      between_7_8: '7~8시간',
+      over_8: '8시간 이상',
+      less_5: '5시간 미만',
+      '5_6': '5~6시간',
+      '6_7': '6~7시간',
+      '7_8': '7~8시간',
+      '8_plus': '8시간 이상',
+    };
+    const qualityLabels = {
+      very_good: '아주 좋음',
+      excellent: '아주 좋음',
+      good: '좋음',
+      normal: '보통',
+      bad: '나쁨',
+      very_bad: '아주 나쁨',
+    };
+    const parts = [durationLabels[dur], qualityLabels[q]].filter(Boolean);
+    return { value: parts.join(' · ') || null, muted: false };
+  }
+  if (key === 'water') {
+    const cups = Number(log.water_cups || 0);
+    if (cups > 0) return { value: `${cups}잔`, muted: false };
+    return { value: null, muted: true };
+  }
   switch (key) {
     case 'sleep': {
       const dur = log.sleep_duration_bucket;
       const q = log.sleep_quality;
       if (!dur && !q) return { value: null, muted: true };
       const DURATION = { less_5: '5h 미만', '5_6': '5.5h', '6_7': '6.5h', '7_8': '7.5h', '8_plus': '8h+' };
-      const QUALITY = { excellent: '잘 잤음', good: '그럭저럭', normal: '뒤척임', bad: '푹 못 잠' };
+      const QUALITY = {
+        very_good: '아주 좋음',
+        excellent: '아주 좋음',
+        good: '좋음',
+        normal: '보통',
+        bad: '나쁨',
+        very_bad: '아주 나쁨',
+      };
       const parts = [DURATION[dur], QUALITY[q]].filter(Boolean);
       return { value: parts.join(' · ') || null, muted: false };
     }
@@ -169,9 +223,9 @@ export default function RightPanelV2({
     if (todaySaveState === 'error') return { label: t('rightPanel.action.error'), className: 'bg-danger/10 text-danger-light' };
     if (todaySaveState === 'saving') return { label: t('rightPanel.action.saving'), className: 'bg-cream-300 text-neutral-500' };
     if (todaySaveState === 'saved') return { label: pencilIcon, className: 'bg-nature-900 text-[var(--color-bg)]' };
-    // idle 상태: 저장된 항목이 있으면 연필 아이콘, 없으면 '오늘 입력 가능'
+    // idle 상태: 저장된 항목이 있을 때만 연필 아이콘 표시 (입력 없을 땐 뱃지 자체 숨김)
     if (answeredCount > 0) return { label: pencilIcon, className: 'bg-cream-400 text-nature-900' };
-    return { label: t('rightPanel.action.directInput'), className: 'rp-action-badge-default' };
+    return null;
   })();
 
   const handleToggleCard = (key) => setActiveCard((prev) => (prev === key ? null : key));
@@ -187,7 +241,9 @@ export default function RightPanelV2({
         {/* ═══ 요약 카드 · Stone ═══ */}
         <div className="rp__head">
           <h4 className="rp__title">{t('rightPanel.title')}</h4>
-          <span className={`rp-action ${saveBadge.className}`}>{saveBadge.label}</span>
+          {saveBadge && (
+            <span className={`rp-action ${saveBadge.className}`}>{saveBadge.label}</span>
+          )}
         </div>
 
         <div className="rp-quick" style={{ background: 'var(--color-summary-surface)' }}>

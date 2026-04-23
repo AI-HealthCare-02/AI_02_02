@@ -38,6 +38,7 @@ class ChallengeRecommendedItem(BaseModel):
     category: str
     description: str
     default_duration_days: int
+    blocked_today: bool = False  # 오늘 체크인 이력 있어 내일부터 시작 가능
 
 
 class ChallengeCatalogItem(BaseModel):
@@ -51,6 +52,7 @@ class ChallengeCatalogItem(BaseModel):
     description: str
     default_duration_days: int
     is_recommended: bool = False
+    blocked_today: bool = False  # 오늘 체크인 이력 있어 내일부터 시작 가능
 
 
 class ChallengeOverviewResponse(BaseModel):

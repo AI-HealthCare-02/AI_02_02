@@ -50,6 +50,12 @@ DATA_FIELDS: list[str] = [
     "alcohol_amount_level",
 ]
 
+MEAL_STATUS_FIELDS = {"breakfast_status", "lunch_status", "dinner_status"}
+LEGACY_MEAL_STATUS_ALIASES = {
+    "light": "hearty",
+    "simple": "hearty",
+}
+
 
 def _log_to_response(log: DailyHealthLog) -> DailyLogResponse:
     """DailyHealthLog → DailyLogResponse 변환."""
@@ -253,6 +259,8 @@ class HealthDailyService:
                 continue
             if field_name not in DATA_FIELDS:
                 continue
+            if field_name in MEAL_STATUS_FIELDS and isinstance(value, str):
+                value = LEGACY_MEAL_STATUS_ALIASES.get(value, value)
             existing = getattr(log, field_name, None)
             if existing is not None and not allow_same_day_replace:
                 # First Answer Wins — 이미 값이 있으면 스킵
@@ -289,6 +297,10 @@ class HealthDailyService:
 
         if update_fields:
             await log.save(update_fields=list(dict.fromkeys(update_fields + ["updated_at"])))
+
+        # 건강 기록 변경 → 위험도/이력/요약 캐시 무효화 (코칭은 유지, 다음 6h 내엔 재사용)
+        from backend.services.risk_analysis import invalidate_report_caches
+        await invalidate_report_caches(user_id)
 
         return DailyLogPatchResponse(
             daily_log=await self._attach_missing_summary(

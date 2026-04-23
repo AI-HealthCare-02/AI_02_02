@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date, datetime, timedelta
 
 from backend.core import config
+from backend.core.cache import delete_cached, get_cached, set_cached
 from backend.core.logger import setup_logger
 from backend.dtos.analysis import AnalysisSummaryResponse, RiskBrief, ScorecardResponse
 from backend.dtos.dashboard import RiskDetailResponse
@@ -23,6 +25,51 @@ from backend.services.prediction import calculate_findrisc
 from backend.services.report_coaching import ReportCoachingService
 
 logger = setup_logger(__name__)
+
+
+# ── 리포트 캐시 키·TTL ──
+# 네임스페이스 `report:*` — 대시보드용 `dash:*`와 분리.
+CACHE_TTL_RISK_SECONDS = 3600            # 상세 위험도 1시간
+CACHE_TTL_HISTORY_SECONDS = 1800         # 이력 30분
+CACHE_TTL_SUMMARY_SECONDS = 600          # 분석 요약 10분
+
+
+def risk_current_cache_key(user_id: int) -> str:
+    return f"report:risk:{user_id}"
+
+
+def risk_history_cache_key(user_id: int, weeks: int) -> str:
+    return f"report:history:{user_id}:{weeks}"
+
+
+def risk_summary_cache_key(user_id: int, period: int) -> str:
+    return f"report:summary:{user_id}:{period}"
+
+
+async def invalidate_report_caches(user_id: int, *, include_coaching: bool = False) -> None:
+    """건강 기록·측정·프로필 변경 시 호출되는 리포트 캐시 일괄 무효화.
+
+    - 기본: 위험도/이력/분석요약만 무효화 (일상 체크인 시점)
+    - include_coaching=True: 프로필 변경 등 AI 코칭 입력이 달라질 때 코칭도 함께 제거
+
+    대시보드 요약(`dash:risk:*`)은 소유가 `dashboard.py`라 건드리지 않는다.
+    필요한 경우 각 저장 경로에서 명시적으로 별도 무효화한다.
+    """
+    keys = [
+        risk_current_cache_key(user_id),
+        risk_history_cache_key(user_id, 7),
+        risk_history_cache_key(user_id, 12),
+        risk_summary_cache_key(user_id, 7),
+        risk_summary_cache_key(user_id, 30),
+    ]
+    if include_coaching:
+        keys.append(f"report:coaching:{user_id}")
+    for key in keys:
+        try:
+            await delete_cached(key)
+        except Exception:
+            # Redis 장애 시에도 저장 자체는 성공해야 함
+            logger.exception("report_cache_invalidate_failed", key=key)
 
 # ── 점수 매핑 상수 ──
 
@@ -100,13 +147,92 @@ class RiskAnalysisService:
         detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
         return await self._attach_ai_coaching(user_id=user_id, detail=detail)
 
-    async def recalculate_risk(self, user_id: int) -> RiskDetailResponse | None:
-        """위험도 수동 재계산."""
+    async def get_current_risk(
+        self, user_id: int, *, stale_after_hours: int = 24
+    ) -> RiskDetailResponse | None:
+        """리포트 페이지용 "빠른" 위험도 조회.
+
+        1. Redis 캐시 HIT → 즉시 반환 (수십 ms)
+        2. MISS → 최신 ``RiskAssessment``를 조회 → 캐시 SET 후 반환
+        3. assessment가 ``stale_after_hours`` 이상 오래됐으면 백그라운드 재계산을 fire-and-forget
+           (응답은 이미 나간 뒤에 DB upsert)
+
+        AI 코칭은 포함하지 않는다 — 별도 `/risk/coaching` 엔드포인트가 소유한다.
+        """
+        cache_key = risk_current_cache_key(user_id)
+        cached = await get_cached(cache_key)
+        if cached is not None:
+            try:
+                return RiskDetailResponse.model_validate(cached)
+            except Exception:
+                logger.exception("risk_current_cache_invalid", user_id=user_id)
+                await delete_cached(cache_key)
+
+        assessment = await RiskAssessment.filter(
+            user_id=user_id,
+        ).order_by("-assessed_at").first()
+
+        if assessment is None:
+            # 최초 진입 — 동기 재계산 1회 수행 (코칭 제외로 빠름)
+            detail = await self.recalculate_risk(user_id=user_id, generate_coaching=False)
+            if detail is None:
+                return None
+            await set_cached(
+                cache_key, detail.model_dump(mode="json"), ttl_seconds=CACHE_TTL_RISK_SECONDS,
+            )
+            return detail
+
+        detail = self._assessment_to_detail(assessment)
+        detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
+
+        await set_cached(
+            cache_key, detail.model_dump(mode="json"), ttl_seconds=CACHE_TTL_RISK_SECONDS,
+        )
+
+        # stale이면 백그라운드 재계산 (응답은 즉시 반환, DB는 곧 갱신)
+        now = datetime.now(tz=config.TIMEZONE)
+        stale_threshold = now - timedelta(hours=stale_after_hours)
+        if assessment.assessed_at < stale_threshold:
+            asyncio.create_task(self._background_recalculate(user_id))
+
+        return detail
+
+    async def _background_recalculate(self, user_id: int) -> None:
+        """fire-and-forget 재계산. 예외 삼키고 로깅만 한다 (응답은 이미 나감)."""
+        try:
+            await self.recalculate_risk(user_id=user_id, generate_coaching=False)
+            # 재계산 결과로 캐시 프리워밍
+            latest = await RiskAssessment.filter(
+                user_id=user_id,
+            ).order_by("-assessed_at").first()
+            if latest:
+                detail = self._assessment_to_detail(latest)
+                detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
+                await set_cached(
+                    risk_current_cache_key(user_id),
+                    detail.model_dump(mode="json"),
+                    ttl_seconds=CACHE_TTL_RISK_SECONDS,
+                )
+        except Exception:
+            logger.exception("background_recalculate_failed", user_id=user_id)
+
+    async def recalculate_risk(
+        self,
+        user_id: int,
+        for_date: date | None = None,
+        *,
+        generate_coaching: bool = True,
+    ) -> RiskDetailResponse | None:
+        """위험도 수동 재계산. ``for_date``를 주면 해당 날짜 기준 7일 창으로 재계산 (백필용).
+
+        ``generate_coaching=False``로 호출하면 OpenAI 동기 호출을 생략해 ~5초 단축.
+        daily_cron/weekly_cron/백그라운드 경로에서 False로 호출한다.
+        """
         profile = await HealthProfile.get_or_none(user_id=user_id)
         if not profile:
             return None
 
-        today = date.today()
+        today = for_date or date.today()
         period_start = today - timedelta(days=7)
 
         # 최근 7일 건강 기록
@@ -188,12 +314,13 @@ class RiskAnalysisService:
         }
         detail = RiskDetailResponse(**detail_payload)
         detail = await self._attach_model_prediction(user_id=user_id, detail=detail)
-        detail = await self._attach_ai_coaching(
-            user_id=user_id,
-            detail=detail,
-            profile=profile,
-            logs=list(logs),
-        )
+        if generate_coaching:
+            detail = await self._attach_ai_coaching(
+                user_id=user_id,
+                detail=detail,
+                profile=profile,
+                logs=list(logs),
+            )
 
         payload = {
             "findrisc_score": findrisc.total_score,
@@ -219,29 +346,30 @@ class RiskAnalysisService:
             "top_risk_factors": risk_factors,
             "assessed_at": now,
         }
-        assessment = await RiskAssessment.get_or_none(
+        # 유니크 제약 (user_id, period_type, period_start, period_end) 기반 upsert.
+        # 동시 요청 2건이 있어도 DB가 중복 생성을 차단하므로 IntegrityError 발생 시 재조회.
+        assessment, _ = await RiskAssessment.update_or_create(
+            defaults=payload,
             user_id=user_id,
             period_type=PeriodType.WEEKLY,
             period_start=period_start,
             period_end=today,
         )
-        if assessment:
-            await RiskAssessment.filter(id=assessment.id).update(**payload)
-            assessment = await RiskAssessment.get(id=assessment.id)
-        else:
-            assessment = await RiskAssessment.create(
-                user_id=user_id,
-                period_type=PeriodType.WEEKLY,
-                period_start=period_start,
-                period_end=today,
-                **payload,
-            )
         result = self._assessment_to_detail(assessment)
         result.ai_coaching_lines = detail.ai_coaching_lines
         return result
 
     async def get_risk_history(self, user_id: int, weeks: int = 12) -> RiskHistoryResponse:
-        """최근 주간 위험도 이력 조회."""
+        """최근 주간 위험도 이력 조회. Redis 캐시 30분."""
+        cache_key = risk_history_cache_key(user_id, weeks)
+        cached = await get_cached(cache_key)
+        if cached is not None:
+            try:
+                return RiskHistoryResponse.model_validate(cached)
+            except Exception:
+                logger.exception("risk_history_cache_invalid", user_id=user_id, weeks=weeks)
+                await delete_cached(cache_key)
+
         assessments = await RiskAssessment.filter(
             user_id=user_id,
             period_type=PeriodType.WEEKLY,
@@ -264,12 +392,25 @@ class RiskAnalysisService:
             )
             for item in reversed(assessments)
         ]
-        return RiskHistoryResponse(history=history)
+        response = RiskHistoryResponse(history=history)
+        await set_cached(
+            cache_key, response.model_dump(mode="json"), ttl_seconds=CACHE_TTL_HISTORY_SECONDS,
+        )
+        return response
 
     async def get_analysis_summary(
         self, user_id: int, period: int = 7
     ) -> AnalysisSummaryResponse | None:
-        """기간별 분석 요약."""
+        """기간별 분석 요약. Redis 캐시 10분."""
+        cache_key = risk_summary_cache_key(user_id, period)
+        cached = await get_cached(cache_key)
+        if cached is not None:
+            try:
+                return AnalysisSummaryResponse.model_validate(cached)
+            except Exception:
+                logger.exception("analysis_summary_cache_invalid", user_id=user_id, period=period)
+                await delete_cached(cache_key)
+
         today = date.today()
         start = today - timedelta(days=period)
 
@@ -295,7 +436,7 @@ class RiskAnalysisService:
             logs, sleep_score, diet_score, exercise_score,
         )
 
-        return AnalysisSummaryResponse(
+        response = AnalysisSummaryResponse(
             period=period,
             scorecard=ScorecardResponse(
                 sleep_score=sleep_score,
@@ -311,6 +452,10 @@ class RiskAnalysisService:
             top_risk_factors=risk_factors,
             cached_at=datetime.now(tz=config.TIMEZONE),
         )
+        await set_cached(
+            cache_key, response.model_dump(mode="json"), ttl_seconds=CACHE_TTL_SUMMARY_SECONDS,
+        )
+        return response
 
     # ── 생활습관 점수 계산 ──
 

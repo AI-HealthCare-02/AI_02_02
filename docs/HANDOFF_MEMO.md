@@ -1,5 +1,417 @@
 # Handoff Memo
 
+## 2026-04-22 Next-Day Handoff: Web Push Prod Setup After Merge
+
+### Current Branch / PR
+
+- Working branch: `feat/bJ_health-engagement-ux`
+- PR target should use the renamed branch, not the old temporary branch.
+- Old remote branch `feat/bj_적절한문구` was deleted from both `origin` and `upstream`.
+
+### Tomorrow's First Task
+
+After the PR is merged and the new FastAPI image is deployed, set up production Web Push env on EC2.
+
+Do **not** generate the production VAPID key from the current old container. The current deployed image does not include `py_vapid` yet, so it fails with:
+
+```bash
+/app/.venv/bin/python3: No module named py_vapid
+```
+
+Wait until the new image from this PR is deployed, then generate the key inside the updated `fastapi` container.
+
+### EC2 Commands After Merge/Deploy
+
+```bash
+cd ~/project
+docker compose ps
+docker compose exec fastapi uv run --group app python -m py_vapid --gen --json
+```
+
+Copy the generated `Application Server Key` into:
+
+```dotenv
+WEB_PUSH_VAPID_PUBLIC_KEY=
+```
+
+Then convert the generated private key:
+
+```bash
+docker compose exec fastapi sh -lc "base64 -w 0 private_key.pem"
+```
+
+Put that output into:
+
+```dotenv
+WEB_PUSH_VAPID_PRIVATE_KEY_B64=
+```
+
+Production env values to add/update in `~/project/envs/.prod.env` or the active production env file:
+
+```dotenv
+WEB_PUSH_ENABLED=true
+WEB_PUSH_VAPID_PUBLIC_KEY=<Application Server Key>
+WEB_PUSH_VAPID_PRIVATE_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY_B64=<base64 private key>
+WEB_PUSH_VAPID_SUBJECT=mailto:<team-email>
+WEB_PUSH_ACTION_API_BASE=https://<production-domain>
+```
+
+After storing the base64 value, remove PEM files from the container:
+
+```bash
+docker compose exec fastapi sh -lc "rm -f private_key.pem public_key.pem"
+```
+
+Then restart FastAPI so env is loaded:
+
+```bash
+docker compose up -d fastapi
+```
+
+Apply migrations:
+
+```bash
+docker compose exec fastapi uv run aerich fix-migrations
+docker compose exec fastapi uv run aerich upgrade
+```
+
+### Verification Checklist
+
+- `push_subscriptions` table exists.
+- Settings page shows "브라우저 백그라운드 알림" toggle.
+- Turning the toggle on creates a row in `push_subscriptions`.
+- Browser notification permission is allowed.
+- Notification click opens `/app/chat?from=push&bundle_key=...`.
+- Chat page shows the relevant unanswered question card.
+
+### Important Notes
+
+- Do not commit actual VAPID keys.
+- Local team members generate their own local VAPID keys.
+- Production uses one server-side VAPID key pair stored only in EC2 env.
+- `.aerich_models_state.txt` is a local Aerich artifact and should remain uncommitted.
+
+---
+
+## 2026-04-21 Main Sync / Report PR Merge / Aerich Migration Format Handoff
+
+### Current State
+- Personal repo `origin/main` now includes the stacked report/chat changes that were previously under review:
+  - report cache user scoping fix (`#28` equivalent branch)
+  - chat app knowledge / app-context help enhancements (`#30` equivalent branch)
+- Local working directory is now on `main` and synced to `origin/main` at:
+  - `2653081` `Merge remote-tracking branch 'origin/feat/chat-app-knowledge' into merge-test-main`
+- No local commits are ahead of `origin/main`.
+- Current local uncommitted changes are:
+  - migration hotfixes in:
+    - `backend/db/migrations/models/7_20260418220000_add_unique_risk_assessment_period.py`
+    - `backend/db/migrations/models/8_20260420000000_user_settings_theme_default_light.py`
+    - `backend/db/migrations/models/9_20260420000100_translate_challenge_templates_ko.py`
+  - docs:
+    - `docs/HANDOFF_MEMO.md`
+    - `docs/TROUBLESHOOTING.md`
+  - temp investigation artifact:
+    - `.aerich_models_state.txt` (safe to delete; generated while debugging Aerich)
+
+### What Was Confirmed About The PR Stack
+- Reviewed and confirmed the stacked relationship:
+  1. performance/report loading change
+  2. user-scoped report cache follow-up
+  3. UX/theme/i18n follow-up
+  4. chat app knowledge follow-up
+- `perf/report-loading` by itself was not safe to merge because the frontend session cache keys were global.
+- The user-scoped cache fix branch included the required follow-up, so the safe effective merge order was:
+  1. merge the user-scoped report cache branch
+  2. merge the chat app knowledge branch on top
+- Those branches were test-merged in a temporary git worktree first to confirm no text merge conflicts.
+
+### What Was Done
+- Created a temporary git worktree to avoid disturbing the user's existing dirty workspace.
+- Merged the stacked report/cache/chat branches there with no merge conflicts.
+- Pushed the merged result to personal repo `main`.
+- Switched the main working directory from `feat/deployment-setup` to `main` after removing the temporary worktree lock.
+- Confirmed the current local working directory is now:
+  - branch: `main`
+  - commit: `2653081`
+  - ahead/behind vs `origin/main`: `0 / 0`
+
+### Important Migration Problem Found On Latest Main
+- Even after syncing to the latest `main`, Docker + Aerich failed on:
+  - `docker compose exec fastapi uv run aerich upgrade`
+- Error:
+  - `RuntimeError: Old format of migration file detected, run aerich fix-migrations to upgrade format`
+- Root cause:
+  - migration files `7`, `8`, and `9` were merged into `main` without `MODELS_STATE`
+  - current Aerich expects `MODELS_STATE` in migration files (0.9.2+ style)
+  - `aerich fix-migrations` did **not** repair them because the local Aerich table had no matching records for those versions
+- This is not a frontend issue and not a `.venv` activation issue.
+- This is also not mainly “new DB schema broke things”; the blocking problem was migration file metadata/format.
+
+### Local Hotfix Applied
+- Added minimal valid `MODELS_STATE` blocks to:
+  - `backend/db/migrations/models/7_20260418220000_add_unique_risk_assessment_period.py`
+  - `backend/db/migrations/models/8_20260420000000_user_settings_theme_default_light.py`
+  - `backend/db/migrations/models/9_20260420000100_translate_challenge_templates_ko.py`
+- After that, Aerich upgrade succeeded:
+  - `Success upgrading to 7_20260418220000_add_unique_risk_assessment_period.py`
+  - `Success upgrading to 8_20260420000000_user_settings_theme_default_light.py`
+  - `Success upgrading to 9_20260420000100_translate_challenge_templates_ko.py`
+
+### Why This Likely Happened
+- Most likely combination:
+  - migration files were created/applied in an environment where the problem did not surface
+  - `fix-migrations` was attempted against a DB whose Aerich table did not contain matching rows for `7/8/9`
+  - therefore the files stayed old-format even though the team thought they had been normalized
+- In practice, this means:
+  - developers with already-advanced local DB state may not notice the issue
+  - anyone upgrading from a fresher/local rebuilt environment can hit the blocker immediately
+
+### Local Run Notes
+- Latest local code now matches GitHub personal repo `main`.
+- Backend rebuild + Aerich upgrade should now work **with the local migration hotfix present**.
+- `CHAT_APP_CONTEXT_MODE=live_state` is **not** required to fix migration errors.
+- That env var is only needed if local chat testing should include live DB-backed answers such as:
+  - current challenge count
+  - current pending question count
+  - other app-context live-state responses
+- Without that env var, chat app help/UI explanations still work under the default `help_only` mode.
+
+### Recommended Next Step
+1. Commit and push the migration file hotfix so other teammates do not hit the same Aerich blocker.
+2. Delete `.aerich_models_state.txt` if it is no longer needed.
+3. Re-run local smoke checks:
+   - backend container up
+   - `aerich upgrade`
+   - frontend local dev server
+   - report dashboard/detail entry
+   - chat app-context questions with and without `CHAT_APP_CONTEXT_MODE=live_state`
+
+### Relevant Files
+- Main report router/service:
+  - `backend/apis/v1/risk_routers.py`
+  - `backend/services/risk_analysis.py`
+  - `backend/services/report_coaching.py`
+- Report frontend:
+  - `frontend/app/app/report/page.js`
+  - `frontend/app/app/report/detail/page.js`
+  - `frontend/app/app/settings/page.js`
+- Chat app-context:
+  - `backend/services/chat/app_context.py`
+  - `backend/services/chat/intent.py`
+  - `backend/services/chat/service.py`
+  - `shared/danaa_product_guide.v1.json`
+- Migration files needing repo fix:
+  - `backend/db/migrations/models/7_20260418220000_add_unique_risk_assessment_period.py`
+  - `backend/db/migrations/models/8_20260420000000_user_settings_theme_default_light.py`
+  - `backend/db/migrations/models/9_20260420000100_translate_challenge_templates_ko.py`
+
+---
+
+## 2026-04-20 PR Review / Merge Guidance Handoff
+
+### Scope Reviewed
+- Reviewed two remote branches against `origin/main`:
+  - `origin/codex/report-detail-reference-lines`
+  - `origin/perf/report-loading`
+- Confirmed branch relationship:
+  - `perf/report-loading` is a stacked PR on top of `codex/report-detail-reference-lines`
+  - extra commit on top of the stacked base: `4c18fbb`
+
+### Merge Recommendation
+- `codex/report-detail-reference-lines`
+  - merge looks acceptable based on code review
+  - no blocking text-conflict risk found relative to current `origin/main`
+- `perf/report-loading`
+  - **do not merge as-is**
+  - reason: report session cache is not user-scoped, so a different user on the same browser session can briefly see or retain the previous user's report data
+
+### Important Risk Found In `perf/report-loading`
+- New session cache keys are global:
+  - dashboard cache key: `danaa:report:dashboard:v1`
+  - detail cache key: `danaa:report:detail:v1:${periodDays}`
+- These caches are restored before the current logged-in user is fully revalidated.
+- Resulting regression:
+  - user A logs in and opens report
+  - user A logs out on the same browser
+  - user B logs in soon after
+  - user B can briefly see user A's cached report data
+- In the non-onboarded path, cached report/detail state is rewritten but not fully cleared from React state, so stale data can persist instead of only flashing briefly.
+
+### Practical Team Guidance
+- Safe merge order if proceeding:
+  1. merge `codex/report-detail-reference-lines`
+  2. rebase `perf/report-loading` if needed
+  3. fix user-scoped report cache issue
+  4. only then merge `perf/report-loading`
+- If PR #1 is squash-merged, PR #2 should be rebased before review/merge because it is a stacked branch.
+
+### Files To Recheck Before Merging `perf/report-loading`
+- `frontend/app/app/report/page.js`
+- `frontend/app/app/report/detail/page.js`
+- `backend/services/risk_analysis.py`
+- `backend/apis/v1/risk_routers.py`
+
+### Required Follow-up Fix For `perf/report-loading`
+- Scope report cache keys by current user identity, not just page type / period.
+- Clear report state immediately on:
+  - logout
+  - user switch
+  - onboarding incomplete path
+- Re-test same-browser account switching:
+  - A login -> report view -> logout -> B login -> report view
+
+---
+
+## 2026-04-19 배포 환경 정비 및 소셜 로그인 완성 핸즈오프
+
+### 현재 상태
+- 백엔드: EC2 (`15.165.1.254`, Elastic IP 고정) + GHCR 자동 배포 완료
+- 프론트: Vercel 자동 배포 완료 (`https://danaa-project.vercel.app`)
+- 도메인: `https://danaa.r-e.kr` (SSL 인증서 발급 완료, 만료일 2026-07-17)
+- nginx HTTPS(443) 정상 동작 확인
+- 구글/카카오/네이버 소셜 로그인 배포 환경에서 정상 동작 확인
+- 이메일 회원가입 인증코드 발송 정상 동작 확인
+- Google OAuth 앱 게시 완료 (프로덕션, 누구나 로그인 가능)
+- Google 브랜딩 인증 완료 (`다나아 (DA-NA-A)` 앱 이름 표시)
+
+### env 파일 구조 정리
+| 파일 | 용도 | 참조하는 곳 |
+|------|------|------------|
+| 루트 `.env` | 로컬 직접 실행용 (uvicorn, pytest) | `config.py` 하드코딩 |
+| `envs/.local.env` | 로컬 Docker용 | `docker-compose.yml` |
+| `envs/.prod.env` | EC2 프로덕션용 | `docker-compose.prod.yml` |
+
+### EC2 배포 시 주의사항
+- `docker-compose.prod.yml` 실행 시 반드시 `--env-file envs/.prod.env` 옵션 필요
+  ```bash
+  docker compose -f docker-compose.prod.yml --env-file envs/.prod.env up -d --no-deps fastapi
+  ```
+- EC2 루트 `~/project/.env`도 존재하며 `config.py`가 이를 읽을 수 있음 → 주소 변경 시 이 파일도 함께 수정 필요
+- EC2 루트 `.env` 소셜 콜백 URI는 `https://danaa.r-e.kr/...`로 수정 완료
+
+### 소셜 로그인 설정 현황
+| 제공자 | 콜백 URI | 상태 |
+|--------|----------|------|
+| Google | `https://danaa.r-e.kr/api/v1/auth/social/callback/google` | ✅ 앱 게시 완료 |
+| Kakao | `https://danaa.r-e.kr/api/v1/auth/social/callback/kakao` | ✅ (팀원 테스터 등록 필요할 수 있음) |
+| Naver | `https://danaa.r-e.kr/api/v1/auth/social/callback/naver` | ✅ (팀원 테스터 등록 필요할 수 있음) |
+
+### 추가된 프론트 페이지
+- `frontend/app/privacy/page.js` - 개인정보처리방침 (`/privacy`)
+- `frontend/app/terms/page.js` - 서비스 이용약관 (`/terms`)
+- `frontend/public/googled218112ca89bc379.html` - Google Search Console 인증 파일
+
+### Google Search Console 인증
+- `danaa.r-e.kr` - DNS TXT 레코드 방식으로 인증 완료
+- `danaa-project.vercel.app` - HTML 태그 방식으로 인증 완료 (`layout.js`에 메타태그 추가)
+
+### nginx 설정
+- 현재 HTTP(80)만 동작 중
+- HTTPS(443) 설정 파일: `nginx/prod_https.conf` (도메인 치환 완료)
+- SSL 인증서 및 `options-ssl-nginx.conf`, `ssl-dhparams.pem` EC2에 존재 확인
+- HTTPS 전환 시: `nginx/prod_https.conf`를 EC2 `~/project/nginx/default.conf`로 교체 후 nginx 재시작
+
+### 수동 배포 명령어 (EC2)
+```bash
+cd ~/project
+docker compose -f docker-compose.prod.yml --env-file envs/.prod.env up -d --no-deps fastapi
+docker compose -f docker-compose.prod.yml --env-file envs/.prod.env restart nginx
+```
+
+---
+
+## 2026-04-19 배포 자동화 완료 핸즈오프
+
+### 현재 상태
+- 백엔드: EC2 (`43.202.56.216`) + GHCR 자동 배포 완료
+- 프론트: Vercel 자동 배포 완료 (`https://danaa-project.vercel.app`)
+- 도메인: `https://danaa.r-e.kr` (SSL 인증서 발급 완료, 만료일 2026-07-17)
+- 비당뇨 트랙 모델: CatBoost → MLP Regressor 교체 완료
+
+### 배포 자동화 흐름
+```
+로컬 코드 수정
+      ↓
+git push origin main (개인 레포)
+      ↓
+GitHub Actions 자동 실행 (.github/workflows/ghcr-build.yml)
+      ↓
+GHCR에 이미지 빌드 & 푸시 (ghcr.io/bijeng/danaa-fastapi:latest)
+      ↓
+EC2 SSH 자동 접속 → docker compose pull fastapi → up
+      ↓
+프론트: Vercel이 frontend/ 폴더 감지 → 자동 빌드 & 배포
+```
+
+### EC2 서버 구성
+- IP: `15.165.1.254` (Elastic IP 고정)
+- 프로젝트 경로: `~/project/`
+- SSH 키: `C:\.ssh\DANAA_ssh_key.pem`
+- 실행 중인 컨테이너: fastapi, postgres, redis, nginx, certbot
+- 모델 파일 위치: `~/project/tools/ml_artifacts/` (docker-compose.yml에 볼륨 마운트)
+
+### EC2 접속 방법
+```bash
+ssh -i C:\.ssh\DANAA_ssh_key.pem ubuntu@15.165.1.254
+```
+
+### EC2 주요 명령어
+```bash
+# 컨테이너 상태 확인
+docker ps
+
+# FastAPI 로그 확인
+docker logs fastapi --tail=30
+
+# 마이그레이션 실행
+docker exec fastapi uv run --no-sync aerich upgrade
+
+# 시드 데이터 재생성
+docker exec fastapi uv run --no-sync python backend/tasks/seed_shared_demo_account.py
+
+# 수동 배포 (자동 배포 실패 시)
+cd ~/project
+docker compose pull fastapi
+docker compose up -d --no-deps fastapi
+```
+
+### GitHub Secrets (개인 레포: BIJENG/DANAA_project)
+| 이름 | 설명 |
+|------|------|
+| EC2_HOST | 15.165.1.254 |
+| EC2_USER | ubuntu |
+| EC2_SSH_KEY | pem 키 내용 |
+
+### 시드 계정
+| 이메일 | 비밀번호 | 시나리오 |
+|--------|---------|----------|
+| danaa1@danaa.com | EKskdk1! | 당뇨 고위험 |
+| danaa2@danaa.com | EKskdk1! | 건강 예방 |
+
+### 모델 구성
+| 트랙 | 모델 | 대상 |
+|------|------|------|
+| diabetic_track | CatBoost (분류) | 당뇨/전단계 (A/B 그룹) |
+| non_diabetic_track | MLP Regressor (회귀) | 비당뇨 예방 (C 그룹) |
+
+- 모델 파일은 깃허브 미포함 → EC2에 SCP로 직접 전송
+- EC2 경로: `~/project/tools/ml_artifacts/`
+- 로컬 경로: `C:\PycharmProjects\DANAA_project\tools\ml_artifacts\`
+
+### CORS 허용 도메인
+- `http://localhost:3000`
+- `https://danaa-project.vercel.app`
+- `https://danaa.r-e.kr`
+
+### 주의사항
+- EC2 디스크 용량 주의 (8GB, 현재 약 84% 사용 중) → 추후 AWS 콘솔에서 30GB로 확장 권장
+- 이미지 업데이트 시 디스크 부족하면 `docker system prune -af` 후 재시도
+- SSL 인증서 만료일: 2026-07-17 (certbot 자동 갱신 컨테이너 실행 중)
+- oz 공식 레포(`AI-HealthCare-02/AI_02_02`)에도 동일하게 push 필요 시: `git push upstream main`
+
+---
+
 ## 2026-04-15 Report Sync / Main Merge / Migration Recovery Handoff
 
 ### Current State
@@ -376,3 +788,24 @@
    - login -> onboarding -> complete -> logout/login -> direct main route
 2. If needed, backfill `onboarding_completed` for old accounts that already have `health_profiles`.
 3. Consider cleaning up the onboarding wizard mapping if product wants stricter server-side survey typing.
+# 2026-04-22 PR handoff: health engagement UX
+
+## Branch naming
+
+- 최종 PR 브랜치명: `feat/bJ_health-engagement-ux`
+- 이전 임시 브랜치명 `feat/bj_적절한문구`는 의미가 불명확해 새 브랜치명으로 교체한다.
+
+## Reviewer checklist
+
+- FastAPI 재빌드 후 Aerich 마이그레이션 10, 11 적용 확인
+- 프론트 재빌드 후 서비스 워커(`/sw.js`) 갱신 확인
+- 설정 > 브라우저 백그라운드 알림 토글 확인
+- 오른쪽 Today 패널 식사/수면 표시 문구 확인
+- 미입력 항목 모달에서 드롭다운 선택 후 `기록 저장하기` 동작 확인
+- 챌린지 `수행 완료`/`완료 취소` 토글 확인
+- 리포트 신규/기록 부족 상태에서 fallback 카드 확인
+- YouTube 추천 카드의 검색어가 최근 대화 기반으로 바뀌는지 확인
+
+## Known local artifact
+
+- `.aerich_models_state.txt`는 Aerich 로컬 상태 파일로 커밋하지 않는다.

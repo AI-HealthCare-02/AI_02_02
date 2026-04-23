@@ -76,6 +76,131 @@ function formatAvgLabel(category, value) {
   return `${value}`;
 }
 
+function buildScorecardComparisonMap(summary) {
+  const scorecard = summary?.scorecard || {};
+  return {
+    sleep: { key: 'sleep', score: scorecard.sleep_score ?? 0, current_value: null, delta_pct: null },
+    diet: { key: 'diet', score: scorecard.diet_score ?? 0, current_value: null, delta_pct: null },
+    exercise: { key: 'exercise', score: scorecard.exercise_score ?? 0, current_value: null, delta_pct: null },
+    hydration: { key: 'hydration', score: 0, current_value: null, delta_pct: null },
+  };
+}
+
+
+// FINDRISC 항목 레이블 (lucide 아이콘 없이 텍스트만)
+const FINDRISC_LABELS = {
+  age:             '나이',
+  bmi:             'BMI (체중)',
+  waist:           '허리둘레',
+  activity:        '운동 부족',
+  vegetable:       '채소 섭취 부족',
+  hypertension:    '고혈압 이력',
+  glucose_history: '고혈당 이력',
+  family:          '가족력',
+};
+
+// 대시보드용 — FINDRISC + AI 신호 종합 원인 분석
+function ScoreBreakdownSection({ risk }) {
+  if (!risk) return null;
+
+  const breakdown = risk.score_breakdown || {};
+  const totalFindrisc = risk.findrisc_score ?? 0;
+  const signals = risk.supporting_signals || [];
+  const actions = risk.recommended_actions || [];
+  const aiScore = risk.predicted_score_pct;
+  const hasAi = risk.model_enabled && aiScore != null;
+
+  // FINDRISC 기여 항목 (점수 > 0)
+  const findriscFactors = Object.entries(breakdown)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  // AI 신호를 FINDRISC 항목과 매핑해서 중복 제거
+  // signal 텍스트 → FINDRISC key 매핑
+  const signalToKey = {
+    'BMI 기반 비만 위험': 'bmi',
+    '운동 부족 경향': 'activity',
+    '수면 부족 경향': null,
+    '식습관 위험': 'vegetable',
+    '혈당 위험 구간 반영': 'glucose_history',
+    '혈압 위험 구간 반영': 'hypertension',
+    '복부비만 위험': 'waist',
+  };
+
+  // FINDRISC에 없는 AI 전용 신호만 추가
+  const findriscKeys = new Set(findriscFactors.map(([k]) => k));
+  const extraSignals = signals.filter((s) => {
+    const mapped = signalToKey[s];
+    return mapped === null || (mapped !== undefined && !findriscKeys.has(mapped));
+  });
+
+  if (findriscFactors.length === 0 && !hasAi) return null;
+
+  return (
+    <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[14px] font-semibold text-stone-800">현재 점수 원인 분석</div>
+          <div className="mt-0.5 text-[12px] text-stone-400">
+            생활습관 {totalFindrisc}점
+            {hasAi && ` · AI 예측 ${aiScore}점`}
+          </div>
+        </div>
+      </div>
+
+      {/* FINDRISC 항목별 기여 */}
+      {findriscFactors.length > 0 && (
+        <div className="space-y-2.5">
+          {findriscFactors.map(([key, value]) => {
+            const pct = Math.round((value / Math.max(totalFindrisc, 1)) * 100);
+            return (
+              <div key={key} className="flex items-center gap-3">
+                <div className="w-28 shrink-0 text-[12px] text-stone-600">
+                  {FINDRISC_LABELS[key] ?? key}
+                </div>
+                <div className="flex-1 h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-orange-400 transition-all duration-700"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="w-10 shrink-0 text-right text-[12px] font-semibold text-orange-500">
+                  +{value}점
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* AI 전용 추가 신호 */}
+      {hasAi && extraSignals.length > 0 && (
+        <div className={`space-y-1.5 ${findriscFactors.length > 0 ? 'mt-3 pt-3 border-t border-stone-100' : ''}`}>
+          {extraSignals.map((signal, i) => (
+            <div key={i} className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2">
+              <AlertTriangle size={11} className="shrink-0 text-amber-400" />
+              <span className="text-[12px] text-stone-600">{signal}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 개선 액션 (최대 2개) */}
+      {hasAi && actions.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {actions.slice(0, 2).map((action, i) => (
+            <div key={i} className="flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2">
+              <CheckCircle size={11} className="mt-0.5 shrink-0 text-emerald-500" />
+              <span className="text-[12px] text-stone-600">{action}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
 function buildTrendPoints(history) {
   const recent = (history || []).slice(-7);
   if (!recent.length) return [];
@@ -140,14 +265,14 @@ function getTrendInsight(points, mode, summary) {
 
 function ReportTabs() {
   return (
-    <div className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-[980px] gap-1 px-6">
-        <div className="inline-flex items-center border-b-2 border-stone-700 px-5 py-3 text-[14px] font-semibold text-stone-800">
+    <div>
+      <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
+        <div className="inline-flex items-center border-b-2 border-nature-500 px-5 py-3 text-[14px] font-semibold text-nature-900">
           대시보드
         </div>
         <Link
           href="/app/report/detail"
-          className="inline-flex cursor-pointer items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-stone-400 transition-colors hover:text-stone-700"
+          className="inline-flex cursor-pointer items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-neutral-500 transition-colors hover:text-nature-800"
         >
           상세 리포트
         </Link>
@@ -327,7 +452,7 @@ const LOAD_STEPS = [
 function LoadingScreen({ step }) {
   const current = LOAD_STEPS.findIndex((s) => s.key === step);
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-stone-50 px-6 py-16">
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-16">
       {/* 스피너 */}
       <div className="relative flex h-16 w-16 items-center justify-center">
         <svg className="absolute inset-0 animate-spin" viewBox="0 0 64 64" fill="none">
@@ -350,6 +475,55 @@ function LoadingScreen({ step }) {
   );
 }
 
+// ── sessionStorage 메모리 캐시 유틸 (5분 TTL) ───────────────────────────────
+const REPORT_CACHE_PREFIX = 'danaa:report:dashboard:v1';
+const REPORT_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function reportCacheKey(userId) {
+  return userId == null ? null : `${REPORT_CACHE_PREFIX}:u${userId}`;
+}
+
+function removeSessionKeysByPrefix(prefix) {
+  if (typeof window === 'undefined') return;
+  try {
+    Object.keys(sessionStorage)
+      .filter((key) => key === prefix || key.startsWith(`${prefix}:`))
+      .forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+}
+
+function readReportCache(userId) {
+  if (typeof window === 'undefined') return null;
+  const key = reportCacheKey(userId);
+  if (!key) return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts > REPORT_CACHE_TTL_MS) return null;
+    return parsed.payload;
+  } catch {
+    return null;
+  }
+}
+
+function writeReportCache(userId, payload) {
+  if (typeof window === 'undefined') return;
+  const key = reportCacheKey(userId);
+  if (!key) return;
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), payload }));
+  } catch {
+    // quota 초과 등 무시
+  }
+}
+
+function clearReportCache() {
+  removeSessionKeysByPrefix(REPORT_CACHE_PREFIX);
+}
+
 export default function ReportPage() {
   const [status,    setStatus]    = useState(null);
   const [risk,      setRisk]      = useState(null);
@@ -359,38 +533,116 @@ export default function ReportPage() {
   const [loadStep,  setLoadStep]  = useState('init');
   const [error,     setError]     = useState('');
   const [trendMode, setTrendMode] = useState('findrisc');
+  const [coachingLoading, setCoachingLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCoaching() {
+      try {
+        setCoachingLoading(true);
+        const res = await api('/api/v1/risk/coaching');
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(data?.lines) && data.lines.length > 0) {
+          setRisk((prev) => (prev ? { ...prev, ai_coaching_lines: data.lines } : prev));
+        }
+      } catch {
+        // 실패해도 리포트 본문은 이미 표시됨. 조용히 패스.
+      } finally {
+        if (!cancelled) setCoachingLoading(false);
+      }
+    }
+
     async function load() {
       setError('');
+
+      // 사용자별 캐시 키를 만들 수 있을 때만 sessionStorage를 사용한다.
+      // user_id가 없으면 계정 전환 시 다른 사람 리포트가 보일 수 있어 캐시를 건너뛴다.
+      let currentUserId = null;
+      try {
+        const userRes = await api('/api/v1/users/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          currentUserId = userData?.id ?? null;
+        }
+      } catch {
+        currentUserId = null;
+      }
+
+      // ① sessionStorage 캐시 HIT → 즉시 렌더 + 백그라운드 재검증
+      const cached = readReportCache(currentUserId);
+      if (cached) {
+        setStatus(cached.status);
+        setRisk(cached.risk);
+        setHistory(cached.history || []);
+        setSummary(cached.summary);
+        setLoaded(true);
+      }
+
       try {
         setLoadStep('init');
         const statusRes = await api('/api/v1/onboarding/status');
         if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
         const statusData = await statusRes.json();
+        if (cancelled) return;
         setStatus(statusData);
 
-        if (statusData.is_completed) {
-          setLoadStep('risk');
-          const riskRes = await api('/api/v1/risk/recalculate', { method: 'POST' });
-          setRisk(riskRes.ok ? await riskRes.json() : null);
+        if (!statusData.is_completed) {
+          writeReportCache(currentUserId, { status: statusData, risk: null, history: [], summary: null });
+          return;
+        }
 
-          setLoadStep('history');
-          const historyRes = await api('/api/v1/risk/history?weeks=7');
-          if (historyRes.ok) setHistory((await historyRes.json()).history || []);
+        // ② 나머지 3개 API를 병렬 호출 (이전: 순차)
+        setLoadStep('risk');
+        const [riskRes, historyRes, summaryRes] = await Promise.all([
+          api('/api/v1/risk/current'),
+          api('/api/v1/risk/history?weeks=7'),
+          api('/api/v1/analysis/summary?period=7'),
+        ]);
+        if (cancelled) return;
 
-          setLoadStep('summary');
-          const summaryRes = await api('/api/v1/analysis/summary?period=7');
-          setSummary(summaryRes.ok ? await summaryRes.json() : null);
+        const riskData = riskRes.ok ? await riskRes.json() : null;
+        const historyJson = historyRes.ok ? await historyRes.json() : {};
+        const summaryData = summaryRes.ok ? await summaryRes.json() : null;
+        if (cancelled) return;
+
+        setRisk(riskData);
+        setHistory(historyJson.history || []);
+        setSummary(summaryData);
+
+        writeReportCache(currentUserId, {
+          status: statusData,
+          risk: riskData,
+          history: historyJson.history || [],
+          summary: summaryData,
+        });
+
+        // ③ AI 코칭은 비차단으로 별도 fetch (OpenAI 2~5초는 리포트 렌더 경로에서 분리)
+        if (riskData) {
+          fetchCoaching();
         }
       } catch (err) {
         console.error('report_dashboard_load_failed', err);
-        setError('데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
+        if (!cancelled) setError('데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.');
       } finally {
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     }
     load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 건강 기록/측정 저장 등 외부 이벤트로 캐시 무효화 알림 수신
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handler = () => clearReportCache();
+    window.addEventListener('danaa:report-cache-refresh', handler);
+    return () => window.removeEventListener('danaa:report-cache-refresh', handler);
   }, []);
 
   useEffect(() => {
@@ -404,7 +656,13 @@ export default function ReportPage() {
     return trendPoints.length > 1;
   }, [trendMode, trendPoints]);
   const comparisonMap = useMemo(
-    () => Object.fromEntries((summary?.comparisons || []).map((item) => [item.key, item])),
+    () => {
+      const comparisons = Array.isArray(summary?.comparisons) ? summary.comparisons : [];
+      if (comparisons.length > 0) {
+        return Object.fromEntries(comparisons.map((item) => [item.key, item]));
+      }
+      return buildScorecardComparisonMap(summary);
+    },
     [summary],
   );
   const trendInsight  = useMemo(() => getTrendInsight(trendPoints, trendMode, summary), [trendMode, trendPoints, summary]);
@@ -417,8 +675,8 @@ export default function ReportPage() {
   if (!loaded) {
     return (
       <div className="theme-report-page flex h-full flex-col">
-        <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
-          <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
+        <header className="flex h-12 shrink-0 items-center px-4">
+          <span className="text-[14px] font-medium text-nature-900">리포트</span>
         </header>
         <ReportTabs />
         <LoadingScreen step={loadStep} />
@@ -428,13 +686,14 @@ export default function ReportPage() {
 
   return (
     <div className="theme-report-page flex h-full flex-col">
-      <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
+      <header className="h-12 shrink-0 px-4">
         <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
       </header>
       <ReportTabs />
 
-      <div className="flex-1 overflow-y-auto bg-stone-50 px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="mx-auto max-w-[980px] space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
+        <div className="mx-auto max-w-[1080px]">
+          <main className="min-w-0 space-y-6">
 
           {error && (
             <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-500">
@@ -486,6 +745,8 @@ export default function ReportPage() {
                 />
               </div>
 
+              <ScoreBreakdownSection risk={risk} />
+
               {/* 변화 추이 */}
               <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between">
@@ -534,6 +795,7 @@ export default function ReportPage() {
             </>
           )}
 
+          </main>
         </div>
       </div>
     </div>

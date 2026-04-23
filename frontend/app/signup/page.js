@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle, Eye, EyeOff } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '');
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -234,7 +234,7 @@ export default function SignupPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-[12px] text-danger-light">
+            <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-[12px] text-danger">
               {error}
             </div>
           )}

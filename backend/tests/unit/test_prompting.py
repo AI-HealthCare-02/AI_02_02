@@ -55,6 +55,18 @@ def test_message_text_empty_string_is_not_appended():
     assert len(result.openai_messages) == 2
 
 
+def test_phase1_scope_block_mentions_app_ui_allowed():
+    """앱 UI·기능 설명이 답변 범위에 명시되어 LLM이 거부하지 않도록 해야 함."""
+    assert "앱의 UI·기능" in prompting.PHASE1_SCOPE_BLOCK
+    assert "사이드바" in prompting.PHASE1_SCOPE_BLOCK
+    assert "Today 패널" in prompting.PHASE1_SCOPE_BLOCK
+
+
+def test_phase1_scope_block_external_realtime_wording():
+    """'실시간 정보 조회' 과일반화 방지 — '외부' 한정 문구 유지."""
+    assert "외부 실시간" in prompting.PHASE1_SCOPE_BLOCK
+
+
 def test_app_layers_are_added_outside_cached_base_prompt():
     result = prompting._build_openai_messages_from_base_prompt(
         base_system_prompt="BASE",

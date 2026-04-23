@@ -1,3 +1,4 @@
+import base64
 import os
 import uuid
 import zoneinfo
@@ -5,6 +6,7 @@ from dataclasses import field
 from enum import StrEnum
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -130,7 +132,7 @@ class Config(BaseSettings):
     CHAT_LANGGRAPH_AUDIT_SAMPLE_RATE: float = 0.0
     CHAT_LANGGRAPH_PREP_TIMEOUT_MS: int = 250
     CHAT_LANGGRAPH_FORCE_FALLBACK: bool = False
-    CHAT_APP_CONTEXT_MODE: ChatAppContextMode = ChatAppContextMode.OFF
+    CHAT_APP_CONTEXT_MODE: ChatAppContextMode = ChatAppContextMode.HELP_ONLY
 
     CHAT_OPENAI_SHARED_CLIENT_ENABLED: bool = True
     CHAT_OPENAI_STREAM_CONNECT_TIMEOUT_MS: int = 3000
@@ -150,4 +152,33 @@ class Config(BaseSettings):
     GEMMA_MAX_NUM_BATCHED_TOKENS: int = 2048
     GEMMA_GPU_MEMORY_UTILIZATION: float = 0.90
 
+    # YouTube recommendations
+    YOUTUBE_API_KEY: str = ""
+    YOUTUBE_RECOMMENDATION_CACHE_TTL_SECONDS: int = 60 * 60 * 12
+    YOUTUBE_RECOMMENDATION_MAX_RESULTS: int = 5
+
+    # Web Push notifications
+    WEB_PUSH_ENABLED: bool = False
+    WEB_PUSH_VAPID_PUBLIC_KEY: str = ""
+    WEB_PUSH_VAPID_PRIVATE_KEY: str = ""
+    WEB_PUSH_VAPID_PRIVATE_KEY_B64: str = ""
+    WEB_PUSH_VAPID_SUBJECT: str = "mailto:admin@example.com"
+    WEB_PUSH_ACTION_API_BASE: str = ""
+    WEB_PUSH_BATCH_SIZE: int = 100
+
     CHAT_BENCH_BUDGET_ENABLED: bool = False
+
+    @property
+    def web_push_vapid_private_key_value(self) -> str:
+        if self.WEB_PUSH_VAPID_PRIVATE_KEY_B64:
+            value = base64.b64decode(self.WEB_PUSH_VAPID_PRIVATE_KEY_B64).decode("utf-8")
+        else:
+            value = self.WEB_PUSH_VAPID_PRIVATE_KEY
+
+        if "BEGIN" not in value:
+            return value
+
+        private_key = serialization.load_pem_private_key(value.encode("utf-8"), password=None)
+        private_value = private_key.private_numbers().private_value
+        raw_key = private_value.to_bytes(32, byteorder="big")
+        return base64.urlsafe_b64encode(raw_key).decode("ascii").rstrip("=")

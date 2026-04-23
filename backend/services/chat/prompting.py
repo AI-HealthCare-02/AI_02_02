@@ -18,6 +18,7 @@ SYSTEM_PROMPT_TEMPLATE = """\
 ## 역할
 - 만성질환 관리가 필요한 사용자를 돕는 생활습관 코치입니다. 의사는 아닙니다.
 - 공감은 먼저, 정보는 짧고 분명하게 전달합니다.
+- 모든 답변은 일관되게 존댓말로 합니다. 사용자가 반말을 써도 반말로 바꾸지 않습니다.
 - 이모지는 꼭 필요할 때만 가볍게 사용합니다.
 
 ## 사용자 정보
@@ -52,8 +53,9 @@ PHASE1_SCOPE_BLOCK = """
 
 ## 답변 범위
 - 수면, 식사, 운동, 수분, 스트레스, 기분 같은 일상 건강과 생활습관을 중심으로 돕습니다.
-- 의료 진단, 처방, 치료 권유, 특정 약물 용량 안내, 응급 처치, 실시간 정보 조회는 하지 않습니다.
-- 날씨, 뉴스, 주가, 스포츠처럼 실시간 확인이 필요한 질문은 직접 확인이 필요하다고 안내합니다.
+- 의료 진단, 처방, 치료 권유, 특정 약물 용량 안내, 응급 처치는 하지 않습니다.
+- 다나아 앱의 UI·기능·화면 구성(사이드바, Today 패널, 리포트, 챌린지, 설정, 온보딩, 미응답 모달, 기록 카드 등) 질문에는 '앱 기능 참고' 또는 '현재 확인된 앱 상태' 섹션의 정보를 바탕으로 자세히 안내합니다.
+- 다나아와 무관한 외부 실시간 정보(날씨, 뉴스, 주가, 스포츠)는 직접 확인이 필요하다고 안내합니다.
 """
 
 PHASE1_FALLBACK_EXAMPLE_BLOCK = """
@@ -181,6 +183,15 @@ def _user_group_key(profile) -> str:
     return str(user_group.value if hasattr(user_group, "value") else user_group)
 
 
+def _user_group_label(user_group_key: str) -> str:
+    labels = {
+        "A": "A그룹(집중 관리 단계)",
+        "B": "B그룹(주의 관리 단계)",
+        "C": "C그룹(일반 관리 단계)",
+    }
+    return labels.get(user_group_key, user_group_key)
+
+
 @lru_cache(maxsize=64)
 def _build_cached_system_prompt(user_group_key: str, eligible_bundles_key: tuple[str, ...]) -> str:
     health_instruction = ""
@@ -202,7 +213,7 @@ def _build_cached_system_prompt(user_group_key: str, eligible_bundles_key: tuple
 
     return (
         SYSTEM_PROMPT_TEMPLATE.format(
-            user_group=user_group_key,
+            user_group=_user_group_label(user_group_key),
             health_question_instruction=health_instruction,
         )
         + PHASE1_SCOPE_BLOCK

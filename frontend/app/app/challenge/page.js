@@ -84,7 +84,8 @@ function challengeVisual(item) {
   if (raw.includes('water_6cups') || raw.includes('water') || raw.includes('물') || item?.category === 'hydration') {
     return { icon: Droplets, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
   }
-  if (raw.includes('daily_walk_30min') || raw.includes('walk')) {
+  // '걷기' 가 '운동' 보다 먼저 매치돼야 Footprints 아이콘이 적용됨 (한글 이름 대응)
+  if (raw.includes('daily_walk_30min') || raw.includes('walk') || raw.includes('걷기')) {
     return { icon: Footprints, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
   }
   if (raw.includes('exercise_150min') || raw.includes('exercise') || raw.includes('운동') || item?.category === 'exercise') {
@@ -125,7 +126,7 @@ function ChallengeVisualBadge({ visual, size = 24 }) {
 
 function TabBar({ activeTab, onChange, highlightSelection }) {
   return (
-    <div className="border-b border-black/[.06]">
+    <div>
       <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
         {CATEGORY_GROUPS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -235,8 +236,11 @@ function SevenDayProgress({ daysCompleted, streak }) {
   return (
     <div className="mt-4 rounded-[20px] border border-[#ECE7DE] bg-[#FCFBF7] p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-medium text-[#7E776C]">7일 진행률</div>
-        <div className="rounded-full bg-[#171717] px-2.5 py-1 text-[11px] font-semibold text-white">
+        <div>
+          <div className="text-[11px] font-medium text-[#7E776C]">7일 진행률</div>
+          <div className="mt-0.5 text-[10px] text-[#A0968A]">1일 1회 수행 완료 기준</div>
+        </div>
+        <div className="rounded-full bg-nature-950 px-2.5 py-1 text-[11px] font-semibold text-[var(--color-primary-bg)]">
           {filled}/{CHALLENGE_DAYS}
         </div>
       </div>
@@ -246,32 +250,41 @@ function SevenDayProgress({ daysCompleted, streak }) {
           return (
             <div
               key={index}
-              className={`h-[8px] flex-1 rounded-full border ${done ? 'border-[#1F1F1F] bg-[#1F1F1F]' : 'border-[#D8D2C7] bg-[#F2EEE7]'}`}
+              className={`h-[8px] flex-1 rounded-full border ${done ? 'border-nature-950 bg-nature-950' : 'border-[#D8D2C7] bg-[#F2EEE7]'}`}
             />
           );
         })}
       </div>
       <div className="mt-3 flex items-center justify-between text-[12px]">
         <div className="text-[#7E776C]">
-          이번 주 <span className="font-semibold text-[#2B2B2B]">{weeklyPercent}%</span>
+          이번 주 <span className="font-semibold text-nature-950">{weeklyPercent}%</span>
         </div>
         <div className="font-medium text-[#7E776C]">
-          <span className="font-semibold text-[#2B2B2B]">{streakDays}일</span> 연속
+          <span className="font-semibold text-nature-950">{streakDays}일</span> 연속
         </div>
       </div>
     </div>
   );
 }
 
-function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCancelId, checkinChallenge, cancelChallenge }) {
+function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCancelId, checkinChallenge, uncheckinChallenge, cancelChallenge }) {
   const checking = busyKey === `checkin:${challenge.user_challenge_id}`;
+  const unchecking = busyKey === `uncheckin:${challenge.user_challenge_id}`;
   const cancelling = busyKey === `cancel:${challenge.user_challenge_id}`;
   const showCancelConfirm = confirmCancelId === challenge.user_challenge_id;
-  const cancelDisabled = challenge.today_checked || checking || cancelling;
+  // 오늘 완료한 챌린지도 취소 가능 (기록은 이력으로 보존)
+  const cancelDisabled = checking || unchecking || cancelling;
   const visual = challengeVisual(challenge);
+  const completedToday = Boolean(challenge.today_checked);
 
   return (
-    <section className="rounded-[28px] border border-cream-500 bg-white p-5 shadow-soft">
+    <section
+      className={`rounded-[28px] border p-5 shadow-soft transition-colors ${
+        completedToday
+          ? 'border-nature-950/60 bg-white ring-1 ring-nature-950/20'
+          : 'border-cream-500 bg-white'
+      }`}
+    >
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 gap-4">
           <div className={`inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-[20px] ${visual.shell}`}>
@@ -283,7 +296,7 @@ function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCa
               <span className={`rounded-full px-2.5 py-1 text-[12px] ${categoryBadgeStyle(challenge.category)}`}>{categoryLabel(challenge.category)}</span>
             </div>
             <div className="mt-1.5 text-[13px] text-neutral-500">
-              현재 {challenge.days_completed}일 완료, 연속 {challenge.current_streak}일 기록 중
+              현재 <span className="font-semibold text-nature-950">{challenge.days_completed}일</span> 완료, 연속 <span className="font-semibold text-nature-950">{challenge.current_streak}일</span> 기록 중
             </div>
             <div className="mt-1 text-[12px] text-neutral-400">
               현재 뱃지: {challenge.badge_label} · {badgeHint(challenge)}
@@ -293,16 +306,16 @@ function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCa
         <div className="flex shrink-0 flex-col gap-2">
           <button
             type="button"
-            onClick={() => checkinChallenge(challenge.user_challenge_id)}
-            disabled={challenge.today_checked || checking || cancelling}
-            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-semibold ${
+            onClick={() => (completedToday ? uncheckinChallenge(challenge.user_challenge_id) : checkinChallenge(challenge.user_challenge_id))}
+            disabled={checking || unchecking || cancelling}
+            className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
               challenge.today_checked
-                ? 'border-[#D8D2C7] bg-[#F2EEE7] text-[#6F665C]'
+                ? 'border-nature-950 bg-nature-950 text-[var(--color-primary-bg)] shadow-sm'
                 : 'border-[#D8D2C7] bg-white text-[#3E3A36] hover:bg-[#F7F4EF] disabled:cursor-not-allowed disabled:bg-[#F2EEE7] disabled:text-neutral-400'
             }`}
           >
-            {checking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-            {challenge.today_checked ? '오늘 완료' : '오늘 할 행동 체크'}
+            {checking || unchecking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+            {challenge.today_checked ? '완료 취소' : '수행 완료'}
           </button>
           <button
             type="button"
@@ -311,16 +324,19 @@ function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCa
             className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#D8D2C7] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#6F665C] hover:bg-[#F7F4EF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {cancelling ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-            {challenge.today_checked ? '오늘 완료 후 취소 불가' : '챌린지 취소'}
+            챌린지 취소
           </button>
         </div>
       </div>
 
       <SevenDayProgress daysCompleted={challenge.days_completed} streak={challenge.current_streak} />
 
-      {showCancelConfirm && !challenge.today_checked && (
+      {showCancelConfirm && (
         <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-          <div className="text-[13px] text-rose-700">취소하면 현재 연속 기록이 끊기고, 다시 시작할 때 1일부터 새로 시작됩니다.</div>
+          <div className="text-[13px] text-rose-700">
+            취소하면 현재 연속 기록이 끊기고, 다시 시작할 때 1일부터 새로 시작돼요. 지금까지의 기록은 이력으로 보존돼요.
+            {challenge.today_checked && ' 오늘 완료한 기록도 남지만, 같은 챌린지는 내일부터 다시 시작할 수 있어요.'}
+          </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -355,6 +371,7 @@ export default function ChallengePage() {
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [editingActive, setEditingActive] = useState(false);
 
   const loadOverview = useCallback(async () => {
     setError('');
@@ -374,6 +391,13 @@ export default function ChallengePage() {
   useEffect(() => {
     loadOverview();
   }, [loadOverview]);
+
+  useEffect(() => {
+    // 진행 중 챌린지가 없으면 인라인 편집 모드 자동 종료 (빈 상태 방지)
+    if (Array.isArray(overview?.active) && overview.active.length === 0 && editingActive) {
+      setEditingActive(false);
+    }
+  }, [overview, editingActive]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -402,7 +426,7 @@ export default function ChallengePage() {
       return {
         template_id: item.template_id,
         badge_tier: 'unranked',
-        badge_label: 'UNRANKED',
+        badge_label: '미획득',
         name: item.name,
         category: item.category,
         code: item.code,
@@ -420,16 +444,28 @@ export default function ChallengePage() {
     [filteredCatalog, primaryRecommended],
   );
 
+  const blockedTodayTemplateIds = useMemo(() => {
+    const set = new Set();
+    for (const item of catalog) {
+      if (item?.blocked_today) set.add(Number(item.template_id));
+    }
+    for (const item of recommendedChallenges) {
+      if (item?.blocked_today) set.add(Number(item.template_id));
+    }
+    return set;
+  }, [catalog, recommendedChallenges]);
+
   const toggleSelect = useCallback((templateId) => {
     const numericId = Number(templateId);
     if (activeTemplateIds.has(numericId)) return;
+    if (blockedTodayTemplateIds.has(numericId)) return;
 
     setSelectedTemplateIds((prev) => {
       if (prev.includes(numericId)) return prev.filter((item) => item !== numericId);
       if (prev.length >= remainingSlots) return prev;
       return [...prev, numericId];
     });
-  }, [activeTemplateIds, remainingSlots]);
+  }, [activeTemplateIds, blockedTodayTemplateIds, remainingSlots]);
 
   const joinChallenge = useCallback(async (templateId) => {
     const numericId = Number(templateId);
@@ -487,6 +523,24 @@ export default function ChallengePage() {
     }
   }, [confirmCancelId, loadOverview]);
 
+  const uncheckinChallenge = useCallback(async (userChallengeId) => {
+    setBusyKey(`uncheckin:${userChallengeId}`);
+    setError('');
+
+    try {
+      const response = await api(`/api/v1/challenges/${userChallengeId}/checkin`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || `HTTP ${response.status}`);
+      await loadOverview();
+      fireChallengeRefresh();
+    } catch (nextError) {
+      setError(nextError.message || '오늘 완료 체크를 해제하지 못했어요.');
+    } finally {
+      setBusyKey('');
+    }
+  }, [loadOverview]);
+
   const joinSelectedChallenges = useCallback(async () => {
     for (const templateId of selectedTemplateIds) {
       // eslint-disable-next-line no-await-in-loop
@@ -505,7 +559,7 @@ export default function ChallengePage() {
 
   return (
     <div className="theme-challenge-page flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center border-b border-black/[.04] bg-white/90 px-4 backdrop-blur-xl">
+      <header className="flex h-12 shrink-0 items-center px-4">
         <span className="text-[14px] font-medium text-nature-900">챌린지</span>
       </header>
       <TabBar activeTab={activeTab} onChange={setActiveTab} highlightSelection={activeChallenges.length === 0} />
@@ -573,6 +627,7 @@ export default function ChallengePage() {
                           confirmCancelId={confirmCancelId}
                           setConfirmCancelId={setConfirmCancelId}
                           checkinChallenge={checkinChallenge}
+                          uncheckinChallenge={uncheckinChallenge}
                           cancelChallenge={cancelChallenge}
                         />
                       ))
@@ -584,6 +639,117 @@ export default function ChallengePage() {
               </div>
             ) : (
               <div className="space-y-5">
+                {(() => {
+                  const isFull = activeCount >= maxActiveCount;
+                  const isEmpty = activeCount === 0;
+                  let title;
+                  let body;
+                  if (isEmpty) {
+                    title = '아직 시작한 챌린지가 없어요';
+                    body = `최대 ${maxActiveCount}개까지 선택할 수 있어요. 아래 추천 또는 전체 목록에서 바로 시작해 보세요.`;
+                  } else if (isFull) {
+                    title = `이미 최대 ${maxActiveCount}개 챌린지에 참여 중이에요`;
+                    body = '진행 중인 챌린지를 취소하면 새로 선택할 수 있어요. 오늘 완료한 챌린지는 내일부터 취소할 수 있습니다.';
+                  } else {
+                    title = `현재 ${activeCount} / ${maxActiveCount}개 참여 중이에요`;
+                    body = `${maxActiveCount - activeCount}개 더 선택할 수 있고, 기존 챌린지를 수정(취소)할 수도 있어요.`;
+                  }
+
+                  return (
+                    <section className="rounded-[20px] border border-nature-950/40 bg-cream-100 px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-nature-950 text-[var(--color-primary-bg)]">
+                          {isFull ? <X size={14} /> : <Sparkles size={14} />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[14px] font-semibold text-nature-950">{title}</div>
+                          <div className="mt-1 text-[13px] text-neutral-500">{body}</div>
+                        </div>
+                        {!isEmpty && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingActive((prev) => !prev)}
+                            className="shrink-0 rounded-full border border-nature-950 bg-nature-950 px-3.5 py-2 text-[12px] font-semibold text-[var(--color-primary-bg)] hover:opacity-90"
+                          >
+                            {editingActive ? '닫기' : '챌린지 수정'}
+                          </button>
+                        )}
+                      </div>
+
+                      {editingActive && !isEmpty && (
+                        <div className="mt-4 space-y-2">
+                          {activeChallenges.map((ch) => {
+                            const busy = busyKey === `cancel:${ch.user_challenge_id}`;
+                            const chVisual = challengeVisual(ch);
+                            const disabled = busy;
+                            const isConfirming = confirmCancelId === ch.user_challenge_id;
+
+                            return (
+                              <div
+                                key={ch.user_challenge_id}
+                                className="rounded-2xl border border-cream-400 bg-white p-3"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] ${chVisual.shell}`}>
+                                    <ChallengeVisualBadge visual={chVisual} size={20} />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <div className="truncate text-[14px] font-semibold text-nature-900">{ch.name}</div>
+                                      <span className={`rounded-full px-2 py-0.5 text-[11px] ${categoryBadgeStyle(ch.category)}`}>{categoryLabel(ch.category)}</span>
+                                    </div>
+                                    <div className="mt-0.5 text-[12px] text-neutral-500">
+                                      {ch.days_completed}일 진행 · 연속 {ch.current_streak}일
+                                      {ch.today_checked && <span className="ml-1 text-neutral-400">· 오늘 완료됨</span>}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmCancelId(isConfirming ? null : ch.user_challenge_id)}
+                                    disabled={disabled}
+                                    className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-[#D8D2C7] bg-white px-3 py-1.5 text-[12px] font-medium text-[#6F665C] hover:bg-[#F7F4EF] disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {busy ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                                    챌린지 취소
+                                  </button>
+                                </div>
+
+                                {isConfirming && (
+                                  <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3">
+                                    <div className="text-[12px] text-rose-700">
+                                      취소하면 연속 기록이 끊기고 다시 시작할 때 1일부터 새로 시작돼요. 지금까지 기록은 이력으로 보존돼요.
+                                      {ch.today_checked && ' 오늘 완료한 챌린지는 같은 종목으로 내일부터 다시 시작할 수 있어요.'}
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => cancelChallenge(ch.user_challenge_id)}
+                                        disabled={busy}
+                                        className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                                      >
+                                        {busy ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                                        그래도 취소하기
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setConfirmCancelId(null)}
+                                        disabled={busy}
+                                        className="inline-flex items-center rounded-full border border-cream-400 bg-white px-3 py-1.5 text-[12px] font-semibold text-neutral-600 hover:bg-cream-100"
+                                      >
+                                        계속하기
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </section>
+                  );
+                })()}
+
                 {recommendedChallenges.length > 0 && (
                   <section className="rounded-[28px] border border-cream-500 bg-white p-4 shadow-soft">
                     <div className="mb-3 flex items-center justify-between gap-3">
@@ -593,11 +759,18 @@ export default function ChallengePage() {
                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                       {recommendedChallenges.map((challenge) => {
                         const busy = busyKey === `join:${challenge.template_id}`;
-                        const disabled = remainingSlots <= 0 || activeTemplateIds.has(Number(challenge.template_id)) || busy;
+                        const isActiveAlready = activeTemplateIds.has(Number(challenge.template_id));
+                        const blockedToday = Boolean(challenge.blocked_today);
+                        const disabled = remainingSlots <= 0 || isActiveAlready || blockedToday || busy;
                         const visual = challengeVisual(challenge);
+                        let label;
+                        if (busy) label = '시작 중';
+                        else if (isActiveAlready) label = '진행 중';
+                        else if (blockedToday) label = '내일부터';
+                        else label = '바로 시작';
 
                         return (
-                          <div key={challenge.template_id} className="rounded-2xl border border-cream-300 bg-cream-50 p-3">
+                          <div key={challenge.template_id} className={`rounded-2xl border border-cream-300 bg-cream-50 p-3 ${blockedToday ? 'opacity-70' : ''}`}>
                             <div className="flex items-start gap-3">
                               <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${visual.shell}`}>
                                 <ChallengeVisualBadge visual={visual} size={20} />
@@ -605,6 +778,9 @@ export default function ChallengePage() {
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-[14px] font-semibold text-nature-900">{challenge.name}</div>
                                 <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-neutral-500">{challenge.description}</div>
+                                {blockedToday && (
+                                  <div className="mt-1 text-[11px] text-neutral-400">오늘 체크인한 챌린지라 내일부터 다시 시작할 수 있어요.</div>
+                                )}
                               </div>
                               <button
                                 type="button"
@@ -612,7 +788,7 @@ export default function ChallengePage() {
                                 disabled={disabled}
                                 className="shrink-0 rounded-full bg-nature-500 px-3 py-2 text-[12px] font-semibold text-white hover:bg-nature-600 disabled:cursor-not-allowed disabled:bg-cream-300 disabled:text-neutral-400"
                               >
-                                {busy ? '시작 중' : activeTemplateIds.has(Number(challenge.template_id)) ? '진행 중' : '바로 시작'}
+                                {label}
                               </button>
                             </div>
                           </div>
@@ -625,7 +801,11 @@ export default function ChallengePage() {
                 <section className="rounded-[28px] border border-cream-500 bg-white p-5 shadow-soft">
                   <div className="mb-4">
                     <div className="text-[22px] font-semibold text-nature-900">챌린지 선택</div>
-                    <div className="mt-1 text-[13px] text-neutral-500">지금은 {remainingSlots}개까지 더 선택할 수 있습니다.</div>
+                    <div className="mt-1 text-[13px] text-neutral-500">
+                      {remainingSlots > 0
+                        ? `지금은 ${remainingSlots}개까지 더 선택할 수 있어요.`
+                        : '현재 꽉 찼어요. 진행 중인 챌린지를 취소하면 새로 선택할 수 있습니다.'}
+                    </div>
                   </div>
                   <div className="mb-4 flex flex-wrap gap-2">
                     {FILTER_GROUPS.map((group) => (
@@ -645,8 +825,9 @@ export default function ChallengePage() {
                     {guidedSelectableCatalog.map((item) => {
                       const templateId = Number(item.template_id);
                       const isActive = activeTemplateIds.has(templateId);
+                      const blockedToday = Boolean(item.blocked_today);
                       const isSelected = selectedTemplateIds.includes(templateId);
-                      const selectionDisabled = !isSelected && !isActive && selectedTemplateIds.length >= remainingSlots;
+                      const selectionDisabled = !isSelected && !isActive && !blockedToday && selectedTemplateIds.length >= remainingSlots;
                       const theme = badgeTheme(item.badge_tier);
                       const visual = challengeVisual(item);
                       const BadgeIcon = theme.icon;
@@ -656,10 +837,10 @@ export default function ChallengePage() {
                           key={templateId}
                           type="button"
                           onClick={() => toggleSelect(templateId)}
-                          disabled={isActive || selectionDisabled}
+                          disabled={isActive || blockedToday || selectionDisabled}
                           className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl border p-4 text-left transition-all ${
-                            isActive ? 'border-cream-400 bg-cream-200 opacity-60' : isSelected ? 'border-nature-500 bg-nature-50' : 'border-cream-400 bg-white hover:bg-cream-100'
-                          } ${selectionDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                            isActive ? 'border-cream-400 bg-cream-200 opacity-60' : blockedToday ? 'border-cream-400 bg-cream-100 opacity-60' : isSelected ? 'border-nature-500 bg-nature-50' : 'border-cream-400 bg-white hover:bg-cream-100'
+                          } ${selectionDisabled ? 'cursor-not-allowed opacity-50' : ''} ${(isActive || blockedToday) ? 'cursor-not-allowed' : ''}`}
                         >
                           <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] ${visual.shell}`}>
                             <ChallengeVisualBadge visual={visual} size={22} />
@@ -668,8 +849,12 @@ export default function ChallengePage() {
                             <div className="flex items-center gap-2">
                               <div className="text-[15px] font-semibold text-nature-900">{item.name}</div>
                               <span className={`rounded-full px-2.5 py-1 text-[12px] ${categoryBadgeStyle(item.category)}`}>{categoryLabel(item.category)}</span>
+                              {blockedToday && <span className="rounded-full bg-cream-300 px-2 py-0.5 text-[11px] text-neutral-500">내일부터</span>}
                             </div>
                             <div className="mt-1 text-[13px] text-neutral-500">{item.description}</div>
+                            {blockedToday && (
+                              <div className="mt-1 text-[11px] text-neutral-400">오늘 체크인한 챌린지라 내일부터 다시 시작할 수 있어요.</div>
+                            )}
                           </div>
                           <div className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] ${theme.shell}`}>
                             <BadgeIcon size={12} />

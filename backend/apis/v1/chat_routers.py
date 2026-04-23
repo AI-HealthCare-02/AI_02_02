@@ -90,6 +90,20 @@ async def get_sessions(
     )
 
 
+@chat_router.delete("/sessions/{session_id}")
+@limiter.limit("30/minute")
+async def delete_session(
+    request: Request,
+    session_id: int,
+    user: Annotated[User, Depends(get_request_user)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+) -> Response:
+    """현재 사용자의 채팅 세션을 목록에서 삭제합니다."""
+    del request
+    await chat_service.delete_session(user_id=user.id, session_id=session_id)
+    return Response(content={"ok": True}, status_code=status.HTTP_200_OK)
+
+
 @chat_router.post("/health-answer")
 @limiter.limit("20/minute")
 async def submit_health_answer(

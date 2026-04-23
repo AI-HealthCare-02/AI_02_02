@@ -18,6 +18,26 @@ const CATEGORY_META = {
   hydration: { label: '수분',   icon: Droplets,        color: '#3b82f6', bg: 'bg-blue-50',    text: 'text-blue-500',    goal: '1.2L'  },
 };
 
+const REFERENCE_LINES = {
+  sleep:     { value: 7,   label: '기준 7h'    },
+  diet:      { value: 70,  label: '기준 70점'  },
+  exercise:  { value: 21,  label: '기준 21분'  },
+  hydration: { value: 1.2, label: '기준 1.2L' },
+};
+
+const CHART_WIDTH = 640;
+const CHART_HEIGHT = 170;
+const CHART_LEFT = 40;
+const CHART_RIGHT = 16;
+const CHART_TOP = 14;
+const CHART_BOTTOM = 28;
+const CHART_RIGHT_X = CHART_WIDTH - CHART_RIGHT;
+const CHART_BASE_Y = CHART_HEIGHT - CHART_BOTTOM;
+const TOOLTIP_WIDTH = 138;
+const TOOLTIP_HEIGHT = 54;
+const TOOLTIP_OFFSET = 10;
+const REFERENCE_LINE_COLOR = 'color-mix(in srgb, var(--color-text) 52%, #ef4444 48%)';
+
 const SLEEP_HOURS = {
   under_5: 4.5, between_5_6: 5.5, between_6_7: 6.5, between_7_8: 7.5, over_8: 8.5,
 };
@@ -61,12 +81,38 @@ function maxSeriesValue(series) {
   return values.length ? Math.max(...values, 1) : 1;
 }
 
-function seriesToPoints(series, maxValue, width = 640, height = 170) {
-  const left = 40, right = 16, top = 14, bottom = 28;
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function valueToChartY(value, maxValue, height = CHART_HEIGHT) {
+  const safeMax = Math.max(maxValue || 1, 1);
+  return height - CHART_BOTTOM - (value / safeMax) * (height - CHART_TOP - CHART_BOTTOM);
+}
+
+function getTooltipPosition(x, y) {
+  const placeLeft = x + TOOLTIP_OFFSET + TOOLTIP_WIDTH > CHART_RIGHT_X;
+  const tooltipX = placeLeft ? x - TOOLTIP_WIDTH - TOOLTIP_OFFSET : x + TOOLTIP_OFFSET;
+  return {
+    x: clamp(tooltipX, CHART_LEFT, CHART_RIGHT_X - TOOLTIP_WIDTH),
+    y: clamp(y - TOOLTIP_HEIGHT - TOOLTIP_OFFSET, CHART_TOP, CHART_BASE_Y - TOOLTIP_HEIGHT),
+  };
+}
+
+function formatSeriesValue(category, value) {
+  if (value == null) return '기록 없음';
+  if (category === 'sleep') return `${Number(value).toFixed(Number.isInteger(value) ? 0 : 1)}시간`;
+  if (category === 'diet') return `${Math.round(value)}점`;
+  if (category === 'exercise') return `${Math.round(value)}분`;
+  if (category === 'hydration') return `${Number(value).toFixed(1)}L`;
+  return String(value);
+}
+
+function seriesToPoints(series, maxValue, width = CHART_WIDTH, height = CHART_HEIGHT) {
   return series.map((value, i) => {
-    const x = left + i * ((width - left - right) / Math.max(1, series.length - 1));
+    const x = CHART_LEFT + i * ((width - CHART_LEFT - CHART_RIGHT) / Math.max(1, series.length - 1));
     if (value == null) return [x, null];
-    return [x, height - bottom - (value / maxValue) * (height - top - bottom)];
+    return [x, valueToChartY(value, maxValue, height)];
   });
 }
 
@@ -110,12 +156,15 @@ function categoryInterpretation(meta, item) {
 
 function ReportTabs() {
   return (
-    <div className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-[980px] gap-1 px-6">
-        <Link href="/app/report" className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-medium text-stone-400 transition-colors hover:text-stone-700">
+    <div className="border-b border-black/[.06]">
+      <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
+        <Link
+          href="/app/report"
+          className="inline-flex cursor-pointer items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-neutral-500 transition-colors hover:text-nature-800"
+        >
           대시보드
         </Link>
-        <div className="inline-flex items-center border-b-2 border-stone-700 px-5 py-3 text-[14px] font-semibold text-stone-800">
+        <div className="inline-flex items-center border-b-2 border-nature-500 px-5 py-3 text-[14px] font-semibold text-nature-900">
           상세 리포트
         </div>
       </div>
@@ -140,6 +189,143 @@ function PeriodButton({ active, label, onClick }) {
 }
 
 // ── 영향 분석 타일 ─────────────────────────────────────────────────────────────
+
+// ── 점수 상세 분석 (상세 리포트 전용) ─────────────────────────────────────────
+
+const FINDRISC_DETAIL = {
+  age:             { label: '나이',          desc: '나이가 높을수록 당뇨 위험이 올라가요.' },
+  bmi:             { label: 'BMI (체중)',     desc: 'BMI 25 이상이면 위험도가 높아져요.' },
+  waist:           { label: '허리둘레',       desc: '복부비만은 인슐린 저항성과 연관돼요.' },
+  activity:        { label: '운동 부족',      desc: '주 4일 이상 운동하면 점수가 낮아져요.' },
+  vegetable:       { label: '채소 섭취 부족', desc: '매일 채소를 충분히 먹으면 1점 줄어요.' },
+  hypertension:    { label: '고혈압 이력',    desc: '고혈압 약 복용 이력이 반영돼요.' },
+  glucose_history: { label: '고혈당 이력',    desc: '과거 고혈당 판정 이력이 반영돼요.' },
+  family:          { label: '가족력',         desc: '부모·형제 중 당뇨 환자가 있으면 반영돼요.' },
+};
+
+const LIFESTYLE_DETAIL = [
+  { key: 'sleep_score',     label: '수면',  icon: Moon,            color: '#6366f1', bg: 'bg-indigo-50',  text: 'text-indigo-600',  missingMsg: '수면 기록(수면 시간·질)을 추가하면 반영돼요.' },
+  { key: 'diet_score',      label: '식사',  icon: UtensilsCrossed, color: '#f59e0b', bg: 'bg-amber-50',   text: 'text-amber-600',   missingMsg: '채소 섭취·식사 균형·단음료·야식 기록이 필요해요.' },
+  { key: 'exercise_score',  label: '운동',  icon: Activity,        color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-600', missingMsg: '운동 여부·시간·걷기 기록을 추가하면 반영돼요.' },
+  { key: 'lifestyle_score', label: '종합',  icon: Droplets,        color: '#8b5cf6', bg: 'bg-violet-50',  text: 'text-violet-600',  missingMsg: null },
+];
+
+function getScoreTone(score) {
+  if (score >= 70) return { bar: 'bg-emerald-400', label: '양호', text: 'text-emerald-600', bg: 'bg-emerald-50' };
+  if (score >= 40) return { bar: 'bg-amber-400',   label: '보통', text: 'text-amber-600',   bg: 'bg-amber-50' };
+  return               { bar: 'bg-red-400',     label: '부족', text: 'text-red-500',     bg: 'bg-red-50' };
+}
+
+function DetailScoreSection({ risk }) {
+  if (!risk) return null;
+
+  const breakdown = risk.score_breakdown || {};
+  const totalFindrisc = risk.findrisc_score ?? 0;
+  const signals = risk.supporting_signals || [];
+
+  const factors = Object.entries(breakdown)
+    .filter(([, v]) => v > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  return (
+    <div className="space-y-4">
+      {/* FINDRISC 세부 원인 */}
+      {factors.length > 0 && (
+        <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+          <div className="mb-1 text-[14px] font-semibold text-stone-800">
+            생활습관 위험도 {totalFindrisc}점 — 항목별 원인
+          </div>
+          <div className="mb-4 text-[12px] text-stone-400">
+            온보딩 설문 기반이에요. 생활습관을 바꾸면 점수가 낮아질 수 있어요.
+          </div>
+          <div className="space-y-4">
+            {factors.map(([key, value]) => {
+              const meta = FINDRISC_DETAIL[key];
+              const pct = Math.round((value / Math.max(totalFindrisc, 1)) * 100);
+              return (
+                <div key={key}>
+                  <div className="mb-1.5 flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-[13px] font-semibold text-stone-700">{meta?.label ?? key}</div>
+                      <div className="text-[11px] text-stone-400">{meta?.desc}</div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-orange-50 px-2.5 py-0.5 text-[12px] font-bold text-orange-500">
+                      +{value}점
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                    <div
+                      className="h-full rounded-full bg-orange-400 transition-all duration-700"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 생활습관 점수 상세 */}
+      <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+        <div className="mb-1 text-[14px] font-semibold text-stone-800">생활습관 점수 상세</div>
+        <div className="mb-4 text-[12px] text-stone-400">최근 7일 기록 기반이에요. 기록이 쌓일수록 정확해져요.</div>
+        <div className="space-y-4">
+          {LIFESTYLE_DETAIL.map((item) => {
+            const Icon = item.icon;
+            const score = risk[item.key] ?? 0;
+            const sc = getScoreTone(score);
+            const isEmpty = score === 0 && item.key !== 'lifestyle_score';
+            return (
+              <div key={item.key}>
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.bg}`}>
+                      <Icon size={14} style={{ color: item.color }} />
+                    </div>
+                    <span className="text-[13px] font-semibold text-stone-700">{item.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${sc.bg} ${sc.text}`}>
+                      {sc.label}
+                    </span>
+                    <span className="text-[15px] font-bold text-stone-800">{score}</span>
+                    <span className="text-[11px] text-stone-400">/100</span>
+                  </div>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-stone-100">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${sc.bar}`}
+                    style={{ width: `${score}%` }}
+                  />
+                </div>
+                {isEmpty && item.missingMsg && (
+                  <div className="mt-1.5 text-[11px] text-stone-400">{item.missingMsg}</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* AI 신호 */}
+      {signals.length > 0 && (
+        <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+          <div className="mb-1 text-[14px] font-semibold text-stone-800">AI 모델이 감지한 신호</div>
+          <div className="mb-3 text-[12px] text-stone-400">건강 프로필과 기록을 분석해 위험도에 반영된 항목이에요.</div>
+          <div className="space-y-2">
+            {signals.map((signal, i) => (
+              <div key={i} className="flex items-center gap-2.5 rounded-xl bg-stone-50 px-3 py-2.5">
+                <TrendingUp size={12} className="shrink-0 text-amber-400" />
+                <span className="text-[13px] text-stone-600">{signal}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
 
 function ImpactTile({ item, index }) {
   const styles = [
@@ -209,19 +395,59 @@ function ComparisonCard({ item }) {
 function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
   const meta           = CATEGORY_META[category];
   const Icon           = meta.icon;
+  const referenceLine  = REFERENCE_LINES[category];
+  const [activeDatum, setActiveDatum] = useState(null);
   const currentSeries  = useMemo(() => buildSeries(currentLogs, category),  [currentLogs, category]);
   const previousSeries = useMemo(() => buildSeries(previousLogs, category), [previousLogs, category]);
   const labels         = useMemo(() => currentLogs.map((l) => formatDateLabel(l.log_date)), [currentLogs]);
-  const maxValue       = useMemo(() => maxSeriesValue([currentSeries, previousSeries]), [currentSeries, previousSeries]);
+  const maxValue       = useMemo(
+    () => maxSeriesValue([currentSeries, previousSeries, referenceLine ? [referenceLine.value] : []]),
+    [currentSeries, previousSeries, referenceLine],
+  );
   const currentPoints  = useMemo(() => seriesToPoints(currentSeries, maxValue),  [currentSeries, maxValue]);
   const previousPoints = useMemo(() => seriesToPoints(previousSeries, maxValue), [previousSeries, maxValue]);
   const smoothPath     = useMemo(() => buildSmoothPath(currentPoints),  [currentPoints]);
-  const areaPath       = useMemo(() => buildAreaPath(currentPoints, 142), [currentPoints]);
+  const areaPath       = useMemo(() => buildAreaPath(currentPoints, CHART_BASE_Y), [currentPoints]);
+  const referenceY     = referenceLine ? valueToChartY(referenceLine.value, maxValue) : null;
+  const referenceLabelY = referenceY == null ? null : Math.max(CHART_TOP + 4, referenceY - 6);
+  const showReferenceLabel = labels.length <= 10;
   const gradId         = `grad-${category}`;
+  const chartTitleId   = `chart-title-${category}`;
+  const chartDescId    = `chart-desc-${category}`;
+  const tooltipId      = `chart-tooltip-${category}`;
+  const referenceValue = referenceLine ? formatSeriesValue(category, referenceLine.value) : '';
+  const activeTooltip  = activeDatum ? getTooltipPosition(activeDatum.x, activeDatum.y) : null;
 
   const delta   = comparison?.delta_pct;
   const isUp    = (delta ?? 0) > 0;
   const isDown  = (delta ?? 0) < 0;
+
+  useEffect(() => {
+    setActiveDatum(null);
+  }, [category, currentLogs]);
+
+  function showDatum(index) {
+    const value = currentSeries[index];
+    const point = currentPoints[index];
+    if (value == null || !point || point[1] == null) {
+      setActiveDatum(null);
+      return;
+    }
+    setActiveDatum({
+      index,
+      x: point[0],
+      y: point[1],
+      label: labels[index] || '',
+      value,
+      valueLabel: formatSeriesValue(category, value),
+    });
+  }
+
+  function datumAriaLabel(index) {
+    const label = labels[index] || '';
+    const value = formatSeriesValue(category, currentSeries[index]);
+    return `${label} ${meta.label} 현재 값 ${value}. 비교 기준 ${referenceValue}`;
+  }
 
   return (
     <section className="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
@@ -246,7 +472,17 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
         )}
       </div>
 
-      <svg width="100%" viewBox="0 0 640 170" style={{ display: 'block' }}>
+      <svg
+        width="100%"
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        role="group"
+        aria-labelledby={`${chartTitleId} ${chartDescId}`}
+        style={{ display: 'block' }}
+      >
+        <title id={chartTitleId}>{meta.label} 추이 그래프</title>
+        <desc id={chartDescId}>
+          현재 값, 이전 기간, 비교 기준선을 함께 표시합니다. 데이터 포인트에 포커스하거나 마우스를 올리면 현재 값을 확인할 수 있습니다.
+        </desc>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor={meta.color} stopOpacity="0.2" />
@@ -254,9 +490,37 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
           </linearGradient>
         </defs>
 
-        <line x1="40" y1="142" x2="624" y2="142" stroke="#e7e5e4" />
-        <line x1="40" y1="88"  x2="624" y2="88"  stroke="#f5f5f4" strokeDasharray="4 4" />
-        <line x1="40" y1="34"  x2="624" y2="34"  stroke="#f5f5f4" strokeDasharray="4 4" />
+        <line x1={CHART_LEFT} y1={CHART_BASE_Y} x2={CHART_RIGHT_X} y2={CHART_BASE_Y} stroke="#e7e5e4" />
+        <line x1={CHART_LEFT} y1="88"  x2={CHART_RIGHT_X} y2="88"  stroke="#f5f5f4" strokeDasharray="4 4" />
+        <line x1={CHART_LEFT} y1="34"  x2={CHART_RIGHT_X} y2="34"  stroke="#f5f5f4" strokeDasharray="4 4" />
+
+        {referenceLine && referenceY != null && (
+          <g aria-hidden="true">
+            <line
+              x1={CHART_LEFT}
+              y1={referenceY}
+              x2={CHART_RIGHT_X}
+              y2={referenceY}
+              stroke={REFERENCE_LINE_COLOR}
+              strokeOpacity="0.72"
+              strokeWidth="1.25"
+              strokeDasharray="10 7"
+              strokeLinecap="round"
+            />
+            {showReferenceLabel && (
+              <text
+                x={CHART_RIGHT_X - 4}
+                y={referenceLabelY}
+                textAnchor="end"
+                fontSize="11"
+                fontWeight="600"
+                fill={REFERENCE_LINE_COLOR}
+              >
+                {referenceLine.label}
+              </text>
+            )}
+          </g>
+        )}
 
         <polyline
           points={buildPrevPolyline(previousPoints)}
@@ -270,11 +534,28 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
 
         {category === 'exercise' ? (
           currentSeries.map((value, i) => {
+            if (value == null) return null;
             const x = currentPoints[i]?.[0] ?? 0;
-            const y = currentPoints[i]?.[1] ?? 142;
+            const y = currentPoints[i]?.[1] ?? CHART_BASE_Y;
+            const barHeight = Math.max(0, CHART_BASE_Y - y);
+            const hitHeight = Math.max(36, barHeight);
+            const hitY = CHART_BASE_Y - hitHeight;
             return (
-              <rect key={`bar-${i}`} x={x - 7} y={y} width="14" height={Math.max(0, 142 - y)} rx="4"
-                fill={meta.color} opacity="0.8" />
+              <g
+                key={`bar-${i}`}
+                role="img"
+                tabIndex={0}
+                aria-label={datumAriaLabel(i)}
+                aria-describedby={activeDatum?.index === i ? tooltipId : undefined}
+                onPointerEnter={() => showDatum(i)}
+                onPointerMove={() => showDatum(i)}
+                onPointerLeave={() => setActiveDatum(null)}
+                onFocus={() => showDatum(i)}
+                onBlur={() => setActiveDatum(null)}
+              >
+                <rect x={x - 7} y={y} width="14" height={barHeight} rx="4" fill={meta.color} opacity="0.8" />
+                <rect x={x - 12} y={hitY} width="24" height={hitHeight} rx="6" fill="transparent" pointerEvents="all" />
+              </g>
             );
           })
         ) : (
@@ -283,7 +564,19 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
             {smoothPath && <path d={smoothPath} fill="none" stroke={meta.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />}
             {currentPoints.map(([x, y], i) =>
               y == null ? null : (
-                <g key={`pt-${i}`}>
+                <g
+                  key={`pt-${i}`}
+                  role="img"
+                  tabIndex={0}
+                  aria-label={datumAriaLabel(i)}
+                  aria-describedby={activeDatum?.index === i ? tooltipId : undefined}
+                  onPointerEnter={() => showDatum(i)}
+                  onPointerMove={() => showDatum(i)}
+                  onPointerLeave={() => setActiveDatum(null)}
+                  onFocus={() => showDatum(i)}
+                  onBlur={() => setActiveDatum(null)}
+                >
+                  <circle cx={x} cy={y} r="14" fill="transparent" pointerEvents="all" />
                   {i === currentPoints.length - 1 && <circle cx={x} cy={y} r="12" fill={meta.color} opacity="0.1" />}
                   <circle cx={x} cy={y} r="4" fill="white" stroke={meta.color} strokeWidth="2.5" />
                 </g>
@@ -297,18 +590,52 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
             {i % Math.max(1, Math.ceil(labels.length / 6)) === 0 || i === labels.length - 1 ? label : ''}
           </text>
         ))}
+
+        {activeTooltip && activeDatum && (
+          <g id={tooltipId} role="tooltip" pointerEvents="none">
+            <rect
+              x={activeTooltip.x}
+              y={activeTooltip.y}
+              width={TOOLTIP_WIDTH}
+              height={TOOLTIP_HEIGHT}
+              rx="8"
+              fill="var(--color-surface)"
+              stroke="var(--color-border)"
+              strokeWidth="1"
+            />
+            <rect x={activeTooltip.x + 9} y={activeTooltip.y + 10} width="3" height="34" rx="1.5" fill={meta.color} />
+            <text x={activeTooltip.x + 20} y={activeTooltip.y + 18} fontSize="10" fontWeight="600" fill="var(--color-text-muted)">
+              {activeDatum.label}
+            </text>
+            <text x={activeTooltip.x + 20} y={activeTooltip.y + 34} fontSize="12" fontWeight="700" fill="var(--color-text)">
+              현재 값: {activeDatum.valueLabel}
+            </text>
+            <text x={activeTooltip.x + 20} y={activeTooltip.y + 48} fontSize="10" fontWeight="600" fill="var(--color-text-muted)">
+              비교 기준: {referenceValue}
+            </text>
+          </g>
+        )}
       </svg>
 
       <div className="mt-3 flex items-center justify-between gap-4">
         <div className="flex gap-4 text-[11px] text-stone-400">
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-4 rounded" style={{ backgroundColor: meta.color }} />
-            현재
+            현재 값
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-block w-4 border-t-2 border-dashed border-stone-300" />
-            이전
+            이전 기간
           </div>
+          {referenceLine && (
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block w-4 border-t border-dashed"
+                style={{ borderTopColor: REFERENCE_LINE_COLOR, opacity: 0.72 }}
+              />
+              비교 기준
+            </div>
+          )}
         </div>
         <div className="text-[12px] text-stone-500">
           {categoryInterpretation(meta, comparison)}
@@ -320,49 +647,139 @@ function CategoryChart({ category, currentLogs, previousLogs, comparison }) {
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 
+const DETAIL_CACHE_PREFIX = 'danaa:report:detail:v1';
+const DETAIL_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function detailCacheKey(userId, periodDays) {
+  return userId == null ? null : `${DETAIL_CACHE_PREFIX}:u${userId}:${periodDays}`;
+}
+
+function readDetailCache(cacheKey) {
+  if (typeof window === 'undefined' || !cacheKey) return null;
+  try {
+    const raw = sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts > DETAIL_CACHE_TTL_MS) return null;
+    return parsed.payload;
+  } catch {
+    return null;
+  }
+}
+
+function writeDetailCache(cacheKey, payload) {
+  if (typeof window === 'undefined' || !cacheKey) return;
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), payload }));
+  } catch {
+    // ignore
+  }
+}
+
+function clearDetailCaches() {
+  if (typeof window === 'undefined') return;
+  try {
+    Object.keys(sessionStorage)
+      .filter((key) => key.startsWith(`${DETAIL_CACHE_PREFIX}:`))
+      .forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // ignore
+  }
+}
+
 export default function ReportDetailPage() {
   const [periodDays, setPeriodDays] = useState(7);
   const [status,  setStatus]  = useState(null);
   const [summary, setSummary] = useState(null);
   const [logs,    setLogs]    = useState([]);
   const [loaded,  setLoaded]  = useState(false);
+  const [risk,    setRisk]    = useState(null);
   const [error,   setError]   = useState('');
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      setLoaded(false); setError('');
+      setError('');
+
+      // user_id가 확인된 경우에만 사용자별 상세 캐시를 사용한다.
+      // 확인 실패 시 캐시를 건너뛰어 계정 전환 간 데이터 노출을 막는다.
+      let currentUserId = null;
+      try {
+        const userRes = await api('/api/v1/users/me');
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          currentUserId = userData?.id ?? null;
+        }
+      } catch {
+        currentUserId = null;
+      }
+      const cacheKey = detailCacheKey(currentUserId, periodDays);
+
+      const cached = readDetailCache(cacheKey);
+      if (cached) {
+        setStatus(cached.status);
+        setSummary(cached.summary);
+        setLogs(cached.logs || []);
+        setLoaded(true);
+      } else {
+        setLoaded(false);
+      }
+
       try {
         const statusRes = await api('/api/v1/onboarding/status');
         if (!statusRes.ok) throw new Error(`HTTP ${statusRes.status}`);
         const statusData = await statusRes.json();
+        if (cancelled) return;
         setStatus(statusData);
 
         if (statusData.is_completed) {
           const dates = getLastNDates(periodDays * 2);
-          const [summaryRes, ...dailyResponses] = await Promise.allSettled([
+          const [summaryRes, riskRes, ...dailyResponses] = await Promise.allSettled([
             api(`/api/v1/analysis/summary?period=${periodDays}`),
+            api('/api/v1/risk/current'),
             ...dates.map((date) => api(`/api/v1/health/daily/${date}`)),
           ]);
-          setSummary(summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null);
+          if (cancelled) return;
+          const summaryData = summaryRes.status === 'fulfilled' && summaryRes.value.ok ? await summaryRes.value.json() : null;
+          setSummary(summaryData);
           const dailyLogs = await Promise.all(
             dailyResponses.map(async (res, i) => {
               if (res.status !== 'fulfilled' || !res.value.ok) return { log_date: dates[i] };
               return res.value.json();
             }),
           );
+          if (cancelled) return;
           setLogs(dailyLogs);
+          writeDetailCache(cacheKey, { status: statusData, summary: summaryData, logs: dailyLogs });
           if (summaryRes.status === 'rejected' || !summaryRes.value?.ok) setError('일부 데이터를 불러오지 못했어요.');
+        } else {
+          writeDetailCache(cacheKey, { status: statusData, summary: null, logs: [] });
         }
       } catch (err) {
         console.error('report_detail_load_failed', err);
-        setError('상세 리포트를 불러오지 못했어요.');
-        setSummary(null); setLogs([]);
+        if (!cancelled) {
+          setError('상세 리포트를 불러오지 못했어요.');
+          setSummary(null); setLogs([]);
+        }
       } finally {
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     }
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [periodDays]);
+
+  // 건강 기록 저장 이벤트로 상세 캐시도 무효화
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handler = () => clearDetailCaches();
+    window.addEventListener('danaa:report-cache-refresh', handler);
+    return () => window.removeEventListener('danaa:report-cache-refresh', handler);
+  }, []);
 
   const hasOnboarding = Boolean(status?.is_completed);
   const currentLogs   = useMemo(() => logs.slice(-periodDays),                  [logs, periodDays]);
@@ -377,14 +794,14 @@ export default function ReportDetailPage() {
   );
 
   return (
-    <>
-      <header className="h-12 shrink-0 border-b border-stone-100 bg-white px-4">
-        <div className="flex h-full items-center text-[14px] font-medium text-stone-700">리포트</div>
+    <div className="theme-report-page flex h-full flex-col">
+      <header className="flex h-12 shrink-0 items-center border-b border-[#F5F5F4] bg-white px-4">
+        <span className="text-[14px] font-medium text-nature-900">리포트</span>
       </header>
       <ReportTabs />
 
-      <div className="flex-1 overflow-y-auto bg-stone-50 px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
-        <div className="mx-auto max-w-[980px] space-y-4">
+      <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarGutter: 'stable' }}>
+        <div className="mx-auto max-w-[1080px] space-y-4">
 
           {error && (
             <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-500">{error}</div>
@@ -430,6 +847,8 @@ export default function ReportDetailPage() {
 
           {loaded && hasOnboarding && hasData && summary && (
             <>
+              <DetailScoreSection risk={risk} />
+
               {/* 핵심 요약 + 영향 분석 */}
               <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
                 <div className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
@@ -485,6 +904,6 @@ export default function ReportDetailPage() {
 
         </div>
       </div>
-    </>
+    </div>
   );
 }

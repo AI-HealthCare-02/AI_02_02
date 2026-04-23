@@ -41,10 +41,11 @@ services:
   fastapi:
     container_name: fastapi
     image: ${FASTAPI_IMAGE}
-    env_file: .env
+    env_file: envs/.prod.env
     volumes:
       - static_volume:/app/templates
       - media_volume:/app/media
+      - ./tools:/app/tools
     restart: always
     ports:
       - "8000:8000"
@@ -59,7 +60,7 @@ services:
   gemma-runtime:
     container_name: gemma-runtime
     image: vllm/vllm-openai:latest
-    env_file: .env
+    env_file: envs/.prod.env
     restart: unless-stopped
     gpus: all
     shm_size: 2g

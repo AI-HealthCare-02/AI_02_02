@@ -14,6 +14,7 @@ from datetime import timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from backend.core.logger import setup_logger
 from backend.core.redis import get_redis
@@ -108,6 +109,7 @@ def get_scheduler() -> AsyncIOScheduler:
 
     # 순환 임포트 방지 — 태스크 모듈을 여기서 lazy import
     from backend.tasks.daily_cron import run_daily_cron
+    from backend.tasks.push_notifications import run_push_notification_tick
     from backend.tasks.weekly_cron import run_weekly_cron
 
     _scheduler = AsyncIOScheduler(
@@ -134,6 +136,14 @@ def get_scheduler() -> AsyncIOScheduler:
         trigger=CronTrigger(day_of_week="mon", hour=1, minute=0, timezone="Asia/Seoul"),
         id="weekly_cron",
         name="주간 크론 작업",
+        replace_existing=True,
+    )
+
+    _scheduler.add_job(
+        run_push_notification_tick,
+        trigger=IntervalTrigger(seconds=10, timezone="Asia/Seoul"),
+        id="push_notifications",
+        name="Web Push notification reminders",
         replace_existing=True,
     )
 

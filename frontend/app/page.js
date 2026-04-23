@@ -126,7 +126,10 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-[var(--color-border)] py-6 text-center text-xs text-[var(--color-text-hint)] transition-colors">
-        © 2026 DA-NA-A · 이용약관 · 개인정보처리방침
+        © 2026 DA-NA-A ·{' '}
+        <Link href="/terms" className="hover:underline">이용약관</Link>
+        {' · '}
+        <Link href="/privacy" className="hover:underline">개인정보처리방침</Link>
       </footer>
     </div>
   );

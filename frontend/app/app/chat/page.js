@@ -2,9 +2,12 @@
 
 import { memo, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { FileText } from 'lucide-react';
 import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
+import VideoRecommendations from '../../../components/VideoRecommendations';
 import { api, getToken } from '../../../hooks/useApi';
+import { formatUserGroupLabel } from '../../../lib/userGroupLabels';
 
 /* ── Right Panel V2 (리디자인) · 기본 활성화 / env 값 0일 때만 비활성화 ── */
 const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
@@ -14,7 +17,6 @@ const RightPanelV2 = dynamic(() => import('../../../components/RightPanelV2'), {
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '');
 const CHAT_API_PATH = '/api/v1/chat/send';
 const CHAT_API_URL = `${API_BASE}${CHAT_API_PATH}`;
-const CHAT_SESSIONS_API_PATH = '/api/v1/chat/sessions';
 const HEALTH_ANSWER_API_URL = `${API_BASE}/api/v1/chat/health-answer`;
 const CHAT_HISTORY_API_PATH = '/api/v1/chat/history';
 const DAILY_HEALTH_API_PATH = (logDate) => `/api/v1/health/daily/${logDate}`;
@@ -136,7 +138,7 @@ const SLEEP_QUALITY_LABELS = {
   bad: '나쁨',
   very_bad: '아주 나쁨',
 };
-const MEAL_LABELS = { hearty: '든든히 먹음', simple: '간단히 먹음', skipped: '거름' };
+const MEAL_LABELS = { hearty: '먹었어요', simple: '먹었어요', skipped: '못 먹었어요' };
 const EXERCISE_TYPES = {
   walking: '걷기',
   running: '달리기',
@@ -155,11 +157,11 @@ const HEALTH_OPTION_LABELS = {
   very_good: '아주 좋음',
   good: '좋음',
   normal: '보통',
-  enough: '충분해요',
+  enough: '충분히 먹었어요',
   little: '조금 먹었어요',
-  none: '거의 없어요',
-  balanced: '균형 잡혔어요',
-  carb_heavy: '탄수화물이 많아요',
+  none: '거의 못 먹었어요',
+  balanced: '고르게 먹었어요',
+  carb_heavy: '밥·빵·면 위주였어요',
   protein_veg_heavy: '단백질과 채소가 많아요',
   one: '한 번',
   two_plus: '두 번 이상',
@@ -551,6 +553,11 @@ export default function ChatPage() {
       const result = await response.json();
       applyDailyPayload(result, { fromDirectSave: true });
 
+      // 건강 기록 변경 → 리포트 캐시 무효화 이벤트
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('danaa:report-cache-refresh'));
+      }
+
       if (version === saveVersionRef.current) {
         setTodaySaveState('saved');
       }
@@ -682,22 +689,6 @@ export default function ChatPage() {
     }
   }, [createLocalMessageId, isStreaming]);
 
-  const restoreLatestSession = useCallback(async () => {
-    const response = await api(`${CHAT_SESSIONS_API_PATH}?limit=1`);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const payload = await response.json();
-    const latestSessionId = Number(payload?.sessions?.[0]?.id);
-    if (!latestSessionId) {
-      resetConversation(false);
-      return true;
-    }
-
-    return loadSessionHistory(latestSessionId);
-  }, [loadSessionHistory, resetConversation]);
-
   // 자동 스크롤
   const scrollToReplyTarget = useCallback((messageId, behavior = 'smooth', block = 'nearest') => {
     if (!messageId || typeof document === 'undefined') return;
@@ -822,6 +813,7 @@ export default function ChatPage() {
     const searchParams = new URLSearchParams(window.location.search);
     const requestedSessionId = Number(searchParams.get('session_id'));
     const explicitNew = searchParams.get(CHAT_NEW_QUERY_KEY) === CHAT_NEW_QUERY_VALUE;
+    const pushBundleKey = searchParams.get('bundle_key');
 
     if (isStreaming || isHistoryLoading) {
       return;
@@ -850,21 +842,23 @@ export default function ChatPage() {
         return;
       }
 
-      if (!sessionId && messages.length === 0) {
-        try {
-          const restored = await restoreLatestSession();
-          if (!restored) {
-            resetConversation(true);
-          }
-        } catch (error) {
-          console.error('chat_session_restore_failed', error);
-          resetConversation(true);
+      if (pushBundleKey) {
+        setManualCardBundleKey(pushBundleKey);
+        if (!sessionId && messages.length === 0) {
+          window.dispatchEvent(new CustomEvent('danaa:conversation-active', {
+            detail: { id: null, isNew: true },
+          }));
         }
+        return;
+      }
+
+      if (!sessionId && messages.length === 0) {
+        resetConversation(true);
       }
     })();
 
     return undefined;
-  }, [isHistoryLoading, isStreaming, loadSessionHistory, messages.length, resetConversation, restoreLatestSession, sessionId]);
+  }, [isHistoryLoading, isStreaming, loadSessionHistory, messages.length, resetConversation, sessionId]);
 
   useEffect(() => {
     async function syncOnboardingState() {
@@ -1333,6 +1327,9 @@ const sendMessage = useCallback(async () => {
       scrollCountRef.current = 0;
       setIsStreaming(false);
       abortRef.current = null;
+      requestAnimationFrame(() => {
+        chatInputRef.current?.focus();
+      });
     }
   }, [createLocalMessageId, inputText, isHistoryLoading, isStreaming, sessionId]);
 
@@ -1449,11 +1446,20 @@ const sendMessage = useCallback(async () => {
 
   useEffect(() => {
     if (!manualCardBundleKey) return;
+    if (!pendingQuestions) return;
     const stillExists = pendingQuestions?.bundles?.some((bundle) => bundle.bundleKey === manualCardBundleKey);
     if (!stillExists) {
       setManualCardBundleKey(null);
     }
   }, [manualCardBundleKey, pendingQuestions]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const pushBundleKey = searchParams.get('bundle_key');
+    if (!pushBundleKey) return;
+    setManualCardBundleKey(pushBundleKey);
+  }, [pendingQuestions]);
 
   useEffect(() => {
     if (!selectedPendingBundle || !manualHealthCardRef.current) return;
@@ -1576,10 +1582,23 @@ const sendMessage = useCallback(async () => {
       <header className="h-12 bg-[var(--color-bg)]/90 backdrop-blur-xl border-b border-cream-500/30 px-4 flex items-center shrink-0">
         <span className="text-[15px] font-medium text-nature-900">AI 채팅</span>
         <div className="flex-1"></div>
-        <button onClick={() => setPanelOpen(!panelOpen)} className="w-8 h-8 rounded-lg hover:bg-cream-400 flex items-center justify-center text-sm text-neutral-400 relative">
-          ▤
-          <span className="absolute top-[5px] right-[5px] w-[7px] h-[7px] bg-warning rounded-full border-[1.5px] border-cream-300"></span>
-        </button>
+        <div className="relative group hidden md:flex">
+          <button
+            type="button"
+            onClick={() => setPanelOpen(!panelOpen)}
+            aria-label={panelOpen ? '사이드바 닫기' : '사이드바 열기'}
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-text)]"
+          >
+            <FileText size={16} strokeWidth={1.75} />
+            <span className="absolute right-[5px] top-[5px] h-[7px] w-[7px] rounded-full border-[1.5px] border-[var(--color-bg)] bg-warning" />
+          </button>
+          <span
+            role="tooltip"
+            className="pointer-events-none absolute right-0 top-[calc(100%+6px)] z-50 whitespace-nowrap rounded-md bg-[var(--color-text)] px-2 py-1 text-[11px] font-semibold text-[var(--color-bg)] shadow-lg ring-1 ring-black/10 opacity-0 transition-opacity duration-150 delay-[400ms] group-hover:opacity-100"
+          >
+            {panelOpen ? '사이드바 닫기' : '사이드바 열기'}
+          </span>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -1602,7 +1621,7 @@ const sendMessage = useCallback(async () => {
                       <div className="text-[15px] leading-[1.75] text-nature-900">
                         안녕하세요! 다나아 AI입니다.<br />
                         {risk?.group && <>
-                          <strong>{risk.group}그룹</strong>({risk.groupLabel})이시네요.
+                          <strong>{risk.group}그룹</strong>({risk.groupLabel || formatUserGroupLabel(risk.group)})이시네요.
                           {risk.levelLabel && <> 현재 위험도는 <strong>{risk.levelLabel}</strong> 단계예요.</>}
                           <br />
                         </>}
@@ -1667,6 +1686,10 @@ const sendMessage = useCallback(async () => {
                   이전 대화는 텍스트만 복원돼요. 건강 질문 카드는 새 답변에서만 표시됩니다.
                 </div>
               </div>
+            )}
+
+            {onboarding && (
+              <VideoRecommendations />
             )}
 
             <ChatTranscript
@@ -1958,25 +1981,30 @@ function SleepPanel({ log, update }) {
 
 /* ═══════════ 식사 패널 ═══════════ */
 function MealPanel({ log, update }) {
+  const [mealSaveMessage, setMealSaveMessage] = useState('');
+  const notifyMealSaved = useCallback((field, value) => {
+    update(field, value);
+    setMealSaveMessage('식사 기록을 저장했어요.');
+    window.setTimeout(() => setMealSaveMessage(''), 1800);
+  }, [update]);
   const meals = [
     { key: 'breakfast_status', label: '아침', marker: 'AM' },
     { key: 'lunch_status', label: '점심', marker: 'NO' },
     { key: 'dinner_status', label: '저녁', marker: 'PM' },
   ];
   const options = [
-    { key: 'hearty', label: '든든히' },
-    { key: 'simple', label: '간단히' },
-    { key: 'skipped', label: '못먹음' },
+    { key: 'hearty', label: '먹었어요' },
+    { key: 'skipped', label: '못 먹었어요' },
   ];
   const vegOptions = [
-    { key: 'enough', label: '충분' },
-    { key: 'little', label: '조금' },
-    { key: 'none', label: '없음' },
+    { key: 'enough', label: '충분히 먹었어요' },
+    { key: 'little', label: '조금 먹었어요' },
+    { key: 'none', label: '거의 못 먹었어요' },
   ];
   const balanceOptions = [
-    { key: 'balanced', label: '균형' },
-    { key: 'carb_heavy', label: '탄수화물 위주' },
-    { key: 'protein_veg_heavy', label: '단백질·채소 위주' },
+    { key: 'balanced', label: '고르게 먹었어요' },
+    { key: 'carb_heavy', label: '밥·빵·면 위주였어요' },
+    { key: 'protein_veg_heavy', label: '고기·채소 위주였어요' },
   ];
   const breakfastLocked = false;
   const lunchLocked = false;
@@ -1987,6 +2015,11 @@ function MealPanel({ log, update }) {
 
   return (
     <div className="bg-cream-300 rounded-xl p-4.5 mb-4">
+      {mealSaveMessage && (
+        <div className="mb-3 rounded-xl bg-nature-50 px-3.5 py-2 text-[13px] font-medium text-nature-800">
+          {mealSaveMessage}
+        </div>
+      )}
       {panelLocked && (
         <div className="mb-4 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
           이미 저장된 식사 기록은 오늘 화면에서 다시 바꾸지 않아요.
@@ -2005,7 +2038,7 @@ function MealPanel({ log, update }) {
             {options.map(opt => (
               <button
                 key={opt.key}
-                onClick={() => update(meal.key, opt.key)}
+                onClick={() => notifyMealSaved(meal.key, opt.key)}
                 disabled={
                   meal.key === 'breakfast_status'
                     ? breakfastLocked
@@ -2043,7 +2076,7 @@ function MealPanel({ log, update }) {
         </div>
         <div className="flex gap-2 flex-wrap">
           {vegOptions.map(opt => (
-            <button key={opt.key} onClick={() => update('vegetable_intake_level', opt.key)} disabled={vegetableLocked}
+            <button key={opt.key} onClick={() => notifyMealSaved('vegetable_intake_level', opt.key)} disabled={vegetableLocked}
               className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
                 log.vegetable_intake_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
@@ -2066,7 +2099,7 @@ function MealPanel({ log, update }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {balanceOptions.map(opt => (
-            <button key={opt.key} onClick={() => update('meal_balance_level', opt.key)} disabled={balanceLocked}
+            <button key={opt.key} onClick={() => notifyMealSaved('meal_balance_level', opt.key)} disabled={balanceLocked}
               className={`px-3 py-1.5 rounded-full text-[15px] transition-all ${
                 log.meal_balance_level === opt.key
                   ? 'bg-nature-500 text-white border border-nature-500'
@@ -2488,7 +2521,7 @@ function ExercisePanelV2({ log, update, save }) {
     return (
       <div className="bg-cream-300 rounded-xl p-4.5 mb-4 text-center">
         <div className="text-[17px] mb-2.5">운동</div>
-        <div className="text-[16px] font-medium text-nature-900 mb-3.5">오늘 운동을 했나요?</div>
+        <div className="text-[16px] font-medium text-nature-900 mb-3.5">오늘 운동 하셨나요?</div>
         <div className="flex gap-2 justify-center">
           <button
             onClick={() => update('exercise_done', true)}
@@ -2545,7 +2578,7 @@ function ExercisePanelV2({ log, update, save }) {
         <div className="border-t border-cream-500 mt-4 pt-4">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[16px]">걷기</span>
-            <span className="text-[15px] font-medium text-nature-900">오늘 산책은 했나요?</span>
+            <span className="text-[15px] font-medium text-nature-900">오늘 산책이나 걷기 하셨나요?</span>
           </div>
           <div className="flex gap-2">
             <button
@@ -2618,7 +2651,7 @@ function ExercisePanelV2({ log, update, save }) {
       <div className="border-t border-cream-500 pt-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[16px]">걷기</span>
-          <span className="text-[15px] font-medium text-nature-900">오늘 산책은 했나요?</span>
+          <span className="text-[15px] font-medium text-nature-900">오늘 산책이나 걷기 하셨나요?</span>
         </div>
         <div className="flex gap-2">
           <button
@@ -2655,6 +2688,7 @@ function ExercisePanelV2({ log, update, save }) {
 
 function WaterPanelV2({ log, update }) {
   const waterLocked = false;
+  const waterCups = Number(log.water_cups || 0);
 
   return (
     <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${waterLocked ? 'opacity-70' : ''}`}>
@@ -2665,7 +2699,7 @@ function WaterPanelV2({ log, update }) {
       )}
       <div className="flex items-center justify-center gap-3.5 mb-4">
         <button
-          onClick={() => update('water_cups', Math.max(0, log.water_cups - 1))}
+          onClick={() => update('water_cups', Math.max(0, waterCups - 1))}
           disabled={waterLocked}
           className={`w-10 h-10 rounded-full border flex items-center justify-center text-[18px] transition-colors ${
             waterLocked
@@ -2676,11 +2710,11 @@ function WaterPanelV2({ log, update }) {
           -
         </button>
         <div className="text-center">
-          <span className="text-[32px] font-semibold leading-none text-nature-900">{log.water_cups}</span>
+          <span className="text-[32px] font-semibold leading-none text-nature-900">{waterCups}</span>
           <span className="text-[14px] text-neutral-400 ml-1">/ 8잔</span>
         </div>
         <button
-          onClick={() => update('water_cups', Math.min(12, log.water_cups + 1))}
+          onClick={() => update('water_cups', Math.min(12, waterCups + 1))}
           disabled={waterLocked}
           className={`w-10 h-10 rounded-full border flex items-center justify-center text-[18px] transition-colors ${
             waterLocked
@@ -2694,7 +2728,7 @@ function WaterPanelV2({ log, update }) {
       <div className="flex items-center gap-2.5 mb-3">
         <span className="text-[20px]">수분</span>
         <div className="flex-1 h-2 bg-cream-500 rounded-full overflow-hidden">
-          <div className="h-full bg-[#64b5f6] rounded-full transition-all" style={{ width: `${Math.min(100, (log.water_cups / 8) * 100)}%` }}></div>
+          <div className="h-full bg-[#64b5f6] rounded-full transition-all" style={{ width: `${Math.min(100, (waterCups / 8) * 100)}%` }}></div>
         </div>
       </div>
       <div className="text-[14px] leading-[1.55] text-neutral-400 text-center">하루 권장 8잔(240ml 기준)</div>
@@ -2803,7 +2837,7 @@ function AlcoholPanel({ log, updateAlcoholToday, updateAlcoholAmount }) {
 
       {log.alcohol_today === true && (
         <>
-          <div className="text-[14px] text-neutral-400 mb-2.5">얼마나 마셨어요?</div>
+          <div className="text-[14px] text-neutral-400 mb-2.5">얼마나 드셨나요?</div>
           <div className="flex gap-2 flex-wrap">
             {amountOptions.map((option) => (
               <button

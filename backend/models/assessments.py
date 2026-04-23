@@ -58,6 +58,7 @@ class RiskAssessment(models.Model):
     class Meta:
         table = "risk_assessments"
         indexes = (("user", "period_type", "period_end"),)
+        unique_together = (("user", "period_type", "period_start", "period_end"),)
 
 
 class UserEngagement(models.Model):

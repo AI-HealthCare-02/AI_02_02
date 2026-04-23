@@ -45,10 +45,10 @@ export const KO = {
   'rightPanel.sleep.duration.7_8': '7~8시간',
   'rightPanel.sleep.duration.8_plus': '8시간 이상',
   'rightPanel.sleep.quality.label': '수면 질',
-  'rightPanel.sleep.quality.excellent': '잘 잤음',
-  'rightPanel.sleep.quality.good': '그럭저럭',
-  'rightPanel.sleep.quality.normal': '뒤척임',
-  'rightPanel.sleep.quality.bad': '푹 못 잠',
+  'rightPanel.sleep.quality.excellent': '아주 좋음',
+  'rightPanel.sleep.quality.good': '좋음',
+  'rightPanel.sleep.quality.normal': '보통',
+  'rightPanel.sleep.quality.bad': '나쁨',
 
   // 식사 상세
   'rightPanel.meal.slot.label': '어느 끼니인가요',
@@ -57,10 +57,10 @@ export const KO = {
   'rightPanel.meal.slot.dinner': '저녁',
   'rightPanel.meal.slot.snack': '간식',
   'rightPanel.meal.balance.label': '구성',
-  'rightPanel.meal.balance.carb_heavy': '탄수화물 많음',
-  'rightPanel.meal.balance.balanced': '균형',
-  'rightPanel.meal.balance.protein_heavy': '단백질 많음',
-  'rightPanel.meal.balance.veg_heavy': '채소 많음',
+  'rightPanel.meal.balance.carb_heavy': '밥·빵·면 위주였어요',
+  'rightPanel.meal.balance.balanced': '고르게 먹었어요',
+  'rightPanel.meal.balance.protein_heavy': '단백질 위주였어요',
+  'rightPanel.meal.balance.veg_heavy': '채소 위주였어요',
 
   // 복약 상세 (A 그룹 전용)
   'rightPanel.medication.taken.label': '오늘 약을 드셨나요',
@@ -111,7 +111,7 @@ export const KO = {
 
   // 모달
   'rightPanel.missedModal.title': '아직 기록 안 한 항목 · 최근 3일',
-  'rightPanel.missedModal.hint': '노란 배경의 ＋ 미입력 칸을 누르면 바로 입력할 수 있어요. 저장하면 해당 날짜 기록에 반영됩니다.',
+  'rightPanel.missedModal.hint': '미입력 칸에서 값을 선택한 뒤 기록 저장하기를 누르면 해당 날짜 기록에 반영됩니다.',
   'rightPanel.missedModal.empty': '미입력',
   'rightPanel.missedModal.columns.category': '카테고리',
   'rightPanel.missedModal.columns.today': '오늘',
@@ -122,7 +122,7 @@ export const KO = {
   'rightPanel.missedModal.todayLockedHint': '오늘 기록은 위 카드에서 입력해주세요',
 
   // 에러/상태
-  'rightPanel.error.networkFail': '연결이 끊겼어요. 잠시 후 다시 시도해주세요',
+  'rightPanel.error.networkFail': '저장 중 연결 문제가 있었어요. 잠시 후 다시 시도해주세요.',
   'rightPanel.error.skippedAlreadyAnswered': '이미 저장된 값이에요',
   'rightPanel.error.skippedGeneric': '저장되지 않았어요 · 다시 시도',
 };
