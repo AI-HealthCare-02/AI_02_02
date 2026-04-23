@@ -32,6 +32,64 @@ export const SAJU_KO = {
   // 안전 문구 (상세 팝업 하단 고정, P4에서 실사용)
   'saju.safety.notice':
     '이 내용은 재미와 자기이해를 위한 참고용 운세입니다. 중요한 결정은 전문가나 실제 상황을 기준으로 판단해주세요.',
+
+  // ─── MVP 모달 (통합 테스트용 4단계 플로우) ───
+  // 공통
+  'saju.modal.close': '닫기',
+  'saju.modal.back': '이전',
+  'saju.modal.next': '다음',
+  'saju.modal.step.consent': '시작',
+  'saju.modal.step.profile': '나에 대해',
+  'saju.modal.step.calibration': '오늘 보고 싶은',
+  'saju.modal.step.result': '결과',
+
+  // Step 1 — 동의
+  'saju.modal.consent.title': '오늘의 운세 시작하기',
+  'saju.modal.consent.lead':
+    '오늘의 운세는 재미와 자기이해를 위한 참고용 카드예요.',
+  'saju.modal.consent.body':
+    '입력하신 생년월일·시간은 오늘의 운세 카드를 보여드리는 데에만 쓰이고, 외부에 공유되지 않아요.',
+  'saju.modal.consent.cta': '동의하고 계속',
+
+  // Step 2 — 프로필
+  'saju.modal.profile.title': '나에 대해 알려주세요',
+  'saju.modal.profile.birthDate.label': '생년월일',
+  'saju.modal.profile.calendar.label': '양력/음력',
+  'saju.modal.profile.calendar.solar': '양력',
+  'saju.modal.profile.calendar.lunar': '음력',
+  'saju.modal.profile.gender.label': '성별',
+  'saju.modal.profile.gender.female': '여성',
+  'saju.modal.profile.gender.male': '남성',
+  'saju.modal.profile.gender.unknown': '선택 안 함',
+  'saju.modal.profile.birthTime.label': '출생 시간 (선택)',
+  'saju.modal.profile.birthTime.unknown': '모름',
+  'saju.modal.profile.birthTime.hint':
+    '시간을 알면 더 정밀해져요. 모르면 비워두세요.',
+
+  // Step 3 — Calibration
+  'saju.modal.calibration.title': '오늘 보고 싶은 운세는?',
+  'saju.modal.calibration.focus.label': '지금 가장 궁금한 영역',
+  'saju.modal.calibration.focus.total': '총운',
+  'saju.modal.calibration.focus.money': '재물',
+  'saju.modal.calibration.focus.relation': '관계',
+  'saju.modal.calibration.focus.health': '건강',
+  'saju.modal.calibration.focus.work': '일·학업',
+  'saju.modal.calibration.tone.label': '원하는 말투',
+  'saju.modal.calibration.tone.soft': '부드럽게',
+  'saju.modal.calibration.tone.real': '현실적으로',
+  'saju.modal.calibration.tone.short': '짧고 명확하게',
+  'saju.modal.calibration.cta': '결과 보기',
+
+  // Step 4 — 결과 (mock)
+  'saju.modal.result.title': '오늘의 운세',
+  'saju.modal.result.badge.mock': '참고용',
+  'saju.modal.result.section.total': '총운',
+  'saju.modal.result.section.money': '재물운',
+  'saju.modal.result.section.health': '건강운',
+  'saju.modal.result.section.work': '일·학업운',
+  'saju.modal.result.section.oneThing': '오늘의 한 가지',
+  'saju.modal.result.toggle.why': '왜 이렇게 봤나요?',
+  'saju.modal.result.cta.close': '카드 닫기',
 };
 
 /**
