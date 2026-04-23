@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>다나아 Do it OS 확장형 대시보드 V1</title>
+  <style>
+    :root {
+      --bg: #f8f8f6;
+      --canvas: #f1f0eb;
+      --paper: #ffffff;
+      --paper-soft: #f6f5f1;
+      --paper-warm: #f3efe8;
+      --ink: #161616;
+      --text: #242321;
+      --muted: #67645d;
+      --hint: #918c82;
+      --line: #e4e0d8;
+      --line-strong: #d5cec2;
+      --sidebar-top: #f7f7f5;
+      --sidebar-bottom: #f5f4ef;
+      --active: #ebe7dd;
+      --active-strong: #d9d0c1;
+      --green: #2f7d55;
+      --green-soft: #e8f2eb;
+      --blue: #426b94;
+      --blue-soft: #e7eef4;
+      --brown: #9a6736;
+      --brown-soft: #f4eadf;
+      --red: #a94f3f;
+      --red-soft: #f3e5e0;
+      --yellow: #b4872e;
+      --yellow-soft: #f5edda;
+      --black: #1c1c1c;
+      --shadow: 0 18px 48px rgba(28, 28, 28, 0.08);
+      --shadow-soft: 0 10px 28px rgba(28, 28, 28, 0.06);
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --sidebar-width: 276px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      background:
+        radial-gradient(circle at 16% 0%, rgba(218, 211, 196, 0.44), transparent 30%),
+        radial-gradient(circle at 86% 10%, rgba(232, 242, 235, 0.78), transparent 26%),
+        linear-gradient(180deg, #fbfaf7 0%, var(--canvas) 100%);
+      line-height: 1.55;
+      word-break: keep-all;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1740px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 24px 0 46px;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .intro-main,
+    .intro-note {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(18px);
+    }
+
+    .intro-main {
+      padding: 28px;
+    }
+
+    .intro-note {
+      padding: 22px;
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 12px;
+      color: var(--ink);
+      font-size: clamp(30px, 4.2vw, 62px);
+      line-height: 1.02;
+      letter-spacing: -0.055em;
+    }
+
+    .intro-main p,
+    .intro-note p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 32px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .pill strong {
+      color: var(--ink);
+    }
+
+    .app-shell {
+      min-height: 880px;
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 36px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.6);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      border-right: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, var(--sidebar-top) 0 198px, var(--sidebar-bottom) 198px 100%);
+    }
+
+    .side-top {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.05em;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav-item,
+    .sub-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      padding: 9px 11px;
+      border-radius: 13px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 850;
+      text-decoration: none;
+    }
+
+    .nav-item.active {
+      background: var(--active);
+      color: var(--ink);
+      box-shadow: inset 0 0 0 1px var(--active-strong);
+    }
+
+    .nav-icon {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 20px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .side-body {
+      flex: 1;
+      padding: 16px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .subnav-card {
+      position: relative;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .subnav-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+    }
+
+    .subnav-title span:last-child {
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: var(--paper-warm);
+      color: var(--brown);
+      font-size: 10px;
+    }
+
+    .subnav {
+      position: relative;
+      display: grid;
+      gap: 5px;
+      margin-left: 7px;
+      padding-left: 14px;
+    }
+
+    .subnav::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      border-radius: 999px;
+      background: #ded7cb;
+    }
+
+    .sub-item {
+      position: relative;
+      min-height: 34px;
+      padding: 7px 9px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .sub-item::before {
+      content: "";
+      position: absolute;
+      left: -18px;
+      width: 8px;
+      height: 8px;
+      border: 2px solid var(--paper);
+      border-radius: 50%;
+      background: #c8c1b5;
+      box-shadow: 0 0 0 1px #d6cec1;
+    }
+
+    .sub-item.selected {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: inset 0 0 0 1px var(--line-strong);
+    }
+
+    .sub-item.selected::before {
+      background: var(--green);
+      box-shadow: 0 0 0 2px rgba(47, 125, 85, 0.16);
+    }
+
+    .side-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.54);
+    }
+
+    .side-card h3 {
+      margin-bottom: 5px;
+      color: var(--ink);
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    .side-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .side-footer {
+      margin-top: auto;
+      display: grid;
+      gap: 8px;
+    }
+
+    .workspace {
+      min-width: 0;
+      background:
+        radial-gradient(circle at 94% 4%, rgba(236, 229, 216, 0.75), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 248, 246, 0.94));
+    }
+
+    .topbar {
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(12px);
+    }
+
+    .crumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--hint);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .crumb strong {
+      color: var(--ink);
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .ghost-button,
+    .solid-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .ghost-button {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.62);
+      color: var(--muted);
+    }
+
+    .solid-button {
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .content {
+      padding: 22px;
+    }
+
+    .style-radio {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .style-tabs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      padding: 8px;
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow-soft);
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      backdrop-filter: blur(14px);
+    }
+
+    .style-tabs label {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      cursor: pointer;
+      transition: transform 160ms ease-out, background-color 160ms ease-out, color 160ms ease-out;
+    }
+
+    .style-tabs label:hover {
+      transform: translateY(-1px);
+      background: var(--paper-soft);
+      color: var(--ink);
+    }
+
+    #style-1:checked ~ .style-tabs label[for="style-1"],
+    #style-2:checked ~ .style-tabs label[for="style-2"],
+    #style-3:checked ~ .style-tabs label[for="style-3"],
+    #style-4:checked ~ .style-tabs label[for="style-4"],
+    #style-5:checked ~ .style-tabs label[for="style-5"] {
+      background: var(--ink);
+      color: #fff;
+      box-shadow: 0 12px 28px rgba(28, 28, 28, 0.14);
+    }
+
+    .style-panel {
+      display: none;
+      animation: rise 260ms ease-out;
+    }
+
+    #style-1:checked ~ .style-panels #panel-1,
+    #style-2:checked ~ .style-panels #panel-2,
+    #style-3:checked ~ .style-panels #panel-3,
+    #style-4:checked ~ .style-panels #panel-4,
+    #style-5:checked ~ .style-panels #panel-5 {
+      display: block;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .panel-head h2 {
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: clamp(24px, 3vw, 40px);
+      line-height: 1.06;
+      letter-spacing: -0.045em;
+    }
+
+    .panel-head p {
+      max-width: 850px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .recommend {
+      min-width: 170px;
+      padding: 13px 14px;
+      border-radius: 18px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 950;
+      text-align: center;
+    }
+
+    .mode-box {
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.64);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .mode-radio {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .mode-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .mode-labels {
+      display: inline-grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      width: min(430px, 100%);
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper-soft);
+    }
+
+    .mode-labels label {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 950;
+      cursor: pointer;
+    }
+
+    .mode-note {
+      color: var(--hint);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    #s1-dump:checked ~ .mode-top label[for="s1-dump"],
+    #s1-organize:checked ~ .mode-top label[for="s1-organize"],
+    #s2-dump:checked ~ .mode-top label[for="s2-dump"],
+    #s2-organize:checked ~ .mode-top label[for="s2-organize"],
+    #s3-dump:checked ~ .mode-top label[for="s3-dump"],
+    #s3-organize:checked ~ .mode-top label[for="s3-organize"],
+    #s4-dump:checked ~ .mode-top label[for="s4-dump"],
+    #s4-organize:checked ~ .mode-top label[for="s4-organize"],
+    #s5-dump:checked ~ .mode-top label[for="s5-dump"],
+    #s5-organize:checked ~ .mode-top label[for="s5-organize"] {
+      background: var(--ink);
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(28, 28, 28, 0.12);
+    }
+
+    .mode-panel {
+      display: none;
+      padding: 18px;
+    }
+
+    #s1-dump:checked ~ .mode-content .dump,
+    #s1-organize:checked ~ .mode-content .organize,
+    #s2-dump:checked ~ .mode-content .dump,
+    #s2-organize:checked ~ .mode-content .organize,
+    #s3-dump:checked ~ .mode-content .dump,
+    #s3-organize:checked ~ .mode-content .organize,
+    #s4-dump:checked ~ .mode-content .dump,
+    #s4-organize:checked ~ .mode-content .organize,
+    #s5-dump:checked ~ .mode-content .dump,
+    #s5-organize:checked ~ .mode-content .organize {
+      display: block;
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 1.02fr) minmax(360px, 1.35fr);
+      gap: 16px;
+    }
+
+    .dash-grid.reverse {
+      grid-template-columns: minmax(420px, 1.3fr) minmax(320px, 1fr);
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--paper);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .card.soft {
+      background: var(--paper-soft);
+    }
+
+    .card.pad {
+      padding: 18px;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card-title h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.18;
+      letter-spacing: -0.025em;
+    }
+
+    .card-title span {
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .textarea-mock {
+      min-height: 188px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(246, 245, 241, 0.9));
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .textarea-mock strong {
+      color: var(--ink);
+    }
+
+    .composer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .mini-button {
+      min-height: 34px;
+      padding: 8px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .mini-button.primary {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .summary-hero {
+      min-height: 188px;
+      padding: 20px;
+      border-radius: 26px;
+      background:
+        linear-gradient(145deg, rgba(232, 242, 235, 0.92), rgba(255, 255, 255, 0.86)),
+        var(--paper);
+      border: 1px solid #d3e2d8;
+    }
+
+    .summary-hero h3 {
+      margin-bottom: 10px;
+      color: var(--green);
+      font-size: 20px;
+      letter-spacing: -0.035em;
+    }
+
+    .summary-hero p {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .metric {
+      padding: 11px;
+      border: 1px solid rgba(47, 125, 85, 0.16);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .metric b {
+      display: block;
+      color: var(--ink);
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .metric span {
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .classify-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .classify-grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .class-card {
+      min-height: 124px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: #fff;
+    }
+
+    .class-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .class-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .tag.green {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .tag.blue {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .tag.brown {
+      background: var(--brown-soft);
+      color: var(--brown);
+    }
+
+    .tag.red {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .tag.yellow {
+      background: var(--yellow-soft);
+      color: var(--yellow);
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .list-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .dot.blue {
+      background: var(--blue);
+    }
+
+    .dot.brown {
+      background: var(--brown);
+    }
+
+    .dot.red {
+      background: var(--red);
+    }
+
+    .dot.yellow {
+      background: var(--yellow);
+    }
+
+    .list-row strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .list-row small {
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .board-column {
+      min-height: 330px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--paper-soft);
+    }
+
+    .board-column h3 {
+      margin-bottom: 10px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .kanban-card {
+      padding: 13px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .kanban-card strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .kanban-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 70px minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .time {
+      padding-top: 13px;
+      color: var(--hint);
+      font-size: 12px;
+      font-weight: 950;
+      text-align: right;
+    }
+
+    .time-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: #fff;
+    }
+
+    .time-card strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .time-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .note-wall {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .sticky-note {
+      min-height: 180px;
+      padding: 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 18px;
+      background: #fffaf0;
+      box-shadow: 0 10px 20px rgba(154, 103, 54, 0.08);
+      transform: rotate(-0.6deg);
+    }
+
+    .sticky-note:nth-child(2) {
+      background: #f0f6f2;
+      transform: rotate(0.4deg);
+    }
+
+    .sticky-note:nth-child(3) {
+      background: #edf2f8;
+      transform: rotate(-0.2deg);
+    }
+
+    .sticky-note strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .sticky-note p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+    }
+
+    .week {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .day {
+      min-height: 126px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .day strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .day span {
+      display: inline-flex;
+      margin: 2px 0;
+      padding: 4px 6px;
+      border-radius: 8px;
+      background: var(--paper-soft);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 850;
+    }
+
+    .health-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .health-card {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: #fff;
+    }
+
+    .health-card b {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }
+
+    .health-card span {
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .health-card p {
+      margin: 9px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .compare-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .compare-card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .compare-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dark-preview {
+      background:
+        radial-gradient(circle at 86% 0%, rgba(71, 71, 66, 0.45), transparent 24%),
+        linear-gradient(180deg, #252524, #1f1f1e);
+      color: #ececec;
+    }
+
+    .dark-preview .card,
+    .dark-preview .class-card,
+    .dark-preview .list-row,
+    .dark-preview .kanban-card,
+    .dark-preview .time-card,
+    .dark-preview .health-card,
+    .dark-preview .day {
+      border-color: #3a3a3a;
+      background: #2a2a2a;
+    }
+
+    .dark-preview h2,
+    .dark-preview h3,
+    .dark-preview strong,
+    .dark-preview .health-card b,
+    .dark-preview .list-row strong,
+    .dark-preview .time-card strong,
+    .dark-preview .kanban-card strong {
+      color: #f0f0f0;
+    }
+
+    .dark-preview p,
+    .dark-preview small,
+    .dark-preview span,
+    .dark-preview .mode-note {
+      color: #a0a0a0;
+    }
+
+    .dark-preview .mode-top,
+    .dark-preview .mode-labels,
+    .dark-preview .textarea-mock,
+    .dark-preview .board-column {
+      border-color: #3a3a3a;
+      background: #252525;
+    }
+
+    .dark-preview .mini-button {
+      border-color: #3a3a3a;
+      background: #303030;
+      color: #d9d9d9;
+    }
+
+    .dark-preview .mini-button.primary,
+    .dark-preview .mode-labels label {
+      color: #d9d9d9;
+    }
+
+    .dark-preview .mode-labels label:first-child {
+      color: #fff;
+    }
+
+    .dark-preview .solid-button,
+    .dark-preview .mini-button.primary {
+      border-color: #f0f0f0;
+      background: #f0f0f0;
+      color: #1f1f1e;
+    }
+
+    .layout-note {
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout-note strong {
+      color: var(--ink);
+    }
+
+    .full-dashboard {
+      margin-bottom: 22px;
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background:
+        radial-gradient(circle at 92% 0%, rgba(232, 242, 235, 0.88), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 247, 243, 0.94));
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .full-dashboard__head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .full-dashboard__head h2 {
+      margin-bottom: 7px;
+      color: var(--ink);
+      font-size: clamp(26px, 3.1vw, 44px);
+      line-height: 1.04;
+      letter-spacing: -0.052em;
+    }
+
+    .full-dashboard__head p {
+      max-width: 920px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .full-dashboard__badge {
+      min-width: 190px;
+      padding: 13px 15px;
+      border: 1px solid var(--line-strong);
+      border-radius: 20px;
+      background: #fff;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 950;
+      text-align: center;
+      box-shadow: 0 10px 22px rgba(47, 125, 85, 0.08);
+    }
+
+    .dashboard-body {
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .dashboard-metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .dashboard-metric {
+      min-height: 112px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: #fff;
+    }
+
+    .dashboard-metric b {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -0.05em;
+    }
+
+    .dashboard-metric span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .dashboard-metric p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dashboard-master {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.92fr) minmax(0, 1.18fr) minmax(320px, 0.9fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .dashboard-column {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .dashboard-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: #fff;
+      padding: 16px;
+    }
+
+    .dashboard-card.tint {
+      background: var(--paper-soft);
+    }
+
+    .dashboard-card.warm {
+      background: var(--paper-warm);
+    }
+
+    .dashboard-card h3 {
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 16px;
+      letter-spacing: -0.025em;
+    }
+
+    .dashboard-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dashboard-card.hero-card {
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.9), transparent 34%),
+        linear-gradient(180deg, #fff, var(--paper-warm));
+    }
+
+    .dashboard-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .dashboard-section-title h3 {
+      margin-bottom: 0;
+    }
+
+    .dashboard-section-title span {
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: -0.01em;
+    }
+
+    .dashboard-tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .dashboard-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.74);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .reason-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .reason-item {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .reason-item b {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-size: 12px;
+    }
+
+    .reason-item strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .reason-item span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .capture-box {
+      min-height: 170px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(246, 245, 241, 0.92));
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .capture-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.62);
+    }
+
+    .flow-step b {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .flow-step strong {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .flow-step span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dashboard-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .dashboard-lane {
+      min-height: 318px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--paper-soft);
+    }
+
+    .dashboard-lane h3 {
+      margin-bottom: 10px;
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .dash-ticket {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 9px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fff;
+    }
+
+    .dash-ticket strong {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .dash-ticket small {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .today-plan {
+      display: grid;
+      gap: 8px;
+    }
+
+    .plan-row {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .plan-time {
+      color: var(--brown);
+      font-size: 12px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .plan-row strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .plan-row span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .mini-note-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mini-note {
+      min-height: 96px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: #fffaf0;
+    }
+
+    .mini-note:nth-child(2) {
+      background: #edf4ef;
+    }
+
+    .mini-note strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .mini-note span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .reason-card {
+      border-left: 4px solid var(--green);
+    }
+
+    .organize-card {
+      border-left: 4px solid var(--brown);
+      background:
+        radial-gradient(circle at 92% 0%, rgba(216, 148, 92, 0.12), transparent 34%),
+        #fff;
+    }
+
+    .organize-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .organize-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .organize-item strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .organize-item span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .organize-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 62px;
+      min-height: 28px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: var(--paper-warm);
+      color: var(--brown);
+      font-size: 11px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1240px) {
+      .app-shell {
+        grid-template-columns: 230px minmax(0, 1fr);
+      }
+
+      .style-tabs,
+      .comparison,
+      .health-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        border-radius: 24px;
+      }
+
+      .dash-grid,
+      .dash-grid.reverse,
+      .dashboard-master,
+      .calendar-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-metrics,
+      .dashboard-board {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .classify-grid,
+      .board,
+      .note-wall {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        width: min(100vw - 18px, 720px);
+        padding-top: 12px;
+      }
+
+      .intro,
+      .app-shell,
+      .panel-head {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .side-body {
+        max-height: none;
+      }
+
+      .topbar,
+      .mode-top {
+        align-items: stretch;
+        flex-direction: column;
+        grid-template-columns: 1fr;
+      }
+
+      .mode-note {
+        text-align: left;
+      }
+
+      .style-tabs,
+      .classify-grid,
+      .classify-grid.two,
+      .board,
+      .dashboard-metrics,
+      .dashboard-board,
+      .full-dashboard__head,
+      .mini-note-grid,
+      .note-wall,
+      .week,
+      .comparison,
+      .health-strip,
+      .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      .content {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="intro">
+      <div class="intro-main">
+        <p class="eyebrow">DANAA DO IT OS · EXPANDED DASHBOARD V1</p>
+        <h1>Do it OS를 누르면 열리는<br />확장형 대시보드 5가지 스타일</h1>
+        <p>
+          이 목업은 기존 오른쪽 보조 패널 없이, 왼쪽 사이드바의 <strong>Do it OS</strong> 메뉴를 눌렀을 때 본문 전체에 대시보드가 뜨는 구조를 보여줍니다.
+          핵심은 사용자가 AI 채팅으로 흘린 생각을 <strong>생각넣기</strong>로 받아두고, <strong>확인 후 저장</strong> 단계에서 할 일, 일정, 프로젝트, 노트, 건강 단서로 분류하는 흐름입니다.
+        </p>
+        <div class="pill-row">
+          <span class="pill"><strong>구조</strong> 왼쪽 사이드바 + 중앙 대시보드</span>
+          <span class="pill"><strong>제외</strong> 오른쪽 사이드 패널 없음</span>
+          <span class="pill"><strong>핵심</strong> 생각넣기 / 확인 후 저장 전환</span>
+          <span class="pill"><strong>추천</strong> 1번 안정감 + 3번 실행력</span>
+          <span class="pill"><strong>상태</strong> V1 시각 목업</span>
+        </div>
+      </div>
+      <div class="intro-note">
+        <p class="eyebrow">읽는 방법</p>
+        <p>
+          먼저 맨 위의 통합 대시보드 한 장을 보고 실제 서비스에 붙었을 때의 흐름을 확인하세요.
+          아래 5개 탭은 같은 기능을 서로 다른 디자인 언어로 표현한 비교용입니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="app-shell" aria-label="다나아 Do it OS 확장형 목업">
+      <aside class="sidebar">
+        <div class="side-top">
+          <div class="brand">
+            <span>DANAA</span>
+            <span class="brand-mark">D</span>
+          </div>
+          <nav class="nav" aria-label="주요 메뉴">
+            <a class="nav-item" href="#">
+              <span class="nav-icon">AI</span>
+              <span>AI 채팅</span>
+            </a>
+            <a class="nav-item active" href="#">
+              <span class="nav-icon">OS</span>
+              <span>Do it OS</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">RP</span>
+              <span>리포트</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">CH</span>
+              <span>챌린지</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="side-body">
+          <div class="subnav-card">
+            <div class="subnav-title">
+              <span>Do it OS 하위 목록</span>
+              <span>펼쳐짐</span>
+            </div>
+            <nav class="subnav" aria-label="Do it OS 하위 메뉴">
+              <a class="sub-item selected" href="#">대시보드</a>
+              <a class="sub-item" href="#">생각넣기</a>
+              <a class="sub-item" href="#">분류 확인</a>
+              <a class="sub-item" href="#">프로젝트</a>
+              <a class="sub-item" href="#">일정</a>
+              <a class="sub-item" href="#">노트</a>
+            </nav>
+          </div>
+
+          <div class="side-card">
+            <h3>하위 목록 표시 의도</h3>
+            <p>Do it OS가 독립 메뉴이고, 대시보드/생각/프로젝트/일정이 그 아래 기능이라는 것을 들여쓰기와 세로선으로 보여줍니다.</p>
+          </div>
+
+          <div class="side-card">
+            <h3>오늘 들어온 생각</h3>
+            <p>8개 중 5개 정리됨. 2개는 일정 후보, 1개는 건강 단서 후보입니다.</p>
+          </div>
+
+          <div class="side-footer">
+            <div class="side-card">
+              <h3>사용자</h3>
+              <p>이관주 · Do it OS 베타</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <div class="crumb">
+              <span>AI 채팅</span>
+              <span>›</span>
+              <strong>Do it OS 대시보드</strong>
+            </div>
+            <p class="eyebrow" style="margin: 6px 0 0;">RIGHT PANEL REMOVED · FULL DASHBOARD</p>
+          </div>
+          <div class="top-actions">
+            <span class="ghost-button">자동 저장 안 함</span>
+            <span class="ghost-button">확인 후 저장</span>
+            <span class="solid-button">오늘 정리 시작</span>
+          </div>
+        </header>
+
+        <div class="content">
+          <section class="full-dashboard" aria-label="Do it OS 통합 대시보드 한 페이지 미리보기">
+            <div class="full-dashboard__head">
+              <div>
+                <p class="eyebrow" style="margin-bottom: 8px;">1 + 3 HYBRID · FULL PAGE DASHBOARD</p>
+                <h2>한 페이지에서 보는 Do it OS 대시보드</h2>
+                <p>
+                  1번의 조용한 관제형 안정감에 3번 프로젝트 보드형의 실행력을 합친 추천 방향입니다.
+                  생각쏟기, 분류 확인, 오늘 할 일, 일정, 프로젝트, 노트, 건강 단서를 한 화면에서 같이 보게 합니다.
+                </p>
+              </div>
+              <div class="full-dashboard__badge">추천 방향<br />다나아답게 차분하지만 실행이 보이는 화면</div>
+            </div>
+
+            <div class="dashboard-body">
+              <div class="dashboard-metrics" aria-label="Do it OS 오늘 요약">
+                <div class="dashboard-metric">
+                  <b>8</b>
+                  <span>들어온 생각</span>
+                  <p>AI 채팅, 직접 메모, 회의 중 떠오른 생각을 임시 보관합니다.</p>
+                </div>
+                <div class="dashboard-metric">
+                  <b>5</b>
+                  <span>정리 완료</span>
+                  <p>할 일, 일정, 프로젝트, 노트, 건강 단서로 분류됐습니다.</p>
+                </div>
+                <div class="dashboard-metric">
+                  <b>4</b>
+                  <span>오늘 할 일</span>
+                  <p>오늘 실제로 움직여야 하는 다음 행동만 따로 보여줍니다.</p>
+                </div>
+                <div class="dashboard-metric">
+                  <b>3</b>
+                  <span>일정 후보</span>
+                  <p>시간이 필요한 생각은 캘린더에 넣을 후보로 분리합니다.</p>
+                </div>
+                <div class="dashboard-metric">
+                  <b>1</b>
+                  <span>건강 단서</span>
+                  <p>바쁨, 수면 부족, 운동 공백처럼 건강 기록과 이어질 신호입니다.</p>
+                </div>
+              </div>
+
+              <div class="dashboard-master">
+                <div class="dashboard-column">
+                  <article class="dashboard-card hero-card">
+                    <div class="dashboard-section-title">
+                      <h3>생각쏟기 Inbox</h3>
+                      <span>자동 저장 아님</span>
+                    </div>
+                    <div class="capture-box">
+                      이번 주 너무 바쁘고 운동도 못 했어. 리포트 작업도 밀렸고,
+                      병원 예약 확인도 해야 하는데 계속 머릿속에서만 맴도는 느낌이야.
+                    </div>
+                    <div class="dashboard-tag-row" aria-label="생각쏟기 분류 후보">
+                      <span class="dashboard-tag">할 일 후보 2개</span>
+                      <span class="dashboard-tag">일정 후보 1개</span>
+                      <span class="dashboard-tag">건강 단서 1개</span>
+                    </div>
+                    <div class="capture-actions">
+                      <span class="mini-button primary">AI가 분류 후보 만들기</span>
+                      <span class="mini-button">사용자 확인 후 저장</span>
+                    </div>
+                  </article>
+
+                  <article class="dashboard-card organize-card">
+                    <div class="dashboard-section-title">
+                      <h3>분류 확인</h3>
+                      <span>확인 후 저장</span>
+                    </div>
+                    <p>
+                      AI가 만든 분류 후보를 사용자가 확인하고, 필요한 항목만 Do it OS에 저장하는 단계입니다.
+                    </p>
+                    <div class="organize-list">
+                      <div class="organize-item">
+                        <div>
+                          <strong>병원 예약 확인</strong>
+                          <span>“해야 할 일”로 저장 · 오늘 할 일 목록에 표시</span>
+                        </div>
+                        <span class="organize-pill">할 일</span>
+                      </div>
+                      <div class="organize-item">
+                        <div>
+                          <strong>저녁 20분 걷기</strong>
+                          <span>시간이 필요한 항목 · 오늘 19:30 일정 후보</span>
+                        </div>
+                        <span class="organize-pill">일정</span>
+                      </div>
+                      <div class="organize-item">
+                        <div>
+                          <strong>Do it OS 화면 범위 결정</strong>
+                          <span>여러 단계가 필요한 일 · 프로젝트 보드에 연결</span>
+                        </div>
+                        <span class="organize-pill">프로젝트</span>
+                      </div>
+                      <div class="organize-item">
+                        <div>
+                          <strong>바빠서 운동을 못 함</strong>
+                          <span>진단이 아니라 기록 보조용 건강 단서로만 저장</span>
+                        </div>
+                        <span class="organize-pill">건강</span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="dashboard-column">
+                  <article class="dashboard-card tint">
+                    <div class="dashboard-section-title">
+                      <h3>정리 결과 보드</h3>
+                      <span>오늘 바로 실행할 것</span>
+                    </div>
+                    <div class="dashboard-board">
+                      <div class="dashboard-lane">
+                        <h3>오늘 할 일</h3>
+                        <div class="dash-ticket">
+                          <strong>병원 예약 전화</strong>
+                          <small>다음 진료 일정 확인 · 10분 안에 끝나는 일</small>
+                        </div>
+                        <div class="dash-ticket">
+                          <strong>리포트 자료 정리</strong>
+                          <small>저녁 전까지 핵심 화면 3개만 캡처</small>
+                        </div>
+                        <div class="dash-ticket">
+                          <strong>저녁 20분 걷기</strong>
+                          <small>운동 공백을 줄이는 가장 작은 행동</small>
+                        </div>
+                      </div>
+                      <div class="dashboard-lane">
+                        <h3>프로젝트</h3>
+                        <div class="dash-ticket">
+                          <strong>Do it OS 확장 설계</strong>
+                          <small>대시보드 V1 확인 후 기능 범위 결정</small>
+                        </div>
+                        <div class="dash-ticket">
+                          <strong>리포트 개선 PR</strong>
+                          <small>상세 그래프 기준선과 툴팁 확인</small>
+                        </div>
+                        <div class="dash-ticket">
+                          <strong>AI 채팅 앱 설명력</strong>
+                          <small>서비스 기능 질문에 답하는지 검증</small>
+                        </div>
+                      </div>
+                      <div class="dashboard-lane">
+                        <h3>건강 단서</h3>
+                        <div class="dash-ticket">
+                          <strong>운동 공백</strong>
+                          <small>“바빠서 운동 못 함” → 오늘 걷기 제안</small>
+                        </div>
+                        <div class="dash-ticket">
+                          <strong>업무 부담</strong>
+                          <small>할 일이 머릿속에만 있어 피로감 증가</small>
+                        </div>
+                        <div class="dash-ticket">
+                          <strong>수면 확인 필요</strong>
+                          <small>바쁜 주간에는 수면 기록을 우선 확인</small>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="dashboard-column">
+                  <article class="dashboard-card warm">
+                    <div class="dashboard-section-title">
+                      <h3>오늘 일정</h3>
+                      <span>시간이 있는 항목</span>
+                    </div>
+                    <div class="today-plan">
+                      <div class="plan-row">
+                        <div class="plan-time">10:30</div>
+                        <div>
+                          <strong>병원 예약 가능 시간 확인</strong>
+                          <span>전화가 필요한 일정 후보</span>
+                        </div>
+                      </div>
+                      <div class="plan-row">
+                        <div class="plan-time">15:00</div>
+                        <div>
+                          <strong>리포트 화면 검토</strong>
+                          <span>PR 확인 전 20분 점검</span>
+                        </div>
+                      </div>
+                      <div class="plan-row">
+                        <div class="plan-time">19:30</div>
+                        <div>
+                          <strong>가볍게 걷기</strong>
+                          <span>운동 기록과 연결되는 건강 행동</span>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="dashboard-card">
+                    <div class="dashboard-section-title">
+                      <h3>노트와 참고</h3>
+                      <span>나중에 다시 볼 것</span>
+                    </div>
+                    <div class="mini-note-grid">
+                      <div class="mini-note">
+                        <strong>회의 질문</strong>
+                        <span>Do it OS가 건강 서비스처럼 보이려면 어떤 문구가 필요한가?</span>
+                      </div>
+                      <div class="mini-note">
+                        <strong>루틴 메모</strong>
+                        <span>바쁜 날에는 “20분 걷기”보다 “집 앞 7분 걷기”가 시작하기 쉽다.</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="dashboard-card">
+                    <div class="dashboard-section-title">
+                      <h3>저장 원칙</h3>
+                      <span>안전 장치</span>
+                    </div>
+                    <div class="flow-list">
+                      <div class="flow-step">
+                        <b>A</b>
+                        <div>
+                          <strong>AI는 후보만 제안</strong>
+                          <span>생각을 마음대로 저장하지 않습니다.</span>
+                        </div>
+                      </div>
+                      <div class="flow-step">
+                        <b>B</b>
+                        <div>
+                          <strong>사용자가 확인 후 저장</strong>
+                          <span>잘못 분류된 항목은 저장 전에 고칩니다.</span>
+                        </div>
+                      </div>
+                      <div class="flow-step">
+                        <b>C</b>
+                        <div>
+                          <strong>건강 단서는 조심스럽게 연결</strong>
+                          <span>진단이 아니라 기록을 돕는 참고 신호로만 사용합니다.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div class="layout-note">
+                <strong>보는 법:</strong> 위 대시보드는 실제 적용 방향을 한 장으로 보여주는 통합안입니다.
+                아래 5개 탭은 스타일 비교용이고, 현재 추천은 “1번 안정감 + 3번 실행력”을 섞은 이 화면입니다.
+              </div>
+            </div>
+          </section>
+
+          <input class="style-radio" type="radio" name="style" id="style-1" checked />
+          <input class="style-radio" type="radio" name="style" id="style-2" />
+          <input class="style-radio" type="radio" name="style" id="style-3" />
+          <input class="style-radio" type="radio" name="style" id="style-4" />
+          <input class="style-radio" type="radio" name="style" id="style-5" />
+
+          <div class="style-tabs" role="tablist" aria-label="Do it OS 디자인 스타일">
+            <label for="style-1">1. 조용한 관제형</label>
+            <label for="style-2">2. 노트 스튜디오형</label>
+            <label for="style-3">3. 프로젝트 보드형</label>
+            <label for="style-4">4. 일정 리듬형</label>
+            <label for="style-5">5. 건강 맥락형</label>
+          </div>
+
+          <div class="style-panels">
+            <section class="style-panel" id="panel-1">
+              <div class="panel-head">
+                <div>
+                  <h2>조용한 관제형</h2>
+                  <p>가장 다나아다운 기본안입니다. 오늘 머릿속 상태, 정리 진행률, 필수 분류 카드를 한 화면에서 차분하게 보여줍니다.</p>
+                </div>
+                <div class="recommend">추천도 높음 · 상업 서비스 안정감</div>
+              </div>
+
+              <div class="mode-box">
+                <input class="mode-radio" type="radio" name="s1-mode" id="s1-dump" checked />
+                <input class="mode-radio" type="radio" name="s1-mode" id="s1-organize" />
+                <div class="mode-top">
+                  <div class="mode-labels">
+                    <label for="s1-dump">생각넣기</label>
+                    <label for="s1-organize">분류 확인</label>
+                  </div>
+                  <div class="mode-note">생각을 바로 저장하지 않고, 사용자가 확인하면 분류됩니다.</div>
+                </div>
+                <div class="mode-content">
+                  <div class="mode-panel dump">
+                    <div class="dash-grid">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>머릿속에 있는 것 그대로 넣기</h3>
+                          <span>inbox</span>
+                        </div>
+                        <div class="textarea-mock">
+                          <strong>예시 입력</strong><br />
+                          이번 주 너무 바쁘고 운동도 못 했어. 병원 예약도 해야 하고, 리포트 자료도 정리해야 하는데 계속 미루고 있어. 오늘은 저녁을 가볍게 먹고 일찍 자고 싶어.
+                        </div>
+                        <div class="composer-actions">
+                          <button class="mini-button primary">AI가 정리 후보 만들기</button>
+                          <button class="mini-button">나중에 정리</button>
+                          <button class="mini-button">건강 단서만 보기</button>
+                        </div>
+                      </div>
+                      <div>
+                        <div class="summary-hero">
+                          <h3>오늘 정리 상태</h3>
+                          <p>생각 8개 중 5개가 정리됐고, 3개는 사용자의 확인을 기다리고 있습니다.</p>
+                          <div class="metric-row">
+                            <div class="metric"><b>8</b><span>들어온 생각</span></div>
+                            <div class="metric"><b>5</b><span>정리 완료</span></div>
+                            <div class="metric"><b>3</b><span>확인 필요</span></div>
+                          </div>
+                        </div>
+                        <div class="classify-grid two" style="margin-top: 12px;">
+                          <div class="class-card">
+                            <span class="tag green">건강 단서</span>
+                            <strong>운동 부족 / 수면 희망</strong>
+                            <p>다나아 건강 기록과 연결할 수 있는 문장입니다.</p>
+                          </div>
+                          <div class="class-card">
+                            <span class="tag blue">일정 후보</span>
+                            <strong>병원 예약</strong>
+                            <p>날짜를 정하면 일정 카드로 전환됩니다.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mode-panel organize">
+                    <div class="classify-grid">
+                      <div class="class-card">
+                        <span class="tag blue">할 일</span>
+                        <strong>리포트 자료 정리</strong>
+                        <p>오늘 30분 작업으로 쪼개서 등록합니다.</p>
+                      </div>
+                      <div class="class-card">
+                        <span class="tag yellow">일정</span>
+                        <strong>병원 예약 잡기</strong>
+                        <p>이번 주 안에 시간 후보를 선택합니다.</p>
+                      </div>
+                      <div class="class-card">
+                        <span class="tag brown">프로젝트</span>
+                        <strong>리포트 개선 작업</strong>
+                        <p>자료 정리와 검토를 프로젝트로 묶습니다.</p>
+                      </div>
+                      <div class="class-card">
+                        <span class="tag green">건강 단서</span>
+                        <strong>운동 못 함 / 일찍 자고 싶음</strong>
+                        <p>오늘 건강 리포트의 생활 맥락으로 남깁니다.</p>
+                      </div>
+                    </div>
+                    <div class="layout-note"><strong>핵심:</strong> 대시보드 첫 화면에서 필수 요소가 모두 보이고, 사용자는 저장 전 분류 결과를 확인합니다.</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="style-panel" id="panel-2">
+              <div class="panel-head">
+                <div>
+                  <h2>노트 스튜디오형</h2>
+                  <p>생각을 쏟아내는 경험을 가장 크게 보여주는 안입니다. 글쓰기, 메모, 회고에 강하지만 관리 기능은 한 단계 뒤로 물러납니다.</p>
+                </div>
+                <div class="recommend">감성 강함 · 메모 중심</div>
+              </div>
+
+              <div class="mode-box">
+                <input class="mode-radio" type="radio" name="s2-mode" id="s2-dump" checked />
+                <input class="mode-radio" type="radio" name="s2-mode" id="s2-organize" />
+                <div class="mode-top">
+                  <div class="mode-labels">
+                    <label for="s2-dump">생각넣기</label>
+                    <label for="s2-organize">분류 확인</label>
+                  </div>
+                  <div class="mode-note">메모 앱처럼 편하지만, 다나아 건강 단서를 함께 잡아냅니다.</div>
+                </div>
+                <div class="mode-content">
+                  <div class="mode-panel dump">
+                    <div class="dash-grid reverse">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>오늘의 생각 노트</h3>
+                          <span>free writing</span>
+                        </div>
+                        <div class="textarea-mock" style="min-height: 320px;">
+                          아침부터 머리가 복잡하다. 리포트 화면도 봐야 하고, 챌린지도 챙겨야 하고, 저녁엔 운동을 해야 하는데 미뤄질 것 같다.<br /><br />
+                          AI에게 이 내용을 말하면 그냥 위로받는 것에서 끝나지 않고, 일정과 할 일로 나눠줬으면 좋겠다.
+                        </div>
+                        <div class="composer-actions">
+                          <button class="mini-button primary">이 생각을 정리 후보로 보내기</button>
+                          <button class="mini-button">노트로만 저장</button>
+                        </div>
+                      </div>
+                      <div class="note-wall">
+                        <div class="sticky-note">
+                          <strong>할 일 후보</strong>
+                          <p>리포트 캡처 확인, 오늘 운동 20분, 병원 예약 일정 확인</p>
+                        </div>
+                        <div class="sticky-note">
+                          <strong>감정 메모</strong>
+                          <p>바쁜 일정 때문에 건강 관리가 밀리는 느낌이 있음</p>
+                        </div>
+                        <div class="sticky-note">
+                          <strong>건강 단서</strong>
+                          <p>운동 부족, 수면 희망, 저녁 식사 조절 의도</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mode-panel organize">
+                    <div class="dash-grid">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>정리된 문장</h3>
+                          <span>clean note</span>
+                        </div>
+                        <div class="list">
+                          <div class="list-row"><span class="dot blue"></span><div><strong>오늘 리포트 화면 확인</strong><small>할 일 · 30분</small></div><span class="tag blue">todo</span></div>
+                          <div class="list-row"><span class="dot yellow"></span><div><strong>저녁 운동 20분</strong><small>일정 · 오늘 저녁</small></div><span class="tag yellow">time</span></div>
+                          <div class="list-row"><span class="dot green"></span><div><strong>운동 부족을 건강 단서로 기록</strong><small>건강 맥락 · 리포트 참고</small></div><span class="tag green">health</span></div>
+                        </div>
+                      </div>
+                      <div class="card pad soft">
+                        <div class="card-title">
+                          <h3>사용자에게 물어볼 확인 질문</h3>
+                          <span>confirm</span>
+                        </div>
+                        <div class="textarea-mock" style="min-height: 220px;">
+                          이 내용을 저장하기 전에 확인해주세요.<br /><br />
+                          1. 운동은 오늘 저녁 20분으로 잡을까요?<br />
+                          2. 병원 예약은 이번 주 일정으로 둘까요?<br />
+                          3. 건강 단서는 리포트 맥락에 반영할까요?
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="style-panel" id="panel-3">
+              <div class="panel-head">
+                <div>
+                  <h2>프로젝트 보드형</h2>
+                  <p>확장형 중 가장 생산성 앱에 가까운 안입니다. 프로젝트, 진행 상태, 다음 행동이 잘 보이지만 다나아의 건강 서비스 인상이 약해질 수 있습니다.</p>
+                </div>
+                <div class="recommend">강한 확장감 · 생산성 중심</div>
+              </div>
+
+              <div class="mode-box">
+                <input class="mode-radio" type="radio" name="s3-mode" id="s3-dump" checked />
+                <input class="mode-radio" type="radio" name="s3-mode" id="s3-organize" />
+                <div class="mode-top">
+                  <div class="mode-labels">
+                    <label for="s3-dump">생각넣기</label>
+                    <label for="s3-organize">분류 확인</label>
+                  </div>
+                  <div class="mode-note">생각이 곧 프로젝트 보드의 카드 후보가 됩니다.</div>
+                </div>
+                <div class="mode-content">
+                  <div class="mode-panel dump">
+                    <div class="dash-grid">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>프로젝트로 바뀔 수 있는 생각</h3>
+                          <span>capture</span>
+                        </div>
+                        <div class="textarea-mock">
+                          “이번 주 다나아 리포트를 손보고, Do it OS 방향도 정리하고, 테스트 브라우저 문제도 다시 확인해야 해.”
+                        </div>
+                        <div class="composer-actions">
+                          <button class="mini-button primary">프로젝트 후보 생성</button>
+                          <button class="mini-button">작은 할 일로 쪼개기</button>
+                        </div>
+                      </div>
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>AI 분류 미리보기</h3>
+                          <span>preview</span>
+                        </div>
+                        <div class="classify-grid two">
+                          <div class="class-card"><span class="tag brown">프로젝트</span><strong>Do it OS 확장 설계</strong><p>대시보드, 입력, 정리, 리포트 연동을 묶습니다.</p></div>
+                          <div class="class-card"><span class="tag blue">다음 행동</span><strong>5개 목업 비교</strong><p>사용자가 보고 고를 수 있는 화면을 만듭니다.</p></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mode-panel organize">
+                    <div class="board">
+                      <div class="board-column">
+                        <h3>정리 대기</h3>
+                        <div class="kanban-card"><strong>Do it OS 메뉴 구조</strong><p>하위 목록을 어떻게 보여줄지 결정 필요</p></div>
+                        <div class="kanban-card"><strong>건강 단서 연결</strong><p>생산성 기능이 건강 목적을 해치지 않게 연결</p></div>
+                      </div>
+                      <div class="board-column">
+                        <h3>오늘 진행</h3>
+                        <div class="kanban-card"><strong>대시보드 V1 목업</strong><p>오른쪽 패널 제거, 본문 전체 대시보드</p></div>
+                        <div class="kanban-card"><strong>분류 확인 전환</strong><p>생각넣기와 저장 확인을 탭으로 구분</p></div>
+                      </div>
+                      <div class="board-column">
+                        <h3>저장 완료</h3>
+                        <div class="kanban-card"><strong>챗봇 흐름 유지</strong><p>AI 채팅에서 Do it OS로 저장 후보 전달</p></div>
+                        <div class="kanban-card"><strong>자동 저장 금지</strong><p>사용자가 확인해야 저장됨</p></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="style-panel" id="panel-4">
+              <div class="panel-head">
+                <div>
+                  <h2>일정 리듬형</h2>
+                  <p>하루 일정과 생활 리듬을 중심으로 보는 안입니다. 사용자가 “오늘 뭘 해야 하지?”를 빠르게 이해하기 좋습니다.</p>
+                </div>
+                <div class="recommend">하루 계획에 강함 · 루틴 관리형</div>
+              </div>
+
+              <div class="mode-box">
+                <input class="mode-radio" type="radio" name="s4-mode" id="s4-dump" checked />
+                <input class="mode-radio" type="radio" name="s4-mode" id="s4-organize" />
+                <div class="mode-top">
+                  <div class="mode-labels">
+                    <label for="s4-dump">생각넣기</label>
+                    <label for="s4-organize">분류 확인</label>
+                  </div>
+                  <div class="mode-note">머릿속 생각을 시간표에 넣을 수 있는 행동으로 바꿉니다.</div>
+                </div>
+                <div class="mode-content">
+                  <div class="mode-panel dump">
+                    <div class="calendar-grid">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>이번 주 생활 캘린더</h3>
+                          <span>week</span>
+                        </div>
+                        <div class="week">
+                          <div class="day"><strong>월</strong><span>리포트</span><span>산책</span></div>
+                          <div class="day"><strong>화</strong><span>회의</span></div>
+                          <div class="day"><strong>수</strong><span>운동</span><span>정리</span></div>
+                          <div class="day"><strong>목</strong><span>병원 예약</span></div>
+                          <div class="day"><strong>금</strong><span>검토</span></div>
+                          <div class="day"><strong>토</strong><span>회고</span></div>
+                          <div class="day"><strong>일</strong><span>휴식</span></div>
+                        </div>
+                      </div>
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>일정 후보로 감지된 생각</h3>
+                          <span>candidate</span>
+                        </div>
+                        <div class="textarea-mock">
+                          “병원 예약도 해야 하고, 오늘 저녁에는 운동을 하고 싶어. 내일 오전에는 자료를 정리해야 해.”
+                        </div>
+                        <div class="composer-actions">
+                          <button class="mini-button primary">일정 후보 만들기</button>
+                          <button class="mini-button">건강 루틴으로 저장</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mode-panel organize">
+                    <div class="dash-grid reverse">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>오늘 타임라인</h3>
+                          <span>today</span>
+                        </div>
+                        <div class="timeline">
+                          <div class="time-row"><div class="time">09:30</div><div class="time-card"><strong>자료 정리 30분</strong><p>리포트 관련 자료를 먼저 모읍니다.</p></div></div>
+                          <div class="time-row"><div class="time">14:00</div><div class="time-card"><strong>병원 예약 전화</strong><p>가능한 날짜 2개를 확인합니다.</p></div></div>
+                          <div class="time-row"><div class="time">20:30</div><div class="time-card"><strong>가벼운 운동 20분</strong><p>오늘 건강 단서와 연결되는 루틴입니다.</p></div></div>
+                        </div>
+                      </div>
+                      <div class="card pad soft">
+                        <div class="card-title">
+                          <h3>정리 규칙</h3>
+                          <span>rule</span>
+                        </div>
+                        <div class="list">
+                          <div class="list-row"><span class="dot yellow"></span><div><strong>시간이 있으면 일정</strong><small>예: 오늘 저녁, 내일 오전</small></div><span class="tag yellow">time</span></div>
+                          <div class="list-row"><span class="dot blue"></span><div><strong>행동이면 할 일</strong><small>예: 전화하기, 정리하기</small></div><span class="tag blue">todo</span></div>
+                          <div class="list-row"><span class="dot green"></span><div><strong>생활 습관이면 건강 단서</strong><small>예: 운동, 수면, 식사</small></div><span class="tag green">health</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="style-panel" id="panel-5">
+              <div class="panel-head">
+                <div>
+                  <h2>건강 맥락형</h2>
+                  <p>다나아의 본래 취지와 가장 직접적으로 연결되는 안입니다. 할 일과 일정이 건강 기록을 방해하지 않고, 오히려 건강 단서를 자연스럽게 모읍니다.</p>
+                </div>
+                <div class="recommend">다나아 정체성 강함 · 건강 연결형</div>
+              </div>
+
+              <div class="mode-box dark-preview">
+                <input class="mode-radio" type="radio" name="s5-mode" id="s5-dump" checked />
+                <input class="mode-radio" type="radio" name="s5-mode" id="s5-organize" />
+                <div class="mode-top">
+                  <div class="mode-labels">
+                    <label for="s5-dump">생각넣기</label>
+                    <label for="s5-organize">분류 확인</label>
+                  </div>
+                  <div class="mode-note">다크 톤에서도 Do it OS가 오른쪽 패널 없이 독립 화면으로 읽히는지 확인합니다.</div>
+                </div>
+                <div class="mode-content">
+                  <div class="mode-panel dump">
+                    <div class="health-strip">
+                      <div class="health-card"><b>5.5h</b><span>수면 단서</span><p>피로와 일정 부담이 같이 감지됐습니다.</p></div>
+                      <div class="health-card"><b>0분</b><span>운동 단서</span><p>오늘 운동 후보를 일정으로 제안합니다.</p></div>
+                      <div class="health-card"><b>저녁</b><span>식사 단서</span><p>가볍게 먹고 싶다는 의도가 있습니다.</p></div>
+                      <div class="health-card"><b>높음</b><span>업무 부담</span><p>프로젝트 일정과 건강 리듬을 같이 봅니다.</p></div>
+                    </div>
+                    <div class="dash-grid" style="margin-top: 16px;">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>건강 맥락이 있는 생각넣기</h3>
+                          <span>health context</span>
+                        </div>
+                        <div class="textarea-mock">
+                          “이번 주 업무가 많아서 운동을 못 했고 잠도 부족해. 그래도 오늘은 일찍 자고 내일 오전에는 자료 정리를 끝내고 싶어.”
+                        </div>
+                        <div class="composer-actions">
+                          <button class="mini-button primary">건강 단서 포함해서 정리</button>
+                          <button class="mini-button">일정만 만들기</button>
+                        </div>
+                      </div>
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>저장 전 확인</h3>
+                          <span>not auto</span>
+                        </div>
+                        <div class="list">
+                          <div class="list-row"><span class="dot green"></span><div><strong>수면 부족 맥락</strong><small>리포트에 참고 단서로만 반영</small></div><span class="tag green">health</span></div>
+                          <div class="list-row"><span class="dot yellow"></span><div><strong>오늘 취침 목표</strong><small>일정/루틴 후보로 저장</small></div><span class="tag yellow">routine</span></div>
+                          <div class="list-row"><span class="dot blue"></span><div><strong>내일 자료 정리</strong><small>할 일로 저장</small></div><span class="tag blue">todo</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mode-panel organize">
+                    <div class="dash-grid reverse">
+                      <div class="card pad">
+                        <div class="card-title">
+                          <h3>건강과 일정이 같이 보이는 정리 결과</h3>
+                          <span>balanced</span>
+                        </div>
+                        <div class="classify-grid two">
+                          <div class="class-card"><span class="tag green">건강 단서</span><strong>수면 부족 + 업무 부담</strong><p>진단이 아니라 생활 맥락으로 저장합니다.</p></div>
+                          <div class="class-card"><span class="tag blue">할 일</span><strong>내일 오전 자료 정리</strong><p>업무 부담을 줄이는 첫 행동입니다.</p></div>
+                          <div class="class-card"><span class="tag yellow">루틴</span><strong>오늘 23시 취침 준비</strong><p>수면 회복 목표와 연결됩니다.</p></div>
+                          <div class="class-card"><span class="tag brown">노트</span><strong>바쁠수록 건강 기록이 밀림</strong><p>사용자 패턴을 이해하는 메모입니다.</p></div>
+                        </div>
+                      </div>
+                      <div class="card pad soft">
+                        <div class="card-title">
+                          <h3>다나아다운 안전 장치</h3>
+                          <span>guardrail</span>
+                        </div>
+                        <div class="list">
+                          <div class="list-row"><span class="dot red"></span><div><strong>진단처럼 말하지 않기</strong><small>“위험” 대신 “참고 단서”로 표현</small></div><span class="tag red">safe</span></div>
+                          <div class="list-row"><span class="dot green"></span><div><strong>사용자 확인 후 저장</strong><small>AI가 자동으로 건강 기록에 넣지 않음</small></div><span class="tag green">confirm</span></div>
+                          <div class="list-row"><span class="dot blue"></span><div><strong>채팅 흐름 유지</strong><small>필요할 때만 Do it OS 대시보드에서 정리</small></div><span class="tag blue">chat</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="comparison">
+            <div class="compare-card">
+              <strong>1. 조용한 관제형</strong>
+              <p>가장 안정적이고 상업 서비스처럼 보입니다. 첫 적용 후보로 좋습니다.</p>
+            </div>
+            <div class="compare-card">
+              <strong>2. 노트 스튜디오형</strong>
+              <p>생각을 쏟아내는 경험이 좋지만 관리 화면 느낌은 약합니다.</p>
+            </div>
+            <div class="compare-card">
+              <strong>3. 프로젝트 보드형</strong>
+              <p>확장형 의도와 가장 가깝지만 생산성 앱처럼 보일 위험이 있습니다.</p>
+            </div>
+            <div class="compare-card">
+              <strong>4. 일정 리듬형</strong>
+              <p>하루 계획과 루틴을 한눈에 보기 좋습니다.</p>
+            </div>
+            <div class="compare-card">
+              <strong>5. 건강 맥락형</strong>
+              <p>다나아 정체성이 강하고 건강 데이터 수집 취지와 잘 맞습니다.</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </section>
+  </div>
+</body>
+</html>

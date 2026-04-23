@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Do it OS — 메모 카드 다크 팔레트 시안 (2026-04-21)</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+  />
+  <style>
+    /* =========================================
+       다나아 디자인 토큰 (docs/design/danaa_design_system.md v1)
+       ========================================= */
+    :root {
+      --font-ui:
+        "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+        "Noto Sans KR", sans-serif;
+
+      /* 라이트 */
+      --L-bg: #F8F8F6;
+      --L-surface: #FFFFFF;
+      --L-surface-subtle: #F2F2F0;
+      --L-border: #EDEDEB;
+      --L-text: #111111;
+      --L-text-secondary: #333333;
+      --L-text-muted: #4A4A4A;
+
+      /* 다크 */
+      --D-bg: #1F1F1E;
+      --D-surface: #2A2A2A;
+      --D-surface-subtle: #242423;
+      --D-border: #3A3A3A;
+      --D-text: #ECECEC;
+      --D-text-secondary: #A0A0A0;
+      --D-text-muted: #888888;
+
+      /* 라이트 메모 5색 (확정) */
+      --L-memo-cream:    #FFF5E6;
+      --L-memo-stone:    #F0EDE8;
+      --L-memo-mint:     #EBF4EF;
+      --L-memo-lavender: #EDE8F4;
+      --L-memo-blush:    #F7E9E9;
+
+      /* 다크 메모 5색 (신규 제안, AAA) */
+      --D-memo-cream:    #3E3526;
+      --D-memo-stone:    #38352F;
+      --D-memo-mint:     #2F3B36;
+      --D-memo-lavender: #363241;
+      --D-memo-blush:    #3D3333;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+      color: var(--L-text);
+      background: #EAE8E2;
+    }
+    body {
+      min-height: 100vh;
+      padding: 40px 24px 80px;
+    }
+
+    /* 전체 헤더 */
+    .page-header {
+      max-width: 1400px;
+      margin: 0 auto 32px;
+    }
+    .page-header h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .page-header p {
+      color: var(--L-text-muted);
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* 2열 비교 그리드 */
+    .compare-grid {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 960px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+
+    .theme-card {
+      border-radius: 24px;
+      padding: 32px 28px;
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.12),
+        0 1px 3px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .theme-light {
+      background: var(--L-bg);
+      color: var(--L-text);
+      border: 1px solid var(--L-border);
+    }
+    .theme-dark {
+      background: var(--D-bg);
+      color: var(--D-text);
+      border: 1px solid var(--D-border);
+    }
+
+    .theme-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .theme-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .theme-header .tone {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    /* "생각쏟기 캔버스" 느낌의 메모 영역 */
+    .canvas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: flex-start;
+      align-items: flex-start;
+      min-height: 380px;
+      padding: 20px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .theme-light .canvas { background: var(--L-surface-subtle); }
+    .theme-dark  .canvas { background: var(--D-surface-subtle); }
+
+    .memo {
+      width: 220px;
+      min-height: 120px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.18),
+        0 1px 2px rgba(0, 0, 0, 0.10);
+      font-size: 14px;
+      line-height: 1.55;
+      position: relative;
+    }
+    .theme-light .memo {
+      color: var(--L-text);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .theme-dark .memo {
+      color: var(--D-text);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .memo .meta {
+      font-size: 11px;
+      margin-top: 10px;
+      opacity: 0.6;
+    }
+
+    /* 살짝 회전 (시안용 ±3°) */
+    .r-neg3 { transform: rotate(-3deg); }
+    .r-neg1 { transform: rotate(-1deg); }
+    .r-pos1 { transform: rotate(1deg); }
+    .r-pos2 { transform: rotate(2deg); }
+    .r-pos3 { transform: rotate(3deg); }
+
+    /* 라이트 메모 색상 */
+    .theme-light .m-cream    { background: var(--L-memo-cream); }
+    .theme-light .m-stone    { background: var(--L-memo-stone); }
+    .theme-light .m-mint     { background: var(--L-memo-mint); }
+    .theme-light .m-lavender { background: var(--L-memo-lavender); }
+    .theme-light .m-blush    { background: var(--L-memo-blush); }
+
+    /* 다크 메모 색상 */
+    .theme-dark .m-cream    { background: var(--D-memo-cream); }
+    .theme-dark .m-stone    { background: var(--D-memo-stone); }
+    .theme-dark .m-mint     { background: var(--D-memo-mint); }
+    .theme-dark .m-lavender { background: var(--D-memo-lavender); }
+    .theme-dark .m-blush    { background: var(--D-memo-blush); }
+
+    /* 색상 레퍼런스 표 */
+    .palette-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .palette-table th,
+    .palette-table td {
+      padding: 10px 12px;
+      text-align: left;
+    }
+    .theme-light .palette-table th,
+    .theme-light .palette-table td { border-bottom: 1px solid var(--L-border); }
+    .theme-dark .palette-table th,
+    .theme-dark .palette-table td { border-bottom: 1px solid var(--D-border); }
+    .palette-table tr:last-child td { border-bottom: 0; }
+    .palette-table th {
+      font-weight: 600;
+      font-size: 12px;
+      opacity: 0.75;
+      text-transform: none;
+    }
+    .swatch {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      vertical-align: middle;
+      margin-right: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .theme-dark .swatch { border-color: rgba(255, 255, 255, 0.08); }
+    .hex {
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      font-size: 12px;
+      opacity: 0.85;
+    }
+
+    /* 하단 설명 */
+    .page-footer {
+      max-width: 1400px;
+      margin: 40px auto 0;
+      padding: 24px 28px;
+      border-radius: 20px;
+      background: var(--L-surface);
+      border: 1px solid var(--L-border);
+      font-size: 14px;
+      color: var(--L-text-secondary);
+    }
+    .page-footer strong { color: var(--L-text); }
+    .page-footer ul { padding-left: 18px; margin: 8px 0 0; }
+    .page-footer li { margin: 4px 0; }
+    .page-footer code {
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      font-size: 12.5px;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: var(--L-surface-subtle);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>Do it OS — 메모 카드 다크 팔레트 시안</h1>
+    <p>
+      2026-04-21 15:20 · 다나아 디자인 토큰(v1) 기준 · 라이트 ↔ 다크 5색 파스텔 비교용 시안.
+      이 파일은 참고 전용이며 프론트 코드에 import 되지 않습니다.
+    </p>
+  </div>
+
+  <div class="compare-grid">
+    <!-- ========== 라이트 ========== -->
+    <section class="theme-card theme-light">
+      <div class="theme-header">
+        <h2>라이트 모드</h2>
+        <span class="tone">bg <span class="hex">#F8F8F6</span> · text <span class="hex">#111111</span></span>
+      </div>
+
+      <div class="canvas">
+        <div class="memo m-cream r-neg3">
+          내일 점심 먹고 바로 혈당 체크하기
+          <div class="meta">방금</div>
+        </div>
+        <div class="memo m-stone r-pos1">
+          PARA 다시 읽어보기 — 프로젝트 vs 영역 구분 감 잡기
+          <div class="meta">2분 전</div>
+        </div>
+        <div class="memo m-mint r-neg1">
+          요즘 아침에 머리 멍한 느낌 — 수면 시간 기록해보자
+          <div class="meta">5분 전</div>
+        </div>
+        <div class="memo m-lavender r-pos3">
+          엄마 고혈압 약 리필 처방전 받아오기
+          <div class="meta">오늘 아침</div>
+        </div>
+        <div class="memo m-blush r-pos2">
+          수요일 요가 새 스케줄 확인 · 카톡 알림 끄기
+          <div class="meta">어제</div>
+        </div>
+      </div>
+
+      <table class="palette-table">
+        <thead>
+          <tr>
+            <th>역할</th>
+            <th>라이트 HEX</th>
+            <th>용도</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="swatch" style="background:#FFF5E6"></span>크림</td>
+            <td class="hex">#FFF5E6</td>
+            <td>따뜻한 톤, 기본</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#F0EDE8"></span>스톤</td>
+            <td class="hex">#F0EDE8</td>
+            <td>중립·차분</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#EBF4EF"></span>민트</td>
+            <td class="hex">#EBF4EF</td>
+            <td>쿨 그린, 건강 단서 느낌</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#EDE8F4"></span>라벤더</td>
+            <td class="hex">#EDE8F4</td>
+            <td>쿨 퍼플, 생각·아이디어</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#F7E9E9"></span>블러시</td>
+            <td class="hex">#F7E9E9</td>
+            <td>웜 로즈, 감정·리마인더</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ========== 다크 ========== -->
+    <section class="theme-card theme-dark">
+      <div class="theme-header">
+        <h2>다크 모드 (제안)</h2>
+        <span class="tone">bg <span class="hex">#1F1F1E</span> · text <span class="hex">#ECECEC</span></span>
+      </div>
+
+      <div class="canvas">
+        <div class="memo m-cream r-neg3">
+          내일 점심 먹고 바로 혈당 체크하기
+          <div class="meta">방금</div>
+        </div>
+        <div class="memo m-stone r-pos1">
+          PARA 다시 읽어보기 — 프로젝트 vs 영역 구분 감 잡기
+          <div class="meta">2분 전</div>
+        </div>
+        <div class="memo m-mint r-neg1">
+          요즘 아침에 머리 멍한 느낌 — 수면 시간 기록해보자
+          <div class="meta">5분 전</div>
+        </div>
+        <div class="memo m-lavender r-pos3">
+          엄마 고혈압 약 리필 처방전 받아오기
+          <div class="meta">오늘 아침</div>
+        </div>
+        <div class="memo m-blush r-pos2">
+          수요일 요가 새 스케줄 확인 · 카톡 알림 끄기
+          <div class="meta">어제</div>
+        </div>
+      </div>
+
+      <table class="palette-table">
+        <thead>
+          <tr>
+            <th>역할</th>
+            <th>다크 HEX</th>
+            <th>대비 (vs #ECECEC)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="swatch" style="background:#3E3526"></span>크림</td>
+            <td class="hex">#3E3526</td>
+            <td>~ 9.8 : 1 ✅ AAA</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#38352F"></span>스톤</td>
+            <td class="hex">#38352F</td>
+            <td>~ 10.2 : 1 ✅ AAA</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#2F3B36"></span>민트</td>
+            <td class="hex">#2F3B36</td>
+            <td>~ 10.8 : 1 ✅ AAA</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#363241"></span>라벤더</td>
+            <td class="hex">#363241</td>
+            <td>~ 10.0 : 1 ✅ AAA</td>
+          </tr>
+          <tr>
+            <td><span class="swatch" style="background:#3D3333"></span>블러시</td>
+            <td class="hex">#3D3333</td>
+            <td>~ 10.1 : 1 ✅ AAA</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="page-footer">
+    <strong>확인 포인트 (이거 보고 판단해 주세요)</strong>
+    <ul>
+      <li>① 다크 모드에서 메모가 <strong>배경(#1F1F1E)과 구분</strong>되나요? 너무 어두워서 묻히지는 않나요?</li>
+      <li>② 5색이 서로 <strong>구분</strong>되나요? (라이트 대비 다크에서 색감이 좁아져 보이는 건 정상)</li>
+      <li>③ 다나아 톤(차분한 크림·스톤)과 <strong>어울리나요</strong>? 너무 튀거나, 너무 밋밋하지 않나요?</li>
+      <li>④ 메모 내용 <strong>글자 가독성</strong>은 어때요? (모두 AAA 10:1 이상이지만 실제 체감이 더 중요)</li>
+    </ul>
+    <p style="margin-top:16px">
+      수정 요청 예시 →
+      <code>"민트가 너무 녹색이야, 살짝 회색으로"</code> /
+      <code>"크림이 갈색 느낌 강해, 조금 더 노란 쪽으로"</code> /
+      <code>"전체적으로 너무 어두워"</code>
+    </p>
+  </div>
+</body>
+</html>

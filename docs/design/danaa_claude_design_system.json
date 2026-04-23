@@ -1,0 +1,150 @@
+{
+  "_comment": "다나아 디자인 시스템 — Claude Design 'Set up design system'에 복붙 전용. Truth 원본은 frontend/app/globals.css + frontend/tailwind.config.js. Last synced: 2026-04-21.",
+  "designSystem": {
+    "displayName": "DANAA v1 — Warm Health Coach",
+    "description": "만성질환(당뇨·고혈압) 사용자를 위한 생활 습관 AI 건강 코치. 따뜻한 크림·스톤 팔레트, 부드러운 곡선, 미니멀 공간감, 차분한 피드백.",
+    "theme": {
+      "colorMode": "LIGHT",
+      "headlineFont": "PRETENDARD",
+      "bodyFont": "PRETENDARD",
+      "customColor": "#F8F8F6",
+      "roundness": "ROUND_TWELVE",
+      "overridePrimaryColor": "#121212",
+      "overrideSecondaryColor": "#A0A0A0",
+      "overrideTertiaryColor": "#3A3A3A",
+      "overrideNeutralColor": "#FFFFFF"
+    },
+    "palette": {
+      "light": {
+        "primary": "#121212",
+        "primaryHover": "#333333",
+        "primaryAccent": "#121212",
+        "text": "#111111",
+        "textSecondary": "#333333",
+        "textMuted": "#4A4A4A",
+        "textHint": "#5A5A5A",
+        "background": "#F8F8F6",
+        "surface": "#FFFFFF",
+        "surfaceHover": "#F0F0EE",
+        "border": "#EDEDEB",
+        "borderFocus": "#121212",
+        "ctaBg": "#121212",
+        "ctaText": "#FFFFFF",
+        "sidebarTop": "#F7F7F5",
+        "sidebarBottom": "#F7F7F4",
+        "navActive": "#EDEAE2",
+        "cardSurfaceSubtle": "#F2F2F0",
+        "panelDivider": "#D8D2C7"
+      },
+      "dark": {
+        "primary": "#FFFFFF",
+        "primaryHover": "#D4D4D4",
+        "text": "#ECECEC",
+        "textSecondary": "#A0A0A0",
+        "textMuted": "#888888",
+        "background": "#1F1F1E",
+        "surface": "#2A2A2A",
+        "surfaceHover": "#2E2E2E",
+        "border": "#3A3A3A",
+        "borderFocus": "#FFFFFF"
+      }
+    },
+    "semantic": {
+      "success": { "light": "#EBF7ED", "default": "#3D7C3F", "dark": "#2D5E2F" },
+      "danger":  { "light": "#FEECEC", "default": "#C43C3C", "dark": "#9B2C2C" },
+      "warning": { "light": "#FFF5EB", "default": "#E07800", "dark": "#B86200" },
+      "info":    { "light": "#E8F1FD", "default": "#4A7FB5", "dark": "#3A6694" }
+    },
+    "typography": {
+      "fontFamily": {
+        "primary": "Pretendard Variable",
+        "fallback": ["-apple-system", "BlinkMacSystemFont", "Noto Sans KR", "sans-serif"]
+      },
+      "sizes": {
+        "xs":   { "size": "11px", "lineHeight": "1.5" },
+        "sm":   { "size": "12px", "lineHeight": "1.5" },
+        "md":   { "size": "13px", "lineHeight": "1.6" },
+        "base": { "size": "14px", "lineHeight": "1.6", "note": "컴포넌트 기본" },
+        "lg":   { "size": "16px", "lineHeight": "1.5" },
+        "xl":   { "size": "20px", "lineHeight": "1.4" },
+        "2xl":  { "size": "22px", "lineHeight": "1.3" },
+        "3xl":  { "size": "30px", "lineHeight": "1.2" },
+        "4xl":  { "size": "38px", "lineHeight": "1.2" }
+      },
+      "bodyFontSize": "15px",
+      "weight": {
+        "body": 450,
+        "medium": 500,
+        "semibold": 600,
+        "strong": 650,
+        "bold": 700
+      },
+      "letterSpacing": {
+        "default": "-0.01em",
+        "heading": "-0.02em"
+      }
+    },
+    "spacing": {
+      "sidebarOpen": "300px",
+      "sidebarClosed": "48px",
+      "sidebarHeader": "48px",
+      "navItemHeight": "40px",
+      "navItemGap": "10px",
+      "cardPadding": "16-18px",
+      "cardGap": "12-20px",
+      "extraUnits": { "18": "4.5rem", "88": "22rem" }
+    },
+    "borderRadius": {
+      "sm": "8px",
+      "md": "12px",
+      "lg": "16px",
+      "xl": "20px",
+      "2xl": "24px",
+      "full": "999px",
+      "_policy": "각진 모서리 금지. 최소 8px."
+    },
+    "shadow": {
+      "xs":    "0 1px 2px rgba(0,0,0,.20)",
+      "soft":  "0 1px 3px rgba(0,0,0,.24), 0 1px 2px rgba(0,0,0,.16)",
+      "float": "0 4px 12px rgba(0,0,0,.28), 0 1px 3px rgba(0,0,0,.16)",
+      "lift":  "0 8px 24px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.16)",
+      "modal": "0 16px 48px rgba(0,0,0,.40), 0 4px 12px rgba(0,0,0,.20)"
+    },
+    "motion": {
+      "defaultTransition": "all 0.15s ease",
+      "hoverTransition": "background/color 0.15s ease",
+      "inputLineTransition": "all 0.3s cubic-bezier(.25,.46,.45,.94)",
+      "toastAnimation": "fadeIn 0.2s",
+      "modalAnimation": "Rise 0.24s",
+      "focusOutline": "2px solid borderFocus, offset 2px",
+      "easing": {
+        "ease-out-expo": "cubic-bezier(.25,.46,.45,.94)",
+        "ease-spring":   "cubic-bezier(.34,1.56,.64,1)"
+      }
+    },
+    "toneKeywords": [
+      "따뜻한 건강 코치",
+      "부드러운 곡선 (12-24px)",
+      "차분한 크림·스톤 팔레트",
+      "미니멀한 공간감",
+      "부드러운 피드백 (0.15-0.3s)"
+    ],
+    "avoidPatterns": [
+      "병원·의료 앱 차가운 흰색+파란색 일색",
+      "피트니스 앱 네온·고채도·강한 그라디언트",
+      "Notion 류 정보 과밀",
+      "각진 모서리 (border-radius 0)",
+      "text-neutral-300 / text-danger-light 직접 텍스트 (가독성 0)",
+      "CSS 변수 아닌 Hex 하드코딩 (다크/라이트 깨짐)"
+    ],
+    "forceLightPaths": [
+      "/",
+      "/login",
+      "/signup",
+      "/onboarding",
+      "/social-auth",
+      "/landing-new"
+    ],
+    "designMd": "# DANAA Design System v1\n\n## 색상\n- **Primary**: #121212 (검정에 가까운 진한 회색)\n- **Background**: #F8F8F6 (따뜻한 크림)\n- **Surface**: #FFFFFF (카드)\n- **Border**: #EDEDEB (은은한 라인)\n- **Text**: #111111 (본문), #4A4A4A (보조)\n\n## 타이포그래피\n- **Font**: Pretendard Variable (한글·영문 공용)\n- **Body**: 14-15px, weight 450, line-height 1.6\n- **Heading**: 700 bold, letter-spacing -0.02em\n\n## 간격\n- **Sidebar**: 300px 열림 / 48px 닫힘\n- **Card padding**: 16-18px\n- **Card gap**: 12-20px\n\n## 코너\n- border-radius 12-24px (동글동글)\n- 필 버튼은 999px\n- 각진 모서리 절대 금지\n\n## 그림자\n- shadow-soft (카드) → shadow-float (hover) → shadow-modal (모달)\n- 총 5단계\n\n## 감성\n1. 따뜻한 건강 코치 (의료 아닌 친구)\n2. 부드러운 곡선 (12-24px)\n3. 차분한 크림·스톤\n4. 미니멀 공간감\n5. 부드러운 피드백 (0.15-0.3s 전환)\n\n## 금지\n- 병원/피트니스/Notion 스타일\n- 각진 모서리\n- 네온·고채도\n- 정보 과밀\n"
+  }
+}

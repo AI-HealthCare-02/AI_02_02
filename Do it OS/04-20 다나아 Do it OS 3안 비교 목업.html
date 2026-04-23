@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>다나아 Do it OS 3안 비교 목업</title>
+  <style>
+    :root {
+      --bg: #f8f8f6;
+      --paper: #ffffff;
+      --paper-2: #f2f2f0;
+      --ink: #111111;
+      --muted: #5a5a5a;
+      --hint: #77746d;
+      --line: #e4e0d8;
+      --line-strong: #d7d0c6;
+      --side-top: #f7f7f5;
+      --side-bottom: #f7f7f4;
+      --nav-active: #edeae2;
+      --dark-bg: #1f1f1e;
+      --dark-panel: #2a2a2a;
+      --dark-line: #3a3a3a;
+      --dark-text: #ececec;
+      --dark-muted: #a0a0a0;
+      --dark-side-top: #1c1c1c;
+      --dark-side-bottom: #1d1d1c;
+      --accent: #121212;
+      --accent-soft: #e9e4dc;
+      --health: #2f7d55;
+      --health-soft: #e8f2eb;
+      --warn: #b86b2a;
+      --warn-soft: #f7ebe1;
+      --note: #6d6a61;
+      --radius-lg: 30px;
+      --radius-md: 22px;
+      --radius-sm: 14px;
+      --shadow: 0 22px 60px rgba(28, 28, 28, 0.08);
+      --shadow-soft: 0 12px 34px rgba(28, 28, 28, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(216, 210, 199, 0.36), transparent 30%),
+        linear-gradient(180deg, #fcfbf8 0%, #f2f0eb 100%);
+      color: var(--ink);
+      line-height: 1.55;
+      word-break: keep-all;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1500px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 34px 0 56px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 22px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+
+    .hero-card,
+    .legend-card {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .hero-card {
+      padding: 28px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--hint);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 58px);
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-card p {
+      max-width: 840px;
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .legend-card {
+      padding: 22px;
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 10px;
+      align-items: start;
+      font-size: 13px;
+    }
+
+    .legend-row strong {
+      color: var(--ink);
+    }
+
+    .legend-row span {
+      color: var(--muted);
+    }
+
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(248, 248, 246, 0.92);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 22px;
+    }
+
+    .tabs input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tabs label {
+      flex: 1;
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background-color 160ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out;
+    }
+
+    .tabs label small {
+      color: var(--hint);
+      font-weight: 700;
+    }
+
+    #tab-safe:checked ~ label[for="tab-safe"],
+    #tab-integrated:checked ~ label[for="tab-integrated"],
+    #tab-expanded:checked ~ label[for="tab-expanded"] {
+      color: #fff;
+      background: var(--accent);
+      box-shadow: 0 10px 28px rgba(18, 18, 18, 0.14);
+    }
+
+    #tab-safe:checked ~ label[for="tab-safe"] small,
+    #tab-integrated:checked ~ label[for="tab-integrated"] small,
+    #tab-expanded:checked ~ label[for="tab-expanded"] small {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .panel {
+      display: none;
+    }
+
+    body:has(#tab-safe:checked) .panel-safe,
+    body:has(#tab-integrated:checked) .panel-integrated,
+    body:has(#tab-expanded:checked) .panel-expanded {
+      display: block;
+    }
+
+    .scenario {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .explain {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--paper);
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 18px;
+    }
+
+    .explain h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: -0.03em;
+    }
+
+    .explain p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .flow-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .flow-step {
+      min-height: 92px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper-2);
+      padding: 12px;
+    }
+
+    .flow-step b {
+      display: inline-flex;
+      width: 24px;
+      height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #121212;
+      color: #fff;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .flow-step strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .flow-step span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .app-frame {
+      min-height: 760px;
+      border: 1px solid var(--line-strong);
+      border-radius: 34px;
+      background: var(--bg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 252px minmax(0, 1fr) 306px;
+    }
+
+    .app-frame.dark {
+      background: var(--dark-bg);
+      border-color: var(--dark-line);
+      color: var(--dark-text);
+    }
+
+    .sidebar {
+      background: var(--side-bottom);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .dark .sidebar {
+      background: var(--dark-side-bottom);
+      border-color: var(--dark-line);
+    }
+
+    .brand {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      background: var(--side-top);
+      border-bottom: 1px solid var(--line);
+      font-weight: 900;
+    }
+
+    .dark .brand {
+      background: var(--dark-side-top);
+      border-color: var(--dark-line);
+    }
+
+    .hamburger {
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .nav {
+      padding: 10px 8px;
+      background: var(--side-top);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dark .nav {
+      background: var(--dark-side-top);
+      border-color: var(--dark-line);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 42px;
+      border-radius: 12px;
+      padding: 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .dark .nav-item {
+      color: var(--dark-muted);
+    }
+
+    .nav-item.active {
+      background: var(--nav-active);
+      color: var(--ink);
+    }
+
+    .dark .nav-item.active {
+      background: #3c3c3c;
+      color: var(--dark-text);
+    }
+
+    .new-chat {
+      margin: 12px 10px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 14px;
+      padding: 11px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dark .new-chat {
+      border-color: var(--dark-line);
+      color: var(--dark-muted);
+    }
+
+    .history {
+      padding: 0 10px;
+      flex: 1;
+    }
+
+    .history-title {
+      margin: 16px 0 8px;
+      color: var(--hint);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .history-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .history-line.is-now {
+      color: var(--ink);
+      background: var(--nav-active);
+      font-weight: 800;
+    }
+
+    .dark .history-line {
+      color: var(--dark-muted);
+    }
+
+    .dark .history-line.is-now {
+      color: var(--dark-text);
+      background: #303030;
+    }
+
+    .profile {
+      margin: 10px;
+      border-top: 1px solid var(--line);
+      padding: 14px 4px 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dark .profile {
+      border-color: var(--dark-line);
+      color: var(--dark-muted);
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      font-weight: 900;
+      background: rgba(248, 248, 246, 0.78);
+    }
+
+    .dark .topbar {
+      background: rgba(31, 31, 30, 0.78);
+      border-color: var(--dark-line);
+    }
+
+    .theme-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 11px;
+      color: var(--muted);
+      font-size: 12px;
+      background: var(--paper);
+    }
+
+    .dark .theme-chip {
+      background: var(--dark-panel);
+      border-color: var(--dark-line);
+      color: var(--dark-muted);
+    }
+
+    .conversation,
+    .life-board,
+    .workspace {
+      flex: 1;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .message {
+      max-width: 690px;
+      margin-bottom: 18px;
+    }
+
+    .message.user {
+      margin-left: auto;
+      max-width: 460px;
+    }
+
+    .bubble {
+      border-radius: 22px;
+      padding: 14px 16px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      font-size: 14px;
+    }
+
+    .user .bubble {
+      background: #ededeb;
+      border-color: transparent;
+      color: #121212;
+    }
+
+    .dark .bubble {
+      background: var(--dark-panel);
+      border-color: var(--dark-line);
+      color: var(--dark-text);
+    }
+
+    .dark .user .bubble {
+      background: #303030;
+      color: #f0f0f0;
+    }
+
+    .meta {
+      margin-top: 6px;
+      color: var(--hint);
+      font-size: 11px;
+    }
+
+    .save-card,
+    .receipt-card,
+    .life-card,
+    .mini-card {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .dark .save-card,
+    .dark .receipt-card,
+    .dark .life-card,
+    .dark .mini-card {
+      border-color: var(--dark-line);
+      background: var(--dark-panel);
+      color: var(--dark-text);
+    }
+
+    .save-card {
+      max-width: 740px;
+      margin: 16px 0 0;
+      padding: 18px;
+    }
+
+    .save-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .save-head strong {
+      display: block;
+      font-size: 17px;
+    }
+
+    .save-head span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dark .save-head span,
+    .dark .mini-muted,
+    .dark .panel-copy,
+    .dark .card-copy {
+      color: var(--dark-muted);
+    }
+
+    .safety-pill {
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: var(--health-soft);
+      color: var(--health);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .dark .safety-pill {
+      background: rgba(47, 125, 85, 0.22);
+      color: #9ed6b6;
+    }
+
+    .classify-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .class-card {
+      min-height: 112px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px;
+      background: var(--paper-2);
+    }
+
+    .dark .class-card {
+      background: #252525;
+      border-color: var(--dark-line);
+    }
+
+    .class-card b {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .class-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .dark .class-card p {
+      color: var(--dark-muted);
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .dark .btn {
+      background: #303030;
+      color: var(--dark-text);
+      border-color: var(--dark-line);
+    }
+
+    .dark .btn.primary {
+      background: #f0f0f0;
+      color: #121212;
+    }
+
+    .composer {
+      margin: auto 24px 24px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      border-radius: 24px;
+      padding: 14px;
+      color: var(--hint);
+      min-height: 76px;
+      font-size: 14px;
+    }
+
+    .dark .composer {
+      background: var(--dark-panel);
+      border-color: var(--dark-line);
+      color: var(--dark-muted);
+    }
+
+    .right-panel {
+      border-left: 1px solid var(--line);
+      padding: 18px;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .dark .right-panel {
+      border-color: var(--dark-line);
+      background: var(--dark-bg);
+    }
+
+    .panel-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .panel-copy,
+    .card-copy {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .today-summary {
+      display: grid;
+      gap: 10px;
+    }
+
+    .mini-card {
+      padding: 14px;
+    }
+
+    .mini-card strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+
+    .mini-muted {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .life-board {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+    }
+
+    .life-hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 14px;
+    }
+
+    .life-card {
+      padding: 18px;
+    }
+
+    .life-card.featured {
+      background:
+        radial-gradient(circle at top right, rgba(184, 107, 42, 0.08), transparent 40%),
+        var(--paper);
+    }
+
+    .dark .life-card.featured {
+      background:
+        radial-gradient(circle at top right, rgba(184, 107, 42, 0.14), transparent 42%),
+        var(--dark-panel);
+    }
+
+    .life-card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+
+    .capture-box {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 15px;
+      background: var(--paper-2);
+      color: var(--hint);
+      font-size: 14px;
+      margin-top: 14px;
+      min-height: 84px;
+    }
+
+    .dark .capture-box {
+      background: #252525;
+      border-color: var(--dark-line);
+      color: var(--dark-muted);
+    }
+
+    .life-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: var(--paper-2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .dark .tag {
+      background: #252525;
+      color: var(--dark-muted);
+    }
+
+    .tag.health {
+      background: var(--health-soft);
+      color: var(--health);
+    }
+
+    .tag.warn {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 54px 1fr;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .timeline-row time {
+      color: var(--hint);
+      font-weight: 800;
+    }
+
+    .timeline-row div {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      background: var(--paper-2);
+    }
+
+    .dark .timeline-row div {
+      border-color: var(--dark-line);
+      background: #252525;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 1.04fr 0.96fr;
+      gap: 16px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .focus-card {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 22px;
+      background: var(--paper);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .dark .focus-card {
+      border-color: var(--dark-line);
+      background: var(--dark-panel);
+    }
+
+    .focus-card.large {
+      min-height: 260px;
+      display: grid;
+      align-content: space-between;
+    }
+
+    .focus-card h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .board-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .board-col {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper-2);
+      padding: 12px;
+      min-height: 270px;
+    }
+
+    .dark .board-col {
+      border-color: var(--dark-line);
+      background: #252525;
+    }
+
+    .board-col h4 {
+      margin: 0 0 10px;
+      font-size: 13px;
+    }
+
+    .task {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: var(--paper);
+      padding: 11px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      box-shadow: 0 7px 18px rgba(28, 28, 28, 0.04);
+    }
+
+    .dark .task {
+      border-color: var(--dark-line);
+      background: #303030;
+    }
+
+    .compare {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .compare-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--paper);
+      padding: 18px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .compare-card.recommended {
+      border-color: #121212;
+      box-shadow: 0 22px 55px rgba(18, 18, 18, 0.12);
+    }
+
+    .compare-card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .compare-card ul {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .theme-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .theme-swatch {
+      border-radius: 24px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      min-height: 180px;
+      background: var(--bg);
+    }
+
+    .theme-swatch.dark-swatch {
+      background: var(--dark-bg);
+      color: var(--dark-text);
+      border-color: var(--dark-line);
+    }
+
+    .swatch-card {
+      margin-top: 12px;
+      border-radius: 18px;
+      padding: 13px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .dark-swatch .swatch-card {
+      background: var(--dark-panel);
+      border-color: var(--dark-line);
+      color: var(--dark-text);
+    }
+
+    .hidden-note {
+      margin-top: 12px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 18px;
+      padding: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    @media (max-width: 1180px) {
+      .hero,
+      .scenario,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .app-frame {
+        grid-template-columns: 210px minmax(0, 1fr);
+      }
+
+      .right-panel {
+        display: none;
+      }
+
+      .classify-grid,
+      .life-grid,
+      .compare {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100vw - 20px, 1500px);
+        padding-top: 18px;
+      }
+
+      .tabs {
+        position: static;
+        border-radius: 22px;
+        flex-direction: column;
+      }
+
+      .flow-strip,
+      .classify-grid,
+      .life-grid,
+      .life-hero,
+      .compare,
+      .theme-pair,
+      .board-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .app-frame {
+        min-height: auto;
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .conversation,
+      .life-board,
+      .workspace {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-card">
+        <p class="eyebrow">DANAA Do it OS Prototype</p>
+        <h1 id="page-title">다나아에 Do it OS가 붙으면<br />실제로 이렇게 보입니다</h1>
+        <p>
+          이 목업은 실제 기능 구현 전, 사용자가 채팅에서 생각을 말하고 다나아가
+          <b>할 일, 일정, 건강 단서, 노트</b>로 정리해 보여주는 방식을 비교하기 위한 시각 자료입니다.
+          자동 저장은 없고, 사용자가 확인해야 저장되는 흐름을 기준으로 만들었습니다.
+        </p>
+      </div>
+      <aside class="legend-card" aria-label="목업 읽는 법">
+        <div class="legend-row">
+          <strong>보수형</strong>
+          <span>현재 채팅 화면에 저장 카드만 붙이는 가장 작은 변화입니다.</span>
+        </div>
+        <div class="legend-row">
+          <strong>통합형</strong>
+          <span>좌측 메뉴에 Do it OS를 추가하고 별도 화면에서 오늘 정리를 봅니다. 추천안입니다.</span>
+        </div>
+        <div class="legend-row">
+          <strong>확장형</strong>
+          <span>Do it OS를 독립 작업공간처럼 크게 보여줍니다. 강하지만 범위가 큽니다.</span>
+        </div>
+      </aside>
+    </section>
+
+    <fieldset class="tabs" aria-label="Do it OS 적용 방향 선택">
+      <input type="radio" name="concept" id="tab-safe" checked />
+      <input type="radio" name="concept" id="tab-integrated" />
+      <input type="radio" name="concept" id="tab-expanded" />
+      <label for="tab-safe">안 1. 보수형 <small>채팅 안 카드</small></label>
+      <label for="tab-integrated">안 2. 통합형 <small>추천</small></label>
+      <label for="tab-expanded">안 3. 확장형 <small>독립 작업공간</small></label>
+    </fieldset>
+
+    <section class="panel panel-safe">
+      <div class="explain">
+        <h2>안 1. 보수형 - 지금 채팅 구조를 거의 그대로 둡니다</h2>
+        <p>
+          사용자는 계속 AI 채팅만 사용합니다. 다만 AI 답변 아래에 “Do it OS에 저장할까요?” 카드가 붙고,
+          확인 버튼을 누른 항목만 저장됩니다. 변화가 작아 안전하지만, Do it OS가 독립 기능처럼 느껴지지는 않습니다.
+        </p>
+        <div class="flow-strip">
+          <div class="flow-step"><b>1</b><strong>채팅 입력</strong><span>“이번 주 너무 바쁘고 운동도 못 했어”</span></div>
+          <div class="flow-step"><b>2</b><strong>AI 답변</strong><span>건강 조언은 기존 흐름 그대로 유지</span></div>
+          <div class="flow-step"><b>3</b><strong>저장 카드</strong><span>할 일, 일정, 건강 단서, 노트 후보 표시</span></div>
+          <div class="flow-step"><b>4</b><strong>사용자 확인</strong><span>선택한 항목만 저장, 자동 저장 없음</span></div>
+          <div class="flow-step"><b>5</b><strong>나중에 보기</strong><span>오른쪽 패널에 오늘 정리로 요약</span></div>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="app-frame">
+          <aside class="sidebar">
+            <div class="brand"><span class="hamburger">☰</span>DANAA</div>
+            <nav class="nav">
+              <div class="nav-item active">□ AI 채팅</div>
+              <div class="nav-item">▥ 리포트</div>
+              <div class="nav-item">◎ 챌린지</div>
+            </nav>
+            <div class="new-chat">+ 새 대화</div>
+            <div class="history">
+              <div class="history-title">오늘</div>
+              <div class="history-line is-now"><span>이번 주 너무 바쁨</span><span>14:20</span></div>
+              <div class="history-line"><span>아침 식단 추천</span><span>10:35</span></div>
+            </div>
+            <div class="profile">당뇨<br />혈당과 위험도 추적</div>
+          </aside>
+          <section class="main">
+            <div class="topbar"><span>AI 채팅</span><span class="theme-chip">Light</span></div>
+            <div class="conversation">
+              <div class="message user">
+                <div class="bubble">이번 주 너무 바쁘고 운동도 못 했어. 머릿속도 정리가 안 돼.</div>
+                <div class="meta">오후 2:20</div>
+              </div>
+              <div class="message">
+                <div class="bubble">
+                  바쁜 주에는 한 번에 다 바꾸기보다, 오늘 바로 할 수 있는 행동 1개를 정하는 게 좋아요.
+                  우선 20분 걷기나 저녁 전 물 한 잔처럼 부담이 작은 행동부터 잡아볼게요.
+                </div>
+                <div class="meta">오후 2:20</div>
+              </div>
+              <div class="save-card">
+                <div class="save-head">
+                  <div>
+                    <strong>Do it OS에 저장할까요?</strong>
+                    <span>AI가 정리했지만, 저장은 사용자가 확인한 항목만 됩니다.</span>
+                  </div>
+                  <span class="safety-pill">자동 저장 안 함</span>
+                </div>
+                <div class="classify-grid">
+                  <div class="class-card"><b>할 일</b><p>오늘 저녁 20분 걷기</p></div>
+                  <div class="class-card"><b>일정 후보</b><p>토요일 오전 운동 시간 비우기</p></div>
+                  <div class="class-card"><b>건강 단서</b><p>운동 부족, 바쁨, 피로 가능성</p></div>
+                  <div class="class-card"><b>노트</b><p>이번 주 업무 과부하로 루틴 흔들림</p></div>
+                </div>
+                <div class="actions">
+                  <button class="btn">수정하기</button>
+                  <button class="btn primary">선택 항목 저장</button>
+                </div>
+              </div>
+            </div>
+            <div class="composer">답글...</div>
+          </section>
+          <aside class="right-panel">
+            <h3 class="panel-title">오늘 한눈에</h3>
+            <p class="panel-copy">건강 기록은 기존 오른쪽 패널에서 계속 관리합니다.</p>
+            <div class="today-summary">
+              <div class="mini-card"><strong>Do it OS 후보</strong><span class="mini-muted">할 일 1개, 건강 단서 1개</span></div>
+              <div class="mini-card"><strong>오늘 건강 기록</strong><span class="mini-muted">수면, 식사, 운동 일부 미입력</span></div>
+              <div class="mini-card"><strong>저장 대기</strong><span class="mini-muted">사용자 확인 전에는 저장되지 않음</span></div>
+            </div>
+          </aside>
+        </div>
+
+        <aside>
+          <div class="compare-card">
+            <h3>이 안의 의미</h3>
+            <ul>
+              <li>가장 안전하고 개발 범위가 작습니다.</li>
+              <li>채팅-first 구조가 거의 흔들리지 않습니다.</li>
+              <li>Do it OS가 “새 기능”으로 강하게 보이지는 않습니다.</li>
+            </ul>
+          </div>
+          <div class="theme-pair">
+            <div class="theme-swatch">
+              <strong>Light tone</strong>
+              <div class="swatch-card">흰 카드, 연한 경계선, 조용한 저장 카드</div>
+            </div>
+            <div class="theme-swatch dark-swatch">
+              <strong>Dark tone</strong>
+              <div class="swatch-card">짙은 패널, 낮은 대비 보조 텍스트, 무채색 버튼</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel panel-integrated">
+      <div class="explain">
+        <h2>안 2. 통합형 - 좌측 메뉴에 Do it OS를 추가합니다</h2>
+        <p>
+          추천안입니다. 채팅은 그대로 유지하고, 저장된 생각과 할 일은 `/app/life`에서 다시 봅니다.
+          사용자는 “채팅으로 말하기 → 확인 후 저장 → Do it OS에서 오늘 정리 보기” 흐름을 갖게 됩니다.
+        </p>
+        <div class="flow-strip">
+          <div class="flow-step"><b>1</b><strong>생각쏟기</strong><span>채팅 또는 Do it OS 입력창에서 자유 입력</span></div>
+          <div class="flow-step"><b>2</b><strong>3분류</strong><span>할 일, 일정, 건강 단서로 정리</span></div>
+          <div class="flow-step"><b>3</b><strong>확인 저장</strong><span>사용자가 고른 항목만 저장</span></div>
+          <div class="flow-step"><b>4</b><strong>오늘 정리</strong><span>/app/life에서 오늘 할 일과 단서 확인</span></div>
+          <div class="flow-step"><b>5</b><strong>채팅 재사용</strong><span>다음 대화에서 저장한 맥락을 다시 불러옴</span></div>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="app-frame">
+          <aside class="sidebar">
+            <div class="brand"><span class="hamburger">☰</span>DANAA</div>
+            <nav class="nav">
+              <div class="nav-item">□ AI 채팅</div>
+              <div class="nav-item">▥ 리포트</div>
+              <div class="nav-item">◎ 챌린지</div>
+              <div class="nav-item active">◌ Do it OS</div>
+            </nav>
+            <div class="new-chat">+ 새 대화</div>
+            <div class="history">
+              <div class="history-title">Do it OS</div>
+              <div class="history-line is-now"><span>오늘 정리</span><span>3건</span></div>
+              <div class="history-line"><span>미정리 생각</span><span>2건</span></div>
+              <div class="history-line"><span>프로젝트</span><span>1건</span></div>
+            </div>
+            <div class="profile">당뇨<br />혈당과 위험도 추적</div>
+          </aside>
+          <section class="main">
+            <div class="topbar"><span>Do it OS</span><span class="theme-chip">추천안</span></div>
+            <div class="life-board">
+              <div class="life-hero">
+                <div class="life-card featured">
+                  <span class="tag warn">생각쏟기</span>
+                  <h3>머릿속을 먼저 비우고, 다나아가 정리합니다</h3>
+                  <p class="card-copy">일, 일정, 건강 루틴이 섞여 있어도 괜찮습니다. 저장은 확인 후에만 됩니다.</p>
+                  <div class="capture-box">예: 이번 주 회의가 많고 운동을 못 했어. 토요일엔 병원 예약도 잡아야 해.</div>
+                  <div class="actions">
+                    <button class="btn">초안 정리</button>
+                    <button class="btn primary">확인 후 저장</button>
+                  </div>
+                </div>
+                <div class="life-card">
+                  <span class="tag health">오늘 정리</span>
+                  <h3>오늘 챙길 것 3개</h3>
+                  <div class="timeline">
+                    <div class="timeline-row"><time>오늘</time><div>저녁 20분 걷기</div></div>
+                    <div class="timeline-row"><time>토</time><div>병원 예약 가능한 시간 확인</div></div>
+                    <div class="timeline-row"><time>메모</time><div>바쁠 때 운동 루틴이 먼저 무너짐</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="life-grid">
+                <div class="life-card">
+                  <span class="tag">할 일</span>
+                  <h3>2</h3>
+                  <p class="card-copy">오늘 걷기, 병원 예약 확인</p>
+                </div>
+                <div class="life-card">
+                  <span class="tag">일정</span>
+                  <h3>1</h3>
+                  <p class="card-copy">토요일 오전 후보</p>
+                </div>
+                <div class="life-card">
+                  <span class="tag health">건강 단서</span>
+                  <h3>3</h3>
+                  <p class="card-copy">운동 부족, 피로, 바쁨</p>
+                </div>
+                <div class="life-card">
+                  <span class="tag">노트</span>
+                  <h3>4</h3>
+                  <p class="card-copy">정리된 생각과 아이디어</p>
+                </div>
+              </div>
+            </div>
+          </section>
+          <aside class="right-panel">
+            <h3 class="panel-title">Do it OS 요약</h3>
+            <p class="panel-copy">오른쪽 패널은 건강 입력을 유지하고, Do it OS는 저장된 요약만 조용히 보여줍니다.</p>
+            <div class="today-summary">
+              <div class="mini-card"><strong>미정리 생각</strong><span class="mini-muted">2개가 정리 대기 중</span></div>
+              <div class="mini-card"><strong>오늘 실행</strong><span class="mini-muted">저녁 20분 걷기</span></div>
+              <div class="mini-card"><strong>건강 단서</strong><span class="mini-muted">운동 부족 흐름 감지, 진단 아님</span></div>
+            </div>
+          </aside>
+        </div>
+
+        <aside>
+          <div class="compare-card recommended">
+            <h3>추천하는 이유</h3>
+            <ul>
+              <li>채팅-first 구조를 해치지 않습니다.</li>
+              <li>Do it OS가 실제 메뉴로 보여 사용자가 이해하기 쉽습니다.</li>
+              <li>건강 기록 DB와 생활 관리 DB를 분리하기 좋습니다.</li>
+              <li>V1에서 목업 → DB/API → 채팅 연결로 단계화하기 쉽습니다.</li>
+            </ul>
+          </div>
+          <div class="hidden-note">
+            구현할 때는 Do it OS 원본의 Supabase, Server Actions, 마이그레이션을 복사하지 않고
+            다나아 FastAPI/Postgres 구조에 맞게 새로 설계해야 합니다.
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel panel-expanded">
+      <div class="explain">
+        <h2>안 3. 확장형 - Do it OS를 독립 작업공간처럼 보여줍니다</h2>
+        <p>
+          가장 강한 화면입니다. 프로젝트, 일정, 노트, 건강 단서를 한 화면에서 보드처럼 관리합니다.
+          상업용 SaaS 느낌은 강하지만, 다나아가 건강 AI가 아니라 생산성 앱처럼 보일 위험도 큽니다.
+        </p>
+        <div class="flow-strip">
+          <div class="flow-step"><b>1</b><strong>통합 입력</strong><span>생각, 업무, 일정, 건강 단서를 한 번에 입력</span></div>
+          <div class="flow-step"><b>2</b><strong>보드 분류</strong><span>수집함, 오늘, 프로젝트로 이동</span></div>
+          <div class="flow-step"><b>3</b><strong>일정화</strong><span>오늘/이번 주 시간 후보에 배치</span></div>
+          <div class="flow-step"><b>4</b><strong>건강 연결</strong><span>건강 루틴과 챌린지 후보로 연결</span></div>
+          <div class="flow-step"><b>5</b><strong>주간 회고</strong><span>생활과 건강 흐름을 요약</span></div>
+        </div>
+      </div>
+
+      <div class="scenario">
+        <div class="app-frame dark">
+          <aside class="sidebar">
+            <div class="brand"><span class="hamburger">☰</span>DANAA</div>
+            <nav class="nav">
+              <div class="nav-item">□ AI 채팅</div>
+              <div class="nav-item">▥ 리포트</div>
+              <div class="nav-item">◎ 챌린지</div>
+              <div class="nav-item active">◌ Do it OS</div>
+            </nav>
+            <div class="new-chat">+ 새 대화</div>
+            <div class="history">
+              <div class="history-title">작업 공간</div>
+              <div class="history-line is-now"><span>오늘 운영판</span><span>Live</span></div>
+              <div class="history-line"><span>건강 루틴 프로젝트</span><span>4건</span></div>
+              <div class="history-line"><span>주간 회고</span><span>금</span></div>
+            </div>
+            <div class="profile">당뇨<br />혈당과 위험도 추적</div>
+          </aside>
+          <section class="main">
+            <div class="topbar"><span>Do it OS 작업공간</span><span class="theme-chip">Dark</span></div>
+            <div class="workspace">
+              <div class="stack">
+                <div class="focus-card large">
+                  <div>
+                    <span class="tag warn">운영 허브</span>
+                    <h3>오늘은 “운동 루틴 회복”을 중심으로 정리합니다</h3>
+                    <p class="card-copy">생각쏟기에서 나온 업무 압박, 운동 부족, 병원 예약 후보를 하나의 실행 흐름으로 묶었습니다.</p>
+                  </div>
+                  <div class="actions">
+                    <button class="btn">AI에게 다시 정리 요청</button>
+                    <button class="btn primary">오늘 계획 확정</button>
+                  </div>
+                </div>
+                <div class="focus-card">
+                  <h3>주간 회고 미리보기</h3>
+                  <p class="card-copy">이번 주는 일정 과부하가 운동 루틴을 밀어낸 패턴이 보입니다. 진단이 아니라 생활 흐름 요약입니다.</p>
+                </div>
+              </div>
+              <div class="board-columns">
+                <div class="board-col">
+                  <h4>수집함</h4>
+                  <div class="task">이번 주 너무 바쁨</div>
+                  <div class="task">병원 예약 잡기</div>
+                  <div class="task">운동 못 한 이유 정리</div>
+                </div>
+                <div class="board-col">
+                  <h4>오늘</h4>
+                  <div class="task">저녁 20분 걷기</div>
+                  <div class="task">물 6잔 체크</div>
+                </div>
+                <div class="board-col">
+                  <h4>프로젝트</h4>
+                  <div class="task">건강 루틴 회복</div>
+                  <div class="task">토요일 병원 일정</div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <aside class="right-panel">
+            <h3 class="panel-title">건강 연결</h3>
+            <p class="panel-copy">Do it OS가 건강 기록을 직접 바꾸지는 않고, 확인 질문과 챌린지 후보만 제안합니다.</p>
+            <div class="today-summary">
+              <div class="mini-card"><strong>챌린지 후보</strong><span class="mini-muted">주 150분 운동</span></div>
+              <div class="mini-card"><strong>기록 확인</strong><span class="mini-muted">운동 여부 미입력</span></div>
+              <div class="mini-card"><strong>노트</strong><span class="mini-muted">바쁠 때 루틴 붕괴</span></div>
+            </div>
+          </aside>
+        </div>
+
+        <aside>
+          <div class="compare-card">
+            <h3>이 안의 주의점</h3>
+            <ul>
+              <li>가장 제품처럼 보이지만 개발 범위가 큽니다.</li>
+              <li>채팅 중심 건강 서비스라는 정체성이 약해질 수 있습니다.</li>
+              <li>DB/API/권한/삭제 정책을 한 번에 많이 설계해야 합니다.</li>
+            </ul>
+          </div>
+          <div class="hidden-note">
+            이 안은 V1이 아니라 V2 이후가 적합합니다. 먼저 통합형으로 사용자가 실제로 Do it OS를 원하는지 확인하는 편이 안전합니다.
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="compare" aria-label="3안 비교표">
+      <article class="compare-card">
+        <h3>안 1. 보수형</h3>
+        <ul>
+          <li>변화가 가장 작음</li>
+          <li>채팅 안 저장 카드 중심</li>
+          <li>기능 존재감이 약함</li>
+        </ul>
+      </article>
+      <article class="compare-card recommended">
+        <h3>안 2. 통합형 추천</h3>
+        <ul>
+          <li>Do it OS 메뉴가 명확함</li>
+          <li>채팅-first 구조 유지</li>
+          <li>단계별 구현이 쉬움</li>
+        </ul>
+      </article>
+      <article class="compare-card">
+        <h3>안 3. 확장형</h3>
+        <ul>
+          <li>가장 강한 SaaS 느낌</li>
+          <li>생산성 앱처럼 보일 위험</li>
+          <li>V2 이후 후보</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

@@ -5,14 +5,24 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   BarChart3,
+  Brain,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
   Droplet,
+  FolderKanban,
   Heart,
   HeartPulse,
   HelpCircle,
+  LayoutGrid,
+  ListChecks,
   MessageSquare,
+  Moon,
   Scale,
+  StickyNote,
   Target,
   X,
+  Zap,
 } from 'lucide-react';
 
 import AppGuideModal from './AppGuideModal';
@@ -23,8 +33,23 @@ import { formatUserGroupDisplay } from '../lib/userGroupLabels';
 const CHAT_PATH = '/app/chat';
 const CHAT_NEW_QUERY_KEY = 'new';
 const CHAT_NEW_QUERY_VALUE = '1';
+const DOIT_HREF = '/app/do-it-os';
 
 const navItems = [
+  {
+    icon: Zap,
+    label: 'Do it OS',
+    href: DOIT_HREF,
+    subitems: [
+      { icon: LayoutGrid, label: '대시보드', href: DOIT_HREF },
+      { icon: Brain, label: '생각 쏟기', href: `${DOIT_HREF}/thinking` },
+      { icon: ListChecks, label: '정리 명료화', href: `${DOIT_HREF}/classify` },
+      { icon: FolderKanban, label: '프로젝트', href: `${DOIT_HREF}/project` },
+      { icon: Calendar, label: '일정', href: `${DOIT_HREF}/schedule` },
+      { icon: StickyNote, label: '노트', href: `${DOIT_HREF}/note` },
+      { icon: Moon, label: '자기 전 정리', href: `${DOIT_HREF}/end-of-day` },
+    ],
+  },
   { icon: MessageSquare, label: 'AI 채팅', href: CHAT_PATH },
   { icon: BarChart3, label: '리포트', href: '/app/report' },
   { icon: Target, label: '챌린지', href: '/app/challenge' },
@@ -71,6 +96,8 @@ export default function Sidebar({ productGuide = null }) {
   const [userInitial, setUserInitial] = useState('?');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState(() => new Set(['Do it OS']));
+  const [guideSeen, setGuideSeen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -79,6 +106,21 @@ export default function Sidebar({ productGuide = null }) {
   useEffect(() => {
     if (window.innerWidth < 768) setOpen(false);
   }, []);
+
+  useEffect(() => {
+    try {
+      setGuideSeen(localStorage.getItem('danaa_doit_guide_seen_v1') === '1');
+    } catch {
+      setGuideSeen(true);
+    }
+  }, []);
+
+  const markGuideSeen = () => {
+    try {
+      localStorage.setItem('danaa_doit_guide_seen_v1', '1');
+    } catch {}
+    setGuideSeen(true);
+  };
 
   useEffect(() => {
     async function loadSidebarState() {
@@ -112,7 +154,7 @@ export default function Sidebar({ productGuide = null }) {
 
     loadSidebarState();
   }, []);
-
+  
   useEffect(() => {
     if (!pathname.startsWith(CHAT_PATH)) return;
 
@@ -122,6 +164,15 @@ export default function Sidebar({ productGuide = null }) {
     setActiveSessionId(Number.isFinite(sessionId) && sessionId > 0 ? sessionId : null);
     setActiveIsNew(isNew);
   }, [pathname, searchParams]);
+
+  const toggleExpanded = (label) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handler = (event) => {
@@ -239,21 +290,71 @@ export default function Sidebar({ productGuide = null }) {
           {navItems.map((item) => {
             const href = item.href === CHAT_PATH ? chatHref : item.href;
             const active = pathname.startsWith(item.href);
+            const hasSub = Boolean(item.subitems?.length);
+            const isExpanded = expandedKeys.has(item.label);
+
             return (
-              <Link
-                key={item.label}
-                href={href}
-                className={`flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[14px] whitespace-nowrap transition-colors ${
-                  active
-                    ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
-                    : 'text-neutral-400 hover:bg-cream-400'
-                }`}
-              >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                  <item.icon size={18} />
-                </span>
-                {open && <span>{item.label}</span>}
-              </Link>
+              <div key={item.label}>
+                {hasSub && open ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(item.label)}
+                    aria-expanded={isExpanded}
+                    aria-label={`${item.label} 하위 메뉴 ${isExpanded ? '접기' : '펼치기'}`}
+                    className={`flex h-10 w-full items-center gap-2.5 overflow-hidden rounded-lg px-2 text-left text-[14px] whitespace-nowrap transition-colors ${
+                      active
+                        ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
+                        : 'text-neutral-400 hover:bg-cream-400'
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                      <item.icon size={18} />
+                    </span>
+                    <span className="flex-1">{item.label}</span>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--color-text-hint)]">
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    href={href}
+                    className={`flex h-10 items-center gap-2.5 overflow-hidden rounded-lg px-2 text-[14px] whitespace-nowrap transition-colors ${
+                      active
+                        ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
+                        : 'text-neutral-400 hover:bg-cream-400'
+                    }`}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                      <item.icon size={18} />
+                    </span>
+                    {open && <span>{item.label}</span>}
+                  </Link>
+                )}
+
+                {hasSub && open && isExpanded && (
+                  <ul className="mb-1 ml-4 mt-0.5 space-y-0.5 border-l-2 border-[var(--color-border)] pl-2.5">
+                    {item.subitems.map((sub) => {
+                      const subActive = pathname === sub.href;
+                      return (
+                        <li key={sub.href}>
+                          <Link
+                            href={sub.href}
+                            className={`flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors ${
+                              subActive
+                                ? 'bg-[var(--color-nav-active)] font-medium text-nature-900'
+                                : 'text-neutral-400 hover:bg-cream-400'
+                            }`}
+                          >
+                            <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${subActive ? 'bg-nature-500' : 'bg-[var(--color-text-hint)]/60'}`} />
+                            <sub.icon size={13} className="shrink-0" />
+                            <span className="truncate">{sub.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -266,7 +367,6 @@ export default function Sidebar({ productGuide = null }) {
             >
               + 새 대화
             </button>
-
             {hasOnboarding ? (
               grouped.length > 0 ? (
                 grouped.map((group) => (
@@ -340,6 +440,23 @@ export default function Sidebar({ productGuide = null }) {
             >
               <HelpCircle size={15} />
             </button>
+            <a
+              href="/do-it-os-guide.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={markGuideSeen}
+              className="relative flex h-6 w-6 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
+              aria-label="Do it OS 학습 가이드 새 탭으로 열기"
+              title="Do it OS 학습 가이드"
+            >
+              <Zap size={13} />
+              {!guideSeen && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"
+                />
+              )}
+            </a>
             <span className="text-sm">
               <currentCat.icon size={16} />
             </span>
@@ -364,53 +481,53 @@ export default function Sidebar({ productGuide = null }) {
             </button>
 
             <div className="relative">
-            <button
-              onClick={() => setCatOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-cream-400"
-            >
-              <div className="flex items-center gap-2 text-[15px]">
-                <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
-                <div>
-                  <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-[var(--color-text-hint)]'}`}>{currentCat.name}</div>
-                  <div className="text-[13px] text-[var(--color-text-hint)]">{currentCat.desc}</div>
+              <button
+                onClick={() => setCatOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-cream-400"
+              >
+                <div className="flex items-center gap-2 text-[15px]">
+                  <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
+                  <div>
+                    <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-[var(--color-text-hint)]'}`}>{currentCat.name}</div>
+                    <div className="text-[13px] text-[var(--color-text-hint)]">{currentCat.desc}</div>
+                  </div>
                 </div>
-              </div>
-              <span className="text-[var(--color-text-hint)]">{catOpen ? '▾' : '▸'}</span>
-            </button>
+                <span className="text-[var(--color-text-hint)]">{catOpen ? '▾' : '▸'}</span>
+              </button>
 
-            {catOpen && (
-              <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-[var(--color-surface)] p-2 shadow-soft">
-                {categories.map((category, index) => {
-                  const isAvailable = index === 0;
-                  return (
-                    <button
-                      key={category.name}
-                      onClick={() => {
-                        if (!isAvailable) return;
-                        setSelectedCat(index);
-                        setCatOpen(false);
-                      }}
-                      disabled={!isAvailable}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
-                        selectedCat === index
-                          ? 'bg-cream-400 text-nature-900'
-                          : isAvailable
-                            ? 'text-neutral-400 hover:bg-cream-400/70'
-                            : 'cursor-not-allowed text-[#9A948B]'
-                      }`}
-                    >
-                      <category.icon size={14} className={isAvailable ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
-                      <div>
-                        <div className="font-medium">{category.name}</div>
-                        <div className="text-[12px] text-[var(--color-text-hint)]">
-                          {isAvailable ? category.desc : '준비 중'}
+              {catOpen && (
+                <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-[var(--color-surface)] p-2 shadow-soft">
+                  {categories.map((category, index) => {
+                    const isAvailable = index === 0;
+                    return (
+                      <button
+                        key={category.name}
+                        onClick={() => {
+                          if (!isAvailable) return;
+                          setSelectedCat(index);
+                          setCatOpen(false);
+                        }}
+                        disabled={!isAvailable}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
+                          selectedCat === index
+                            ? 'bg-cream-400 text-nature-900'
+                            : isAvailable
+                              ? 'text-neutral-400 hover:bg-cream-400/70'
+                              : 'cursor-not-allowed text-[#9A948B]'
+                        }`}
+                      >
+                        <category.icon size={14} className={isAvailable ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
+                        <div>
+                          <div className="font-medium">{category.name}</div>
+                          <div className="text-[12px] text-[var(--color-text-hint)]">
+                            {isAvailable ? category.desc : '준비 중'}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mt-2 flex items-center justify-between rounded-lg px-2 py-2">
@@ -418,13 +535,32 @@ export default function Sidebar({ productGuide = null }) {
                 <div className="text-[15px] font-medium text-nature-900">{userName}</div>
                 <div className="text-[13px] text-[var(--color-text-hint)]">{userGroup}</div>
               </div>
-              <Link
-                href="/app/settings"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
-                aria-label="설정 열기"
-              >
-                ⚙
-              </Link>
+              <div className="flex items-center gap-1.5">
+                <a
+                  href="/do-it-os-guide.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={markGuideSeen}
+                  className="relative flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
+                  aria-label="Do it OS 학습 가이드 새 탭으로 열기"
+                  title="Do it OS 학습 가이드"
+                >
+                  <Zap size={13} />
+                  {!guideSeen && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500"
+                    />
+                  )}
+                </a>
+                <Link
+                  href="/app/settings"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-cream-500 text-neutral-400 transition-colors hover:bg-cream-400 hover:text-nature-900"
+                  aria-label="설정 열기"
+                >
+                  ⚙
+                </Link>
+              </div>
             </div>
           </div>
         )}
