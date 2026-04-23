@@ -212,3 +212,36 @@ docker compose -f docker-compose.prod.yml up -d
 | 문서 | 내용 |
 |------|------|
 | [docs/collaboration/](docs/collaboration/) | API/DB 명세 확정안 |
+# 2026-04-22 기능 업데이트 요약
+
+이번 브랜치는 건강 기록 UX와 사용자 맞춤 참여 기능을 함께 개선합니다.
+
+- 메인 AI 채팅 화면에 사용자 대화 기반 YouTube 영상 추천 카드 추가
+- 오른쪽 Today 패널의 식사/수면 문구 정리, 식사 저장 피드백 추가
+- 미입력 항목 모달을 드롭다운 선택 후 `기록 저장하기` 방식으로 정리
+- 챌린지 버튼을 `수행 완료`/`완료 취소` 토글 방식으로 개선
+- 리포트에 위험도 색상 신호와 현재 점수 영향 요인 카드 추가
+- 브라우저 백그라운드 알림(Web Push) 구독/해제, 설정 화면, 서비스 워커 추가
+- 건강 질문 주기를 사용자 설정값(`health_question_interval_minutes`) 기준으로 조정
+- 로그인 실패 사유를 사용자 기준으로 구분해서 안내
+
+## 배포 전 필수 확인
+
+```bash
+docker compose up -d --build fastapi
+docker compose exec fastapi uv run aerich fix-migrations
+docker compose exec fastapi uv run aerich upgrade
+```
+
+프론트도 재빌드/재실행해야 화면 문구, 서비스 워커, 영상 추천 카드가 반영됩니다.
+
+Web Push를 사용할 환경에는 아래 env가 필요합니다. 실제 사용자는 별도 키 설정 없이 브라우저 알림 권한만 허용하면 됩니다.
+
+```dotenv
+WEB_PUSH_ENABLED=true
+WEB_PUSH_VAPID_PUBLIC_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY=
+WEB_PUSH_VAPID_PRIVATE_KEY_B64=
+WEB_PUSH_VAPID_SUBJECT=mailto:admin@example.com
+WEB_PUSH_ACTION_API_BASE=
+```

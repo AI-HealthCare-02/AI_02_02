@@ -140,3 +140,16 @@
 | `docs/setup/04-08 14-19 채팅 3트랙 구현 기록.md` | reason_codes enum, normalize option C, chat 패키지 전환 구현 요약 |
 | `docs/setup/04-08 14-19 reason codes 인벤토리.md` | reason code producer/consumer와 타입 규칙 |
 | `docs/setup/04-08 14-19 normalize 골든셋 및 금지조건.md` | normalize golden snapshot, 보호 대상, no-go 조건 |
+# 2026-04-22 문서 최신화 메모
+
+이번 health engagement UX 브랜치에서 아래 문서를 최신 기준으로 확인/갱신했습니다.
+
+- `README.md`: 영상 추천, Web Push, 오른쪽 패널/챌린지/리포트 개선 요약과 배포 전 체크 추가
+- `docs/TROUBLESHOOTING.md`: Web Push, daily log 저장 실패, 영상 추천, 리포트 빈 화면 대응 추가
+- `docs/TEAM_CHANGELOG_BJ.md`: BJ 작업 변경 이력 추가
+- `docs/HANDOFF_MEMO.md`: 현재 구현/배포 주의사항 기록 유지
+
+이번 변경은 API/DB에도 영향이 있으므로 PR 리뷰 시 아래 마이그레이션을 함께 확인해야 합니다.
+
+- `10_20260422000000_add_health_question_interval_setting.py`
+- `11_20260422001000_add_push_subscriptions.py`

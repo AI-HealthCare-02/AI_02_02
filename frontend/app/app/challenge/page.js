@@ -236,7 +236,10 @@ function SevenDayProgress({ daysCompleted, streak }) {
   return (
     <div className="mt-4 rounded-[20px] border border-[#ECE7DE] bg-[#FCFBF7] p-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-medium text-[#7E776C]">7일 진행률</div>
+        <div>
+          <div className="text-[11px] font-medium text-[#7E776C]">7일 진행률</div>
+          <div className="mt-0.5 text-[10px] text-[#A0968A]">1일 1회 수행 완료 기준</div>
+        </div>
         <div className="rounded-full bg-nature-950 px-2.5 py-1 text-[11px] font-semibold text-[var(--color-primary-bg)]">
           {filled}/{CHALLENGE_DAYS}
         </div>
@@ -264,12 +267,13 @@ function SevenDayProgress({ daysCompleted, streak }) {
   );
 }
 
-function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCancelId, checkinChallenge, cancelChallenge }) {
+function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCancelId, checkinChallenge, uncheckinChallenge, cancelChallenge }) {
   const checking = busyKey === `checkin:${challenge.user_challenge_id}`;
+  const unchecking = busyKey === `uncheckin:${challenge.user_challenge_id}`;
   const cancelling = busyKey === `cancel:${challenge.user_challenge_id}`;
   const showCancelConfirm = confirmCancelId === challenge.user_challenge_id;
   // 오늘 완료한 챌린지도 취소 가능 (기록은 이력으로 보존)
-  const cancelDisabled = checking || cancelling;
+  const cancelDisabled = checking || unchecking || cancelling;
   const visual = challengeVisual(challenge);
   const completedToday = Boolean(challenge.today_checked);
 
@@ -302,16 +306,16 @@ function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCa
         <div className="flex shrink-0 flex-col gap-2">
           <button
             type="button"
-            onClick={() => checkinChallenge(challenge.user_challenge_id)}
-            disabled={challenge.today_checked || checking || cancelling}
+            onClick={() => (completedToday ? uncheckinChallenge(challenge.user_challenge_id) : checkinChallenge(challenge.user_challenge_id))}
+            disabled={checking || unchecking || cancelling}
             className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-[13px] font-semibold transition-colors ${
               challenge.today_checked
                 ? 'border-nature-950 bg-nature-950 text-[var(--color-primary-bg)] shadow-sm'
                 : 'border-[#D8D2C7] bg-white text-[#3E3A36] hover:bg-[#F7F4EF] disabled:cursor-not-allowed disabled:bg-[#F2EEE7] disabled:text-neutral-400'
             }`}
           >
-            {checking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-            {challenge.today_checked ? '오늘 완료' : '오늘 할 행동 체크'}
+            {checking || unchecking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+            {challenge.today_checked ? '완료 취소' : '수행 완료'}
           </button>
           <button
             type="button"
@@ -519,6 +523,24 @@ export default function ChallengePage() {
     }
   }, [confirmCancelId, loadOverview]);
 
+  const uncheckinChallenge = useCallback(async (userChallengeId) => {
+    setBusyKey(`uncheckin:${userChallengeId}`);
+    setError('');
+
+    try {
+      const response = await api(`/api/v1/challenges/${userChallengeId}/checkin`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || `HTTP ${response.status}`);
+      await loadOverview();
+      fireChallengeRefresh();
+    } catch (nextError) {
+      setError(nextError.message || '오늘 완료 체크를 해제하지 못했어요.');
+    } finally {
+      setBusyKey('');
+    }
+  }, [loadOverview]);
+
   const joinSelectedChallenges = useCallback(async () => {
     for (const templateId of selectedTemplateIds) {
       // eslint-disable-next-line no-await-in-loop
@@ -605,6 +627,7 @@ export default function ChallengePage() {
                           confirmCancelId={confirmCancelId}
                           setConfirmCancelId={setConfirmCancelId}
                           checkinChallenge={checkinChallenge}
+                          uncheckinChallenge={uncheckinChallenge}
                           cancelChallenge={cancelChallenge}
                         />
                       ))

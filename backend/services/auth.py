@@ -610,11 +610,18 @@ class AuthService:
 
     async def authenticate(self, data: LoginRequest) -> User:
         email = str(data.email)
-        user = await self._get_password_user_by_email(email)
+        accounts = await self.user_repo.get_users_by_email(email)
+        if not accounts:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email not found.",
+            )
+        password_accounts = [account for account in accounts if account.hashed_password]
+        user = max(password_accounts, key=lambda account: account.id) if password_accounts else None
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email or password is invalid.",
+                detail="Social account cannot use password login.",
             )
         if not user.hashed_password:
             raise HTTPException(
@@ -624,7 +631,7 @@ class AuthService:
         if not verify_password(data.password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email or password is invalid.",
+                detail="Password is incorrect.",
             )
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Account is locked.")

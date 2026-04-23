@@ -13,7 +13,7 @@
 - alcohol_today=false → amount_level null 강제
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from backend.core import config
 from backend.models.assessments import UserEngagement
@@ -48,6 +48,11 @@ TOUCHPOINT_BUNDLES: dict[str, list[str]] = {
     "lunch": ["bundle_3"],
     "evening": ["bundle_4", "bundle_5"],
 }
+PUSH_TOUCHPOINT_BUNDLES: dict[str, list[str]] = {
+    "morning": ["bundle_1", "bundle_2"],
+    "lunch": ["bundle_3"],
+    "evening": ["bundle_4", "bundle_5", "bundle_7"],
+}
 
 # ── 자동 카드 순서 정의 ──
 AUTO_SEQUENCE_BUNDLES: tuple[str, ...] = (
@@ -58,6 +63,11 @@ AUTO_SEQUENCE_BUNDLES: tuple[str, ...] = (
     "bundle_5",
     "bundle_7",
 )
+MEAL_STATUS_FIELDS = {"breakfast_status", "lunch_status", "dinner_status"}
+LEGACY_MEAL_STATUS_ALIASES = {
+    "light": "hearty",
+    "simple": "hearty",
+}
 
 # ── 묶음별 질문 데이터 (프론트엔드 전송 + 프롬프트 구성용) ──
 # workers/ai/prompts/system.py에도 동일 데이터가 독립적으로 정의됨
@@ -74,18 +84,18 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     "bundle_2": {
         "name": "아침식사",
         "questions": [
-            {"field": "breakfast_status", "text": "아침은 먹었어? 🍳",
-             "options": ["hearty", "simple", "skipped"]},
-            {"field": "took_medication", "text": "오늘 약은 챙겨 먹었어? 💊",
+            {"field": "breakfast_status", "text": "아침 드셨어요? 🍳",
+             "options": ["hearty", "skipped"]},
+            {"field": "took_medication", "text": "오늘 약은 챙겨 먹었어요? 💊",
              "options": [True, False], "condition": "group_A_only"},
         ],
     },
     "bundle_3": {
         "name": "식단",
         "questions": [
-            {"field": "meal_balance_level", "text": "오늘 식사 구성은 어땠어? 🥗",
+            {"field": "meal_balance_level", "text": "오늘 하루 식사가 주로 어떤 구성이었나요? (고르게 / 밥·빵·면 위주 / 고기·채소 위주)",
              "options": ["balanced", "carb_heavy", "protein_veg_heavy"]},
-            {"field": "sweetdrink_level", "text": "단 음료나 간식은?",
+            {"field": "sweetdrink_level", "text": "오늘 단 음료나 달달한 간식 드셨나요? (커피음료·주스·과자 등)",
              "options": ["none", "one", "two_plus"]},
         ],
     },
@@ -105,9 +115,9 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     "bundle_5": {
         "name": "저녁습관",
         "questions": [
-            {"field": "vegetable_intake_level", "text": "오늘 채소는 충분히 먹었어? 🥦",
+            {"field": "vegetable_intake_level", "text": "오늘 채소나 나물 반찬 드셨나요? (하루 2가지 이상이면 '충분'이에요)",
              "options": ["enough", "little", "none"]},
-            {"field": "walk_done", "text": "오늘 산책은 했어? 🚶",
+            {"field": "walk_done", "text": "오늘 산책이나 걷기 하셨나요? 🚶",
              "options": [True, False]},
         ],
     },
@@ -489,6 +499,24 @@ class HealthQuestionService:
                 blocked_reason_text="오늘 자동 질문카드는 다 끝났어요. 필요한 항목은 오른쪽 패널에서 바로 수정할 수 있어요.",
             )
 
+        last_card_at = await self._get_last_health_question_card_time(
+            user_id=user_id,
+            current_time=current_time,
+        )
+        interval_minutes = settings.health_question_interval_minutes
+        if interval_minutes is None:
+            interval_minutes = 90
+        if last_card_at is not None and interval_minutes > 0:
+            available_after = last_card_at + timedelta(minutes=interval_minutes)
+            if current_time < available_after:
+                return self._build_card_availability_payload(
+                    sequence_started_at=sequence_started_at,
+                    next_bundle_key=next_bundle_key,
+                    blocked_reason="cooldown",
+                    blocked_reason_text="다음 질문은 약 1시간 30분 간격으로 보여드려요.",
+                    available_after=available_after,
+                )
+
         return self._build_card_availability_payload(
             sequence_started_at=sequence_started_at,
             is_available=True,
@@ -518,6 +546,22 @@ class HealthQuestionService:
         ).order_by("created_at", "id").first()
         return first_message.created_at if first_message else None
 
+    async def _get_last_health_question_card_time(
+        self,
+        *,
+        user_id: int,
+        current_time: datetime,
+    ) -> datetime | None:
+        from backend.models.chat import ChatMessage, MessageRole
+
+        last_message = await ChatMessage.filter(
+            session__user_id=user_id,
+            role=MessageRole.ASSISTANT,
+            has_health_questions=True,
+            created_at__gte=self._sequence_start_at(current_time),
+        ).order_by("-created_at", "-id").first()
+        return last_message.created_at if last_message else None
+
     def _get_sequence_order(self, user_group: UserGroup | str | None) -> tuple[str, ...]:
         del user_group
         return AUTO_SEQUENCE_BUNDLES
@@ -535,6 +579,49 @@ class HealthQuestionService:
                 user_group=user_group,
             ):
                 return bundle_key
+        return None
+
+    @staticmethod
+    def _has_time_window_ended(touchpoint: str, current_time: datetime) -> bool:
+        window = TIME_WINDOWS.get(touchpoint)
+        if not window:
+            return False
+        _, _, end_hour, end_minute = window
+        window_end = current_time.replace(hour=end_hour, minute=end_minute, second=0, microsecond=0)
+        return current_time >= window_end
+
+    def _get_elapsed_touchpoint_bundle_keys(self, current_time: datetime) -> list[str]:
+        bundle_keys: list[str] = []
+        for touchpoint in ("morning", "lunch", "evening"):
+            if not self._has_time_window_ended(touchpoint, current_time):
+                continue
+            bundle_keys.extend(PUSH_TOUCHPOINT_BUNDLES.get(touchpoint, []))
+        return bundle_keys
+
+    async def get_due_push_bundle(self, user_id: int, *, now: datetime | None = None) -> dict[str, object] | None:
+        """Return the oldest unanswered bundle whose intended time window already ended."""
+        current_time = now or datetime.now(tz=config.TIMEZONE)
+        if self._is_before_sequence_start(current_time):
+            return None
+
+        elapsed_bundle_keys = set(self._get_elapsed_touchpoint_bundle_keys(current_time))
+        if not elapsed_bundle_keys:
+            return None
+
+        today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=current_time.date())
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        user_group = profile.user_group if profile else UserGroup.C
+
+        for bundle_key in self._get_sequence_order(user_group):
+            if bundle_key not in elapsed_bundle_keys:
+                continue
+            payload = self._build_pending_bundle_payload(
+                bundle_key=bundle_key,
+                today_log=today_log,
+                user_group=user_group,
+            )
+            if payload:
+                return payload
         return None
 
     @staticmethod
@@ -625,6 +712,8 @@ class HealthQuestionService:
             if not hasattr(log, field_name):
                 skipped_fields.append(field_name)
                 continue
+            if field_name in MEAL_STATUS_FIELDS and isinstance(value, str):
+                value = LEGACY_MEAL_STATUS_ALIASES.get(value, value)
 
             # First Answer Wins: 이미 값이 있으면 skip
             current_value = getattr(log, field_name)

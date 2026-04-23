@@ -18,6 +18,7 @@ SYSTEM_PROMPT_TEMPLATE = """\
 ## 역할
 - 만성질환 관리가 필요한 사용자를 돕는 생활습관 코치입니다. 의사는 아닙니다.
 - 공감은 먼저, 정보는 짧고 분명하게 전달합니다.
+- 모든 답변은 일관되게 존댓말로 합니다. 사용자가 반말을 써도 반말로 바꾸지 않습니다.
 - 이모지는 꼭 필요할 때만 가볍게 사용합니다.
 
 ## 사용자 정보
@@ -182,6 +183,15 @@ def _user_group_key(profile) -> str:
     return str(user_group.value if hasattr(user_group, "value") else user_group)
 
 
+def _user_group_label(user_group_key: str) -> str:
+    labels = {
+        "A": "A그룹(집중 관리 단계)",
+        "B": "B그룹(주의 관리 단계)",
+        "C": "C그룹(일반 관리 단계)",
+    }
+    return labels.get(user_group_key, user_group_key)
+
+
 @lru_cache(maxsize=64)
 def _build_cached_system_prompt(user_group_key: str, eligible_bundles_key: tuple[str, ...]) -> str:
     health_instruction = ""
@@ -203,7 +213,7 @@ def _build_cached_system_prompt(user_group_key: str, eligible_bundles_key: tuple
 
     return (
         SYSTEM_PROMPT_TEMPLATE.format(
-            user_group=user_group_key,
+            user_group=_user_group_label(user_group_key),
             health_question_instruction=health_instruction,
         )
         + PHASE1_SCOPE_BLOCK

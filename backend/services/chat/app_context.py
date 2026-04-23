@@ -155,7 +155,7 @@ def _fallback_help_snapshot() -> ChatAppHelpSnapshot:
             "온보딩은 가입 직후 15단계 건강 설문으로, 약관·프로필·체형·의료력·검사수치·생활습관·목표 순으로 진행돼요. 완료되면 AI 채팅 자동 질문이 시작돼요."
         ),
         right_panel_help=(
-            "우측 Today 패널은 오늘 기록 카드 7종(수면·식사·복약·운동·수분·기분·음주), 상단 요약 문장, 도전 챌린지, 최근 3일 미응답 버튼을 한곳에 모은 영역이에요. 복약 카드는 A그룹에만 표시돼요."
+            "우측 Today 패널은 오늘 기록 카드 7종(수면·식사·복약·운동·수분·기분·음주), 상단 요약 문장, 도전 챌린지, 최근 3일 미응답 버튼을 한곳에 모은 영역이에요. 복약 카드는 A그룹(집중 관리 단계)에만 표시돼요."
         ),
         missed_modal_help=(
             "미응답 질문 모달은 어제·그제 미기록 항목을 드롭다운으로 일괄 입력하는 팝업이에요. 오늘은 우측 Today 카드에서 입력해요."
@@ -391,6 +391,16 @@ def _format_risk_level(value: str) -> str:
     return f"{label} ({value})" if label != value else value
 
 
+def _format_user_group(value: object) -> str:
+    raw = value.value if hasattr(value, "value") else value
+    labels = {
+        "A": "A그룹(집중 관리 단계)",
+        "B": "B그룹(주의 관리 단계)",
+        "C": "C그룹(일반 관리 단계)",
+    }
+    return labels.get(str(raw), str(raw))
+
+
 def _build_report_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
     lines: list[str] = []
     if snapshot.onboarding_completed is not None:
@@ -398,7 +408,7 @@ def _build_report_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
             f"- 온보딩 완료 여부: {'완료' if snapshot.onboarding_completed else '미완료'}"
         )
     if snapshot.user_group:
-        lines.append(f"- 사용자 그룹: {snapshot.user_group}")
+        lines.append(f"- 사용자 그룹: {_format_user_group(snapshot.user_group)}")
     if snapshot.initial_risk_level:
         lines.append(f"- 초기 위험도: {_format_risk_level(snapshot.initial_risk_level)}")
     return lines

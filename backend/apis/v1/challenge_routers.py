@@ -75,6 +75,22 @@ async def checkin(
     )
 
 
+@challenge_router.delete("/{user_challenge_id}/checkin", status_code=status.HTTP_200_OK)
+async def uncheckin(
+    user_challenge_id: int,
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[ChallengeService, Depends(ChallengeService)],
+) -> Response:
+    result = await service.uncheckin(
+        user_id=user.id,
+        user_challenge_id=user_challenge_id,
+    )
+    return Response(
+        content=result,
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @challenge_router.get("/{user_challenge_id}/calendar", status_code=status.HTTP_200_OK)
 async def get_calendar(
     user_challenge_id: int,

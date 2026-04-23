@@ -63,7 +63,7 @@ export default function RightPanel() {
               {/* 아침 - done */}
               <div className="flex items-center gap-2.5">
                 <span className="text-[15px]">☀️</span>
-                <span className="text-nature-900 font-medium">아침 — 간단히</span>
+                <span className="text-nature-900 font-medium">아침 — 먹었어요</span>
               </div>
 
               {/* 점심 - pending with pills */}
@@ -71,7 +71,7 @@ export default function RightPanel() {
                 <span className="text-[15px]">🌤️</span>
                 <span className="text-neutral-400 font-medium text-[12px]">점심</span>
                 <div className="flex gap-1 ml-auto">
-                  {['든든히', '간단히', '못먹음'].map((opt) => (
+                  {['먹었어요', '못 먹었어요'].map((opt) => (
                     <button
                       key={opt}
                       onClick={() => setLunchChoice(lunchChoice === opt ? null : opt)}
@@ -105,7 +105,7 @@ export default function RightPanel() {
               {/* 식사구성 - done */}
               <div className="flex items-center gap-2.5">
                 <span className="text-[15px]">🍚</span>
-                <span className="text-nature-900 font-medium">식사구성 — 균형</span>
+                <span className="text-nature-900 font-medium">식사구성 — 고르게 먹었어요</span>
               </div>
             </div>
           )}
@@ -181,7 +181,7 @@ export default function RightPanel() {
           <div className="space-y-2.5">
             {[
               { icon: '💤', text: '수면 5~6시간', sub: '좀 부족해요' },
-              { icon: '🍽️', text: '아침 든든히 챙김', sub: '좋아요! 👏' },
+              { icon: '🍽️', text: '아침 먹었어요', sub: '좋아요! 👏' },
               { icon: '🏃', text: '운동 미기록', sub: '저녁에 응답해주세요' },
             ].map((item) => (
               <div key={item.text} className="flex items-start gap-2.5">

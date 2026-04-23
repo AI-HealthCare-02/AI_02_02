@@ -30,6 +30,11 @@ from backend.models.challenges import ChallengeCheckin, ChallengeTemplate, UserC
 from backend.models.enums import ChallengeStatus, CheckinStatus, SelectionSource
 
 MAX_ACTIVE_CHALLENGES = 2
+SYSTEM_RECOMMENDATION_CODES = {
+    "sleep": "sleep_7h",
+    "exercise": "daily_walk_30min",
+    "hydration": "water_6cups",
+}
 
 
 class ChallengeService:
@@ -45,6 +50,16 @@ class ChallengeService:
         ``today_checked``는 ``ChallengeCheckin`` 테이블을 **오늘 날짜로 직접 조회**하여
         매 요청마다 계산한다 — 자정 크론 누락/타임존 드리프트에도 내구성 확보.
         """
+        from backend.models.health import HealthProfile
+
+        profile = await HealthProfile.get_or_none(user_id=user_id)
+        user_group = profile.user_group.value if profile and hasattr(profile.user_group, "value") else (profile.user_group if profile else "C")
+        await self._ensure_system_recommended_challenge(
+            user_id=user_id,
+            profile=profile,
+            user_group=user_group,
+        )
+
         user_challenges = await UserChallenge.filter(
             user_id=user_id,
         ).prefetch_related("template").order_by("-created_at")
@@ -107,9 +122,6 @@ class ChallengeService:
             }
 
         # 추천 챌린지
-        from backend.models.health import HealthProfile
-        profile = await HealthProfile.get_or_none(user_id=user_id)
-        user_group = profile.user_group.value if profile and hasattr(profile.user_group, "value") else (profile.user_group if profile else "C")
         recommended = await self._get_recommended(user_id, user_group, checked_today_template_ids)
         catalog = await self._get_catalog(user_id, user_group, recommended, checked_today_template_ids)
 
@@ -125,6 +137,78 @@ class ChallengeService:
                 "remaining_active_slots": max(0, MAX_ACTIVE_CHALLENGES - len(active)),
             },
         )
+
+    async def _ensure_system_recommended_challenge(
+        self,
+        user_id: int,
+        profile: object | None,
+        user_group: str,
+    ) -> None:
+        if not profile:
+            return
+
+        active_count = await UserChallenge.filter(
+            user_id=user_id,
+            status=ChallengeStatus.ACTIVE,
+        ).count()
+        if active_count >= MAX_ACTIVE_CHALLENGES:
+            return
+
+        has_system_recommendation = await UserChallenge.filter(
+            user_id=user_id,
+            selection_source=SelectionSource.SYSTEM_RECOMMENDED,
+        ).exists()
+        if has_system_recommendation:
+            return
+
+        template = await self._pick_system_recommended_template(
+            profile=profile,
+            user_group=user_group,
+        )
+        if not template:
+            return
+
+        now = datetime.now(tz=config.TIMEZONE)
+        await UserChallenge.create(
+            user_id=user_id,
+            template_id=template.id,
+            selection_source=SelectionSource.SYSTEM_RECOMMENDED,
+            status=ChallengeStatus.ACTIVE,
+            started_at=now,
+            target_days=template.default_duration_days,
+        )
+        await self._invalidate_user_caches(user_id)
+
+    async def _pick_system_recommended_template(
+        self,
+        profile: object,
+        user_group: str,
+    ) -> ChallengeTemplate | None:
+        sleep_bucket = str(getattr(profile, "sleep_duration_bucket", "") or "")
+        exercise_frequency = str(getattr(profile, "exercise_frequency", "") or "")
+        goals = set(getattr(profile, "goals", []) or [])
+
+        preferred_codes: list[str] = []
+        if sleep_bucket in {"under_5", "between_5_6"}:
+            preferred_codes.append(SYSTEM_RECOMMENDATION_CODES["sleep"])
+        if exercise_frequency in {"none", "1_2_per_week"} or goals.intersection({"exercise_habit", "weight_management"}):
+            preferred_codes.append(SYSTEM_RECOMMENDATION_CODES["exercise"])
+        preferred_codes.append(SYSTEM_RECOMMENDATION_CODES["hydration"])
+
+        seen: set[str] = set()
+        for code in preferred_codes:
+            if code in seen:
+                continue
+            seen.add(code)
+            template = await ChallengeTemplate.get_or_none(code=code, is_active=True)
+            if template and user_group in template.for_groups:
+                return template
+
+        templates = await ChallengeTemplate.filter(is_active=True).order_by("id")
+        for template in templates:
+            if user_group in template.for_groups:
+                return template
+        return None
 
     async def join_challenge(
         self, user_id: int, template_id: int
@@ -292,6 +376,46 @@ class ChallengeService:
             days_completed=uc.days_completed,
         )
 
+    async def uncheckin(self, user_id: int, user_challenge_id: int) -> dict:
+        uc = await UserChallenge.get_or_none(
+            id=user_challenge_id, user_id=user_id,
+        )
+        if not uc:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="챌린지를 찾을 수 없습니다.",
+            )
+        if uc.status != ChallengeStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="진행 중인 챌린지만 체크 해제할 수 있습니다.",
+            )
+
+        today = date.today()
+        deleted_count = await ChallengeCheckin.filter(
+            user_challenge_id=user_challenge_id,
+            checkin_date=today,
+        ).delete()
+        if deleted_count == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="오늘 체크한 기록이 없습니다.",
+            )
+
+        await self._recalculate_progress(uc)
+        uc.today_checked = False
+        await uc.save()
+        await self._invalidate_user_caches(user_id)
+
+        return {
+            "user_challenge_id": uc.id,
+            "today_checked": False,
+            "current_streak": uc.current_streak,
+            "best_streak": uc.best_streak,
+            "progress_pct": float(uc.progress_pct),
+            "days_completed": uc.days_completed,
+        }
+
     async def get_calendar(
         self, user_id: int, user_challenge_id: int
     ) -> ChallengeCalendarResponse:
@@ -398,3 +522,24 @@ class ChallengeService:
                 uc.best_streak = uc.current_streak
         elif checkin_status == CheckinStatus.MISSED:
             uc.current_streak = 0
+
+    async def _recalculate_progress(self, uc: UserChallenge) -> None:
+        checkins = await ChallengeCheckin.filter(
+            user_challenge_id=uc.id,
+        ).order_by("checkin_date", "id")
+
+        current_streak = 0
+        best_streak = 0
+        days_completed = 0
+        for checkin in checkins:
+            if checkin.status == CheckinStatus.ACHIEVED:
+                days_completed += 1
+                current_streak += 1
+                best_streak = max(best_streak, current_streak)
+            elif checkin.status == CheckinStatus.MISSED:
+                current_streak = 0
+
+        uc.current_streak = current_streak
+        uc.best_streak = best_streak
+        uc.days_completed = days_completed
+        uc.progress_pct = round(days_completed / uc.target_days, 3) if uc.target_days else 0
