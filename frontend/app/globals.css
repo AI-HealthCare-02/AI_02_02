@@ -1346,6 +1346,88 @@ html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
   }
 }
 
+/* 에러 배너 (API 실패) */
+.saju-modal__error {
+  margin-top: 12px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b32626;
+  background: #fff1f0;
+  border: 1px solid #f3c2c2;
+  border-radius: 8px;
+}
+html[data-theme="dark"] .saju-modal__error {
+  color: #ff9f9f;
+  background: rgba(255, 80, 80, 0.10);
+  border-color: rgba(255, 80, 80, 0.32);
+}
+
+/* ───────────────────────────────────────────────────────
+ * SajuTodayCard (saju-today-card · v2.7 P1.5)
+ * 재방문 시 entry-card 자리에 노출되는 작은 요약 카드
+ * ─────────────────────────────────────────────────────── */
+
+.saju-today-card {
+  width: 100%;
+  max-width: 220px;
+  margin: 8px auto 0;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.saju-today-card:hover {
+  border-color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+}
+.saju-today-card:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+.saju-today-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.saju-today-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.saju-today-card__badge {
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+.saju-today-card__summary {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.saju-today-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 /* ───────────────────────────────────────────────────────
  * MissedQuestionsModal (mqm)
  * ─────────────────────────────────────────────────────── */

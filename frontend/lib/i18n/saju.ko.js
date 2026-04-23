@@ -80,7 +80,25 @@ export const SAJU_KO = {
   'saju.modal.calibration.tone.short': '짧고 명확하게',
   'saju.modal.calibration.cta': '결과 보기',
 
-  // Step 4 — 결과 (mock)
+  // 에러 메시지 (API 통합)
+  'saju.modal.error.network':
+    '연결이 잠시 불안정해요. 잠시 후 다시 시도해주세요.',
+  'saju.modal.error.consent':
+    '동의 저장에 실패했어요. 잠시 후 다시 시도해주세요.',
+  'saju.modal.error.profile':
+    '정보 저장에 실패했어요. 입력 내용을 확인해주세요.',
+  'saju.modal.error.consent_required':
+    '먼저 사주 동의가 필요해요.',
+  'saju.modal.error.disabled':
+    '오늘의 운세는 잠시 점검 중이에요.',
+  'saju.modal.error.login':
+    '로그인이 필요해요. 잠시 후 다시 안내될 거예요.',
+  'saju.modal.error.today':
+    '오늘의 운세를 가져오지 못했어요. 잠시 후 다시 시도해주세요.',
+  'saju.modal.submitting': '저장 중…',
+  'saju.modal.loading.result': '오늘의 운세를 불러오는 중…',
+
+  // Step 4 — 결과 (mock fallback / 백엔드 응답)
   'saju.modal.result.title': '오늘의 운세',
   'saju.modal.result.badge.mock': '참고용',
   'saju.modal.result.section.total': '총운',

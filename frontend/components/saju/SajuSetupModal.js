@@ -1,32 +1,48 @@
 'use client';
 
 /**
- * SajuSetupModal · 오늘의 운세 MVP 모달 (통합 테스트용 4단계 플로우, v2.7 P1.5)
- *
- * 목적:
- *  - P5 전체 완성 전, 사용자가 카드 클릭 후 "이런 흐름이구나" 를 체감할 수 있는 최소 UX
- *  - 백엔드 호출 없음, 결과는 클라이언트 사이드 mock (참고용 배지 표기)
+ * SajuSetupModal · 오늘의 운세 4단계 모달 (v2.7 P1.5 → API 통합)
  *
  * 4단계:
- *  1. 동의 (consent)        — 짧은 안내 + "동의하고 계속"
- *  2. 프로필 (profile)       — 생년월일·성별·양력/음력·출생시간(선택, 모름 가능)
- *  3. Calibration            — 가장 궁금한 영역 + 원하는 말투
- *  4. 결과 (mock)            — 5섹션 카드 + "왜 이렇게 봤나요?" 토글 + 안전 문구
+ *  1. 동의 (consent)        — POST /api/v1/saju/consent
+ *  2. 프로필 (profile)       — PUT /api/v1/saju/profile
+ *  3. Calibration            — 클라이언트 전용 (P5 엔진 입력에 사용 예정)
+ *  4. 결과                   — GET /api/v1/saju/today
+ *                                · 200 → 백엔드 응답 렌더
+ *                                · 501 (P1~P4 엔진 미구현) → MOCK_RESULT fallback
+ *
+ * 백엔드 401/403/503 처리:
+ *  - api() 헬퍼가 401 자동 refresh / 실패 시 /login 리다이렉트
+ *  - 403 (consent 없을 때 profile 호출): 'consent_required' 에러 표시
+ *  - 503 (SAJU_ENABLED=false): 'disabled' 에러 표시
+ *
+ * 재방문 진입 (initialStep=3):
+ *  - SajuCardSection 이 GET /saju/profile 으로 프로필 존재 확인 후
+ *    SajuTodayCard 클릭 시 step 4 (결과) 로 직행
  *
  * 패턴:
- *  - Portal (document.body, z-index 130 — MissedQuestionsModal 보다 1단 위)
+ *  - Portal (document.body, z-index 130)
  *  - Focus trap (수동 Tab 가두기 + ESC 닫기 + 이전 포커스 복귀)
  *  - 톤: --color-surface / --color-border / radius 14px (RpRow 와 동일)
- *
- * P5 교체 지점:
- *  - handleConsentSubmit → POST /api/v1/saju/consent
- *  - handleProfileSubmit → PUT /api/v1/saju/profile
- *  - MOCK_RESULT → GET /api/v1/saju/today
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { api } from '@/hooks/useApi';
 import { ts } from '@/lib/i18n/saju.ko';
+
+const CONSENT_VERSION = '1.0';
+
+// 백엔드 SectionKey (7개) → 프론트 mock key (5개) 매핑.
+// P5 에서 백엔드 응답을 그대로 렌더할 때, 프론트 i18n 타이틀 키를 찾기 위함.
+const BACKEND_SECTION_TITLE_KEY = {
+  total: 'saju.modal.result.section.total',
+  money: 'saju.modal.result.section.money',
+  health: 'saju.modal.result.section.health',
+  work: 'saju.modal.result.section.work',
+  one_thing: 'saju.modal.result.section.oneThing',
+  // relation, caution 은 i18n 키만 추가 시 자동 노출
+};
 
 const STEPS = ['consent', 'profile', 'calibration', 'result'];
 
@@ -123,10 +139,10 @@ function SectionCard({ titleKey, body, why }) {
   );
 }
 
-function SajuSetupModalImpl({ open, onClose }) {
+function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   const modalRef = useRef(null);
   const previouslyFocused = useRef(null);
-  const [stepIdx, setStepIdx] = useState(0);
+  const [stepIdx, setStepIdx] = useState(initialStep);
   const [profile, setProfile] = useState({
     birthDate: '',
     calendar: 'solar',
@@ -139,6 +155,10 @@ function SajuSetupModalImpl({ open, onClose }) {
     tone: 'soft',
   });
   const [mounted, setMounted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [apiResult, setApiResult] = useState(null); // { sections, summary, ... } | null
+  const [resultLoading, setResultLoading] = useState(false);
 
   // SSR 안전: createPortal 은 client only
   useEffect(() => {
@@ -160,10 +180,22 @@ function SajuSetupModalImpl({ open, onClose }) {
     };
   }, [open]);
 
-  // 모달이 열릴 때마다 step 1로 초기화 (재방문 시 처음부터)
+  // 모달이 열릴 때마다 initialStep 으로 초기화 + 임시 상태 클리어
   useEffect(() => {
-    if (open) setStepIdx(0);
-  }, [open]);
+    if (open) {
+      setStepIdx(initialStep);
+      setError(null);
+      setSubmitting(false);
+      // result-only 진입(initialStep=3)이면 즉시 today fetch
+      if (initialStep === 3) {
+        loadTodayResult();
+      } else {
+        setApiResult(null);
+      }
+    }
+    // loadTodayResult 는 stable deps — 아래에서 useCallback
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialStep]);
 
   // ESC + Focus trap
   useEffect(() => {
@@ -200,6 +232,118 @@ function SajuSetupModalImpl({ open, onClose }) {
   const profileValid = useMemo(() => {
     return Boolean(profile.birthDate); // 생년월일만 필수
   }, [profile.birthDate]);
+
+  // ─── API 핸들러 ───
+
+  // step 1 → 2: POST /api/v1/saju/consent
+  const handleConsentSubmit = useCallback(async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await api('/api/v1/saju/consent', {
+        method: 'POST',
+        body: JSON.stringify({ consent_version: CONSENT_VERSION, granted: true }),
+      });
+      if (res.status === 201 || res.status === 200) {
+        goNext();
+      } else if (res.status === 401) {
+        setError('login');
+      } else if (res.status === 503) {
+        setError('disabled');
+      } else {
+        setError('consent');
+      }
+    } catch {
+      setError('network');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [goNext]);
+
+  // step 2 → 3: PUT /api/v1/saju/profile
+  const handleProfileSubmit = useCallback(async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const genderMap = { female: 'FEMALE', male: 'MALE', unknown: 'UNKNOWN' };
+      const payload = {
+        birth_date: profile.birthDate,
+        is_lunar: profile.calendar === 'lunar',
+        is_leap_month: false,
+        birth_time: profile.birthTime ? `${profile.birthTime}:00` : null,
+        birth_time_accuracy: profile.birthTime ? 'exact' : 'unknown',
+        gender: genderMap[profile.gender] || 'UNKNOWN',
+      };
+      const res = await api('/api/v1/saju/profile', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        goNext();
+      } else if (res.status === 403) {
+        setError('consent_required');
+      } else if (res.status === 401) {
+        setError('login');
+      } else if (res.status === 503) {
+        setError('disabled');
+      } else {
+        setError('profile');
+      }
+    } catch {
+      setError('network');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [profile, goNext]);
+
+  // step 3 → 4: GET /api/v1/saju/today (501 → mock fallback)
+  const loadTodayResult = useCallback(async () => {
+    setResultLoading(true);
+    setError(null);
+    try {
+      const res = await api('/api/v1/saju/today');
+      if (res.status === 200) {
+        const data = await res.json();
+        setApiResult(data);
+      } else if (res.status === 501) {
+        // P1~P4 단계: 엔진 미구현 → mock fallback (참고용 배지 그대로)
+        setApiResult(null);
+      } else if (res.status === 404) {
+        setError('no_profile');
+        setApiResult(null);
+      } else if (res.status === 401) {
+        setError('login');
+      } else if (res.status === 503) {
+        setError('disabled');
+      } else {
+        setError('today');
+      }
+    } catch {
+      setError('network');
+    } finally {
+      setResultLoading(false);
+    }
+  }, []);
+
+  const handleCalibrationSubmit = useCallback(async () => {
+    await loadTodayResult();
+    goNext();
+  }, [loadTodayResult, goNext]);
+
+  // 결과 섹션 (백엔드 응답 우선, 없으면 mock fallback)
+  const resultSections = useMemo(() => {
+    if (apiResult?.sections?.length) {
+      return apiResult.sections.map((s) => ({
+        key: s.key,
+        titleKey:
+          BACKEND_SECTION_TITLE_KEY[s.key] ||
+          `saju.modal.result.section.${s.key}`,
+        body: s.body,
+        why: s.reason || '엔진 분석 근거가 곧 제공돼요.',
+      }));
+    }
+    return MOCK_RESULT.sections;
+  }, [apiResult]);
 
   if (!open || !mounted) return null;
 
@@ -381,28 +525,45 @@ function SajuSetupModalImpl({ open, onClose }) {
             </div>
           )}
 
-          {/* Step 4: Result (mock) */}
+          {/* Step 4: Result (백엔드 응답 우선, 501 시 mock fallback) */}
           {step === 'result' && (
             <div className="saju-modal__pane">
-              <div className="saju-modal__result-meta">
-                <span className="saju-modal__result-badge">
-                  {ts('saju.modal.result.badge.mock')}
-                </span>
-                <span className="saju-modal__result-date">
-                  {new Date().toLocaleDateString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    weekday: 'short',
-                  })}
-                </span>
-              </div>
-              <div className="saju-modal__sections">
-                {MOCK_RESULT.sections.map((s) => (
-                  <SectionCard key={s.key} titleKey={s.titleKey} body={s.body} why={s.why} />
-                ))}
-              </div>
-              <p className="saju-modal__safety-notice">{ts('saju.safety.notice')}</p>
+              {resultLoading ? (
+                <p className="saju-modal__paragraph" role="status">
+                  {ts('saju.modal.loading.result')}
+                </p>
+              ) : (
+                <>
+                  <div className="saju-modal__result-meta">
+                    <span className="saju-modal__result-badge">
+                      {ts('saju.modal.result.badge.mock')}
+                    </span>
+                    <span className="saju-modal__result-date">
+                      {new Date().toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'short',
+                      })}
+                    </span>
+                  </div>
+                  <div className="saju-modal__sections">
+                    {resultSections.map((s) => (
+                      <SectionCard key={s.key} titleKey={s.titleKey} body={s.body} why={s.why} />
+                    ))}
+                  </div>
+                  <p className="saju-modal__safety-notice">
+                    {apiResult?.safety_notice || ts('saju.safety.notice')}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 에러 배너 (모든 step 공통) */}
+          {error && (
+            <div className="saju-modal__error" role="alert">
+              {ts(`saju.modal.error.${error}`)}
             </div>
           )}
         </div>
@@ -410,36 +571,46 @@ function SajuSetupModalImpl({ open, onClose }) {
         <footer className="saju-modal__footer">
           {step === 'consent' && (
             <>
-              <button type="button" className="saju-modal__btn saju-modal__btn--ghost" onClick={onClose}>
+              <button type="button" className="saju-modal__btn saju-modal__btn--ghost" onClick={onClose} disabled={submitting}>
                 {ts('saju.modal.close')}
               </button>
-              <button type="button" className="saju-modal__btn saju-modal__btn--primary" onClick={goNext}>
-                {ts('saju.modal.consent.cta')}
+              <button
+                type="button"
+                className="saju-modal__btn saju-modal__btn--primary"
+                onClick={handleConsentSubmit}
+                disabled={submitting}
+              >
+                {submitting ? ts('saju.modal.submitting') : ts('saju.modal.consent.cta')}
               </button>
             </>
           )}
           {step === 'profile' && (
             <>
-              <button type="button" className="saju-modal__btn saju-modal__btn--ghost" onClick={goBack}>
+              <button type="button" className="saju-modal__btn saju-modal__btn--ghost" onClick={goBack} disabled={submitting}>
                 {ts('saju.modal.back')}
               </button>
               <button
                 type="button"
                 className="saju-modal__btn saju-modal__btn--primary"
-                onClick={goNext}
-                disabled={!profileValid}
+                onClick={handleProfileSubmit}
+                disabled={!profileValid || submitting}
               >
-                {ts('saju.modal.next')}
+                {submitting ? ts('saju.modal.submitting') : ts('saju.modal.next')}
               </button>
             </>
           )}
           {step === 'calibration' && (
             <>
-              <button type="button" className="saju-modal__btn saju-modal__btn--ghost" onClick={goBack}>
+              <button type="button" className="saju-modal__btn saju-modal__btn--ghost" onClick={goBack} disabled={resultLoading}>
                 {ts('saju.modal.back')}
               </button>
-              <button type="button" className="saju-modal__btn saju-modal__btn--primary" onClick={goNext}>
-                {ts('saju.modal.calibration.cta')}
+              <button
+                type="button"
+                className="saju-modal__btn saju-modal__btn--primary"
+                onClick={handleCalibrationSubmit}
+                disabled={resultLoading}
+              >
+                {resultLoading ? ts('saju.modal.submitting') : ts('saju.modal.calibration.cta')}
               </button>
             </>
           )}
