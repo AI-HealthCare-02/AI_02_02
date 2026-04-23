@@ -27,30 +27,45 @@ import { ts } from '@/lib/i18n/saju.ko';
 
 const RESULT_STEP = 3; // SajuSetupModal STEPS = ['consent','profile','calibration','result']
 
-async function fetchProfileExists() {
+/**
+ * 프로필 존재 여부 + 오늘 카드 summary (있을 때) 한 번에 조회.
+ * P4 통합 — profile 있으면 GET /today 호출해서 SajuTodayCard 에 한 줄 요약 전달.
+ * 401/404/501/503 등 비정상은 모두 entry 노출 + summary null.
+ */
+async function fetchProfileAndToday() {
   try {
-    const res = await api('/api/v1/saju/profile');
-    if (res.status === 200) {
-      const data = await res.json();
-      return data !== null;
-    }
-    return false; // 401/503/기타 → entry 노출
+    const profileRes = await api('/api/v1/saju/profile');
+    if (profileRes.status !== 200) return { exists: false, summary: null };
+    const profile = await profileRes.json();
+    if (profile === null) return { exists: false, summary: null };
+    // profile 있음 → today 도 시도 (실패해도 entry 가 아니라 today card 유지, summary 만 null)
+    try {
+      const todayRes = await api('/api/v1/saju/today?focus=total&tone=soft');
+      if (todayRes.status === 200) {
+        const today = await todayRes.json();
+        return { exists: true, summary: today.summary || null };
+      }
+    } catch { /* today 실패해도 today card 는 유지 */ }
+    return { exists: true, summary: null };
   } catch {
-    return false;
+    return { exists: false, summary: null };
   }
 }
 
 function SajuCardSectionImpl() {
   // null = 로딩, false = 프로필 없음(entry), true = 있음(today)
   const [profileExists, setProfileExists] = useState(null);
+  const [todaySummary, setTodaySummary] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
 
-  // 마운트 시 프로필 존재 확인
+  // 마운트 시 프로필 + 오늘 카드 summary 동시 확인
   useEffect(() => {
     let cancelled = false;
-    fetchProfileExists().then((exists) => {
-      if (!cancelled) setProfileExists(exists);
+    fetchProfileAndToday().then(({ exists, summary }) => {
+      if (cancelled) return;
+      setProfileExists(exists);
+      setTodaySummary(summary);
     });
     return () => {
       cancelled = true;
@@ -67,11 +82,12 @@ function SajuCardSectionImpl() {
     setModalOpen(true);
   }, []);
 
-  // 모달 닫힐 때 프로필 재확인 (방금 동의·프로필 입력 했을 수 있음)
+  // 모달 닫힐 때 재확인 (방금 동의·프로필 입력 했을 수 있음)
   const handleClose = useCallback(async () => {
     setModalOpen(false);
-    const exists = await fetchProfileExists();
+    const { exists, summary } = await fetchProfileAndToday();
     setProfileExists(exists);
+    setTodaySummary(summary);
   }, []);
 
   return (
@@ -84,7 +100,7 @@ function SajuCardSectionImpl() {
       </div>
       {/* 로딩 중에는 카드 영역 비워둠 (점멸 방지) */}
       {profileExists === null ? null : profileExists ? (
-        <SajuTodayCard onOpen={handleResultOpen} />
+        <SajuTodayCard onOpen={handleResultOpen} summary={todaySummary} />
       ) : (
         <SajuEntryCard onOpen={handleEntryOpen} />
       )}

@@ -17,9 +17,9 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import ORJSONResponse as Response
 
 from backend.core import config
@@ -152,12 +152,23 @@ async def put_profile(
 # ─────────────────────────────────────────────
 # Today (오늘의 운세)
 # ─────────────────────────────────────────────
+FocusQuery = Literal["total", "money", "health", "work", "relation"]
+ToneQuery = Literal["soft", "real", "short"]
+
+
 @saju_router.get("/today", response_model=SajuTodayResponse)
 async def get_today(
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[SajuService, Depends(SajuService)],
+    focus: Annotated[FocusQuery, Query(description="강조 영역 (calibration)")] = "total",
+    tone: Annotated[ToneQuery, Query(description="문장 톤 (calibration)")] = "soft",
 ) -> Response:
-    """P1 단계 stub — P4에서 결정론 엔진 + 템플릿으로 7 섹션 생성 예정."""
+    """오늘의 운세 카드 (P4 실구현, 결정론 60갑자 엔진 + 5섹션 템플릿).
+
+    - profile 없음 → 404 no_profile
+    - 같은 날 같은 버전 카드 있으면 reuse, 버전 바뀌면 재생성
+    - calibration (focus/tone) 가 결과 톤·강조 섹션에 반영
+    """
     _require_enabled()
     profile = await service.get_profile(user_id=user.id)
     if profile is None:
@@ -165,10 +176,29 @@ async def get_today(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="no_profile",
         )
-    # P1: 엔진 미구현 상태 표기. 501 Not Implemented로 프론트 guard 유도.
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="saju_engine_not_ready",
+    card = await service.get_or_create_today_card(
+        user_id=user.id,
+        focus=focus,
+        tone=tone,
+    )
+    if card is None:
+        # 방어: ensure_chart 가 실패한 극히 드문 경우
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="card_generation_failed",
+        )
+    payload = SajuTodayResponse(
+        summary=card.summary,
+        keywords=card.keywords or [],
+        sections=card.sections or [],
+        safety_notice=card.safety_notice,
+        engine_version=card.engine_version,
+        template_version=card.template_version,
+        card_date=card.card_date,
+    )
+    return Response(
+        content=payload.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
     )
 
 

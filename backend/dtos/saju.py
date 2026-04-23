@@ -78,6 +78,10 @@ class SajuTodayResponse(BaseSerializerModel):
     keywords: list[str] = Field(default_factory=list, max_length=5)
     sections: list[SajuSectionResponse]
     safety_notice: str
+    # P4 추가 — 클라이언트가 cache 무효화 판정 + 디버깅용
+    engine_version: str = ""
+    template_version: str = ""
+    card_date: date | None = None
 
 
 # ─────────────────────────────────────────────

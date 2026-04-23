@@ -305,22 +305,25 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     }
   }, [profile, goNext, demoMode]);
 
-  // step 3 → 4: GET /api/v1/saju/today
-  // 501 (P1~P4 엔진 미구현) / 404 (라우터 없음) / 503 (SAJU_ENABLED=false) 모두 mock fallback
+  // step 3 → 4: GET /api/v1/saju/today?focus=&tone=
+  // 200 → 실데이터 / 404 (no_profile) → demoMode + mock
+  // 501 / 503 / 라우터 부재(404 라우터) → demoMode + mock
+  // P4 부터는 정상 경로에서 200 + 실 sections 가 와야 함. mock 은 fallback only.
   const loadTodayResult = useCallback(async () => {
     if (demoMode) { setApiResult(null); return; }
     setResultLoading(true);
     setError(null);
     try {
-      const res = await api('/api/v1/saju/today');
+      const qs = new URLSearchParams({
+        focus: calibration.focus || 'total',
+        tone: calibration.tone || 'soft',
+      }).toString();
+      const res = await api(`/api/v1/saju/today?${qs}`);
       if (res.status === 200) {
         const data = await res.json();
         setApiResult(data);
-      } else if (res.status === 501) {
-        // P1~P4 단계: 엔진 미구현 → mock fallback (참고용 배지)
-        setApiResult(null);
-      } else if (res.status === 404 || res.status === 503) {
-        // 라우터 미설치 또는 SAJU_ENABLED=false → 데모 모드 + mock
+      } else if (res.status === 501 || res.status === 404 || res.status === 503) {
+        // 라우터 미설치 / 엔진 미구현 / SAJU_ENABLED=false / no_profile → 데모 모드
         setDemoMode(true);
         setApiResult(null);
       } else if (res.status === 401) {
@@ -333,7 +336,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     } finally {
       setResultLoading(false);
     }
-  }, [demoMode]);
+  }, [demoMode, calibration]);
 
   const handleCalibrationSubmit = useCallback(async () => {
     await loadTodayResult();
