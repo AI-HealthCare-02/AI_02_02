@@ -1,17 +1,30 @@
 'use client';
 
 /**
- * SajuEntryCard · 사주 사이드 게임 최초 노출 카드 (v2.7 P1)
+ * SajuEntryCard · 세로형 타로 카드 느낌 (v2.7 P1 · 중앙정렬 리디자인)
  *
- * 상태:
- *  - 입력 전: 제목 + 부드러운 안내 + "열어보기" 버튼
- *  - 입력 완료: SajuTodayCard 로 교체 (P5 에서 추가)
+ * 구조 (세로 직립 카드):
+ *   ┌─────────────────┐
+ *   │  ✦     🌙   ✧   │  ← visual 헤더 (장식 + 상단 우측 배지)
+ *   │         ·        │
+ *   │              [참고용]
+ *   │                 │
+ *   ├─────────────────┤
+ *   │       🔮        │  ← 중앙 아이콘
+ *   │                 │
+ *   │    오늘의 운세    │  ← 제목 (중앙)
+ *   │                 │
+ *   │   생년월일을 넣으면│
+ *   │   나다운 하루 흐름을│ ← 설명 (중앙 정렬)
+ *   │    보여드려요      │
+ *   │                 │
+ *   │  [ 열어보기 › ]  │  ← CTA (중앙)
+ *   └─────────────────┘
  *
- * 원칙 (v2.7):
- *  - 작고 조용한 톤. 무속·네온·과한 보라 금지.
- *  - 라이트/다크 토큰 유지 (cream/surface/border CSS 변수 상속).
- *  - 클릭 전에는 동의/입력을 받지 않음.
- *  - CARD_REGISTRY 와 분리 (활성 카드 상태와 무관).
+ * 디자인:
+ *  - 세로형 비율 (max-width 220px), 우측 패널 안에서 margin:auto 로 가운데 배치
+ *  - visual 헤더 + 본문 모두 center align
+ *  - 무속·네온·과한 보라 금지. 라이트/다크 분기.
  */
 
 import { memo, useCallback } from 'react';
@@ -22,22 +35,42 @@ function SajuEntryCardImpl({ onOpen }) {
     if (typeof onOpen === 'function') onOpen();
   }, [onOpen]);
 
+  const title = ts('saju.entry.title');
+  const badge = ts('saju.entry.badge');
+  const desc = ts('saju.entry.desc');
+  const cta = ts('saju.entry.cta');
+  const emoji = ts('saju.entry.emoji');
+
   return (
     <button
       type="button"
       className="saju-entry-card"
       onClick={handleClick}
-      aria-label={ts('saju.entry.title') + ' 열기'}
+      aria-label={`${title} — ${cta}`}
     >
-      <span className="saju-entry-card__badge" aria-hidden="true">
-        {ts('saju.entry.badge')}
+      {/* 상단 visual 헤더 — 그라데이션 + 별 + 달 + 우상단 배지 */}
+      <span className="saju-entry-card__visual" aria-hidden="true">
+        <span className="saju-entry-card__glow saju-entry-card__glow--a" />
+        <span className="saju-entry-card__glow saju-entry-card__glow--b" />
+        <span className="saju-entry-card__star saju-entry-card__star--1">✦</span>
+        <span className="saju-entry-card__star saju-entry-card__star--2">✧</span>
+        <span className="saju-entry-card__star saju-entry-card__star--3">·</span>
+        <span className="saju-entry-card__star saju-entry-card__star--4">✦</span>
+        <span className="saju-entry-card__moon">🌙</span>
+        <span className="saju-entry-card__badge">{badge}</span>
       </span>
-      <span className="saju-entry-card__body">
-        <span className="saju-entry-card__title">{ts('saju.entry.title')}</span>
-        <span className="saju-entry-card__desc">{ts('saju.entry.desc')}</span>
-      </span>
-      <span className="saju-entry-card__cta" aria-hidden="true">
-        {ts('saju.entry.cta')} ›
+
+      {/* 본문 영역 — 전부 center */}
+      <span className="saju-entry-card__content">
+        <span className="saju-entry-card__emoji" aria-hidden="true">
+          {emoji}
+        </span>
+        <span className="saju-entry-card__title">{title}</span>
+        <span className="saju-entry-card__desc">{desc}</span>
+        <span className="saju-entry-card__cta" aria-hidden="true">
+          {cta}
+          <span className="saju-entry-card__cta-arrow">›</span>
+        </span>
       </span>
     </button>
   );

@@ -699,18 +699,28 @@ html[data-contrast="high"] {
   color: var(--color-text);
 }
 
-/* Fixed Slot · 챌린지 위치 고정용 공간 예약 */
-.rp.rp--today .rp-fixed-input {
-  margin: 14px 0;
-  min-height: 180px;
-  transition: background 0.2s ease, padding 0.2s ease;
+/* 인라인 아코디언 · 클릭한 건강 카드 바로 아래에 입력창 펼침 (Fixed Slot 대체) */
+.rp.rp--today .rp-row-wrap {
+  display: flex;
+  flex-direction: column;
 }
-.rp.rp--today .rp-fixed-input.is-filled {
-  padding: 14px;
+.rp.rp--today .rp-inline-input {
+  margin: 6px 0 10px 0;
+  padding: 12px 14px 14px 14px;
   background: var(--color-card-surface-subtle);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  animation: rpFadeIn 0.15s ease;
+  border-radius: 12px;
+  animation: rpInlineExpand 0.18s ease-out;
+}
+@keyframes rpInlineExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes rpFadeIn {
   from { opacity: 0; }
@@ -772,79 +782,206 @@ html[data-contrast="high"] {
   font-size: 14px;
   color: var(--color-text-muted);
 }
+/* 미응답 섹션 top 라인을 AI 채팅 입력란 top 라인과 수평 정렬 (v2.7).
+   Playwright 실측(viewport 1526px): AI 박스 top 1404.4 / 미응답 top 1388.2
+   → 16.2px 차이. margin-bottom 16px 로 두 흰 박스 top 이 동일 y 좌표에 일치.
+   (이전 32px 추정값은 AI 박스 실제 높이 85.6px 을 80px 로 잘못 계산한 결과). */
+.rp.rp--today .rp-missed-section {
+  margin-bottom: 16px;
+}
 
-/* 사주 사이드 게임 카드 섹션 (v2.7 · 독립 섹션) */
+/* 사주 사이드 게임 카드 섹션 (v2.7 · 세로형 타로 카드, 중앙정렬) */
+/* 여백 전략: 부모 flex-col + spacer A/B (flex-1) 가 운세 위/아래 남는 공간을
+   동일 비율로 분배. 여기서는 carousel margin 없이 padding 만 유지.              */
 .saju-card-section {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-  margin-top: 16px;
+  padding: 0 4px;
 }
 .saju-card-section__subtitle {
+  align-self: center;
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-muted);
-  letter-spacing: 0.02em;
-  padding: 0 2px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
+
+/* 카드 본체 — 세로형 직립 비율 (tarot 느낌 유지 + 콤팩트), 모든 내용 중앙 정렬 */
 .saju-entry-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
   width: 100%;
-  padding: 14px;
+  max-width: 208px;       /* 세로형 폭 (조금 더 콤팩트) */
+  padding: 0;
   background: var(--color-surface);
-  border: 1px dashed var(--color-border);
-  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
   cursor: pointer;
   font-family: inherit;
-  text-align: left;
+  text-align: center;
   color: var(--color-text);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease, transform 0.18s ease, box-shadow 0.2s ease;
 }
 .saju-entry-card:hover {
   border-color: var(--color-text);
-  background: var(--color-card-surface-subtle);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
 }
 .saju-entry-card:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
-.saju-entry-card__badge {
+
+/* ── 상단 visual 헤더 — 그라데이션 + 별 + 달 + 배지 (콤팩트) ── */
+.saju-entry-card__visual {
+  position: relative;
+  display: block;
+  height: 104px;          /* 140 → 104 축소 */
+  overflow: hidden;
+  /* 라이트: 황혼 톤 (크림 → 연보라), 과한 보라 회피 */
+  background:
+    radial-gradient(circle at 80% 28%, rgba(255, 222, 180, 0.6), transparent 55%),
+    radial-gradient(circle at 20% 75%, rgba(200, 200, 235, 0.5), transparent 55%),
+    linear-gradient(160deg, #f5ecdc 0%, #ede5ef 50%, #ddd9ea 100%);
+  border-bottom: 1px solid var(--color-border);
+}
+html[data-theme="dark"] .saju-entry-card__visual {
+  /* 다크: 차분한 밤하늘, 네온·과한 보라 피함 */
+  background:
+    radial-gradient(circle at 80% 28%, rgba(190, 165, 125, 0.22), transparent 55%),
+    radial-gradient(circle at 20% 75%, rgba(130, 145, 190, 0.22), transparent 55%),
+    linear-gradient(160deg, #2d2c38 0%, #32313f 50%, #383545 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+/* 빛 번짐 (soft glow) */
+.saju-entry-card__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(18px);
+  pointer-events: none;
+}
+.saju-entry-card__glow--a {
+  width: 52px; height: 52px;
+  top: -12px; right: 20%;
+  background: rgba(255, 225, 180, 0.65);
+}
+.saju-entry-card__glow--b {
+  width: 40px; height: 40px;
+  bottom: -14px; left: 24%;
+  background: rgba(200, 200, 245, 0.55);
+}
+html[data-theme="dark"] .saju-entry-card__glow--a {
+  background: rgba(200, 180, 130, 0.22);
+}
+html[data-theme="dark"] .saju-entry-card__glow--b {
+  background: rgba(140, 150, 200, 0.22);
+}
+/* 별 장식 (유니코드, 이미지 의존성 0) */
+.saju-entry-card__star {
+  position: absolute;
+  color: rgba(120, 95, 135, 0.55);
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+html[data-theme="dark"] .saju-entry-card__star {
+  color: rgba(230, 225, 250, 0.7);
+  text-shadow: 0 0 6px rgba(180, 175, 210, 0.35);
+}
+.saju-entry-card__star--1 { top: 14px; left: 14%;  font-size: 11px; }
+.saju-entry-card__star--2 { top: 62px; left: 28%;  font-size: 9px;  opacity: 0.8; }
+.saju-entry-card__star--3 { top: 36px; left: 62%;  font-size: 14px; opacity: 0.55; }
+.saju-entry-card__star--4 { top: 74px; right: 18%; font-size: 10px; }
+/* 달 이모지 — 카드 중앙 상단, 첫인상 포인트 (콤팩트) */
+.saju-entry-card__moon {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.18));
+  opacity: 0.92;
+}
+/* 배지 — 카드 우상단 corner */
+.saju-entry-card__visual .saju-entry-card__badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
   font-size: 10px;
   font-weight: 600;
   color: var(--color-text-muted);
   padding: 3px 8px;
   border-radius: 999px;
-  background: var(--color-card-surface-subtle);
-  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
 }
-.saju-entry-card__body {
-  flex: 1;
-  min-width: 0;
+html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
+  background: rgba(40, 40, 55, 0.7);
+  color: rgba(230, 225, 240, 0.85);
+}
+
+/* ── 본문 영역 — 모든 요소 중앙 정렬 (콤팩트) ── */
+.saju-entry-card__content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 12px 12px 12px;
+}
+.saju-entry-card__emoji {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 0;
 }
 .saju-entry-card__title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.01em;
 }
 .saju-entry-card__desc {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--color-text-muted);
   line-height: 1.5;
+  text-align: center;
+  max-width: 170px;
+  margin-top: 0;
 }
+/* CTA 버튼 — 중앙 pill 형태 (콤팩트) */
 .saju-entry-card__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 18px;
+  margin-top: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.saju-entry-card:hover .saju-entry-card__cta {
+  border-color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+}
+.saju-entry-card__cta-arrow {
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  .rp.rp--today .rp-fixed-input.is-filled,
+  .rp.rp--today .rp-inline-input,
   .rp.rp--today .rp-row,
   .rp.rp--today .rp-missed,
   .saju-entry-card {

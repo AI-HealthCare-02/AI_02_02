@@ -13,8 +13,9 @@ export const SAJU_KO = {
   'saju.section.ariaLabel': '오늘의 운세 카드 섹션',
 
   // 입력 전 카드 (최초 노출)
+  'saju.entry.emoji': '🔮',
   'saju.entry.title': '오늘의 운세',
-  'saju.entry.desc': '생년월일을 넣으면 나다운 하루 흐름을 보여드려요.',
+  'saju.entry.desc': '생년월일을 넣으면 나다운 하루 흐름을 카드로 보여드려요.',
   'saju.entry.cta': '열어보기',
   'saju.entry.badge': '참고용',
 
@@ -25,7 +26,7 @@ export const SAJU_KO = {
 
   // 로딩·오류
   'saju.state.loading': '불러오는 중…',
-  'saju.state.disabled': '준비 중인 기능이에요.',
+  'saju.state.disabled': '사주 정보 입력은 다음 단계에서 연결됩니다.',
   'saju.state.error': '잠시 후 다시 열어볼게요.',
 
   // 안전 문구 (상세 팝업 하단 고정, P4에서 실사용)

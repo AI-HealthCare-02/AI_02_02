@@ -189,14 +189,12 @@ function getHealthOptionLabel(option) {
   return stripDisplayEmoji(HEALTH_OPTION_LABELS[option] || String(option).replaceAll('_', ' '));
 }
 
-function ClinicalMark({ label, className = '' }) {
-  return (
-    <span
-      className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-md bg-cream-400 px-2 text-[10px] font-semibold tracking-[0.12em] text-neutral-500 ${className}`}
-    >
-      {label}
-    </span>
-  );
+// ClinicalMark · 각 health panel 의 상단 약자 원형 마크 (SL / AM / NO / PM / VG / BL / EX / WK / WA / CH / Q …)
+// 2026-04-23: 인라인 아코디언 전환 후 시각적으로 과도하게 노출돼 제거. 프로젝트 전반에 영향 0
+// (이 함수는 chat/page.js 내부 전용으로, 모든 사용 지점이 이 파일 안에만 있음).
+// 추후 필요 시 label 을 다시 렌더하려면 원래 구현 복원.
+function ClinicalMark() {
+  return null;
 }
 
 function normalizeMissingSummary(rawSummary) {
