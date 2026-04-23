@@ -1,4 +1,4 @@
-"""사주 사이드 게임 모델 (v2.7 P1 스캐폴딩).
+"""사주 사이드 게임 모델 (v2.7 P1 스캐폴딩 / P1.5 NaiveTimeField 보강).
 
 5 테이블:
 - SajuConsentEvent: 사주 전용 동의 이력
@@ -13,7 +13,52 @@
 - 결정론 계산: 같은 입력이면 같은 chart (engine_version 고정)
 """
 
+from datetime import time
+from typing import Any
+
 from tortoise import fields, models
+
+
+class NaiveTimeField(fields.TimeField):
+    """timezone-naive 저장 강제 TimeField.
+
+    배경 — Tortoise 기본 `TimeField` 의 두 가지 tz 관련 동작:
+      1. `SQL_TYPE` postgres override: `TIMETZ` (`TIME WITH TIME ZONE`).
+         → schema generator 가 `TIMETZ` 컬럼을 만들면 asyncpg 가 aware time 을
+           기대하게 됨. naive 를 주면 `tzinfo.utcoffset(None)` 호출에서
+           `AttributeError: 'NoneType' object has no attribute 'utcoffset'`.
+      2. `to_db_value`: `USE_TZ=True` 환경에서 naive → pytz `DstTzInfo` 강제 aware.
+         → 운영 마이그레이션이 `TIME` (WITHOUT TZ) 로 만든 컬럼과 불일치해
+           `tzinfo='Asia/Seoul'` 를 `TIME WITHOUT TZ` 에 넣으려다 실패.
+
+    해결 (이 필드 한정, DDL 수준 영향 없음):
+      - `SQL_TYPE` / postgres override 모두 `TIME` 으로 고정 → 운영 마이그레이션과 동일
+      - `to_db_value` 에서 `tzinfo` 제거 → 저장 직전 naive 강제
+
+    이 필드만 사용하는 컬럼은 항상 `TIME WITHOUT TIME ZONE` + naive `datetime.time`
+    으로 일관. 전역 `USE_TZ` 설정이나 다른 DatetimeField 동작에 영향 없음.
+    """
+
+    SQL_TYPE = "TIME"
+
+    # Tortoise 는 `_db_<backend>` inner class 로 SQL_TYPE override 를 받는다 (소문자 규약).
+    class _db_postgres:  # noqa: N801
+        SQL_TYPE = "TIME"
+
+    def to_db_value(self, value: Any, instance: type[models.Model] | models.Model) -> Any:
+        # 저장 직전: tzinfo 제거 (Tortoise USE_TZ=True 의 강제 aware 변환 무력화).
+        result = super().to_db_value(value, instance)
+        if isinstance(result, time) and result.tzinfo is not None:
+            return result.replace(tzinfo=None)
+        return result
+
+    def to_python_value(self, value: Any) -> Any:
+        # 읽기 직후: tzinfo 제거 (Tortoise 기본 구현이 default timezone 을 재부착).
+        # 출생 시각은 지방시 기반이라 ORM 전역 tz 를 붙이면 오히려 혼선. naive 유지.
+        result = super().to_python_value(value)
+        if isinstance(result, time) and result.tzinfo is not None:
+            return result.replace(tzinfo=None)
+        return result
 
 
 class SajuConsentEvent(models.Model):
@@ -60,7 +105,9 @@ class SajuProfile(models.Model):
     birth_date = fields.DateField()
     is_lunar = fields.BooleanField(default=False)
     is_leap_month = fields.BooleanField(default=False)
-    birth_time = fields.TimeField(null=True)  # null 허용 (unknown 시)
+    # NaiveTimeField: Tortoise USE_TZ=True 환경에서 강제 aware 변환을 막아
+    # TIME WITHOUT TZ 컬럼과 정합성 유지 (서비스 _normalize_birth_time 과 2중 방어).
+    birth_time = NaiveTimeField(null=True)  # null 허용 (unknown 시)
     birth_time_accuracy = fields.CharField(max_length=10, default=BirthTimeAccuracy.UNKNOWN)
     gender = fields.CharField(max_length=10)  # MALE/FEMALE/UNKNOWN
     is_deleted = fields.BooleanField(default=False)

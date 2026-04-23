@@ -1,18 +1,18 @@
-"""사주 사이드 게임 라우터 (v2.7 P1 스캐폴딩).
+"""사주 사이드 게임 라우터 (v2.7 P1 / P1.5).
 
 8 엔드포인트:
 - GET/POST  /saju/consent
 - GET/PUT   /saju/profile
 - GET       /saju/today
 - POST      /saju/feedback
-- GET       /saju/data/export
-- DELETE    /saju/data
+- GET       /saju/data/export  (P1.5 실구현)
+- DELETE    /saju/data         (P1.5 실구현 — hard delete)
 
 정책:
 - SAJU_ENABLED=false → 상품 엔드포인트(consent/profile/today/feedback) 503 반환
-- export/delete는 플래그 무관하게 허용 (GDPR/개인정보보호법)
+- export/delete는 플래그 무관하게 허용 (개인정보보호법 상 정보 주체의 권리)
 - profile 저장 전 consent 선행 필수
-- P1 단계에서는 today/export는 stub (Not Implemented)
+- today 는 P4 (7 섹션 생성) 까지 501 Not Implemented
 """
 
 from __future__ import annotations
@@ -27,6 +27,9 @@ from backend.dependencies.security import get_request_user
 from backend.dtos.saju import (
     SajuConsentRequest,
     SajuConsentResponse,
+    SajuDataDeletionCounts,
+    SajuDataDeletionResponse,
+    SajuExportResponse,
     SajuFeedbackRequest,
     SajuFeedbackResponse,
     SajuProfileRequest,
@@ -192,25 +195,50 @@ async def post_feedback(
 
 
 # ─────────────────────────────────────────────
-# Data export / delete (feature flag와 무관하게 허용)
+# Data export / delete (feature flag와 무관하게 허용, P1.5 실구현)
 # ─────────────────────────────────────────────
-@saju_router.get("/data/export")
+@saju_router.get("/data/export", response_model=SajuExportResponse)
 async def export_data(
     user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[SajuService, Depends(SajuService)],
 ) -> Response:
-    """P6에서 CSV/JSON export 구현 예정."""
-    # SAJU_ENABLED 무관. P1 단계에서는 stub.
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="export_not_ready",
+    """GET /saju/data/export — 사용자 본인 사주 데이터 전체를 JSON 반환.
+
+    포함:
+    - consent_events (append-only 전체 이력, 시간 오름차순)
+    - profile (is_deleted 무관 — 감사 투명성)
+    - chart (있으면 1건)
+    - daily_cards (시간 역순)
+    - feedback_events (시간 오름차순, 카드 card_date 참조 포함)
+
+    feature flag 무관. 인증만 필요.
+    """
+    data = await service.export_user_data(user_id=user.id)
+    payload = SajuExportResponse.model_validate(data)
+    return Response(
+        content=payload.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
     )
 
 
-@saju_router.delete("/data", status_code=status.HTTP_204_NO_CONTENT)
+@saju_router.delete("/data", response_model=SajuDataDeletionResponse)
 async def delete_data(
     user: Annotated[User, Depends(get_request_user)],
     service: Annotated[SajuService, Depends(SajuService)],
 ) -> Response:
-    """소프트 삭제 — 플래그 꺼져도 사용자 요청 시 즉시 수행."""
-    await service.soft_delete_profile(user_id=user.id)
-    return Response(content=None, status_code=status.HTTP_204_NO_CONTENT)
+    """DELETE /saju/data — 사주 전 데이터 hard delete 파이프라인.
+
+    순서: feedback_events → daily_cards → chart → profile → consent_events
+          → revoked-by-user 이벤트 1건 기록 (감사 흔적)
+    트랜잭션으로 원자성 보장. feature flag 무관.
+    """
+    counts_dict = await service.hard_delete_user_data(user_id=user.id)
+    payload = SajuDataDeletionResponse(
+        deleted=True,
+        counts=SajuDataDeletionCounts(**counts_dict),
+        revoke_event_recorded=True,
+    )
+    return Response(
+        content=payload.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )

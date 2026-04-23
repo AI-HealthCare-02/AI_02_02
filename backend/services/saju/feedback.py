@@ -1,4 +1,4 @@
-"""사주 피드백 서비스 (v2.7 P1 스캐폴딩).
+"""사주 피드백 서비스 (v2.7 P1 스캐폴딩 / P1.5 확장).
 
 피드백 4축: wow/match/mild/mismatch.
 P3 이후 R71~R75 자동 트리거 및 학파 선호 학습과 연동 예정.
@@ -33,3 +33,16 @@ class SajuFeedbackService:
             section_key=section_key,
             verdict=verdict,
         )
+
+    async def list_all(self, user_id: int) -> list[SajuFeedbackEvent]:
+        """사용자 피드백 전체 조회 (export용). 시간순 오름차순."""
+        return (
+            await SajuFeedbackEvent.filter(user_id=user_id)
+            .order_by("created_at")
+            .prefetch_related("card")
+            .all()
+        )
+
+    async def delete_all(self, user_id: int) -> int:
+        """피드백 이벤트 hard delete. 삭제 파이프라인에서만 호출."""
+        return await SajuFeedbackEvent.filter(user_id=user_id).delete()

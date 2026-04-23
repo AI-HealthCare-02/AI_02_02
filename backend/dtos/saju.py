@@ -1,12 +1,14 @@
-"""사주 사이드 게임 DTO (v2.7 P1 스캐폴딩).
+"""사주 사이드 게임 DTO (v2.7 P1 / P1.5).
 
 Request/Response 모델. 금지어 자동 검증은 P4에서 추가.
+
+P1.5 확장: export (GET /saju/data/export) 전용 응답 스키마.
 """
 
 from __future__ import annotations
 
 from datetime import date, datetime, time
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -94,3 +96,80 @@ class SajuFeedbackRequest(BaseModel):
 
 class SajuFeedbackResponse(BaseSerializerModel):
     received: bool = True
+
+
+# ─────────────────────────────────────────────
+# Export / Delete (P1.5, 개인정보 권리)
+# ─────────────────────────────────────────────
+class SajuConsentEventExport(BaseSerializerModel):
+    """동의 이력 단일 이벤트 (append-only 감사 추적용)."""
+
+    consent_version: str
+    granted: bool
+    ip_hash: str | None = None
+    ua_hash: str | None = None
+    created_at: datetime
+
+
+class SajuChartExport(BaseSerializerModel):
+    """계산된 사주 구조 (P2 이후 실제 값이 채워짐)."""
+
+    engine_version: str
+    natal: dict[str, Any] = Field(default_factory=dict)
+    strength: dict[str, Any] = Field(default_factory=dict)
+    yongshin: dict[str, Any] = Field(default_factory=dict)
+    daewoon: list[Any] = Field(default_factory=list)
+    computed_at: datetime
+
+
+class SajuDailyCardExport(BaseSerializerModel):
+    """오늘의 운세 카드 1건."""
+
+    card_date: date
+    summary: str
+    keywords: list[str] = Field(default_factory=list)
+    sections: list[dict[str, Any]] = Field(default_factory=list)
+    safety_notice: str
+    engine_version: str
+    template_version: str
+    created_at: datetime
+
+
+class SajuFeedbackEventExport(BaseSerializerModel):
+    """피드백 1건 (card_date 는 삭제된 카드의 원일자·없으면 null)."""
+
+    card_date: date | None = None
+    section_key: str | None = None
+    verdict: VerdictLiteral
+    created_at: datetime
+
+
+class SajuExportResponse(BaseSerializerModel):
+    """GET /saju/data/export 응답.
+
+    feature flag 무관하게 반환. soft delete 된 프로필도 포함 (감사 추적).
+    """
+
+    exported_at: datetime
+    user_id: int
+    consent_events: list[SajuConsentEventExport] = Field(default_factory=list)
+    profile: SajuProfileResponse | None = None
+    chart: SajuChartExport | None = None
+    daily_cards: list[SajuDailyCardExport] = Field(default_factory=list)
+    feedback_events: list[SajuFeedbackEventExport] = Field(default_factory=list)
+
+
+class SajuDataDeletionCounts(BaseSerializerModel):
+    """DELETE /saju/data 삭제 통계."""
+
+    consent_events: int = 0
+    profile: int = 0  # 0 or 1
+    chart: int = 0  # 0 or 1
+    daily_cards: int = 0
+    feedback_events: int = 0
+
+
+class SajuDataDeletionResponse(BaseSerializerModel):
+    deleted: bool = True
+    counts: SajuDataDeletionCounts
+    revoke_event_recorded: bool = True
