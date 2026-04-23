@@ -98,6 +98,10 @@ export const SAJU_KO = {
   'saju.modal.submitting': '저장 중…',
   'saju.modal.loading.result': '오늘의 운세를 불러오는 중…',
 
+  // 데모 모드 (백엔드 사주 라우터 미설치·SAJU_ENABLED=false 등)
+  'saju.modal.demo.banner':
+    '데모 모드 — 백엔드 사주 기능이 아직 연결되지 않아 입력은 저장되지 않아요. 결과는 참고용 샘플이에요.',
+
   // Step 4 — 결과 (mock fallback / 백엔드 응답)
   'saju.modal.result.title': '오늘의 운세',
   'saju.modal.result.badge.mock': '참고용',

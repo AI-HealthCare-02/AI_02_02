@@ -1363,6 +1363,23 @@ html[data-theme="dark"] .saju-modal__error {
   border-color: rgba(255, 80, 80, 0.32);
 }
 
+/* 데모 모드 배너 (백엔드 사주 기능 OFF 시 fallback 안내) */
+.saju-modal__demo-banner {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #8a5a00;
+  background: #fff7e0;
+  border: 1px solid #f5d68a;
+  border-radius: 8px;
+}
+html[data-theme="dark"] .saju-modal__demo-banner {
+  color: #f6c970;
+  background: rgba(230, 180, 60, 0.10);
+  border-color: rgba(230, 180, 60, 0.32);
+}
+
 /* ───────────────────────────────────────────────────────
  * SajuTodayCard (saju-today-card · v2.7 P1.5)
  * 재방문 시 entry-card 자리에 노출되는 작은 요약 카드

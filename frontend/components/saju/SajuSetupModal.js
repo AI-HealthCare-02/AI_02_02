@@ -159,6 +159,9 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   const [error, setError] = useState(null);
   const [apiResult, setApiResult] = useState(null); // { sections, summary, ... } | null
   const [resultLoading, setResultLoading] = useState(false);
+  // 데모 모드: 백엔드 사주 기능 OFF (404/403/503) 상태에서도 4단계 끝까지 가볼 수 있게 fallback.
+  // 한 번 진입하면 그 모달 세션 동안 후속 API 호출 모두 skip.
+  const [demoMode, setDemoMode] = useState(false);
 
   // SSR 안전: createPortal 은 client only
   useEffect(() => {
@@ -186,6 +189,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
       setStepIdx(initialStep);
       setError(null);
       setSubmitting(false);
+      setDemoMode(false);
       // result-only 진입(initialStep=3)이면 즉시 today fetch
       if (initialStep === 3) {
         loadTodayResult();
@@ -236,7 +240,9 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   // ─── API 핸들러 ───
 
   // step 1 → 2: POST /api/v1/saju/consent
+  // 404/503 (백엔드 라우터 미설치·SAJU_ENABLED=false) 시 데모 모드로 전환 + step 진행
   const handleConsentSubmit = useCallback(async () => {
+    if (demoMode) { goNext(); return; }
     setSubmitting(true);
     setError(null);
     try {
@@ -246,10 +252,11 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
       });
       if (res.status === 201 || res.status === 200) {
         goNext();
+      } else if (res.status === 404 || res.status === 503) {
+        setDemoMode(true);
+        goNext();
       } else if (res.status === 401) {
         setError('login');
-      } else if (res.status === 503) {
-        setError('disabled');
       } else {
         setError('consent');
       }
@@ -258,10 +265,12 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     } finally {
       setSubmitting(false);
     }
-  }, [goNext]);
+  }, [goNext, demoMode]);
 
   // step 2 → 3: PUT /api/v1/saju/profile
+  // 데모 모드면 호출 skip. 404/403/503 시에도 데모 모드 진입 + 진행.
   const handleProfileSubmit = useCallback(async () => {
+    if (demoMode) { goNext(); return; }
     setSubmitting(true);
     setError(null);
     try {
@@ -280,12 +289,12 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
       });
       if (res.ok) {
         goNext();
-      } else if (res.status === 403) {
-        setError('consent_required');
+      } else if (res.status === 404 || res.status === 503 || res.status === 403) {
+        // 403 (consent 없음) 도 데모 모드의 일부 — 어차피 백엔드가 받지 않으므로
+        setDemoMode(true);
+        goNext();
       } else if (res.status === 401) {
         setError('login');
-      } else if (res.status === 503) {
-        setError('disabled');
       } else {
         setError('profile');
       }
@@ -294,10 +303,12 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     } finally {
       setSubmitting(false);
     }
-  }, [profile, goNext]);
+  }, [profile, goNext, demoMode]);
 
-  // step 3 → 4: GET /api/v1/saju/today (501 → mock fallback)
+  // step 3 → 4: GET /api/v1/saju/today
+  // 501 (P1~P4 엔진 미구현) / 404 (라우터 없음) / 503 (SAJU_ENABLED=false) 모두 mock fallback
   const loadTodayResult = useCallback(async () => {
+    if (demoMode) { setApiResult(null); return; }
     setResultLoading(true);
     setError(null);
     try {
@@ -306,15 +317,14 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
         const data = await res.json();
         setApiResult(data);
       } else if (res.status === 501) {
-        // P1~P4 단계: 엔진 미구현 → mock fallback (참고용 배지 그대로)
+        // P1~P4 단계: 엔진 미구현 → mock fallback (참고용 배지)
         setApiResult(null);
-      } else if (res.status === 404) {
-        setError('no_profile');
+      } else if (res.status === 404 || res.status === 503) {
+        // 라우터 미설치 또는 SAJU_ENABLED=false → 데모 모드 + mock
+        setDemoMode(true);
         setApiResult(null);
       } else if (res.status === 401) {
         setError('login');
-      } else if (res.status === 503) {
-        setError('disabled');
       } else {
         setError('today');
       }
@@ -323,7 +333,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     } finally {
       setResultLoading(false);
     }
-  }, []);
+  }, [demoMode]);
 
   const handleCalibrationSubmit = useCallback(async () => {
     await loadTodayResult();
@@ -388,6 +398,13 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
         </header>
 
         <div className="saju-modal__body">
+          {/* 데모 모드 배너 (404/403/503 진입 후 모달 닫을 때까지 유지) */}
+          {demoMode && (
+            <div className="saju-modal__demo-banner" role="status">
+              {ts('saju.modal.demo.banner')}
+            </div>
+          )}
+
           {/* Step 1: Consent */}
           {step === 'consent' && (
             <div className="saju-modal__pane">
