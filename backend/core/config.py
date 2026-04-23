@@ -151,3 +151,8 @@ class Config(BaseSettings):
     GEMMA_GPU_MEMORY_UTILIZATION: float = 0.90
 
     CHAT_BENCH_BUDGET_ENABLED: bool = False
+
+    # 사주 사이드 게임 (우측 카드 진입형, v2.7)
+    # - false 기본: 상품 API 503 응답. export/delete는 플래그와 무관하게 허용.
+    # - P1 스캐폴딩 단계에서는 엔드포인트 stub만 제공.
+    SAJU_ENABLED: bool = False

@@ -26,6 +26,10 @@ const MissedQuestionsModal = lazy(() => import('./MissedQuestionsModal'));
 // 호버/포커스 시 프리페치해 첫 클릭 지연 제거
 const prefetchMissedModal = () => import('./MissedQuestionsModal');
 
+// 사주 사이드 게임 섹션 — 독립 섹션 (CARD_REGISTRY 와 분리, v2.7)
+// Today 건강 기록 아래, 도전 챌린지 위에 조용히 배치. 번들 보호 목적으로 lazy.
+const SajuCardSection = lazy(() => import('./saju/SajuCardSection'));
+
 /**
  * RpRow · memo 추출 · activeCard 토글 시 2행만 리렌더
  */
@@ -252,6 +256,11 @@ export default function RightPanelV2({
             )}
           </div>
         </div>
+
+        {/* ═══ 사주 사이드 게임 (v2.7 · 독립 섹션 · CARD_REGISTRY 와 분리) ═══ */}
+        <Suspense fallback={null}>
+          <SajuCardSection />
+        </Suspense>
 
         {/* ═══ 챌린지 ═══ */}
         {HabitsSection && <HabitsSection />}

@@ -773,11 +773,81 @@ html[data-contrast="high"] {
   color: var(--color-text-muted);
 }
 
+/* 사주 사이드 게임 카드 섹션 (v2.7 · 독립 섹션) */
+.saju-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.saju-card-section__subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+  padding: 0 2px;
+}
+.saju-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.saju-entry-card:hover {
+  border-color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+}
+.saju-entry-card:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+.saju-entry-card__badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-card-surface-subtle);
+  flex-shrink: 0;
+}
+.saju-entry-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.saju-entry-card__title {
+  font-size: 13px;
+  font-weight: 700;
+}
+.saju-entry-card__desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+.saju-entry-card__cta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
 /* prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .rp.rp--today .rp-fixed-input.is-filled,
   .rp.rp--today .rp-row,
-  .rp.rp--today .rp-missed {
+  .rp.rp--today .rp-missed,
+  .saju-entry-card {
     animation: none;
     transition: none;
   }
