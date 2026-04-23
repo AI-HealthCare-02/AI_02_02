@@ -1,6 +1,6 @@
 """사주 60갑자 계산 엔진 단위 테스트 (P2)."""
 
-from datetime import date, time
+from datetime import date, time, timedelta
 
 import pytest
 
@@ -32,12 +32,12 @@ class TestSexagenaryForDay:
     def test_60_days_later_returns_to_gapjin(self) -> None:
         """60일 후 같은 일주 (60갑자 cycle, 甲辰 복귀)."""
         gan_a, ji_a = sexagenary_for_day(date(1900, 1, 31))
-        gan_b, ji_b = sexagenary_for_day(date(1900, 1, 31 + 60))
+        gan_b, ji_b = sexagenary_for_day(date(1900, 1, 31) + timedelta(days=60))
         assert (gan_a, ji_a) == (gan_b, ji_b)
 
     def test_returns_valid_gan_ji(self) -> None:
         for day_offset in [0, 1, 30, 365, 36500]:
-            gan, ji = sexagenary_for_day(date(2000, 1, 1) + (date(2000, 1, 1) - date(2000, 1, 1)).__class__(days=day_offset))
+            gan, ji = sexagenary_for_day(date(2000, 1, 1) + timedelta(days=day_offset))
             assert gan in GAN
             assert ji in JI
 
