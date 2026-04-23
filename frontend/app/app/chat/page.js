@@ -1536,11 +1536,11 @@ const sendMessage = useCallback(async () => {
   const exerciseVal = log.exercise_done === true ? '✓' : log.exercise_done === false ? '✗' : null;
   const waterVal = log.water_cups > 0 ? `${log.water_cups}잔` : null;
   const moodVal = log.mood_level ? getHealthOptionLabel(log.mood_level).replace('아주 ', '') : null;
-  const medicationVal = log.took_medication === true ? '완료' : log.took_medication === false ? '건너뜀' : null;
+  const medicationVal = log.took_medication === true ? '완료' : log.took_medication === false ? '건너뛰었어요' : null;
   const alcoholVal = log.alcohol_today === false
-    ? '안 마심'
+    ? '안 마셨어요'
     : log.alcohol_today === true
-      ? (log.alcohol_amount_level ? getHealthOptionLabel(log.alcohol_amount_level) : '음주')
+      ? (log.alcohol_amount_level ? getHealthOptionLabel(log.alcohol_amount_level) : '마셨어요')
       : null;
 
   const alcoholCardVal = log.alcohol_today === false

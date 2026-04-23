@@ -13,18 +13,18 @@ const REFRESH_COOKIE = 'refresh_token'; // httpOnly — 백엔드가 관리
 
 /** access token 저장 */
 export function setToken(token) {
-  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
+  try { sessionStorage.setItem(TOKEN_KEY, token); } catch {}
 }
 
 /** access token 읽기 */
 export function getToken() {
   if (DEV_TOKEN) return DEV_TOKEN;
-  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  try { return sessionStorage.getItem(TOKEN_KEY); } catch { return null; }
 }
 
 /** access token 삭제 (로그아웃) */
 export function clearToken() {
-  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+  try { sessionStorage.removeItem(TOKEN_KEY); } catch {}
 }
 
 /** 로그인 상태 확인 */
@@ -33,27 +33,12 @@ export function isLoggedIn() {
 }
 
 /**
- * 세션 복원 시도 — 토큰 없으면 refresh_token 쿠키로 갱신 시도
+ * 세션 복원 시도.
+ * 브라우저/탭을 닫으면 sessionStorage의 access token이 사라지므로 자동 로그인하지 않는다.
  * @returns {Promise<boolean>} 세션 유효 여부
  */
 export async function ensureAuthSession() {
-  if (getToken()) return true;
-  try {
-    const res = await fetch(`${API_BASE}/api/v1/auth/token/refresh`, {
-      method: 'GET',
-      credentials: 'include',
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.access_token) {
-        setToken(data.access_token);
-        return true;
-      }
-    }
-    return false;
-  } catch {
-    return false;
-  }
+  return !!getToken();
 }
 
 /* ═══════════════════════════════════════════

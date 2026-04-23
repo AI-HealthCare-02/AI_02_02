@@ -52,7 +52,7 @@ const RpRow = memo(function RpRow({ cardDef, isActive, value, valueMuted, onClic
 /**
  * 요약 문장 생성 (log 기반 derived)
  * — 도메인 규칙: 의료 표현 금지 · 중립 톤
- * — boolean false(쉼/건너뜀/안 마심)도 "기록됨"으로 카운트
+ * — boolean false(쉬었어요/건너뛰었어요/안 마셨어요)도 "기록됨"으로 카운트
  */
 function buildSummaryLine(log) {
   if (!log) return '오늘 기록을 차근차근 쌓아볼까요?';
@@ -155,12 +155,12 @@ function displayValue(key, log) {
       return { value: `${done}/3`, muted: done === 0 };
     }
     case 'medication':
-      if (log.took_medication === true) return { value: '드셨음', muted: false };
-      if (log.took_medication === false) return { value: '건너뜀', muted: false };
+      if (log.took_medication === true) return { value: '드셨어요', muted: false };
+      if (log.took_medication === false) return { value: '건너뛰었어요', muted: false };
       return { value: null, muted: true };
     case 'exercise':
-      if (log.exercise_done === true) return { value: '했음', muted: false };
-      if (log.exercise_done === false) return { value: '쉼', muted: false };
+      if (log.exercise_done === true) return { value: '했어요', muted: false };
+      if (log.exercise_done === false) return { value: '쉬었어요', muted: false };
       return { value: null, muted: true };
     case 'water':
       if (log.water_cups != null && log.water_cups > 0) return { value: `${log.water_cups}잔`, muted: false };
@@ -170,10 +170,10 @@ function displayValue(key, log) {
       return { value: MOOD[log.mood_level] || null, muted: !log.mood_level };
     }
     case 'alcohol':
-      if (log.alcohol_today === false) return { value: '안 마심', muted: false };
+      if (log.alcohol_today === false) return { value: '안 마셨어요', muted: false };
       if (log.alcohol_today === true) {
         const AMT = { light: '가볍게', moderate: '보통', heavy: '많이' };
-        return { value: AMT[log.alcohol_amount_level] || '마심', muted: false };
+        return { value: AMT[log.alcohol_amount_level] || '마셨어요', muted: false };
       }
       return { value: null, muted: true };
     default:
