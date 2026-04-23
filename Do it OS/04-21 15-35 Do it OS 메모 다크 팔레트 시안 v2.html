@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Do it OS — 다크 팔레트 시안 v2 (2026-04-21 15:35)</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+  />
+  <style>
+    :root {
+      --font-ui:
+        "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+        "Noto Sans KR", sans-serif;
+
+      /* 다나아 다크 토큰 */
+      --D-bg: #1F1F1E;
+      --D-surface: #2A2A2A;
+      --D-surface-subtle: #242423;
+      --D-border: #3A3A3A;
+      --D-text: #ECECEC;
+      --D-text-muted: #888888;
+
+      /* 라이트 (레퍼런스) */
+      --L-bg: #F8F8F6;
+      --L-text: #111111;
+      --L-surface: #FFFFFF;
+      --L-border: #EDEDEB;
+      --L-text-muted: #4A4A4A;
+
+      /* 라이트 메모 5색 (변경 없음) */
+      --L-memo-cream:    #FFF5E6;
+      --L-memo-stone:    #F0EDE8;
+      --L-memo-mint:     #EBF4EF;
+      --L-memo-lavender: #EDE8F4;
+      --L-memo-blush:    #F7E9E9;
+
+      /* 다크 v1 — 이전 제안 (칙칙하다고 피드백) */
+      --D1-cream:    #3E3526;
+      --D1-stone:    #38352F;
+      --D1-mint:     #2F3B36;
+      --D1-lavender: #363241;
+      --D1-blush:    #3D3333;
+
+      /* 다크 v2 — 명도 +5%p, hue·채도 유지 (이번 제안) */
+      --D2-cream:    #4C4334;
+      --D2-stone:    #46433D;
+      --D2-mint:     #3D4944;
+      --D2-lavender: #44404F;
+      --D2-blush:    #4B4141;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+      color: var(--L-text);
+      background: #EAE8E2;
+    }
+    body { min-height: 100vh; padding: 40px 24px 64px; }
+
+    .page-header {
+      max-width: 1600px;
+      margin: 0 auto 24px;
+    }
+    .page-header h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .page-header p { color: var(--L-text-muted); margin: 0; font-size: 14px; }
+    .page-header .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      background: #F0EDE8;
+      color: #4A4A4A;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-left: 6px;
+      vertical-align: 2px;
+    }
+
+    /* 라이트 레퍼런스 박스 (상단 참고용, 작게) */
+    .light-reference {
+      max-width: 1600px;
+      margin: 0 auto 28px;
+      padding: 18px 20px;
+      background: var(--L-surface);
+      border: 1px solid var(--L-border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .light-reference h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--L-text);
+      margin: 0 12px 0 0;
+      white-space: nowrap;
+    }
+    .light-reference .swatch-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .light-reference .swatch-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px 4px 4px;
+      background: var(--L-bg);
+      border: 1px solid var(--L-border);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--L-text-muted);
+    }
+    .light-reference .chip-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* v1 vs v2 비교 2열 */
+    .compare-grid {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 1100px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+
+    .theme-card {
+      border-radius: 24px;
+      padding: 28px 26px;
+      background: var(--D-bg);
+      color: var(--D-text);
+      border: 1px solid var(--D-border);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.18),
+        0 1px 3px rgba(0, 0, 0, 0.10);
+    }
+    .theme-card.is-prev { opacity: 0.94; }
+
+    .theme-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+    .theme-header h2 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    .theme-header .tag {
+      font-size: 11.5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    .tag-prev { background: rgba(255,255,255,0.06); color: #888888; }
+    .tag-new  { background: #44404F; color: #ECECEC; }
+    .note {
+      font-size: 13px;
+      color: var(--D-text-muted);
+      margin: 0 0 16px;
+    }
+
+    .canvas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: flex-start;
+      align-items: flex-start;
+      min-height: 400px;
+      padding: 20px;
+      border-radius: 20px;
+      background: var(--D-surface-subtle);
+      margin-bottom: 20px;
+    }
+
+    .memo {
+      width: 220px;
+      min-height: 120px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.18),
+        0 1px 2px rgba(0, 0, 0, 0.10);
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--D-text);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      position: relative;
+    }
+    .memo .meta {
+      font-size: 11px;
+      margin-top: 10px;
+      opacity: 0.6;
+    }
+
+    .r-neg3 { transform: rotate(-3deg); }
+    .r-neg1 { transform: rotate(-1deg); }
+    .r-pos1 { transform: rotate(1deg); }
+    .r-pos2 { transform: rotate(2deg); }
+    .r-pos3 { transform: rotate(3deg); }
+
+    /* v1 적용 */
+    .is-prev .m-cream    { background: var(--D1-cream); }
+    .is-prev .m-stone    { background: var(--D1-stone); }
+    .is-prev .m-mint     { background: var(--D1-mint); }
+    .is-prev .m-lavender { background: var(--D1-lavender); }
+    .is-prev .m-blush    { background: var(--D1-blush); }
+
+    /* v2 적용 */
+    .is-new .m-cream    { background: var(--D2-cream); }
+    .is-new .m-stone    { background: var(--D2-stone); }
+    .is-new .m-mint     { background: var(--D2-mint); }
+    .is-new .m-lavender { background: var(--D2-lavender); }
+    .is-new .m-blush    { background: var(--D2-blush); }
+
+    /* 색상 비교 테이블 */
+    .palette-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .palette-table th,
+    .palette-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--D-border);
+    }
+    .palette-table tr:last-child td { border-bottom: 0; }
+    .palette-table th {
+      font-weight: 600;
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    .swatch {
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      vertical-align: middle;
+      margin-right: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .hex {
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      font-size: 12px;
+      opacity: 0.88;
+    }
+
+    /* 하단 설명 */
+    .page-footer {
+      max-width: 1600px;
+      margin: 32px auto 0;
+      padding: 24px 28px;
+      border-radius: 20px;
+      background: var(--L-surface);
+      border: 1px solid var(--L-border);
+      font-size: 14px;
+      color: var(--L-text);
+    }
+    .page-footer strong { color: #000; }
+    .page-footer ul { padding-left: 18px; margin: 8px 0 0; }
+    .page-footer li { margin: 4px 0; color: var(--L-text-muted); }
+    .page-footer code {
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      font-size: 12.5px;
+      padding: 1px 6px;
+      border-radius: 5px;
+      background: #F2F2F0;
+    }
+    .diff-row { display: flex; gap: 6px; align-items: center; margin: 3px 0; font-size: 13px; color: var(--L-text-muted); }
+    .diff-row .old { text-decoration: line-through; opacity: 0.6; }
+    .diff-row .arrow { opacity: 0.5; }
+    .diff-row .new { font-weight: 600; color: var(--L-text); }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>
+      Do it OS — 다크 팔레트 시안 v2
+      <span class="badge">명도 +5%p · hue·채도 유지</span>
+    </h1>
+    <p>
+      2026-04-21 15:35 · 피드백: "v1 이 조금 칙칙하다" → 명도만 한 단계 올려 생기 회복,
+      다나아 톤(차분한 크림·스톤) 유지. 네온·고채도 금지 원칙 준수.
+    </p>
+  </div>
+
+  <!-- 라이트 레퍼런스 (이미 OK, 작게 참고용) -->
+  <div class="light-reference">
+    <h3>라이트 (그대로 유지) →</h3>
+    <div class="swatch-row">
+      <span class="swatch-chip"><span class="chip-swatch" style="background:#FFF5E6"></span>크림 #FFF5E6</span>
+      <span class="swatch-chip"><span class="chip-swatch" style="background:#F0EDE8"></span>스톤 #F0EDE8</span>
+      <span class="swatch-chip"><span class="chip-swatch" style="background:#EBF4EF"></span>민트 #EBF4EF</span>
+      <span class="swatch-chip"><span class="chip-swatch" style="background:#EDE8F4"></span>라벤더 #EDE8F4</span>
+      <span class="swatch-chip"><span class="chip-swatch" style="background:#F7E9E9"></span>블러시 #F7E9E9</span>
+    </div>
+  </div>
+
+  <!-- 다크 v1 vs 다크 v2 비교 -->
+  <div class="compare-grid">
+    <!-- ===== 다크 v1 (이전, 칙칙) ===== -->
+    <section class="theme-card is-prev">
+      <div class="theme-header">
+        <h2>다크 v1 <span style="font-weight:500;opacity:0.6;font-size:14px">(이전)</span></h2>
+        <span class="tag tag-prev">명도 ~20%</span>
+      </div>
+      <p class="note">피드백: 배경에 너무 가깝고 칙칙한 인상.</p>
+
+      <div class="canvas">
+        <div class="memo m-cream r-neg3">
+          내일 점심 먹고 바로 혈당 체크하기
+          <div class="meta">방금</div>
+        </div>
+        <div class="memo m-stone r-pos1">
+          PARA 다시 읽어보기 — 프로젝트 vs 영역 구분 감 잡기
+          <div class="meta">2분 전</div>
+        </div>
+        <div class="memo m-mint r-neg1">
+          요즘 아침에 머리 멍한 느낌 — 수면 시간 기록해보자
+          <div class="meta">5분 전</div>
+        </div>
+        <div class="memo m-lavender r-pos3">
+          엄마 고혈압 약 리필 처방전 받아오기
+          <div class="meta">오늘 아침</div>
+        </div>
+        <div class="memo m-blush r-pos2">
+          수요일 요가 새 스케줄 확인 · 카톡 알림 끄기
+          <div class="meta">어제</div>
+        </div>
+      </div>
+
+      <table class="palette-table">
+        <thead>
+          <tr><th>역할</th><th>HEX</th><th>대비 (vs #ECECEC)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:#3E3526"></span>크림</td><td class="hex">#3E3526</td><td>~ 9.8 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#38352F"></span>스톤</td><td class="hex">#38352F</td><td>~ 10.2 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#2F3B36"></span>민트</td><td class="hex">#2F3B36</td><td>~ 10.8 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#363241"></span>라벤더</td><td class="hex">#363241</td><td>~ 10.0 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#3D3333"></span>블러시</td><td class="hex">#3D3333</td><td>~ 10.1 : 1 AAA</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ===== 다크 v2 (새 제안, 한 단계 밝게) ===== -->
+    <section class="theme-card is-new">
+      <div class="theme-header">
+        <h2>다크 v2 <span style="font-weight:500;color:#A0A0A0;font-size:14px">(새 제안)</span></h2>
+        <span class="tag tag-new">명도 ~25%</span>
+      </div>
+      <p class="note">각 색의 hue·채도는 그대로, 명도만 +5%p 올려 '칙칙함' 해소.</p>
+
+      <div class="canvas">
+        <div class="memo m-cream r-neg3">
+          내일 점심 먹고 바로 혈당 체크하기
+          <div class="meta">방금</div>
+        </div>
+        <div class="memo m-stone r-pos1">
+          PARA 다시 읽어보기 — 프로젝트 vs 영역 구분 감 잡기
+          <div class="meta">2분 전</div>
+        </div>
+        <div class="memo m-mint r-neg1">
+          요즘 아침에 머리 멍한 느낌 — 수면 시간 기록해보자
+          <div class="meta">5분 전</div>
+        </div>
+        <div class="memo m-lavender r-pos3">
+          엄마 고혈압 약 리필 처방전 받아오기
+          <div class="meta">오늘 아침</div>
+        </div>
+        <div class="memo m-blush r-pos2">
+          수요일 요가 새 스케줄 확인 · 카톡 알림 끄기
+          <div class="meta">어제</div>
+        </div>
+      </div>
+
+      <table class="palette-table">
+        <thead>
+          <tr><th>역할</th><th>HEX</th><th>대비 (vs #ECECEC)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:#4C4334"></span>크림</td><td class="hex">#4C4334</td><td>~ 8.2 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#46433D"></span>스톤</td><td class="hex">#46433D</td><td>~ 8.5 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#3D4944"></span>민트</td><td class="hex">#3D4944</td><td>~ 8.7 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#44404F"></span>라벤더</td><td class="hex">#44404F</td><td>~ 8.2 : 1 AAA</td></tr>
+          <tr><td><span class="swatch" style="background:#4B4141"></span>블러시</td><td class="hex">#4B4141</td><td>~ 8.3 : 1 AAA</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="page-footer">
+    <strong>v1 → v2 변경 요약</strong>
+    <div style="margin-top:10px">
+      <div class="diff-row">크림: <span class="old">#3E3526</span> <span class="arrow">→</span> <span class="new">#4C4334</span> <span style="opacity:0.55">(R+14, G+14, B+14)</span></div>
+      <div class="diff-row">스톤: <span class="old">#38352F</span> <span class="arrow">→</span> <span class="new">#46433D</span> <span style="opacity:0.55">(R+14, G+14, B+14)</span></div>
+      <div class="diff-row">민트: <span class="old">#2F3B36</span> <span class="arrow">→</span> <span class="new">#3D4944</span> <span style="opacity:0.55">(R+14, G+14, B+14)</span></div>
+      <div class="diff-row">라벤더: <span class="old">#363241</span> <span class="arrow">→</span> <span class="new">#44404F</span> <span style="opacity:0.55">(R+14, G+14, B+14)</span></div>
+      <div class="diff-row">블러시: <span class="old">#3D3333</span> <span class="arrow">→</span> <span class="new">#4B4141</span> <span style="opacity:0.55">(R+14, G+14, B+14)</span></div>
+    </div>
+
+    <p style="margin-top:20px"><strong>확인해주세요</strong></p>
+    <ul>
+      <li>✅ v2 가 <strong>칙칙함</strong>이 줄었나요? (배경에서 카드가 좀 더 "뜨는" 느낌)</li>
+      <li>✅ 여전히 다나아 톤(차분한 크림·스톤 파스텔 계열)을 <strong>유지</strong>하나요? (갑자기 네온이나 쨍한 느낌이 나면 과함)</li>
+      <li>✅ 5색 <strong>구분감</strong>이 v1 보다 좋아졌나요?</li>
+      <li>✅ WCAG 대비는 여전히 <strong>AAA (8:1 이상)</strong> 유지 — 글자 가독성 안전 확보</li>
+    </ul>
+
+    <p style="margin-top:16px">다음 선택 예시 →
+      <code>"v2 로 확정"</code> /
+      <code>"v2 도 아직 어두워, 한 단계 더"</code> /
+      <code>"v2 너무 밝아, v1 과 v2 중간 느낌"</code> /
+      <code>"민트만 조금 더 초록 살려줘"</code>
+    </p>
+  </div>
+</body>
+</html>
