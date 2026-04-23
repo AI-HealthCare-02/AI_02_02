@@ -32,7 +32,12 @@ from backend.models.saju import (
     SajuProfile,
 )
 from backend.services.saju.consent import SajuConsentService
+from backend.services.saju.engine.chart import (
+    ENGINE_VERSION,
+    compute_natal_chart,
+)
 from backend.services.saju.feedback import SajuFeedbackService
+from backend.services.saju.interpret import build_today_card
 
 
 def _normalize_birth_time(birth_time: time | None) -> time | None:
@@ -168,6 +173,112 @@ class SajuService:
             birth_time=normalized_birth_time,
             birth_time_accuracy=birth_time_accuracy,
             gender=gender,
+        )
+
+    # ──────────────────────── Chart (P2) ────────────────────────
+    async def ensure_chart(self, *, profile: SajuProfile) -> SajuChart:
+        """프로필 → 사주 원국 계산 + 캐시 (engine_version 기반 invalidation).
+
+        - 같은 profile + 같은 engine_version 이면 기존 chart 재사용
+        - engine_version 다르면 재계산 + 갱신
+        - profile 없으면 호출하지 않음 (라우터 레이어에서 404 처리)
+        """
+        existing = await SajuChart.filter(profile_id=profile.id).first()
+        if existing is not None and existing.engine_version == ENGINE_VERSION:
+            return existing
+
+        natal_dict = compute_natal_chart(
+            birth_date=profile.birth_date,
+            birth_time=profile.birth_time,
+            is_lunar=profile.is_lunar,
+            gender=profile.gender,  # type: ignore[arg-type]
+        )
+
+        if existing is not None:
+            # engine_version bump → 재계산 후 갱신
+            existing.engine_version = natal_dict["engine_version"]
+            existing.natal = natal_dict["natal"]
+            existing.strength = natal_dict["strength"]
+            existing.yongshin = natal_dict["yongshin"]
+            existing.daewoon = natal_dict["daewoon"]
+            await existing.save()
+            return existing
+
+        return await SajuChart.create(
+            profile_id=profile.id,
+            engine_version=natal_dict["engine_version"],
+            natal=natal_dict["natal"],
+            strength=natal_dict["strength"],
+            yongshin=natal_dict["yongshin"],
+            daewoon=natal_dict["daewoon"],
+        )
+
+    # ──────────────────────── Today (P3+P4) ────────────────────────
+    async def get_or_create_today_card(
+        self,
+        *,
+        user_id: int,
+        focus: str = "total",
+        tone: str = "soft",
+    ) -> SajuDailyCard | None:
+        """오늘의 운세 카드 1건 반환 (없으면 생성, 버전 다르면 재생성).
+
+        절차:
+        1. 활성 profile 확인 — 없으면 None 반환 (라우터 404)
+        2. ensure_chart 로 natal 보장
+        3. 오늘 카드 조회
+           - 있고 + engine/template 버전 일치 → reuse
+           - 버전 불일치 → 갱신
+           - 없음 → 신규 생성
+        4. 반환 (DTO 변환은 라우터)
+
+        하루 1장 정책 (UNIQUE(user, card_date)) 유지.
+        """
+        profile = await self.get_profile(user_id=user_id)
+        if profile is None:
+            return None
+
+        chart = await self.ensure_chart(profile=profile)
+        natal = chart.natal or {}
+
+        from datetime import date as _date  # 지역 import — 모듈 상단 충돌 회피
+        today = _date.today()
+
+        payload = build_today_card(
+            natal=natal,
+            engine_version=chart.engine_version,
+            today=today,
+            focus=focus,  # type: ignore[arg-type]
+            tone=tone,  # type: ignore[arg-type]
+        )
+
+        existing = await SajuDailyCard.filter(user_id=user_id, card_date=today).first()
+        if existing is not None:
+            same_version = (
+                existing.engine_version == payload["engine_version"]
+                and existing.template_version == payload["template_version"]
+            )
+            if same_version:
+                return existing
+            # 버전 차이 → 갱신
+            existing.summary = payload["summary"]
+            existing.keywords = payload["keywords"]
+            existing.sections = payload["sections"]
+            existing.safety_notice = payload["safety_notice"]
+            existing.engine_version = payload["engine_version"]
+            existing.template_version = payload["template_version"]
+            await existing.save()
+            return existing
+
+        return await SajuDailyCard.create(
+            user_id=user_id,
+            card_date=today,
+            summary=payload["summary"],
+            keywords=payload["keywords"],
+            sections=payload["sections"],
+            safety_notice=payload["safety_notice"],
+            engine_version=payload["engine_version"],
+            template_version=payload["template_version"],
         )
 
     async def soft_delete_profile(self, user_id: int) -> bool:
