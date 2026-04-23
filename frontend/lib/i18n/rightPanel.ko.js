@@ -65,7 +65,7 @@ export const KO = {
   // 복약 상세 (A 그룹 전용)
   'rightPanel.medication.taken.label': '오늘 약을 드셨나요',
   'rightPanel.medication.taken.true': '드셨어요',
-  'rightPanel.medication.taken.false': '건너뜀',
+  'rightPanel.medication.taken.false': '건너뛰었어요',
 
   // 운동 상세
   'rightPanel.exercise.type.label': '어떤 활동',
@@ -92,8 +92,8 @@ export const KO = {
 
   // 음주 상세
   'rightPanel.alcohol.today.label': '오늘 음주 여부',
-  'rightPanel.alcohol.today.true': '마심',
-  'rightPanel.alcohol.today.false': '안 마심',
+  'rightPanel.alcohol.today.true': '마셨어요',
+  'rightPanel.alcohol.today.false': '안 마셨어요',
   'rightPanel.alcohol.amount.label': '어느 정도',
   'rightPanel.alcohol.amount.light': '가볍게',
   'rightPanel.alcohol.amount.moderate': '보통',
