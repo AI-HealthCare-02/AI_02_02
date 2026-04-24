@@ -21,17 +21,18 @@ import {
   Scale,
   StickyNote,
   Target,
+  X,
   Zap,
 } from 'lucide-react';
 
 import AppGuideModal from './AppGuideModal';
 import useConversations from '../hooks/useConversations';
 import { api } from '../hooks/useApi';
+import { formatUserGroupDisplay } from '../lib/userGroupLabels';
 
 const CHAT_PATH = '/app/chat';
 const CHAT_NEW_QUERY_KEY = 'new';
 const CHAT_NEW_QUERY_VALUE = '1';
-
 const DOIT_HREF = '/app/do-it-os';
 
 const navItems = [
@@ -93,12 +94,14 @@ export default function Sidebar({ productGuide = null }) {
   const [userName, setUserName] = useState('사용자');
   const [userGroup, setUserGroup] = useState('온보딩 미완료');
   const [userInitial, setUserInitial] = useState('?');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState(() => new Set(['Do it OS']));
   const [guideSeen, setGuideSeen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { grouped } = useConversations();
+  const { grouped, remove } = useConversations();
 
   useEffect(() => {
     if (window.innerWidth < 768) setOpen(false);
@@ -138,7 +141,7 @@ export default function Sidebar({ productGuide = null }) {
           const completed = Boolean(status.is_completed);
           setHasOnboarding(completed);
           if (completed) {
-            setUserGroup(status.user_group ? `${status.user_group} 그룹` : '온보딩 완료');
+            setUserGroup(formatUserGroupDisplay(status.user_group, '온보딩 완료'));
           } else {
             setUserGroup('온보딩 미완료');
           }
@@ -151,7 +154,7 @@ export default function Sidebar({ productGuide = null }) {
 
     loadSidebarState();
   }, []);
-
+  
   useEffect(() => {
     if (!pathname.startsWith(CHAT_PATH)) return;
 
@@ -214,6 +217,35 @@ export default function Sidebar({ productGuide = null }) {
     }
 
     router.push(buildChatHref({ isNew: true }));
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!deleteTarget || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const res = await api(`/api/v1/chat/sessions/${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      remove(deleteTarget.id);
+      if (activeSessionId === deleteTarget.id) {
+        setActiveSessionId(null);
+        setActiveIsNew(true);
+        if (typeof window !== 'undefined' && typeof window.__danaa_newChat === 'function') {
+          window.__danaa_newChat();
+        } else {
+          router.push(buildChatHref({ isNew: true }));
+        }
+      }
+      setDeleteTarget(null);
+      window.dispatchEvent(new CustomEvent('danaa:conversation-refresh'));
+    } catch {
+      alert('대화 기록을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const currentCat = categories[selectedCat];
@@ -335,7 +367,6 @@ export default function Sidebar({ productGuide = null }) {
             >
               + 새 대화
             </button>
-
             {hasOnboarding ? (
               grouped.length > 0 ? (
                 grouped.map((group) => (
@@ -347,16 +378,27 @@ export default function Sidebar({ productGuide = null }) {
                       <div
                         key={conversation.id}
                         onClick={() => handleConversationClick(conversation)}
-                        className={`mb-0.5 flex cursor-pointer justify-between rounded-md px-2 py-2 text-[15px] transition-all ${
+                        className={`group/conversation mb-0.5 flex cursor-pointer items-center justify-between rounded-md px-2 py-2 text-[15px] transition-all ${
                           activeSessionId === conversation.id && !activeIsNew
                             ? 'bg-[var(--color-nav-active)] font-semibold text-nature-900'
                             : 'text-neutral-400 hover:bg-cream-300 hover:text-nature-900'
                         }`}
                       >
                         <span className="mr-2 flex-1 truncate">{conversation.title}</span>
-                        <span className="shrink-0 text-[13px] text-[var(--color-message-meta)]">
+                        <span className="shrink-0 text-[13px] text-[var(--color-message-meta)] group-hover/conversation:hidden">
                           {formatTime(conversation.updatedAt)}
                         </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setDeleteTarget(conversation);
+                          }}
+                          aria-label="대화 삭제"
+                          className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-cream-500 hover:text-danger group-hover/conversation:flex"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -439,53 +481,53 @@ export default function Sidebar({ productGuide = null }) {
             </button>
 
             <div className="relative">
-            <button
-              onClick={() => setCatOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-cream-400"
-            >
-              <div className="flex items-center gap-2 text-[15px]">
-                <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
-                <div>
-                  <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-[var(--color-text-hint)]'}`}>{currentCat.name}</div>
-                  <div className="text-[13px] text-[var(--color-text-hint)]">{currentCat.desc}</div>
+              <button
+                onClick={() => setCatOpen((prev) => !prev)}
+                className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left hover:bg-cream-400"
+              >
+                <div className="flex items-center gap-2 text-[15px]">
+                  <currentCat.icon size={16} className={currentCat.active ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
+                  <div>
+                    <div className={`font-medium ${currentCat.active ? 'text-nature-900' : 'text-[var(--color-text-hint)]'}`}>{currentCat.name}</div>
+                    <div className="text-[13px] text-[var(--color-text-hint)]">{currentCat.desc}</div>
+                  </div>
                 </div>
-              </div>
-              <span className="text-[var(--color-text-hint)]">{catOpen ? '▾' : '▸'}</span>
-            </button>
+                <span className="text-[var(--color-text-hint)]">{catOpen ? '▾' : '▸'}</span>
+              </button>
 
-            {catOpen && (
-              <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-[var(--color-surface)] p-2 shadow-soft">
-                {categories.map((category, index) => {
-                  const isAvailable = index === 0;
-                  return (
-                    <button
-                      key={category.name}
-                      onClick={() => {
-                        if (!isAvailable) return;
-                        setSelectedCat(index);
-                        setCatOpen(false);
-                      }}
-                      disabled={!isAvailable}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
-                        selectedCat === index
-                          ? 'bg-cream-400 text-nature-900'
-                          : isAvailable
-                            ? 'text-neutral-400 hover:bg-cream-400/70'
-                            : 'cursor-not-allowed text-[#9A948B]'
-                      }`}
-                    >
-                      <category.icon size={14} className={isAvailable ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
-                      <div>
-                        <div className="font-medium">{category.name}</div>
-                        <div className="text-[12px] text-[var(--color-text-hint)]">
-                          {isAvailable ? category.desc : '준비 중'}
+              {catOpen && (
+                <div className="absolute bottom-full left-0 right-0 z-20 mb-2 space-y-1 rounded-xl border border-cream-500 bg-[var(--color-surface)] p-2 shadow-soft">
+                  {categories.map((category, index) => {
+                    const isAvailable = index === 0;
+                    return (
+                      <button
+                        key={category.name}
+                        onClick={() => {
+                          if (!isAvailable) return;
+                          setSelectedCat(index);
+                          setCatOpen(false);
+                        }}
+                        disabled={!isAvailable}
+                        className={`flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-[14px] transition-colors ${
+                          selectedCat === index
+                            ? 'bg-cream-400 text-nature-900'
+                            : isAvailable
+                              ? 'text-neutral-400 hover:bg-cream-400/70'
+                              : 'cursor-not-allowed text-[#9A948B]'
+                        }`}
+                      >
+                        <category.icon size={14} className={isAvailable ? 'text-nature-500' : 'text-[var(--color-text-hint)]'} />
+                        <div>
+                          <div className="font-medium">{category.name}</div>
+                          <div className="text-[12px] text-[var(--color-text-hint)]">
+                            {isAvailable ? category.desc : '준비 중'}
+                          </div>
                         </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mt-2 flex items-center justify-between rounded-lg px-2 py-2">
@@ -526,6 +568,35 @@ export default function Sidebar({ productGuide = null }) {
 
       {isGuideOpen && (
         <AppGuideModal guide={productGuide} onClose={() => setIsGuideOpen(false)} />
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-4">
+          <div className="w-full max-w-[360px] rounded-xl border border-cream-500 bg-[var(--color-surface)] p-5 shadow-soft">
+            <h3 className="text-[16px] font-semibold text-nature-900">대화를 삭제하시겠습니까?</h3>
+            <p className="mt-2 text-[14px] leading-[1.55] text-neutral-500">
+              "{deleteTarget.title}" 대화가 목록에서 삭제됩니다.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="rounded-lg border border-cream-500 px-3.5 py-2 text-[14px] text-neutral-500 transition-colors hover:bg-cream-300 disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConversation}
+                disabled={isDeleting}
+                className="rounded-lg bg-danger px-3.5 py-2 text-[14px] font-semibold text-white transition-colors hover:bg-danger-light disabled:opacity-50"
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

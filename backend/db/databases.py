@@ -14,6 +14,7 @@ TORTOISE_APP_MODELS = [
     "backend.models.challenges",
     "backend.models.settings",
     "backend.models.chat",
+    "backend.models.push",
     "backend.models.saju",
 ]
 

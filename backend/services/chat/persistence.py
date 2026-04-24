@@ -92,3 +92,16 @@ async def list_sessions(user_id: int, limit: int = 20) -> ChatSessionListRespons
         for row in rows
     ]
     return ChatSessionListResponse(sessions=sessions)
+
+
+async def delete_session(user_id: int, session_id: int) -> None:
+    """Hide a chat session from the user's session list."""
+    session = await ChatSession.get_or_none(id=session_id, user_id=user_id, is_active=True)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="세션을 찾을 수 없어요.",
+        )
+
+    session.is_active = False
+    await session.save(update_fields=["is_active", "updated_at"])

@@ -50,6 +50,21 @@ function formatCategoryValue(key, dailyLog) {
   const fields = CATEGORY_FIELDS[key] || [];
   const hasAny = fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
   if (!hasAny) return null;
+  if (key === 'sleep') {
+    const labels = {
+      very_good: '아주 좋음',
+      excellent: '아주 좋음',
+      good: '좋음',
+      normal: '보통',
+      bad: '나쁨',
+      very_bad: '아주 나쁨',
+    };
+    return labels[dailyLog.sleep_quality] || '기록됨';
+  }
+  if (key === 'water') {
+    const cups = Number(dailyLog.water_cups || 0);
+    return cups > 0 ? `${cups}잔` : null;
+  }
   switch (key) {
     case 'sleep': {
       const q = { excellent: '잘 잤음', good: '그럭저럭', normal: '뒤척임', bad: '푹 못 잠' }[dailyLog.sleep_quality];
@@ -144,6 +159,76 @@ const parseInt10 = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+const FIELD_OPTIONS = {
+  sleep: {
+    field: 'sleep_quality',
+    options: [
+      { value: 'very_good', label: '아주 좋음' },
+      { value: 'good', label: '좋음' },
+      { value: 'normal', label: '보통' },
+      { value: 'bad', label: '나쁨' },
+      { value: 'very_bad', label: '아주 나쁨' },
+    ],
+  },
+  meal: {
+    field: 'breakfast_status',
+    options: [
+      { value: 'hearty', label: '먹었어요' },
+      { value: 'skipped', label: '못 먹었어요' },
+    ],
+  },
+  medication: {
+    field: 'took_medication',
+    parse: parseBool,
+    options: [
+      { value: true, label: '복용했어요' },
+      { value: false, label: '건너뜀' },
+    ],
+  },
+  exercise: {
+    field: 'exercise_done',
+    parse: parseBool,
+    options: [
+      { value: true, label: '운동했어요' },
+      { value: false, label: '쉬었어요' },
+    ],
+  },
+  water: {
+    field: 'water_cups',
+    parse: parseInt10,
+    options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
+      value: n,
+      label: n === 10 ? '10잔 이상' : `${n}잔`,
+    })),
+  },
+  mood: {
+    field: 'mood_level',
+    options: [
+      { value: 'great', label: '아주 좋음' },
+      { value: 'good', label: '좋음' },
+      { value: 'normal', label: '보통' },
+      { value: 'hard', label: '힘듦' },
+    ],
+  },
+  alcohol: {
+    field: 'alcohol_today',
+    parse: parseBool,
+    options: [
+      { value: false, label: '안 마심' },
+      { value: true, label: '마심' },
+    ],
+  },
+};
+
+const draftKey = (date, categoryKey) => `${date}:${categoryKey}`;
+
+function buildDraftPayload(categoryKey, rawValue) {
+  const def = FIELD_OPTIONS[categoryKey];
+  if (!def) return null;
+  const parse = def.parse || ((v) => v);
+  return { [def.field]: parse(rawValue) };
+}
+
 /**
  * 카테고리별 간이 편집기 (cell inline edit)
  * 완전 기능은 SleepPanel 등 기존 컴포넌트가 담당 · 여기선 필수 필드 1개만
@@ -166,6 +251,31 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
     }
   };
 
+  if (categoryKey === 'sleep') {
+    return (
+      <div className="mqm-cell-edit">
+        <SelectField
+          value={draft.sleep_quality}
+          options={[
+            { value: 'very_good', label: '아주 좋음' },
+            { value: 'good', label: '좋음' },
+            { value: 'normal', label: '보통' },
+            { value: 'bad', label: '나쁨' },
+            { value: 'very_bad', label: '아주 나쁨' },
+          ]}
+          onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
+        />
+        <div className="mqm-cell-edit__actions">
+          <button type="button" className="mqm-btn-ghost" onClick={onCancel}>취소</button>
+          <button type="button" className="mqm-btn-primary" onClick={handleSave} disabled={saving || Object.keys(draft).length === 0}>
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+        {error && <div className="mqm-cell-edit__error">{error}</div>}
+      </div>
+    );
+  }
+
   const fields = (() => {
     switch (categoryKey) {
       case 'sleep':
@@ -186,9 +296,8 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
           <SelectField
             value={draft.breakfast_status}
             options={[
-              { value: 'hearty', label: '든든히' },
-              { value: 'light', label: '간단히' },
-              { value: 'skipped', label: '못먹음' },
+              { value: 'hearty', label: '먹었어요' },
+              { value: 'skipped', label: '못 먹었어요' },
             ]}
             onChange={(v) => setDraft({ ...draft, breakfast_status: v })}
           />
@@ -281,6 +390,8 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
   const [pastDays, setPastDays] = useState(null); // [{date, log}, {date, log}]
   const [loading, setLoading] = useState(false);
   const [editingCell, setEditingCell] = useState(null); // { key, date } | null
+  const [pendingDrafts, setPendingDrafts] = useState({});
+  const [savingDrafts, setSavingDrafts] = useState(false);
   const [toast, setToast] = useState(null);
 
   // 과거 2일 날짜 계산 (KST)
@@ -332,7 +443,7 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
       }
       if (e.key !== 'Tab' || !modalRef.current) return;
       const focusables = Array.from(
-        modalRef.current.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])')
+        modalRef.current.querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])')
       ).filter((el) => !el.disabled && el.offsetParent !== null);
       if (focusables.length === 0) return;
       const first = focusables[0];
@@ -349,21 +460,51 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
     return () => window.removeEventListener('keydown', onKey);
     // handleClose는 클로저로 draft 접근 · 매 렌더 새로 감
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, editingCell]);
+  }, [open, editingCell, pendingDrafts]);
 
-  const handleClose = useCallback(() => {
-    if (editingCell) {
-      if (!window.confirm(t('rightPanel.missedModal.unsavedConfirm'))) return;
+  const savePendingDrafts = useCallback(async () => {
+    const entries = Object.entries(pendingDrafts);
+    if (entries.length === 0) return true;
+
+    setSavingDrafts(true);
+    try {
+      for (const [key, payload] of entries) {
+        const [date, categoryKey] = key.split(':');
+        // eslint-disable-next-line no-await-in-loop
+        await handleCellSave(categoryKey, date, payload, { keepDrafts: true });
+      }
+      setPendingDrafts({});
+      setToast(`${entries.length}개 항목을 저장했어요.`);
+      setTimeout(() => setToast(null), 3000);
+      return true;
+    } catch (error) {
+      setToast(t('rightPanel.error.networkFail'));
+      setTimeout(() => setToast(null), 3000);
+      return false;
+    } finally {
+      setSavingDrafts(false);
+    }
+  }, [pendingDrafts]);
+
+  const handleClose = useCallback(async () => {
+    if (Object.keys(pendingDrafts).length > 0) {
+      const shouldSave = window.confirm('선택한 미입력 기록이 아직 저장되지 않았어요. 닫기 전에 저장할까요?');
+      if (shouldSave) {
+        const saved = await savePendingDrafts();
+        if (!saved) return;
+      } else {
+        setPendingDrafts({});
+      }
     }
     setEditingCell(null);
     onClose();
-  }, [editingCell, onClose]);
+  }, [onClose, pendingDrafts, savePendingDrafts]);
 
   const handleCellClick = (key, date) => {
     setEditingCell({ key, date });
   };
 
-  const handleCellSave = async (categoryKey, date, payload) => {
+  const handleCellSave = async (categoryKey, date, payload, options = {}) => {
     // sessionStorage 1건 draft (401 리다이렉트 대비)
     try {
       sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ date, key: categoryKey, payload, ts: Date.now() }));
@@ -471,6 +612,24 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
                     if (val) {
                       return <td key={col.date} className="mqm-cell mqm-cell--filled">{val}</td>;
                     }
+                    const optionDef = FIELD_OPTIONS[cat.key];
+                    const pendingKey = draftKey(col.date, cat.key);
+                    const currentDraft = pendingDrafts[pendingKey];
+                    if (optionDef) {
+                      return (
+                        <td key={col.date} className="mqm-cell mqm-cell--empty">
+                          <SelectField
+                            value={currentDraft ? Object.values(currentDraft)[0] : ''}
+                            placeholder="선택"
+                            options={optionDef.options}
+                            onChange={(rawValue) => {
+                              const payload = buildDraftPayload(cat.key, rawValue);
+                              setPendingDrafts((prev) => ({ ...prev, [pendingKey]: payload }));
+                            }}
+                          />
+                        </td>
+                      );
+                    }
                     // 미입력 셀
                     return (
                       <td
@@ -496,6 +655,24 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
               ))}
             </tbody>
           </table>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="mqm-btn-ghost"
+              onClick={() => setPendingDrafts({})}
+              disabled={savingDrafts || Object.keys(pendingDrafts).length === 0}
+            >
+              선택 초기화
+            </button>
+            <button
+              type="button"
+              className="mqm-btn-primary"
+              onClick={savePendingDrafts}
+              disabled={savingDrafts || Object.keys(pendingDrafts).length === 0}
+            >
+              {savingDrafts ? '저장 중...' : `기록 저장하기 (${Object.keys(pendingDrafts).length})`}
+            </button>
+          </div>
         </div>
         {toast && (
           <div className="mqm-toast" role="status" aria-live="polite">{toast}</div>

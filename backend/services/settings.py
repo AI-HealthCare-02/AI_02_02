@@ -86,6 +86,7 @@ class SettingsService:
             "weekly_report",
             "reminder_time_morning",
             "reminder_time_evening",
+            "health_question_interval_minutes",
             "max_bundles_per_day",
             "preferred_times",
             "theme_preference",
