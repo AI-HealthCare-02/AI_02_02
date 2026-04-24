@@ -143,7 +143,7 @@ class TestComputeNatalChart:
         result = compute_natal_chart(birth_date=date(1990, 5, 15))
         assert "month_pillar_no_solar_term_correction" in result["limitations"]
 
-    def test_engine_version_is_v03(self) -> None:
-        """P3: ENGINE_VERSION = danaa-deterministic-v0.3 (용신 주입 포함)"""
+    def test_engine_version_is_v04(self) -> None:
+        """P4.1: ENGINE_VERSION = danaa-deterministic-v0.4 (balanced 격신 우선)"""
         result = compute_natal_chart(birth_date=date(1990, 5, 15))
-        assert result["engine_version"] == "danaa-deterministic-v0.3"
+        assert result["engine_version"] == "danaa-deterministic-v0.4.2"

@@ -21,6 +21,7 @@ from backend.services.saju.templates import (
     DEFAULT_SAFETY_NOTICE,
     TEMPLATE_VERSION,
     build_sections,
+    compute_daily_score,
 )
 
 ToneLiteral = Literal["soft", "real", "short"]
@@ -72,6 +73,13 @@ def build_today_card(
         "same": "비화",
     }
 
+    yongshin_dict = dict(natal.get("yongshin") or {})
+    daily_score = compute_daily_score(
+        relation_kind=relation["kind"],
+        element_distribution=dict(natal.get("element_distribution") or {}),
+        yongshin_element=yongshin_dict.get("yongshin_element", ""),
+    )
+
     return {
         "card_date": today_info["date"],
         "summary": summary,
@@ -80,6 +88,7 @@ def build_today_card(
         "safety_notice": DEFAULT_SAFETY_NOTICE,
         "engine_version": engine_version,
         "template_version": TEMPLATE_VERSION,
+        "daily_score": daily_score,
         # UI 노출 신규 필드 (P2.2)
         "natal_chart": natal,
         "today_pillar": today_info["pillar"],
@@ -95,5 +104,5 @@ def build_today_card(
         "element_distribution": dict(natal.get("element_distribution") or {}),
         "limitations": list(natal.get("limitations") or []),
         # 용신 (P3, 억부 한국 현대 기준). natal 안에 저장된 dict 그대로 전달.
-        "yongshin": dict(natal.get("yongshin") or {}),
+        "yongshin": yongshin_dict,
     }

@@ -18,6 +18,9 @@ export const SAJU_KO = {
   'saju.entry.desc': '생년월일을 넣으면 나다운 하루 흐름을 카드로 보여드려요.',
   'saju.entry.cta': '열어보기',
   'saju.entry.badge': '참고용',
+  // 프로필 등록 후 재방문 — 세로형 카드 유지하되 CTA만 변경
+  'saju.entry.desc.revisit': '오늘의 흐름을 카드로 살짝 살펴볼까요?',
+  'saju.entry.cta.revisit': '오늘의 운세',
 
   // 입력 완료 후 요약 카드 (P4에서 실제 body 주입)
   'saju.today.title': '오늘의 운세',
@@ -104,7 +107,7 @@ export const SAJU_KO = {
     '데모 모드 — 백엔드 사주 기능이 아직 연결되지 않아 입력은 저장되지 않아요. 결과는 참고용 샘플이에요.',
 
   // Step 4 — 결과 (mock fallback / 백엔드 응답)
-  'saju.modal.result.title': '오늘의 운세',
+  'saju.modal.result.title': '사주 리딩',
   'saju.modal.result.badge.mock': '참고용',
   'saju.modal.result.section.total': '총운',
   'saju.modal.result.section.money': '재물운',
@@ -113,6 +116,20 @@ export const SAJU_KO = {
   'saju.modal.result.section.oneThing': '오늘의 한 가지',
   'saju.modal.result.toggle.why': '왜 이렇게 봤나요?',
   'saju.modal.result.cta.close': '카드 닫기',
+
+  // ─── P4.2: 첫 경험 강화 4탭 리딩 ───
+  'saju.reading.tabs.natal': '나의 기질',
+  'saju.reading.tabs.yearly': '2026 총운',
+  'saju.reading.tabs.monthly': '월별 흐름',
+  'saju.reading.tabs.today': '오늘',
+  'saju.reading.badge.reference': '참고용 · 한국 현대 억부용신 기준',
+  'saju.reading.loading': '사주 리딩을 불러오는 중…',
+  'saju.reading.empty': '리딩을 불러오지 못했어요. 오늘 탭은 그대로 확인할 수 있어요.',
+  'saju.reading.reason.default': '원국·십성·용신·오행 분포를 함께 본 참고 해석입니다.',
+  // P4.2 풀리딩
+  'saju.reading.easy_summary.prefix': '쉽게 말하면',
+  'saju.reading.monthly.pattern.title': '연간 패턴 요약',
+  'saju.reading.yearly.checklist.title': '올해 운영 체크리스트',
 
   // ─── P2.2: 오늘 일진 배지 ───
   'saju.today.pillar.prefix': '오늘은',
@@ -137,6 +154,16 @@ export const SAJU_KO = {
   'saju.natal.hour.unknown': '출생시간 미입력',
   'saju.natal.dayMaster.label': '日主 (본인 기준)',
   'saju.natal.elementDistribution.title': '오행 분포',
+  'saju.natal.elementLegend.title': '색상 안내',
+
+  // ─── P4.1: 오늘의 참고 지수 (100점) ───
+  'saju.daily.score.title': '오늘의 참고 지수',
+  'saju.daily.score.hint': '일진 관계·오행 균형·용신 보유를 합산한 참고 수치예요.',
+  'saju.daily.score.tier.high': '흐름이 잘 맞는 날',
+  'saju.daily.score.tier.mid_high': '기분 좋은 날',
+  'saju.daily.score.tier.mid': '평범하게 안정된 날',
+  'saju.daily.score.tier.low': '페이스 조절 필요',
+  'saju.daily.score.tier.caution': '정리·휴식에 더 어울리는 날',
 
   // 십성 2단 해설 (short + long)
   'saju.natal.sisung.비견.short': '같은편',

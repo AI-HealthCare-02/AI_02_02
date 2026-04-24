@@ -38,6 +38,7 @@ from backend.services.saju.engine.chart import (
 )
 from backend.services.saju.feedback import SajuFeedbackService
 from backend.services.saju.interpret import build_today_card
+from backend.services.saju.templates import build_reading
 
 
 def _normalize_birth_time(birth_time: time | None) -> time | None:
@@ -289,6 +290,30 @@ class SajuService:
             template_version=payload["template_version"],
         )
         return payload
+
+    async def get_reading(
+        self,
+        *,
+        user_id: int,
+        period: str,
+        year: int = 2026,
+    ) -> dict | None:
+        """기질/연운/月운 리딩 즉시 생성 (P4.2).
+
+        `/today` 와 달리 DB 에 저장하지 않는다. 첫 경험에서 넓은 맥락을 보여주는
+        보조 API 이므로, 원국 chart 만 보장한 뒤 템플릿 결과를 바로 반환한다.
+        """
+        profile = await self.get_profile(user_id=user_id)
+        if profile is None:
+            return None
+
+        chart = await self.ensure_chart(profile=profile)
+        return build_reading(
+            period=period,  # type: ignore[arg-type]
+            natal=chart.natal or {},
+            engine_version=chart.engine_version,
+            year=year,
+        )
 
     async def soft_delete_profile(self, user_id: int) -> bool:
         """프로필 소프트 삭제 — "사주 기능 끄기" 용도. 데이터는 유지.

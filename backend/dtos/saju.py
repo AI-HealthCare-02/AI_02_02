@@ -134,6 +134,8 @@ class SajuTodayResponse(BaseSerializerModel):
     engine_version: str = ""
     template_version: str = ""
     card_date: date | None = None
+    # P4.1 — 참고용 오늘 지수 (일진 관계·오행 균형·용신 보유 가중합, 0~100)
+    daily_score: int = Field(default=50, ge=0, le=100)
     # P2.2 (UI 원국·일진 노출) — 모두 optional, backward compat
     natal_chart: SajuNatalChart | None = None
     today_pillar: str = ""
@@ -145,6 +147,58 @@ class SajuTodayResponse(BaseSerializerModel):
     day_relation: SajuDayRelation | None = None
     element_distribution: dict[str, int] = Field(default_factory=dict)
     limitations: list[str] = Field(default_factory=list)
+    yongshin: SajuYongshin | None = None
+
+
+# ─────────────────────────────────────────────
+# Reading (P4.2: 나의 기질 / 연운 / 월별 흐름)
+# ─────────────────────────────────────────────
+ReadingPeriod = Literal["natal", "yearly", "monthly"]
+
+
+class SajuReadingSectionResponse(BaseSerializerModel):
+    """리딩 탭용 자유 섹션.
+
+    today 섹션은 7개 고정 key 이지만, 리딩은 기질/연운/月운마다 key 가 달라
+    문자열로 열어둔다.
+
+    P4.2: `easy_summary` ("쉽게 말하면:" 한 줄) 추가 — 본문은 문학적·명리학적으로
+    쓰되 초보자도 이해할 수 있게 한 줄 번역을 곁들인다. optional.
+    """
+
+    key: str
+    title: str
+    body: str
+    easy_summary: str = ""
+    reason: str | None = None
+
+
+class SajuMonthReadingResponse(BaseSerializerModel):
+    """월별 흐름 카드 1개."""
+
+    month: int = Field(..., ge=1, le=12)
+    label: str
+    score: int = Field(..., ge=0, le=100)
+    title: str
+    summary: str
+    detail: str
+    reason: str | None = None
+
+
+class SajuReadingResponse(BaseSerializerModel):
+    """GET /saju/reading 응답."""
+
+    period: ReadingPeriod
+    year: int | None = None
+    title: str
+    summary: str
+    keywords: list[str] = Field(default_factory=list, max_length=8)
+    sections: list[SajuReadingSectionResponse]
+    months: list[SajuMonthReadingResponse] = Field(default_factory=list)
+    safety_notice: str
+    engine_version: str = ""
+    template_version: str = ""
+    natal_chart: SajuNatalChart | None = None
     yongshin: SajuYongshin | None = None
 
 

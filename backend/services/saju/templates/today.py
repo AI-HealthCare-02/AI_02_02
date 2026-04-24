@@ -640,3 +640,52 @@ def build_sections(
     keywords = [kind_kw, focus_kw, today_pillar_str or day_master]
 
     return sections, summary, keywords
+
+
+# ─────────────────────────────────────────────
+# Daily score (100점 만점) — P4 확장
+# ─────────────────────────────────────────────
+_RELATION_SCORE_DELTA: dict[str, int] = {
+    "harmony": 20,
+    "support": 15,
+    "same": 10,
+    "pressure": -10,
+    "clash": -15,
+}
+
+
+def compute_daily_score(
+    *,
+    relation_kind: str,
+    element_distribution: dict[str, int] | None,
+    yongshin_element: str = "",
+) -> int:
+    """오늘의 운세 총점 (0~100). 결정론 — 같은 입력이면 같은 점수.
+
+    산정 방식:
+    - base 50
+    - 일진↔일간 관계: harmony +20 / support +15 / same +10 / pressure -10 / clash -15
+    - 오행 분포 편차(max-min): 0~1 +10 / 2 +5 / 3 0 / 4+ -5
+    - 용신 오행 보유(>=1)이면 +5
+
+    참고용 지표로만 활용 — 의학적·재무적 판단 금지.
+    """
+    score = 50
+    score += _RELATION_SCORE_DELTA.get(relation_kind, 0)
+
+    counts = {k: int(v) for k, v in (element_distribution or {}).items() if isinstance(v, int)}
+    if counts:
+        spread = max(counts.values()) - min(counts.values())
+        if spread <= 1:
+            score += 10
+        elif spread == 2:
+            score += 5
+        elif spread == 3:
+            score += 0
+        else:
+            score -= 5
+
+    if yongshin_element and counts.get(yongshin_element, 0) >= 1:
+        score += 5
+
+    return max(0, min(100, score))

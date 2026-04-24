@@ -107,6 +107,24 @@ class TestBuildTodayCard:
         b = build_today_card(natal=natal_dict, engine_version=ENGINE_VERSION, today=date(2026, 4, 24))
         assert a == b
 
+    def test_daily_score_in_range(self) -> None:
+        """P4.1: daily_score 는 0~100 정수."""
+        card = build_today_card(
+            natal=_natal(),
+            engine_version=ENGINE_VERSION,
+            today=date(2026, 4, 24),
+        )
+        assert "daily_score" in card
+        assert isinstance(card["daily_score"], int)
+        assert 0 <= card["daily_score"] <= 100
+
+    def test_daily_score_deterministic(self) -> None:
+        """같은 입력이면 같은 점수."""
+        natal_dict = _natal()
+        a = build_today_card(natal=natal_dict, engine_version=ENGINE_VERSION, today=date(2026, 4, 24))
+        b = build_today_card(natal=natal_dict, engine_version=ENGINE_VERSION, today=date(2026, 4, 24))
+        assert a["daily_score"] == b["daily_score"]
+
     @pytest.mark.parametrize("focus", ["total", "money", "health", "work", "relation"])
     @pytest.mark.parametrize("tone", ["soft", "real", "short"])
     def test_all_combinations_produce_valid_output(self, focus: str, tone: str) -> None:

@@ -30,15 +30,19 @@
 import { memo, useCallback } from 'react';
 import { ts } from '@/lib/i18n/saju.ko';
 
-function SajuEntryCardImpl({ onOpen }) {
+function SajuEntryCardImpl({ onOpen, hasProfile = false }) {
   const handleClick = useCallback(() => {
     if (typeof onOpen === 'function') onOpen();
   }, [onOpen]);
 
   const title = ts('saju.entry.title');
   const badge = ts('saju.entry.badge');
-  const desc = ts('saju.entry.desc');
-  const cta = ts('saju.entry.cta');
+  const desc = hasProfile
+    ? ts('saju.entry.desc.revisit')
+    : ts('saju.entry.desc');
+  const cta = hasProfile
+    ? ts('saju.entry.cta.revisit')
+    : ts('saju.entry.cta');
   const emoji = ts('saju.entry.emoji');
 
   return (

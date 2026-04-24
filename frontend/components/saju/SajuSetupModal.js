@@ -46,6 +46,13 @@ const BACKEND_SECTION_TITLE_KEY = {
 
 const STEPS = ['consent', 'profile', 'calibration', 'result'];
 
+const RESULT_TABS = [
+  { key: 'natal', labelKey: 'saju.reading.tabs.natal' },
+  { key: 'yearly', labelKey: 'saju.reading.tabs.yearly' },
+  { key: 'monthly', labelKey: 'saju.reading.tabs.monthly' },
+  { key: 'today', labelKey: 'saju.reading.tabs.today' },
+];
+
 /**
  * Mock 결과 (P5 에서 GET /api/v1/saju/today 응답으로 교체).
  * 톤 가이드 (saju.ko.js 헤더 참조): "~하기 좋은 흐름", "조절이 필요한 날" 등.
@@ -117,12 +124,19 @@ const GENDER_OPTIONS = [
   { value: 'unknown', labelKey: 'saju.modal.profile.gender.unknown' },
 ];
 
-function SectionCard({ titleKey, body, why }) {
+function SectionCard({ titleKey, title, body, why, easySummary }) {
   const [open, setOpen] = useState(false);
+  const resolvedTitle = title || ts(titleKey);
   return (
     <div className="saju-modal__section">
-      <div className="saju-modal__section-title">{ts(titleKey)}</div>
+      <div className="saju-modal__section-title">{resolvedTitle}</div>
       <div className="saju-modal__section-body">{body}</div>
+      {easySummary && (
+        <div className="saju-modal__section-easy">
+          <span className="saju-modal__section-easy-label">{ts('saju.reading.easy_summary.prefix')}</span>
+          <span className="saju-modal__section-easy-body">{easySummary}</span>
+        </div>
+      )}
       <button
         type="button"
         className="saju-modal__why-toggle"
@@ -172,6 +186,44 @@ const RELATION_EMOJI = {
   pressure: '🔥',
   same: '🪞',
 };
+
+function DailyScoreBadge({ apiResult }) {
+  if (!apiResult || typeof apiResult.daily_score !== 'number') return null;
+  const score = Math.max(0, Math.min(100, Math.round(apiResult.daily_score)));
+  const kind = apiResult.day_relation?.kind || 'same';
+  // 100점 환산 상대 레벨 — 텍스트 라벨만 (절대 수치 기반 의료·재무 판단 금지 원칙)
+  const tierLabel =
+    score >= 75 ? ts('saju.daily.score.tier.high')
+    : score >= 55 ? ts('saju.daily.score.tier.mid_high')
+    : score >= 45 ? ts('saju.daily.score.tier.mid')
+    : score >= 30 ? ts('saju.daily.score.tier.low')
+    : ts('saju.daily.score.tier.caution');
+  return (
+    <div
+      className="saju-modal__score-badge"
+      data-tier={
+        score >= 75 ? 'high' : score >= 55 ? 'mid_high' : score >= 45 ? 'mid' : score >= 30 ? 'low' : 'caution'
+      }
+      data-relation={kind}
+      role="group"
+      aria-label={`오늘의 참고 지수 ${score}점`}
+    >
+      <div className="saju-modal__score-badge-ring" aria-hidden="true">
+        <span className="saju-modal__score-badge-num">{score}</span>
+        <span className="saju-modal__score-badge-unit">/100</span>
+      </div>
+      <div className="saju-modal__score-badge-meta">
+        <div className="saju-modal__score-badge-title">
+          {ts('saju.daily.score.title')}
+        </div>
+        <div className="saju-modal__score-badge-tier">{tierLabel}</div>
+        <div className="saju-modal__score-badge-hint">
+          {ts('saju.daily.score.hint')}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TodayPillarBadge({ apiResult }) {
   if (!apiResult?.today_pillar || !apiResult?.day_master) return null;
@@ -252,6 +304,26 @@ function NatalChartTable({ apiResult }) {
           }
           const ganEl = elOfGan(data.gan);
           const jiEl = elOfJi(data.ji);
+          const renderSisungLabel = (name) => {
+            if (!name) return null;
+            if (name === '日主') {
+              return (
+                <span className="saju-modal__daymaster-marker">
+                  {ts('saju.natal.dayMaster.label')}
+                </span>
+              );
+            }
+            const shortLabel = ts(`saju.natal.sisung.${name}.short`);
+            const hasShort = shortLabel && shortLabel !== `saju.natal.sisung.${name}.short`;
+            return (
+              <span
+                className="saju-modal__sisung-label"
+                title={ts(`saju.natal.sisung.${name}.long`)}
+              >
+                {hasShort ? `${name}(${shortLabel})` : name}
+              </span>
+            );
+          };
           return (
             <div
               key={key}
@@ -260,43 +332,40 @@ function NatalChartTable({ apiResult }) {
               data-day-master={isDayMaster ? 'true' : 'false'}
             >
               <span className="saju-modal__natal-header">{ts(labelKey)}</span>
-              <div>
+              {/* 천간 줄 + 바로 아래 십성 라벨 (시각 매칭) */}
+              <div className="saju-modal__natal-han-row">
                 <span className="saju-modal__natal-han" data-element={ganEl}>
                   {data.gan}
                 </span>
                 <span className="saju-modal__natal-kor">{toKor(data.gan)}</span>
               </div>
-              <div>
+              <div className="saju-modal__natal-sisung-row">
+                {renderSisungLabel(data.sisung_gan)}
+              </div>
+              {/* 지지 줄 + 바로 아래 십성 라벨 */}
+              <div className="saju-modal__natal-han-row">
                 <span className="saju-modal__natal-han" data-element={jiEl}>
                   {data.ji}
                 </span>
                 <span className="saju-modal__natal-kor">{toKor(data.ji)}</span>
               </div>
-              {data.sisung_gan && (
-                data.sisung_gan === '日主' ? (
-                  <span className="saju-modal__daymaster-marker">
-                    {ts('saju.natal.dayMaster.label')}
-                  </span>
-                ) : (
-                  <span
-                    className="saju-modal__sisung-label"
-                    title={ts(`saju.natal.sisung.${data.sisung_gan}.long`)}
-                  >
-                    {ts(`saju.natal.sisung.${data.sisung_gan}.short`) || data.sisung_gan}
-                  </span>
-                )
-              )}
-              {data.sisung_ji && (
-                <span
-                  className="saju-modal__sisung-label"
-                  title={ts(`saju.natal.sisung.${data.sisung_ji}.long`)}
-                >
-                  {ts(`saju.natal.sisung.${data.sisung_ji}.short`) || data.sisung_ji}
-                </span>
-              )}
+              <div className="saju-modal__natal-sisung-row">
+                {renderSisungLabel(data.sisung_ji)}
+              </div>
             </div>
           );
         })}
+      </div>
+      {/* 오행 색상 범례 — 위 천간·지지의 글자 색상이 무엇을 의미하는지 안내 */}
+      <div className="saju-modal__element-legend" role="group" aria-label="오행 색상 안내">
+        <span className="saju-modal__element-dist-title">
+          {ts('saju.natal.elementLegend.title')}:
+        </span>
+        {ELEMENTS.map((el) => (
+          <span key={el} className="saju-modal__element-chip" data-element={el}>
+            {ts(`saju.element.${el}`) || el}
+          </span>
+        ))}
       </div>
       {Object.keys(dist).length > 0 && (
         <div className="saju-modal__element-dist">
@@ -377,6 +446,209 @@ function LimitationBanner({ apiResult, birthDate }) {
   );
 }
 
+function ReadingHero({ reading }) {
+  if (!reading) return null;
+  const keywords = Array.isArray(reading.keywords) ? reading.keywords.filter(Boolean) : [];
+  return (
+    <section className="saju-modal__reading-hero" aria-label={reading.title}>
+      <div className="saju-modal__reading-badge">
+        {ts('saju.reading.badge.reference')}
+      </div>
+      <h3 className="saju-modal__reading-title">{reading.title}</h3>
+      <p className="saju-modal__reading-summary">{reading.summary}</p>
+      {keywords.length > 0 && (
+        <div className="saju-modal__reading-keywords" aria-label="리딩 키워드">
+          {keywords.map((keyword) => (
+            <span key={keyword} className="saju-modal__reading-keyword">
+              {keyword}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * 리딩 섹션 renderer — key 별로 다른 레이아웃 (P4.2, easy_summary·why toggle 제거).
+ * - lead: 큰 리드 박스
+ * - keywords: pill 그룹 (hero keywords 와 중복이라 body 만 자연스럽게)
+ * - checklist: bullet 리스트
+ * 그 외: ReadingSectionCard — 제목 이모지 + body 한 덩어리
+ */
+
+// 섹션 key → 제목 이모지 (풀리딩 scan 용 시각 고정점)
+const READING_SECTION_EMOJI = {
+  // natal
+  lead: '🌙',
+  core_traits: '🌿',
+  contradiction: '🔀',
+  strengths: '⭐',
+  cautions: '⚠️',
+  relation: '🤝',
+  work: '🛠',
+  recovery: '🧘',
+  closing: '🍃',
+  // yearly
+  year_flow: '🌀',
+  keywords: '🏷',
+  opportunities: '✨',
+  career: '💼',
+  money: '💠',
+  health: '🌱',
+  learning: '📘',
+  checklist: '✅',
+  // monthly
+  monthly_overview: '📅',
+  best_month: '🚀',
+  caution_month: '🌙',
+  pattern_summary: '🔁',
+};
+
+function LeadSection({ section }) {
+  return (
+    <section className="saju-modal__reading-lead" aria-label={section.title}>
+      <div className="saju-modal__reading-lead-title">{section.title}</div>
+      <p className="saju-modal__reading-lead-body">{section.body}</p>
+    </section>
+  );
+}
+
+function ReadingSectionCard({ section }) {
+  const emoji = READING_SECTION_EMOJI[section.key] || '';
+  return (
+    <div className="saju-modal__reading-section">
+      <h4 className="saju-modal__reading-section-title">
+        {emoji && <span className="saju-modal__reading-section-emoji" aria-hidden="true">{emoji}</span>}
+        {section.title}
+      </h4>
+      <p className="saju-modal__reading-section-body">{section.body}</p>
+    </div>
+  );
+}
+
+function ChecklistSection({ section }) {
+  const raw = section.body || '';
+  const items = raw
+    .split('•')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const [intro, ...rest] = items;
+  const emoji = READING_SECTION_EMOJI[section.key] || '✅';
+  return (
+    <div className="saju-modal__reading-section saju-modal__reading-section--checklist">
+      <h4 className="saju-modal__reading-section-title">
+        <span className="saju-modal__reading-section-emoji" aria-hidden="true">{emoji}</span>
+        {section.title}
+      </h4>
+      {intro && <p className="saju-modal__reading-section-body">{intro}</p>}
+      {rest.length > 0 && (
+        <ul className="saju-modal__checklist">
+          {rest.map((item, idx) => (
+            <li key={idx}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ReadingPane({ reading, loading }) {
+  if (loading && !reading) {
+    return (
+      <p className="saju-modal__paragraph" role="status">
+        {ts('saju.reading.loading')}
+      </p>
+    );
+  }
+  if (!reading) {
+    return (
+      <p className="saju-modal__paragraph">
+        {ts('saju.reading.empty')}
+      </p>
+    );
+  }
+
+  // 섹션 key → 특수 renderer (easy_summary·why toggle 없음)
+  const renderSection = (section) => {
+    if (section.key === 'lead') return <LeadSection key={section.key} section={section} />;
+    if (section.key === 'checklist') return <ChecklistSection key={section.key} section={section} />;
+    return <ReadingSectionCard key={section.key} section={section} />;
+  };
+
+  return (
+    <>
+      <ReadingHero reading={reading} />
+      <div className="saju-modal__sections">
+        {(reading.sections || []).map(renderSection)}
+      </div>
+    </>
+  );
+}
+
+function MonthFlowCard({ month }) {
+  const [open, setOpen] = useState(false);
+  const score = Math.max(0, Math.min(100, Math.round(month.score || 0)));
+  const tier = score >= 78 ? 'good' : score >= 66 ? 'safe' : score >= 54 ? 'neutral' : 'caution';
+  return (
+    <article className="saju-modal__month-card" data-tier={tier}>
+      <button
+        type="button"
+        className="saju-modal__month-head"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>
+          <strong>{month.label}</strong>
+          <small>{month.title}</small>
+        </span>
+        <span className="saju-modal__month-score">{score}</span>
+      </button>
+      <p className="saju-modal__month-summary">{month.summary}</p>
+      {open && (
+        <div className="saju-modal__month-detail">
+          <p>{month.detail}</p>
+          {month.reason && <div className="saju-modal__month-reason">▸ {month.reason}</div>}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function MonthlyReadingPane({ reading, loading }) {
+  if (loading && !reading) {
+    return (
+      <p className="saju-modal__paragraph" role="status">
+        {ts('saju.reading.loading')}
+      </p>
+    );
+  }
+  if (!reading) {
+    return (
+      <p className="saju-modal__paragraph">
+        {ts('saju.reading.empty')}
+      </p>
+    );
+  }
+  return (
+    <>
+      <ReadingHero reading={reading} />
+      <div className="saju-modal__sections">
+        {(reading.sections || []).map((section) => (
+          section.key === 'lead'
+            ? <LeadSection key={section.key} section={section} />
+            : <ReadingSectionCard key={section.key} section={section} />
+        ))}
+      </div>
+      <div className="saju-modal__monthly-grid" aria-label="12개월 흐름">
+        {(reading.months || []).map((month) => (
+          <MonthFlowCard key={month.month} month={month} />
+        ))}
+      </div>
+    </>
+  );
+}
+
 function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   const modalRef = useRef(null);
   const previouslyFocused = useRef(null);
@@ -397,6 +669,13 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   const [error, setError] = useState(null);
   const [apiResult, setApiResult] = useState(null); // { sections, summary, ... } | null
   const [resultLoading, setResultLoading] = useState(false);
+  const [activeResultTab, setActiveResultTab] = useState('natal');
+  const [readingLoading, setReadingLoading] = useState(false);
+  const [readings, setReadings] = useState({
+    natal: null,
+    yearly: null,
+    monthly: null,
+  });
   // 데모 모드: 백엔드 사주 기능 OFF (404/403/503) 상태에서도 4단계 끝까지 가볼 수 있게 fallback.
   // 한 번 진입하면 그 모달 세션 동안 후속 API 호출 모두 skip.
   const [demoMode, setDemoMode] = useState(false);
@@ -428,6 +707,8 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
       setError(null);
       setSubmitting(false);
       setDemoMode(false);
+      setActiveResultTab('natal');
+      setReadings({ natal: null, yearly: null, monthly: null });
       // result-only 진입(initialStep=3)이면 즉시 today fetch
       if (initialStep === 3) {
         loadTodayResult();
@@ -543,6 +824,32 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     }
   }, [profile, goNext, demoMode]);
 
+  const loadReadings = useCallback(async () => {
+    if (demoMode) {
+      setReadings({ natal: null, yearly: null, monthly: null });
+      return;
+    }
+    setReadingLoading(true);
+    try {
+      const fetchReading = async (period, extra = '') => {
+        const res = await api(`/api/v1/saju/reading?period=${period}${extra}`);
+        if (!res.ok) return null;
+        return await res.json();
+      };
+      const [natal, yearly, monthly] = await Promise.all([
+        fetchReading('natal'),
+        fetchReading('yearly', '&year=2026'),
+        fetchReading('monthly', '&year=2026'),
+      ]);
+      setReadings({ natal, yearly, monthly });
+    } catch {
+      // 리딩 API 실패가 오늘 운세 자체를 막으면 안 됨. 탭 안에서 빈 상태만 보여준다.
+      setReadings((prev) => prev);
+    } finally {
+      setReadingLoading(false);
+    }
+  }, [demoMode]);
+
   // step 3 → 4: GET /api/v1/saju/today?focus=&tone=
   // 200 → 실데이터 / 404 (no_profile) → demoMode + mock
   // 501 / 503 / 라우터 부재(404 라우터) → demoMode + mock
@@ -560,10 +867,13 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
       if (res.status === 200) {
         const data = await res.json();
         setApiResult(data);
+        await loadReadings();
       } else if (res.status === 501 || res.status === 404 || res.status === 503) {
         // 라우터 미설치 / 엔진 미구현 / SAJU_ENABLED=false / no_profile → 데모 모드
         setDemoMode(true);
         setApiResult(null);
+        setReadings({ natal: null, yearly: null, monthly: null });
+        setActiveResultTab('today');
       } else if (res.status === 401) {
         setError('login');
       } else {
@@ -574,7 +884,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     } finally {
       setResultLoading(false);
     }
-  }, [demoMode, calibration]);
+  }, [demoMode, calibration, loadReadings]);
 
   const handleCalibrationSubmit = useCallback(async () => {
     await loadTodayResult();
@@ -805,20 +1115,53 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
                       })}
                     </span>
                   </div>
-                  {/* P2.2: ① 오늘 일진 배지 (상단) */}
-                  <TodayPillarBadge apiResult={apiResult} />
-                  {/* ② 5섹션 (기존 메인 가치) */}
-                  <div className="saju-modal__sections">
-                    {resultSections.map((s) => (
-                      <SectionCard key={s.key} titleKey={s.titleKey} body={s.body} why={s.why} />
+
+                  <nav className="saju-modal__reading-tabs" aria-label="사주 리딩 탭">
+                    {RESULT_TABS.map((tab) => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        className={`saju-modal__reading-tab ${activeResultTab === tab.key ? 'is-active' : ''}`}
+                        aria-pressed={activeResultTab === tab.key}
+                        onClick={() => setActiveResultTab(tab.key)}
+                      >
+                        {ts(tab.labelKey)}
+                      </button>
                     ))}
+                  </nav>
+
+                  <div className="saju-modal__reading-panel">
+                    {activeResultTab === 'natal' && (
+                      <ReadingPane reading={readings.natal} loading={readingLoading} />
+                    )}
+                    {activeResultTab === 'yearly' && (
+                      <ReadingPane reading={readings.yearly} loading={readingLoading} />
+                    )}
+                    {activeResultTab === 'monthly' && (
+                      <MonthlyReadingPane reading={readings.monthly} loading={readingLoading} />
+                    )}
+                    {activeResultTab === 'today' && (
+                      <>
+                        {/* P4.1: ⓪ 오늘의 참고 지수 (100점 만점) — 오늘 탭 상단 요약 */}
+                        <DailyScoreBadge apiResult={apiResult} />
+                        {/* P2.2: ① 오늘 일진 배지 */}
+                        <TodayPillarBadge apiResult={apiResult} />
+                        {/* ② 5섹션 (기존 오늘 운세 가치) */}
+                        <div className="saju-modal__sections">
+                          {resultSections.map((s) => (
+                            <SectionCard key={s.key} titleKey={s.titleKey} body={s.body} why={s.why} />
+                          ))}
+                        </div>
+                        {/* ③ 경계월 배너 (조건부) + 원국 표 */}
+                        <LimitationBanner apiResult={apiResult} birthDate={profile.birthDate} />
+                        <NatalChartTable apiResult={apiResult} />
+                      </>
+                    )}
                   </div>
-                  {/* ③ 경계월 배너 (조건부) + 원국 표 (하단 참고) */}
-                  <LimitationBanner apiResult={apiResult} birthDate={profile.birthDate} />
-                  <NatalChartTable apiResult={apiResult} />
-                  {/* ④ 안전 문구 */}
+
+                  {/* 안전 문구 */}
                   <p className="saju-modal__safety-notice">
-                    {apiResult?.safety_notice || ts('saju.safety.notice')}
+                    {readings[activeResultTab]?.safety_notice || apiResult?.safety_notice || ts('saju.safety.notice')}
                   </p>
                 </>
               )}

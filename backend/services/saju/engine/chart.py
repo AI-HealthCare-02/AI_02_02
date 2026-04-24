@@ -21,7 +21,7 @@ from __future__ import annotations
 from datetime import date, time
 from typing import Literal
 
-ENGINE_VERSION = "danaa-deterministic-v0.3"
+ENGINE_VERSION = "danaa-deterministic-v0.4.2"
 
 # 천간 10개 (甲乙丙丁戊己庚辛壬癸)
 GAN: list[str] = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
@@ -238,7 +238,7 @@ def compute_natal_chart(
     from backend.services.saju.engine.sisung import attach_sisung_to_natal
     natal = attach_sisung_to_natal(natal)
 
-    # 억부용신 판정 (v0.3, 한국 현대 기준)
+    # 억부용신 판정 (v0.4, 한국 현대 기준 + 격신 우선)
     from backend.services.saju.engine.yongshin import derive_yongshin_eokbu
     yongshin = derive_yongshin_eokbu(natal=natal)
     # natal 에도 중복 저장 (UI 접근용)

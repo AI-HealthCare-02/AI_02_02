@@ -34,6 +34,7 @@ from backend.dtos.saju import (
     SajuFeedbackResponse,
     SajuProfileRequest,
     SajuProfileResponse,
+    SajuReadingResponse,
     SajuTodayResponse,
 )
 from backend.models.users import User
@@ -154,6 +155,7 @@ async def put_profile(
 # ─────────────────────────────────────────────
 FocusQuery = Literal["total", "money", "health", "work", "relation"]
 ToneQuery = Literal["soft", "real", "short"]
+ReadingPeriodQuery = Literal["natal", "yearly", "monthly"]
 
 
 @saju_router.get("/today", response_model=SajuTodayResponse)
@@ -188,6 +190,40 @@ async def get_today(
             detail="card_generation_failed",
         )
     payload = SajuTodayResponse.model_validate(card_payload)
+    return Response(
+        content=payload.model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+# ─────────────────────────────────────────────
+# Reading (P4.2: 나의 기질 / 연운 / 월별 흐름)
+# ─────────────────────────────────────────────
+@saju_router.get("/reading", response_model=SajuReadingResponse)
+async def get_reading(
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[SajuService, Depends(SajuService)],
+    period: Annotated[ReadingPeriodQuery, Query(description="리딩 종류")] = "natal",
+    year: Annotated[int, Query(ge=1900, le=2100, description="연운/월운 기준 연도")] = 2026,
+) -> Response:
+    """첫 경험용 리딩.
+
+    - profile 없음 → 404 no_profile
+    - 결과는 DB 저장 없이 원국 chart 에서 즉시 생성
+    - `/today` 가 커지지 않도록 기질/연운/月운은 별도 API 로 분리
+    """
+    _require_enabled()
+    payload_dict = await service.get_reading(
+        user_id=user.id,
+        period=period,
+        year=year,
+    )
+    if payload_dict is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="no_profile",
+        )
+    payload = SajuReadingResponse.model_validate(payload_dict)
     return Response(
         content=payload.model_dump(mode="json"),
         status_code=status.HTTP_200_OK,

@@ -1014,8 +1014,8 @@ html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 480px;
-  max-height: 90vh;
+  max-width: 720px;   /* P4.2: 리딩 풀버전 읽기 쉽게 확장 (이전 480) */
+  max-height: 92vh;
   background: var(--color-surface);
   color: var(--color-text);
   border: 1px solid var(--color-border);
@@ -1217,6 +1217,163 @@ html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
   font-size: 12px;
   color: var(--color-text-muted);
 }
+.saju-modal__reading-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 12px 0 14px;
+}
+.saju-modal__reading-tab {
+  min-height: 38px;
+  padding: 8px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.saju-modal__reading-tab:hover {
+  border-color: var(--color-text-muted);
+}
+.saju-modal__reading-tab:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+.saju-modal__reading-tab.is-active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-surface);
+}
+.saju-modal__reading-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* P4.2 — 리딩 Hero: DANAA 중립 surface + primary 액센트 (리드 박스와 일관)
+   이전 radial-gradient(peach) 제거 — 전체 톤과 어긋났음. */
+.saju-modal__reading-hero {
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card-surface-subtle, var(--color-bg-muted, rgba(255, 255, 255, 0.03)));
+  border-left: 3px solid var(--color-primary, #7aa5c7);
+}
+.saju-modal__reading-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 10px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary, #7aa5c7) 14%, transparent);
+  color: var(--color-primary, #7aa5c7);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: none;
+}
+.saju-modal__reading-title {
+  margin: 0 0 6px;
+  color: var(--color-text-primary, var(--color-text));
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.saju-modal__reading-summary {
+  margin: 0;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.saju-modal__reading-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.saju-modal__reading-keyword {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary, #7aa5c7) 10%, transparent);
+  color: var(--color-primary, #7aa5c7);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #7aa5c7) 24%, transparent);
+}
+.saju-modal__monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.saju-modal__month-card {
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card-surface-subtle);
+}
+.saju-modal__month-card[data-tier="good"] { border-color: rgba(64, 160, 87, 0.35); }
+.saju-modal__month-card[data-tier="safe"] { border-color: rgba(239, 77, 47, 0.28); }
+.saju-modal__month-card[data-tier="caution"] { border-color: rgba(213, 148, 50, 0.45); }
+.saju-modal__month-head {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.saju-modal__month-head strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+}
+.saju-modal__month-head small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.saju-modal__month-score {
+  color: var(--color-text);
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1;
+}
+.saju-modal__month-summary {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.saju-modal__month-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+}
+.saju-modal__month-detail p {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.saju-modal__month-reason {
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
 .saju-modal__sections {
   display: flex;
   flex-direction: column;
@@ -1334,6 +1491,15 @@ html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
     border-radius: 16px 16px 0 0;
     border-bottom: 0;
   }
+  .saju-modal__reading-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .saju-modal__monthly-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .saju-modal__reading-summary {
+    font-size: 14px;
+  }
 }
 
 /* prefers-reduced-motion: 보조 — 트랜지션 끔 */
@@ -1341,6 +1507,8 @@ html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
   .saju-modal__chip,
   .saju-modal__btn,
   .saju-modal__close,
+  .saju-modal__reading-tab,
+  .saju-modal__month-head,
   .saju-modal__why-toggle {
     transition: none;
   }
@@ -2252,6 +2420,95 @@ html[data-theme="dark"] {
   margin-right: 4px;
 }
 
+/* P4.1: 오행 색상 범례 (원국 테이블 바로 밑 — 글자 색상 안내 전용) */
+.saju-modal__element-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 12px;
+}
+
+/* P4.1: 원국 각 주(柱) 내부 천간↔십성 수직 매칭 */
+.saju-modal__natal-han-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.saju-modal__natal-sisung-row {
+  min-height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+/* P4.1: 오늘의 참고 지수 배지 */
+.saju-modal__score-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin: 0 0 16px;
+  border-radius: 14px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border);
+}
+.saju-modal__score-badge-ring {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      var(--score-accent, var(--saju-el-mok)) calc(var(--score-pct, 60%) * 1),
+      rgba(255, 255, 255, 0.08) 0
+    );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+}
+.saju-modal__score-badge[data-tier="high"] { --score-pct: 85%; --score-accent: var(--saju-el-mok); }
+.saju-modal__score-badge[data-tier="mid_high"] { --score-pct: 70%; --score-accent: var(--saju-el-hwa); }
+.saju-modal__score-badge[data-tier="mid"] { --score-pct: 55%; --score-accent: var(--saju-el-to); }
+.saju-modal__score-badge[data-tier="low"] { --score-pct: 35%; --score-accent: var(--saju-el-geum); }
+.saju-modal__score-badge[data-tier="caution"] { --score-pct: 20%; --score-accent: var(--saju-el-su); }
+.saju-modal__score-badge-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.saju-modal__score-badge-unit {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-top: 2px;
+}
+.saju-modal__score-badge-meta {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.saju-modal__score-badge-title {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  letter-spacing: 0.02em;
+}
+.saju-modal__score-badge-tier {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.saju-modal__score-badge-hint {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  line-height: 1.4;
+}
+
 /* ──── 용신 배지 (P3, 원국 표 하단) ──── */
 .saju-modal__yongshin {
   margin-top: 12px;
@@ -2345,5 +2602,162 @@ html[data-theme="dark"] .saju-modal__limitation-banner {
   }
   .saju-modal__today-badge-line1 {
     font-size: 14px;
+  }
+}
+
+/* ────────── P4.2 풀리딩 UI ────────── */
+
+/* 리드 박스 — natal 한 줄 정의 / yearly 한 줄 정의 등 '첫인상' 섹션 */
+.saju-modal__reading-lead {
+  padding: 16px 18px;
+  margin: 0 0 14px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary, #7aa5c7) 18%, transparent),
+    transparent 70%
+  );
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.saju-modal__reading-lead-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.saju-modal__reading-lead-body {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  margin: 0;
+  word-break: keep-all;
+}
+
+/* 섹션 body 타이포 개선 — 풀리딩 읽기용 */
+.saju-modal__section {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+.saju-modal__section-body {
+  font-size: 15px;
+  line-height: 1.75;
+  word-break: keep-all;
+  white-space: pre-wrap;
+}
+.saju-modal__section-body strong,
+.saju-modal__section-body b {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* P4.2 — 리딩 전용 섹션 카드 (easy_summary · why toggle 없음, 한 호흡으로 읽기) */
+.saju-modal__reading-section {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.saju-modal__reading-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+.saju-modal__reading-section-emoji {
+  font-size: 17px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.saju-modal__reading-section-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-text-primary);
+  margin: 0;
+  word-break: keep-all;
+}
+.saju-modal__reading-section--checklist .saju-modal__checklist {
+  margin-top: 12px;
+}
+
+/* "쉽게 말하면:" 한 줄 박스 — body 와 reason 토글 사이 */
+.saju-modal__section-easy {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary, #7aa5c7) 8%, transparent);
+  border-left: 3px solid var(--color-primary, #7aa5c7);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.saju-modal__section-easy-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--color-primary, #7aa5c7);
+  white-space: nowrap;
+}
+.saju-modal__section-easy-body {
+  flex: 1 1 auto;
+  color: var(--color-text-primary);
+  word-break: keep-all;
+}
+
+/* 체크리스트 섹션 — 불릿 */
+.saju-modal__checklist {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.saju-modal__checklist li {
+  padding: 10px 12px 10px 28px;
+  position: relative;
+  border-radius: 10px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--color-border);
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+.saju-modal__checklist li::before {
+  content: "✓";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-primary, #7aa5c7);
+  font-weight: 700;
+}
+
+/* 모바일 대응 — 좁은 화면에서 폭 92vw */
+@media (max-width: 720px) {
+  .saju-modal__dialog {
+    max-width: 92vw;
+  }
+  .saju-modal__reading-lead-body {
+    font-size: 15px;
+  }
+  .saju-modal__section-body,
+  .saju-modal__reading-section-body {
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+  .saju-modal__reading-section {
+    padding: 14px 16px;
   }
 }
