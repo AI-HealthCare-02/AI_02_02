@@ -30,8 +30,9 @@ export const SAJU_KO = {
   'saju.state.error': '잠시 후 다시 열어볼게요.',
 
   // 안전 문구 (상세 팝업 하단 고정, P4에서 실사용)
+  // P2.2 강화: 입춘·절기 정밀도 미적용, 음력 미지원 한계 명시
   'saju.safety.notice':
-    '이 내용은 재미와 자기이해를 위한 참고용 운세입니다. 중요한 결정은 전문가나 실제 상황을 기준으로 판단해주세요.',
+    '이 내용은 재미와 자기이해를 위한 참고용 운세입니다. 입춘·절기 정밀도 미적용, 음력 미지원으로 실제 만세력 앱과 다를 수 있어요. 중요한 결정은 전문가나 실제 상황을 기준으로 판단해주세요.',
 
   // ─── MVP 모달 (통합 테스트용 4단계 플로우) ───
   // 공통
@@ -112,6 +113,63 @@ export const SAJU_KO = {
   'saju.modal.result.section.oneThing': '오늘의 한 가지',
   'saju.modal.result.toggle.why': '왜 이렇게 봤나요?',
   'saju.modal.result.cta.close': '카드 닫기',
+
+  // ─── P2.2: 오늘 일진 배지 ───
+  'saju.today.pillar.prefix': '오늘은',
+  'saju.today.pillar.subject': '일주',
+  'saju.today.relation.prefix': '→',
+  'saju.today.relation.suffix': '관계',
+  'saju.today.relation.harmony': '합(合)',
+  'saju.today.relation.clash': '충(沖)',
+  'saju.today.relation.support': '생(生)',
+  'saju.today.relation.pressure': '극(剋)',
+  'saju.today.relation.same': '비화(比和)',
+
+  // ─── P2.2: 원국 (사주팔자 4주) ───
+  'saju.natal.title': '나의 사주팔자 (원국 참고)',
+  'saju.natal.header.gan': '천간',
+  'saju.natal.header.ji': '지지',
+  'saju.natal.header.sisung': '십성',
+  'saju.natal.pillar.year': '年 년주',
+  'saju.natal.pillar.month': '月 월주',
+  'saju.natal.pillar.day': '日 일주',
+  'saju.natal.pillar.hour': '時 시주',
+  'saju.natal.hour.unknown': '출생시간 미입력',
+  'saju.natal.dayMaster.label': '日主 (본인 기준)',
+  'saju.natal.elementDistribution.title': '오행 분포',
+
+  // 십성 2단 해설 (short + long)
+  'saju.natal.sisung.비견.short': '같은편',
+  'saju.natal.sisung.비견.long': '같은 오행·같은 음양. 동료·내 편의 기운이에요.',
+  'saju.natal.sisung.겁재.short': '경쟁',
+  'saju.natal.sisung.겁재.long': '같은 오행·다른 음양. 경쟁·도전의 기운이에요.',
+  'saju.natal.sisung.식신.short': '표현',
+  'saju.natal.sisung.식신.long': '내가 생하는 같은 음양. 표현·여유·꾸준함의 기운이에요.',
+  'saju.natal.sisung.상관.short': '재능',
+  'saju.natal.sisung.상관.long': '내가 생하는 다른 음양. 재능·창의·입담의 기운이에요.',
+  'saju.natal.sisung.편재.short': '기회',
+  'saju.natal.sisung.편재.long': '내가 극하는 같은 음양. 기회·투자·변동 재물의 기운이에요.',
+  'saju.natal.sisung.정재.short': '안정',
+  'saju.natal.sisung.정재.long': '내가 극하는 다른 음양. 안정적 고정수입의 기운이에요.',
+  'saju.natal.sisung.편관.short': '도전',
+  'saju.natal.sisung.편관.long': '나를 극하는 같은 음양. 도전·책임·압박의 기운이에요.',
+  'saju.natal.sisung.정관.short': '책임',
+  'saju.natal.sisung.정관.long': '나를 극하는 다른 음양. 규율·역할·명예의 기운이에요.',
+  'saju.natal.sisung.편인.short': '탐구',
+  'saju.natal.sisung.편인.long': '나를 생하는 같은 음양. 탐구·변칙 지원의 기운이에요.',
+  'saju.natal.sisung.정인.short': '배움',
+  'saju.natal.sisung.정인.long': '나를 생하는 다른 음양. 배움·모성·안정 지원의 기운이에요.',
+
+  // 오행
+  'saju.element.목': '목',
+  'saju.element.화': '화',
+  'saju.element.토': '토',
+  'saju.element.금': '금',
+  'saju.element.수': '수',
+
+  // 경계월 배너 (월주 절기 비보정 경계일 4~8일 출생자)
+  'saju.warning.month_pillar.boundary':
+    '⚠️ 이 달은 절기 경계일 가능성이 있어요. 월주가 정통 만세력과 다를 수 있어 참고용으로 봐주세요.',
 };
 
 /**

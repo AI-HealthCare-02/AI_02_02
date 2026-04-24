@@ -139,6 +139,197 @@ function SectionCard({ titleKey, body, why }) {
   );
 }
 
+// ─────────────────────────────────────────────
+// P2.2 — 원국·일진 컴포넌트 (내부 헬퍼)
+// ─────────────────────────────────────────────
+
+// 한자 → 한글 음독 (10 천간 + 12 지지)
+const HAN_TO_KOR = {
+  甲: '갑', 乙: '을', 丙: '병', 丁: '정', 戊: '무',
+  己: '기', 庚: '경', 辛: '신', 壬: '임', 癸: '계',
+  子: '자', 丑: '축', 寅: '인', 卯: '묘', 辰: '진', 巳: '사',
+  午: '오', 未: '미', 申: '신', 酉: '유', 戌: '술', 亥: '해',
+};
+const toKor = (han) => HAN_TO_KOR[han] || '';
+
+// 천간·지지 → 오행 매핑 (색상용 · 백엔드 GAN_ELEMENT·JI_ELEMENT 와 동일)
+const GAN_ELEMENT = {
+  甲: '목', 乙: '목', 丙: '화', 丁: '화', 戊: '토',
+  己: '토', 庚: '금', 辛: '금', 壬: '수', 癸: '수',
+};
+const JI_ELEMENT = {
+  子: '수', 亥: '수', 寅: '목', 卯: '목', 巳: '화',
+  午: '화', 辰: '토', 戌: '토', 丑: '토', 未: '토', 申: '금', 酉: '금',
+};
+const elOfGan = (g) => GAN_ELEMENT[g] || '';
+const elOfJi = (j) => JI_ELEMENT[j] || '';
+
+// 관계 이모지
+const RELATION_EMOJI = {
+  harmony: '🤝',
+  clash: '⚡',
+  support: '🌱',
+  pressure: '🔥',
+  same: '🪞',
+};
+
+function TodayPillarBadge({ apiResult }) {
+  if (!apiResult?.today_pillar || !apiResult?.day_master) return null;
+  const pillar = apiResult.today_pillar;
+  const pillarKor = pillar.split('').map(toKor).join('');
+  const todayElement = apiResult.today_element || '';
+  const dayMaster = apiResult.day_master;
+  const dmKor = toKor(dayMaster);
+  const dmElement = apiResult.day_master_element || '';
+  const kind = apiResult.day_relation?.kind || 'same';
+  const kindLabel = ts(`saju.today.relation.${kind}`);
+  const emoji = RELATION_EMOJI[kind] || '🪞';
+  return (
+    <div className="saju-modal__today-badge" role="group" aria-label="오늘 일진">
+      <div className="saju-modal__today-badge-line1">
+        🌙 {ts('saju.today.pillar.prefix')}{' '}
+        <span className="saju-modal__today-badge-pillar">
+          {pillar}
+          {pillarKor ? `(${pillarKor})` : ''}
+        </span>
+        {todayElement && (
+          <span className="saju-modal__today-badge-element">
+            · <span className="saju-modal__element-chip" data-element={todayElement}>
+              {ts(`saju.element.${todayElement}`) || todayElement}
+            </span>
+          </span>
+        )}
+      </div>
+      <div className="saju-modal__today-badge-line2">
+        {ts('saju.today.relation.prefix')} <strong>{dayMaster}{dmKor ? `(${dmKor})` : ''}</strong>{' '}
+        {ts('saju.today.pillar.subject')}
+        {dmElement && (
+          <>
+            ·{' '}
+            <span className="saju-modal__element-chip" data-element={dmElement}>
+              {ts(`saju.element.${dmElement}`) || dmElement}
+            </span>
+          </>
+        )}
+        {' '}{emoji} <strong>{kindLabel}</strong> {ts('saju.today.relation.suffix')}
+      </div>
+    </div>
+  );
+}
+
+function NatalChartTable({ apiResult }) {
+  const natal = apiResult?.natal_chart;
+  if (!natal) return null;
+  // 포스텔러·한국 만세력 표준 순서: 時 → 日 → 月 → 年 (좌→우)
+  const pillars = [
+    { key: 'hour', data: natal.hour, labelKey: 'saju.natal.pillar.hour' },
+    { key: 'day', data: natal.day, labelKey: 'saju.natal.pillar.day' },
+    { key: 'month', data: natal.month, labelKey: 'saju.natal.pillar.month' },
+    { key: 'year', data: natal.year, labelKey: 'saju.natal.pillar.year' },
+  ];
+  const dist = apiResult?.element_distribution || {};
+  const ELEMENTS = ['목', '화', '토', '금', '수'];
+
+  return (
+    <section className="saju-modal__natal-section" aria-label="사주 원국">
+      <h4 className="saju-modal__natal-title">{ts('saju.natal.title')}</h4>
+      <div className="saju-modal__natal">
+        {pillars.map(({ key, data, labelKey }) => {
+          const isDayMaster = key === 'day';
+          if (!data) {
+            return (
+              <div
+                key={key}
+                className="saju-modal__natal-cell"
+                data-pillar={key}
+              >
+                <span className="saju-modal__natal-header">{ts(labelKey)}</span>
+                <span className="saju-modal__natal-kor">
+                  {ts('saju.natal.hour.unknown')}
+                </span>
+              </div>
+            );
+          }
+          const ganEl = elOfGan(data.gan);
+          const jiEl = elOfJi(data.ji);
+          return (
+            <div
+              key={key}
+              className="saju-modal__natal-cell"
+              data-pillar={key}
+              data-day-master={isDayMaster ? 'true' : 'false'}
+            >
+              <span className="saju-modal__natal-header">{ts(labelKey)}</span>
+              <div>
+                <span className="saju-modal__natal-han" data-element={ganEl}>
+                  {data.gan}
+                </span>
+                <span className="saju-modal__natal-kor">{toKor(data.gan)}</span>
+              </div>
+              <div>
+                <span className="saju-modal__natal-han" data-element={jiEl}>
+                  {data.ji}
+                </span>
+                <span className="saju-modal__natal-kor">{toKor(data.ji)}</span>
+              </div>
+              {data.sisung_gan && (
+                data.sisung_gan === '日主' ? (
+                  <span className="saju-modal__daymaster-marker">
+                    {ts('saju.natal.dayMaster.label')}
+                  </span>
+                ) : (
+                  <span
+                    className="saju-modal__sisung-label"
+                    title={ts(`saju.natal.sisung.${data.sisung_gan}.long`)}
+                  >
+                    {ts(`saju.natal.sisung.${data.sisung_gan}.short`) || data.sisung_gan}
+                  </span>
+                )
+              )}
+              {data.sisung_ji && (
+                <span
+                  className="saju-modal__sisung-label"
+                  title={ts(`saju.natal.sisung.${data.sisung_ji}.long`)}
+                >
+                  {ts(`saju.natal.sisung.${data.sisung_ji}.short`) || data.sisung_ji}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {Object.keys(dist).length > 0 && (
+        <div className="saju-modal__element-dist">
+          <span className="saju-modal__element-dist-title">
+            {ts('saju.natal.elementDistribution.title')}:
+          </span>
+          {ELEMENTS.map((el) => (
+            <span key={el} className="saju-modal__element-chip" data-element={el}>
+              {ts(`saju.element.${el}`) || el} {dist[el] ?? 0}
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function LimitationBanner({ apiResult, birthDate }) {
+  const lims = apiResult?.limitations || [];
+  if (!lims.includes('month_pillar_no_solar_term_correction')) return null;
+  // 경계월 조건: birthDate.day 가 4~8 사이 (절기 경계일 근처)
+  if (!birthDate) return null;
+  const m = String(birthDate).match(/-(\d{2})$/);
+  if (!m) return null;
+  const day = parseInt(m[1], 10);
+  if (day < 4 || day > 8) return null;
+  return (
+    <div className="saju-modal__limitation-banner" role="status">
+      {ts('saju.warning.month_pillar.boundary')}
+    </div>
+  );
+}
+
 function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   const modalRef = useRef(null);
   const previouslyFocused = useRef(null);
@@ -567,11 +758,18 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
                       })}
                     </span>
                   </div>
+                  {/* P2.2: ① 오늘 일진 배지 (상단) */}
+                  <TodayPillarBadge apiResult={apiResult} />
+                  {/* ② 5섹션 (기존 메인 가치) */}
                   <div className="saju-modal__sections">
                     {resultSections.map((s) => (
                       <SectionCard key={s.key} titleKey={s.titleKey} body={s.body} why={s.why} />
                     ))}
                   </div>
+                  {/* ③ 경계월 배너 (조건부) + 원국 표 (하단 참고) */}
+                  <LimitationBanner apiResult={apiResult} birthDate={profile.birthDate} />
+                  <NatalChartTable apiResult={apiResult} />
+                  {/* ④ 안전 문구 */}
                   <p className="saju-modal__safety-notice">
                     {apiResult?.safety_notice || ts('saju.safety.notice')}
                   </p>

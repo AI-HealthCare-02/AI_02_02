@@ -2096,3 +2096,196 @@ html[data-theme="light"] {
 .doit-item-handled p {
   text-decoration: line-through;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+ * Saju P2.2 — 원국 (사주팔자) + 오늘 일진 UI
+ * ────────────────────────────────────────────────────────────────── */
+
+/* 오행 색상 토큰 (light) — 수는 사용자 요청으로 검정 */
+:root {
+  --saju-el-mok: #2f9e44;   /* 목 — 초록 */
+  --saju-el-hwa: #d9480f;   /* 화 — 붉은 주황 */
+  --saju-el-to: #c69026;    /* 토 — 노랑 */
+  --saju-el-geum: #868e96;  /* 금 — 회색 */
+  --saju-el-su: #000000;    /* 수 — 검정 (사용자 요청) */
+}
+html[data-theme="dark"] {
+  --saju-el-mok: #40c057;
+  --saju-el-hwa: #ff8787;
+  --saju-el-to: #ffd43b;
+  --saju-el-geum: #ced4da;
+  --saju-el-su: #f1f3f5;    /* 다크모드: 검정 대비 가독성을 위해 밝은 회색 */
+}
+
+/* ──── 오늘 일진 배지 (step 4 상단) ──── */
+.saju-modal__today-badge {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card-surface-subtle, rgba(255, 255, 255, 0.04));
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.saju-modal__today-badge-line1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.saju-modal__today-badge-line2 {
+  font-size: 13px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+.saju-modal__today-badge-pillar {
+  font-weight: 700;
+}
+.saju-modal__today-badge-element {
+  margin-left: 4px;
+}
+
+/* ──── 원국 표 (4주 × 천간/지지/십성) — 데스크톱 ──── */
+.saju-modal__natal-section {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card-surface-subtle, transparent);
+}
+.saju-modal__natal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, var(--color-text-primary));
+  margin: 0 0 8px 0;
+}
+.saju-modal__natal {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.saju-modal__natal-cell {
+  padding: 10px 6px;
+  text-align: center;
+  border-radius: 8px;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.saju-modal__natal-cell[data-day-master="true"] {
+  background: var(--color-card-surface-subtle, rgba(255, 204, 0, 0.08));
+  border-color: var(--color-border-focus, rgba(255, 204, 0, 0.4));
+  outline: 1px solid var(--color-border-focus, rgba(255, 204, 0, 0.4));
+  outline-offset: -1px;
+}
+.saju-modal__natal-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  letter-spacing: 0.02em;
+}
+.saju-modal__natal-han {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+}
+/* 천간·지지 한자에 오행별 색상 (오행분포 바와 동일 팔레트 재사용) */
+.saju-modal__natal-han[data-element="목"] { color: var(--saju-el-mok); }
+.saju-modal__natal-han[data-element="화"] { color: var(--saju-el-hwa); }
+.saju-modal__natal-han[data-element="토"] { color: var(--saju-el-to); }
+.saju-modal__natal-han[data-element="금"] { color: var(--saju-el-geum); }
+.saju-modal__natal-han[data-element="수"] { color: var(--saju-el-su); }
+.saju-modal__natal-kor {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-left: 2px;
+}
+.saju-modal__sisung-label {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  cursor: help;
+}
+.saju-modal__daymaster-marker {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-weight: 600;
+}
+
+/* 오행 칩 (색상 + 텍스트 병기 — 색맹 접근성) */
+.saju-modal__element-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.saju-modal__element-chip::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.saju-modal__element-chip[data-element="목"] { color: var(--saju-el-mok); }
+.saju-modal__element-chip[data-element="화"] { color: var(--saju-el-hwa); }
+.saju-modal__element-chip[data-element="토"] { color: var(--saju-el-to); }
+.saju-modal__element-chip[data-element="금"] { color: var(--saju-el-geum); }
+.saju-modal__element-chip[data-element="수"] { color: var(--saju-el-su); }
+
+.saju-modal__element-dist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 12px;
+}
+.saju-modal__element-dist-title {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-right: 4px;
+}
+
+/* 경계월 배너 (월주 절기 비보정 한계) */
+.saju-modal__limitation-banner {
+  padding: 8px 12px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #a15c00;
+  background: #fff8e7;
+  border: 1px solid #f3d673;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+html[data-theme="dark"] .saju-modal__limitation-banner {
+  color: #ffd45e;
+  background: rgba(240, 180, 40, 0.10);
+  border-color: rgba(240, 180, 40, 0.32);
+}
+
+/* ──── 모바일 480px — 4주 2×2 재배치 (배열 순서 그대로 좌상부터 wrap) ──── */
+@media (max-width: 480px) {
+  .saju-modal__natal {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .saju-modal__natal-cell {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+  .saju-modal__natal-han {
+    font-size: 16px;
+  }
+  .saju-modal__today-badge {
+    padding: 10px 12px;
+  }
+  .saju-modal__today-badge-line1 {
+    font-size: 14px;
+  }
+}
