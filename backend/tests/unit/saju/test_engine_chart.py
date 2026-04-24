@@ -113,3 +113,37 @@ class TestComputeNatalChart:
     def test_year_gan_cycle(self, year: int, expected_year_gan: str) -> None:
         result = compute_natal_chart(birth_date=date(year, 5, 15))
         assert result["natal"]["year"]["gan"] == expected_year_gan
+
+    def test_natal_contains_sisung(self) -> None:
+        """각 기둥(year/month/hour)에 sisung_gan·sisung_ji 존재 (P2.1 v0.2)."""
+        result = compute_natal_chart(
+            birth_date=date(1990, 5, 15),
+            birth_time=time(14, 30),
+        )
+        natal = result["natal"]
+        for key in ("year", "month", "hour"):
+            p = natal[key]
+            assert "sisung_gan" in p, f"{key} 기둥에 sisung_gan 누락"
+            assert "sisung_ji" in p, f"{key} 기둥에 sisung_ji 누락"
+            assert p["sisung_gan"], f"{key}.sisung_gan 빈 값"
+            assert p["sisung_ji"], f"{key}.sisung_ji 빈 값"
+
+    def test_day_pillar_sisung_is_day_master_marker(self) -> None:
+        """일주 천간은 본인이므로 sisung_gan == '日主'."""
+        result = compute_natal_chart(
+            birth_date=date(1990, 5, 15),
+            birth_time=time(14, 30),
+        )
+        assert result["natal"]["day"]["sisung_gan"] == "日主"
+        # 일지 십성은 정상 계산 (日主 가 아님)
+        assert result["natal"]["day"]["sisung_ji"] != "日主"
+
+    def test_month_pillar_no_solar_term_limitation_always_present(self) -> None:
+        """월주 절기 비보정 한계는 모든 생년월일에 상시 포함 (v0.2 추가)."""
+        result = compute_natal_chart(birth_date=date(1990, 5, 15))
+        assert "month_pillar_no_solar_term_correction" in result["limitations"]
+
+    def test_engine_version_is_v02(self) -> None:
+        """P2.1: ENGINE_VERSION = danaa-deterministic-v0.2"""
+        result = compute_natal_chart(birth_date=date(1990, 5, 15))
+        assert result["engine_version"] == "danaa-deterministic-v0.2"

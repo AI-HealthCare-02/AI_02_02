@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.dtos.base import BaseSerializerModel
 
@@ -73,7 +73,43 @@ class SajuSectionResponse(BaseSerializerModel):
     reason: str | None = None  # one_thing 섹션은 reason null 허용
 
 
+class SajuNatalPillar(BaseSerializerModel):
+    """원국 4주 중 한 기둥. 천간·지지·십성 + 일주 플래그."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    gan: str = ""
+    ji: str = ""
+    pillar: str = ""
+    sisung_gan: str | None = None
+    sisung_ji: str | None = None
+    is_day_master: bool = False
+
+
+class SajuNatalChart(BaseSerializerModel):
+    """사주 원국 4주 + 일간·성별."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    year: SajuNatalPillar | None = None
+    month: SajuNatalPillar | None = None
+    day: SajuNatalPillar | None = None
+    hour: SajuNatalPillar | None = None
+    day_master: str = ""
+    gender: GenderLiteral = "UNKNOWN"
+
+
+class SajuDayRelation(BaseSerializerModel):
+    """오늘 일간과 본인 일간의 관계 (합/충/생/극/비화)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    kind: Literal["harmony", "clash", "support", "pressure", "same"]
+    kind_kr: str
+
+
 class SajuTodayResponse(BaseSerializerModel):
+    # 기존 7 필드 유지
     summary: str
     keywords: list[str] = Field(default_factory=list, max_length=5)
     sections: list[SajuSectionResponse]
@@ -82,6 +118,17 @@ class SajuTodayResponse(BaseSerializerModel):
     engine_version: str = ""
     template_version: str = ""
     card_date: date | None = None
+    # P2.2 (UI 원국·일진 노출) — 모두 optional, backward compat
+    natal_chart: SajuNatalChart | None = None
+    today_pillar: str = ""
+    today_gan: str = ""
+    today_ji: str = ""
+    today_element: str = ""
+    day_master: str = ""
+    day_master_element: str = ""
+    day_relation: SajuDayRelation | None = None
+    element_distribution: dict[str, int] = Field(default_factory=dict)
+    limitations: list[str] = Field(default_factory=list)
 
 
 # ─────────────────────────────────────────────

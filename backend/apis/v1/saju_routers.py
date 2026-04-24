@@ -176,26 +176,18 @@ async def get_today(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="no_profile",
         )
-    card = await service.get_or_create_today_card(
+    card_payload = await service.get_or_create_today_card(
         user_id=user.id,
         focus=focus,
         tone=tone,
     )
-    if card is None:
+    if card_payload is None:
         # 방어: ensure_chart 가 실패한 극히 드문 경우
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="card_generation_failed",
         )
-    payload = SajuTodayResponse(
-        summary=card.summary,
-        keywords=card.keywords or [],
-        sections=card.sections or [],
-        safety_notice=card.safety_notice,
-        engine_version=card.engine_version,
-        template_version=card.template_version,
-        card_date=card.card_date,
-    )
+    payload = SajuTodayResponse.model_validate(card_payload)
     return Response(
         content=payload.model_dump(mode="json"),
         status_code=status.HTTP_200_OK,

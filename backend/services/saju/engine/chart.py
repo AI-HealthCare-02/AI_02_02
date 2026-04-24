@@ -21,7 +21,7 @@ from __future__ import annotations
 from datetime import date, time
 from typing import Literal
 
-ENGINE_VERSION = "danaa-deterministic-v0.1"
+ENGINE_VERSION = "danaa-deterministic-v0.2"
 
 # 천간 10개 (甲乙丙丁戊己庚辛壬癸)
 GAN: list[str] = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"]
@@ -189,6 +189,8 @@ def compute_natal_chart(
     # 입춘 보정 없음
     if birth_date.month == 1 or (birth_date.month == 2 and birth_date.day < 4):
         limitations.append("year_pillar_no_solar_term_correction")
+    # 월주 절기 비보정 — 양력 월 기반 단순화 (전체 유저 영향, 경계월 ±4일 내 오차 가능)
+    limitations.append("month_pillar_no_solar_term_correction")
 
     year_gan, year_ji = _sexagenary_for_year(birth_date.year)
     month_gan, month_ji = _month_pillar(year_gan, birth_date.month)
@@ -214,22 +216,31 @@ def compute_natal_chart(
     day_master_element = GAN_ELEMENT.get(day_gan)
     is_balanced = sum(1 for v in distribution.values() if v > 0) >= 4
 
+    natal = {
+        "year": {"gan": year_gan, "ji": year_ji, "pillar": year_gan + year_ji},
+        "month": {"gan": month_gan, "ji": month_ji, "pillar": month_gan + month_ji},
+        "day": {
+            "gan": day_gan,
+            "ji": day_ji,
+            "pillar": day_gan + day_ji,
+            "is_day_master": True,
+        },
+        "hour": hour_pillar_dict,
+        "day_master": day_gan,
+        "is_lunar_input": is_lunar,
+        "gender": gender,
+        # UI/응답 노출을 위해 JSONField(natal) 내부에 중복 보관 (v0.2)
+        "limitations": list(limitations),
+        "element_distribution": dict(distribution),
+        "day_master_element": day_master_element,
+    }
+    # 십성 주입 (v0.2): 각 기둥에 sisung_gan / sisung_ji 추가, day.gan 은 '日主'
+    from backend.services.saju.engine.sisung import attach_sisung_to_natal
+    natal = attach_sisung_to_natal(natal)
+
     return {
         "engine_version": ENGINE_VERSION,
-        "natal": {
-            "year": {"gan": year_gan, "ji": year_ji, "pillar": year_gan + year_ji},
-            "month": {"gan": month_gan, "ji": month_ji, "pillar": month_gan + month_ji},
-            "day": {
-                "gan": day_gan,
-                "ji": day_ji,
-                "pillar": day_gan + day_ji,
-                "is_day_master": True,
-            },
-            "hour": hour_pillar_dict,
-            "day_master": day_gan,
-            "is_lunar_input": is_lunar,
-            "gender": gender,
-        },
+        "natal": natal,
         "strength": {
             "element_distribution": distribution,
             "dominant_element": dominant,

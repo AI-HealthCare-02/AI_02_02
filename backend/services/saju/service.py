@@ -220,17 +220,19 @@ class SajuService:
         user_id: int,
         focus: str = "total",
         tone: str = "soft",
-    ) -> SajuDailyCard | None:
-        """오늘의 운세 카드 1건 반환 (없으면 생성, 버전 다르면 재생성).
+    ) -> dict | None:
+        """오늘의 운세 카드 payload 1건 반환 (없으면 생성, 버전 다르면 재생성).
+
+        반환: build_today_card 확장 payload (DB 저장 필드 + UI 노출 신규 필드).
+        None: 프로필 없음 (라우터 404).
 
         절차:
-        1. 활성 profile 확인 — 없으면 None 반환 (라우터 404)
+        1. 활성 profile 확인
         2. ensure_chart 로 natal 보장
-        3. 오늘 카드 조회
-           - 있고 + engine/template 버전 일치 → reuse
-           - 버전 불일치 → 갱신
-           - 없음 → 신규 생성
-        4. 반환 (DTO 변환은 라우터)
+        3. 오늘 카드 DB 조회
+           - 있고 + engine/template 버전 일치 → DB 값 사용 + natal/today 확장은 재계산
+           - 버전 불일치 → 갱신 후 payload 반환
+           - 없음 → 신규 생성 + payload 반환
 
         하루 1장 정책 (UNIQUE(user, card_date)) 유지.
         """
@@ -259,7 +261,13 @@ class SajuService:
                 and existing.template_version == payload["template_version"]
             )
             if same_version:
-                return existing
+                # DB 저장된 sections/summary/keywords 사용 + 확장 필드는 payload 값 사용
+                payload["summary"] = existing.summary
+                payload["keywords"] = existing.keywords or []
+                payload["sections"] = existing.sections or []
+                payload["safety_notice"] = existing.safety_notice
+                payload["card_date"] = existing.card_date
+                return payload
             # 버전 차이 → 갱신
             existing.summary = payload["summary"]
             existing.keywords = payload["keywords"]
@@ -268,9 +276,9 @@ class SajuService:
             existing.engine_version = payload["engine_version"]
             existing.template_version = payload["template_version"]
             await existing.save()
-            return existing
+            return payload
 
-        return await SajuDailyCard.create(
+        await SajuDailyCard.create(
             user_id=user_id,
             card_date=today,
             summary=payload["summary"],
@@ -280,6 +288,7 @@ class SajuService:
             engine_version=payload["engine_version"],
             template_version=payload["template_version"],
         )
+        return payload
 
     async def soft_delete_profile(self, user_id: int) -> bool:
         """프로필 소프트 삭제 — "사주 기능 끄기" 용도. 데이터는 유지.

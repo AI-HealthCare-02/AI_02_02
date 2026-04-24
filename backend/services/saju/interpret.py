@@ -64,6 +64,14 @@ def build_today_card(
         tone=tone,
     )
 
+    kind_kr_map = {
+        "harmony": "합",
+        "clash": "충",
+        "support": "생",
+        "pressure": "극",
+        "same": "비화",
+    }
+
     return {
         "card_date": today_info["date"],
         "summary": summary,
@@ -72,4 +80,18 @@ def build_today_card(
         "safety_notice": DEFAULT_SAFETY_NOTICE,
         "engine_version": engine_version,
         "template_version": TEMPLATE_VERSION,
+        # UI 노출 신규 필드 (P2.2)
+        "natal_chart": natal,
+        "today_pillar": today_info["pillar"],
+        "today_gan": today_info["gan"],
+        "today_ji": today_info["ji"],
+        "today_element": today_info["gan_element"],
+        "day_master": day_master,
+        "day_master_element": relation.get("day_master_element", ""),
+        "day_relation": {
+            "kind": relation["kind"],
+            "kind_kr": kind_kr_map.get(relation["kind"], ""),
+        },
+        "element_distribution": dict(natal.get("element_distribution") or {}),
+        "limitations": list(natal.get("limitations") or []),
     }
