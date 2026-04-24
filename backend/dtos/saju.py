@@ -108,6 +108,22 @@ class SajuDayRelation(BaseSerializerModel):
     kind_kr: str
 
 
+class SajuYongshin(BaseSerializerModel):
+    """억부용신 판정 결과 (한국 현대 자평 기준, P3)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    school: str = "eokbu-korean-modern"
+    sin_gang: Literal["strong", "weak", "balanced"] = "balanced"
+    strength_score: int = 0
+    strength_components: dict[str, int] = Field(default_factory=dict)
+    yongshin_element: str = ""
+    yongshin_role: str = ""
+    hee_shin_element: str = ""
+    ki_shin_element: str = ""
+    reasoning: str = ""
+
+
 class SajuTodayResponse(BaseSerializerModel):
     # 기존 7 필드 유지
     summary: str
@@ -129,6 +145,7 @@ class SajuTodayResponse(BaseSerializerModel):
     day_relation: SajuDayRelation | None = None
     element_distribution: dict[str, int] = Field(default_factory=dict)
     limitations: list[str] = Field(default_factory=list)
+    yongshin: SajuYongshin | None = None
 
 
 # ─────────────────────────────────────────────

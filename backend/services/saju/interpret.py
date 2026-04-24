@@ -94,4 +94,6 @@ def build_today_card(
         },
         "element_distribution": dict(natal.get("element_distribution") or {}),
         "limitations": list(natal.get("limitations") or []),
+        # 용신 (P3, 억부 한국 현대 기준). natal 안에 저장된 dict 그대로 전달.
+        "yongshin": dict(natal.get("yongshin") or {}),
     }

@@ -32,6 +32,13 @@ from backend.services.saju.engine.today import (
     derive_day_relation,
     today_pillar,
 )
+from backend.services.saju.engine.yongshin import (
+    SCHOOL as YONGSHIN_SCHOOL,
+)
+from backend.services.saju.engine.yongshin import (
+    compute_strength_score,
+    derive_yongshin_eokbu,
+)
 
 __all__ = [
     "ENGINE_VERSION",
@@ -43,10 +50,13 @@ __all__ = [
     "JI_ELEMENT",
     "JI_YINYANG",
     "SISUNG_KOR",
+    "YONGSHIN_SCHOOL",
     "attach_sisung_to_natal",
     "compute_natal_chart",
     "compute_sisung",
+    "compute_strength_score",
     "derive_day_relation",
+    "derive_yongshin_eokbu",
     "sexagenary_for_day",
     "today_pillar",
 ]

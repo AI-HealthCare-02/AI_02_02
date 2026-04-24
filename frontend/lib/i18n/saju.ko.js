@@ -170,6 +170,22 @@ export const SAJU_KO = {
   // 경계월 배너 (월주 절기 비보정 경계일 4~8일 출생자)
   'saju.warning.month_pillar.boundary':
     '⚠️ 이 달은 절기 경계일 가능성이 있어요. 월주가 정통 만세력과 다를 수 있어 참고용으로 봐주세요.',
+
+  // ─── P3: 용신 (억부 한국 현대) ───
+  'saju.yongshin.title': '용신 (억부·한국 현대 기준)',
+  'saju.yongshin.label.yong': '용신',
+  'saju.yongshin.label.hee': '희신',
+  'saju.yongshin.label.ki': '기신',
+  'saju.yongshin.sin_gang.strong': '신강',
+  'saju.yongshin.sin_gang.weak': '신약',
+  'saju.yongshin.sin_gang.balanced': '중화',
+  'saju.yongshin.school.eokbu': '한국 현대 억부용신 기준',
+  'saju.yongshin.score.tooltip': '월령(3) + 득지(2) + 득세(인·비 개수) 합산. 7↑ 신강 · 4~6 중화 · 3↓ 신약.',
+  'saju.yongshin.role.비겁': '비겁',
+  'saju.yongshin.role.인수': '인수',
+  'saju.yongshin.role.식상': '식상',
+  'saju.yongshin.role.재성': '재성',
+  'saju.yongshin.role.관살': '관살',
 };
 
 /**

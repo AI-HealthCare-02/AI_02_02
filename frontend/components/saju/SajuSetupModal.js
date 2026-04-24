@@ -310,7 +310,54 @@ function NatalChartTable({ apiResult }) {
           ))}
         </div>
       )}
+      {/* P3: 억부용신 배지 — 원국 아래 */}
+      <YongshinBadge apiResult={apiResult} />
     </section>
+  );
+}
+
+function YongshinBadge({ apiResult }) {
+  const y = apiResult?.yongshin;
+  if (!y || !y.yongshin_element) return null;
+  const singangLabel = ts(`saju.yongshin.sin_gang.${y.sin_gang || 'balanced'}`);
+  const chips = [
+    { key: 'yong', labelKey: 'saju.yongshin.label.yong', el: y.yongshin_element, role: y.yongshin_role },
+    { key: 'hee', labelKey: 'saju.yongshin.label.hee', el: y.hee_shin_element, role: null },
+    { key: 'ki', labelKey: 'saju.yongshin.label.ki', el: y.ki_shin_element, role: null },
+  ].filter((c) => c.el);
+  return (
+    <div className="saju-modal__yongshin" role="group" aria-label="용신">
+      <div className="saju-modal__yongshin-head">
+        <span className="saju-modal__yongshin-title">🎯 {ts('saju.yongshin.title')}</span>
+        <span
+          className="saju-modal__yongshin-singang"
+          title={ts('saju.yongshin.score.tooltip')}
+        >
+          {singangLabel} · {y.strength_score}점
+        </span>
+      </div>
+      <div className="saju-modal__yongshin-row">
+        {chips.map((c) => (
+          <span key={c.key} className="saju-modal__yongshin-chip">
+            <span className="saju-modal__yongshin-chip-label">{ts(c.labelKey)}</span>
+            <span className="saju-modal__element-chip" data-element={c.el}>
+              {ts(`saju.element.${c.el}`) || c.el}
+            </span>
+            {c.role && (
+              <span className="saju-modal__yongshin-chip-label">
+                ({ts(`saju.yongshin.role.${c.role}`) || c.role})
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+      {y.reasoning && (
+        <p className="saju-modal__yongshin-reasoning" title={y.reasoning}>
+          {y.reasoning}
+        </p>
+      )}
+      <span className="saju-modal__yongshin-school">— {ts('saju.yongshin.school.eokbu')}</span>
+    </div>
   );
 }
 
