@@ -82,6 +82,7 @@ function SajuCardSectionImpl() {
         open={modalOpen}
         onClose={handleClose}
         initialStep={modalInitialStep}
+        hasProfile={Boolean(profileExists)}
       />
     </section>
   );

@@ -46,11 +46,19 @@ const BACKEND_SECTION_TITLE_KEY = {
 
 const STEPS = ['consent', 'profile', 'calibration', 'result'];
 
-const RESULT_TABS = [
+// 처음 방문자: "내가 어떤 사람인가" → "올해 흐름" → "이달" → "오늘" 순.
+// 재방문자: 이미 자기 기질·연운은 봤으므로 "오늘" 탭이 먼저, 나머지는 참고 순.
+const RESULT_TABS_FIRST_VISIT = [
   { key: 'natal', labelKey: 'saju.reading.tabs.natal' },
   { key: 'yearly', labelKey: 'saju.reading.tabs.yearly' },
   { key: 'monthly', labelKey: 'saju.reading.tabs.monthly' },
   { key: 'today', labelKey: 'saju.reading.tabs.today' },
+];
+const RESULT_TABS_RETURNING = [
+  { key: 'today', labelKey: 'saju.reading.tabs.today' },
+  { key: 'natal', labelKey: 'saju.reading.tabs.natal' },
+  { key: 'monthly', labelKey: 'saju.reading.tabs.monthly' },
+  { key: 'yearly', labelKey: 'saju.reading.tabs.yearly' },
 ];
 
 /**
@@ -649,7 +657,7 @@ function MonthlyReadingPane({ reading, loading }) {
   );
 }
 
-function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
+function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false }) {
   const modalRef = useRef(null);
   const previouslyFocused = useRef(null);
   const [stepIdx, setStepIdx] = useState(initialStep);
@@ -669,7 +677,13 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
   const [error, setError] = useState(null);
   const [apiResult, setApiResult] = useState(null); // { sections, summary, ... } | null
   const [resultLoading, setResultLoading] = useState(false);
-  const [activeResultTab, setActiveResultTab] = useState('natal');
+  // 재방문이면 '오늘' 우선 노출, 처음이면 '나의 기질' 우선
+  const resultTabs = useMemo(
+    () => (hasProfile ? RESULT_TABS_RETURNING : RESULT_TABS_FIRST_VISIT),
+    [hasProfile],
+  );
+  const defaultResultTabKey = resultTabs[0].key;
+  const [activeResultTab, setActiveResultTab] = useState(defaultResultTabKey);
   const [readingLoading, setReadingLoading] = useState(false);
   const [readings, setReadings] = useState({
     natal: null,
@@ -707,7 +721,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
       setError(null);
       setSubmitting(false);
       setDemoMode(false);
-      setActiveResultTab('natal');
+      setActiveResultTab(defaultResultTabKey);
       setReadings({ natal: null, yearly: null, monthly: null });
       // result-only 진입(initialStep=3)이면 즉시 today fetch
       if (initialStep === 3) {
@@ -718,7 +732,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
     }
     // loadTodayResult 는 stable deps — 아래에서 useCallback
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialStep]);
+  }, [open, initialStep, defaultResultTabKey]);
 
   // ESC + Focus trap
   useEffect(() => {
@@ -1117,7 +1131,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0 }) {
                   </div>
 
                   <nav className="saju-modal__reading-tabs" aria-label="사주 리딩 탭">
-                    {RESULT_TABS.map((tab) => (
+                    {resultTabs.map((tab) => (
                       <button
                         key={tab.key}
                         type="button"
