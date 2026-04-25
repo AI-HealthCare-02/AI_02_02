@@ -699,18 +699,28 @@ html[data-contrast="high"] {
   color: var(--color-text);
 }
 
-/* Fixed Slot · 챌린지 위치 고정용 공간 예약 */
-.rp.rp--today .rp-fixed-input {
-  margin: 14px 0;
-  min-height: 180px;
-  transition: background 0.2s ease, padding 0.2s ease;
+/* 인라인 아코디언 · 클릭한 건강 카드 바로 아래에 입력창 펼침 (Fixed Slot 대체) */
+.rp.rp--today .rp-row-wrap {
+  display: flex;
+  flex-direction: column;
 }
-.rp.rp--today .rp-fixed-input.is-filled {
-  padding: 14px;
+.rp.rp--today .rp-inline-input {
+  margin: 6px 0 10px 0;
+  padding: 12px 14px 14px 14px;
   background: var(--color-card-surface-subtle);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  animation: rpFadeIn 0.15s ease;
+  border-radius: 12px;
+  animation: rpInlineExpand 0.18s ease-out;
+}
+@keyframes rpInlineExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes rpFadeIn {
   from { opacity: 0; }
@@ -772,15 +782,835 @@ html[data-contrast="high"] {
   font-size: 14px;
   color: var(--color-text-muted);
 }
+/* 미응답 섹션 top 라인을 AI 채팅 입력란 top 라인과 수평 정렬 (v2.7).
+   Playwright 실측(viewport 1526px): AI 박스 top 1404.4 / 미응답 top 1388.2
+   → 16.2px 차이. margin-bottom 16px 로 두 흰 박스 top 이 동일 y 좌표에 일치.
+   (이전 32px 추정값은 AI 박스 실제 높이 85.6px 을 80px 로 잘못 계산한 결과). */
+.rp.rp--today .rp-missed-section {
+  margin-bottom: 16px;
+}
+
+/* 사주 사이드 게임 카드 섹션 (v2.7 · 세로형 타로 카드, 중앙정렬) */
+/* 여백 전략: 부모 flex-col + spacer A/B (flex-1) 가 운세 위/아래 남는 공간을
+   동일 비율로 분배. 여기서는 carousel margin 없이 padding 만 유지.              */
+.saju-card-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+.saju-card-section__subtitle {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* 카드 본체 — 세로형 직립 비율 (tarot 느낌 유지 + 콤팩트), 모든 내용 중앙 정렬 */
+.saju-entry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: 208px;       /* 세로형 폭 (조금 더 콤팩트) */
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  color: var(--color-text);
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease, transform 0.18s ease, box-shadow 0.2s ease;
+}
+.saju-entry-card:hover {
+  border-color: var(--color-text);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+.saju-entry-card:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── 상단 visual 헤더 — 그라데이션 + 별 + 달 + 배지 (콤팩트) ── */
+.saju-entry-card__visual {
+  position: relative;
+  display: block;
+  height: 104px;          /* 140 → 104 축소 */
+  overflow: hidden;
+  /* 라이트: 황혼 톤 (크림 → 연보라), 과한 보라 회피 */
+  background:
+    radial-gradient(circle at 80% 28%, rgba(255, 222, 180, 0.6), transparent 55%),
+    radial-gradient(circle at 20% 75%, rgba(200, 200, 235, 0.5), transparent 55%),
+    linear-gradient(160deg, #f5ecdc 0%, #ede5ef 50%, #ddd9ea 100%);
+  border-bottom: 1px solid var(--color-border);
+}
+html[data-theme="dark"] .saju-entry-card__visual {
+  /* 다크: 차분한 밤하늘, 네온·과한 보라 피함 */
+  background:
+    radial-gradient(circle at 80% 28%, rgba(190, 165, 125, 0.22), transparent 55%),
+    radial-gradient(circle at 20% 75%, rgba(130, 145, 190, 0.22), transparent 55%),
+    linear-gradient(160deg, #2d2c38 0%, #32313f 50%, #383545 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+/* 빛 번짐 (soft glow) */
+.saju-entry-card__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(18px);
+  pointer-events: none;
+}
+.saju-entry-card__glow--a {
+  width: 52px; height: 52px;
+  top: -12px; right: 20%;
+  background: rgba(255, 225, 180, 0.65);
+}
+.saju-entry-card__glow--b {
+  width: 40px; height: 40px;
+  bottom: -14px; left: 24%;
+  background: rgba(200, 200, 245, 0.55);
+}
+html[data-theme="dark"] .saju-entry-card__glow--a {
+  background: rgba(200, 180, 130, 0.22);
+}
+html[data-theme="dark"] .saju-entry-card__glow--b {
+  background: rgba(140, 150, 200, 0.22);
+}
+/* 별 장식 (유니코드, 이미지 의존성 0) */
+.saju-entry-card__star {
+  position: absolute;
+  color: rgba(120, 95, 135, 0.55);
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}
+html[data-theme="dark"] .saju-entry-card__star {
+  color: rgba(230, 225, 250, 0.7);
+  text-shadow: 0 0 6px rgba(180, 175, 210, 0.35);
+}
+.saju-entry-card__star--1 { top: 14px; left: 14%;  font-size: 11px; }
+.saju-entry-card__star--2 { top: 62px; left: 28%;  font-size: 9px;  opacity: 0.8; }
+.saju-entry-card__star--3 { top: 36px; left: 62%;  font-size: 14px; opacity: 0.55; }
+.saju-entry-card__star--4 { top: 74px; right: 18%; font-size: 10px; }
+/* 달 이모지 — 카드 중앙 상단, 첫인상 포인트 (콤팩트) */
+.saju-entry-card__moon {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.18));
+  opacity: 0.92;
+}
+/* 배지 — 카드 우상단 corner */
+.saju-entry-card__visual .saju-entry-card__badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+}
+html[data-theme="dark"] .saju-entry-card__visual .saju-entry-card__badge {
+  background: rgba(40, 40, 55, 0.7);
+  color: rgba(230, 225, 240, 0.85);
+}
+
+/* ── 본문 영역 — 모든 요소 중앙 정렬 (콤팩트) ── */
+.saju-entry-card__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 12px 12px 12px;
+}
+.saju-entry-card__emoji {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 0;
+}
+.saju-entry-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.saju-entry-card__desc {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  text-align: center;
+  max-width: 170px;
+  margin-top: 0;
+}
+/* CTA 버튼 — 중앙 pill 형태 (콤팩트) */
+.saju-entry-card__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 7px 18px;
+  margin-top: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.saju-entry-card:hover .saju-entry-card__cta {
+  border-color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+}
+.saju-entry-card__cta-arrow {
+  font-size: 12px;
+  line-height: 1;
+}
 
 /* prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  .rp.rp--today .rp-fixed-input.is-filled,
+  .rp.rp--today .rp-inline-input,
   .rp.rp--today .rp-row,
-  .rp.rp--today .rp-missed {
+  .rp.rp--today .rp-missed,
+  .saju-entry-card {
     animation: none;
     transition: none;
   }
+}
+
+/* ───────────────────────────────────────────────────────
+ * SajuSetupModal (saju-modal · v2.7 P1.5)
+ * 톤: --color-surface / --color-border / radius 14px (RpRow 일치)
+ * z-index 130 (mqm 120 보다 1단 위)
+ * ─────────────────────────────────────────────────────── */
+
+.saju-modal__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.saju-modal__dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;   /* P4.2: 리딩 풀버전 읽기 쉽게 확장 (이전 480) */
+  max-height: 92vh;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.saju-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+.saju-modal__header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.saju-modal__step-pill {
+  flex: none;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.saju-modal__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.saju-modal__close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.saju-modal__close:hover {
+  background: var(--color-card-surface-subtle);
+  color: var(--color-text);
+}
+.saju-modal__close:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+
+.saju-modal__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 18px 18px 12px;
+}
+.saju-modal__pane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.saju-modal__lead {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+.saju-modal__paragraph {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+/* ── 폼 필드 ── */
+.saju-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.saju-modal__field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.saju-modal__field-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+.saju-modal__input {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+.saju-modal__input:focus-visible {
+  outline: none;
+  border-color: var(--color-text);
+}
+.saju-modal__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.saju-modal__time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.saju-modal__time-row .saju-modal__input { flex: 1 1 auto; min-width: 0; }
+.saju-modal__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.saju-modal__check input[type="checkbox"] { accent-color: var(--color-text); }
+
+/* ── 칩 (chip) ── */
+.saju-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.saju-modal__chip {
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.saju-modal__chip:hover {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+.saju-modal__chip.is-active {
+  color: var(--color-surface);
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+.saju-modal__chip:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+
+/* ── 결과 ── */
+.saju-modal__result-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.saju-modal__result-badge {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+.saju-modal__result-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.saju-modal__reading-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 12px 0 14px;
+}
+.saju-modal__reading-tab {
+  min-height: 38px;
+  padding: 8px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.saju-modal__reading-tab:hover {
+  border-color: var(--color-text-muted);
+}
+.saju-modal__reading-tab:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+.saju-modal__reading-tab.is-active {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-surface);
+}
+.saju-modal__reading-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* P4.2 — 리딩 Hero: DANAA 중립 surface + primary 액센트 (리드 박스와 일관)
+   이전 radial-gradient(peach) 제거 — 전체 톤과 어긋났음. */
+.saju-modal__reading-hero {
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card-surface-subtle, var(--color-bg-muted, rgba(255, 255, 255, 0.03)));
+  border-left: 3px solid var(--color-primary, #7aa5c7);
+}
+.saju-modal__reading-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 4px 10px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary, #7aa5c7) 14%, transparent);
+  color: var(--color-primary, #7aa5c7);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: none;
+}
+.saju-modal__reading-title {
+  margin: 0 0 6px;
+  color: var(--color-text-primary, var(--color-text));
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.saju-modal__reading-summary {
+  margin: 0;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.saju-modal__reading-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.saju-modal__reading-keyword {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary, #7aa5c7) 10%, transparent);
+  color: var(--color-primary, #7aa5c7);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #7aa5c7) 24%, transparent);
+}
+.saju-modal__monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.saju-modal__month-card {
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-card-surface-subtle);
+}
+.saju-modal__month-card[data-tier="good"] { border-color: rgba(64, 160, 87, 0.35); }
+.saju-modal__month-card[data-tier="safe"] { border-color: rgba(239, 77, 47, 0.28); }
+.saju-modal__month-card[data-tier="caution"] { border-color: rgba(213, 148, 50, 0.45); }
+.saju-modal__month-head {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.saju-modal__month-head strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+}
+.saju-modal__month-head small {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.saju-modal__month-score {
+  color: var(--color-text);
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1;
+}
+.saju-modal__month-summary {
+  margin: 8px 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.saju-modal__month-detail {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+}
+.saju-modal__month-detail p {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.saju-modal__month-reason {
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.saju-modal__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.saju-modal__section {
+  padding: 12px 14px;
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.saju-modal__section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+.saju-modal__section-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+.saju-modal__why-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.saju-modal__why-toggle:hover { color: var(--color-text); }
+.saju-modal__why-toggle:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.saju-modal__why-arrow {
+  font-size: 10px;
+  line-height: 1;
+}
+.saju-modal__why-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+}
+.saju-modal__safety-notice {
+  margin: 12px 0 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ── 푸터 ── */
+.saju-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+.saju-modal__btn {
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.saju-modal__btn:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+.saju-modal__btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+.saju-modal__btn--ghost:hover {
+  background: var(--color-card-surface-subtle);
+  color: var(--color-text);
+}
+.saju-modal__btn--primary {
+  background: var(--color-text);
+  color: var(--color-surface);
+  border-color: var(--color-text);
+}
+.saju-modal__btn--primary:hover {
+  opacity: 0.92;
+}
+.saju-modal__btn--primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* 좁은 모바일 */
+@media (max-width: 480px) {
+  .saju-modal__overlay { padding: 0; align-items: flex-end; }
+  .saju-modal__dialog {
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+  }
+  .saju-modal__reading-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .saju-modal__monthly-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .saju-modal__reading-summary {
+    font-size: 14px;
+  }
+}
+
+/* prefers-reduced-motion: 보조 — 트랜지션 끔 */
+@media (prefers-reduced-motion: reduce) {
+  .saju-modal__chip,
+  .saju-modal__btn,
+  .saju-modal__close,
+  .saju-modal__reading-tab,
+  .saju-modal__month-head,
+  .saju-modal__why-toggle {
+    transition: none;
+  }
+}
+
+/* 에러 배너 (API 실패) */
+.saju-modal__error {
+  margin-top: 12px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #b32626;
+  background: #fff1f0;
+  border: 1px solid #f3c2c2;
+  border-radius: 8px;
+}
+html[data-theme="dark"] .saju-modal__error {
+  color: #ff9f9f;
+  background: rgba(255, 80, 80, 0.10);
+  border-color: rgba(255, 80, 80, 0.32);
+}
+
+/* 데모 모드 배너 (백엔드 사주 기능 OFF 시 fallback 안내) */
+.saju-modal__demo-banner {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #8a5a00;
+  background: #fff7e0;
+  border: 1px solid #f5d68a;
+  border-radius: 8px;
+}
+html[data-theme="dark"] .saju-modal__demo-banner {
+  color: #f6c970;
+  background: rgba(230, 180, 60, 0.10);
+  border-color: rgba(230, 180, 60, 0.32);
+}
+
+/* ───────────────────────────────────────────────────────
+ * SajuTodayCard (saju-today-card · v2.7 P1.5)
+ * 재방문 시 entry-card 자리에 노출되는 작은 요약 카드
+ * ─────────────────────────────────────────────────────── */
+
+.saju-today-card {
+  width: 100%;
+  max-width: 220px;
+  margin: 8px auto 0;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.saju-today-card:hover {
+  border-color: var(--color-text);
+  background: var(--color-card-surface-subtle);
+}
+.saju-today-card:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+.saju-today-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.saju-today-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.saju-today-card__badge {
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  background: var(--color-card-surface-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+.saju-today-card__summary {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.saju-today-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 /* ───────────────────────────────────────────────────────
@@ -1433,4 +2263,501 @@ html[data-theme="light"] {
 }
 .doit-item-handled p {
   text-decoration: line-through;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Saju P2.2 — 원국 (사주팔자) + 오늘 일진 UI
+ * ────────────────────────────────────────────────────────────────── */
+
+/* 오행 색상 토큰 (light) — 수는 사용자 요청으로 검정 */
+:root {
+  --saju-el-mok: #2f9e44;   /* 목 — 초록 */
+  --saju-el-hwa: #d9480f;   /* 화 — 붉은 주황 */
+  --saju-el-to: #c69026;    /* 토 — 노랑 */
+  --saju-el-geum: #868e96;  /* 금 — 회색 */
+  --saju-el-su: #000000;    /* 수 — 검정 (사용자 요청) */
+}
+html[data-theme="dark"] {
+  --saju-el-mok: #40c057;
+  --saju-el-hwa: #ff8787;
+  --saju-el-to: #ffd43b;
+  --saju-el-geum: #ced4da;
+  --saju-el-su: #f1f3f5;    /* 다크모드: 검정 대비 가독성을 위해 밝은 회색 */
+}
+
+/* ──── 오늘 일진 배지 (step 4 상단) ──── */
+.saju-modal__today-badge {
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card-surface-subtle, rgba(255, 255, 255, 0.04));
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.saju-modal__today-badge-line1 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.saju-modal__today-badge-line2 {
+  font-size: 13px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+}
+.saju-modal__today-badge-pillar {
+  font-weight: 700;
+}
+.saju-modal__today-badge-element {
+  margin-left: 4px;
+}
+
+/* ──── 원국 표 (4주 × 천간/지지/십성) — 데스크톱 ──── */
+.saju-modal__natal-section {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-card-surface-subtle, transparent);
+}
+.saju-modal__natal-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, var(--color-text-primary));
+  margin: 0 0 8px 0;
+}
+.saju-modal__natal {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.saju-modal__natal-cell {
+  padding: 10px 6px;
+  text-align: center;
+  border-radius: 8px;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.saju-modal__natal-cell[data-day-master="true"] {
+  background: var(--color-card-surface-subtle, rgba(255, 204, 0, 0.08));
+  border-color: var(--color-border-focus, rgba(255, 204, 0, 0.4));
+  outline: 1px solid var(--color-border-focus, rgba(255, 204, 0, 0.4));
+  outline-offset: -1px;
+}
+.saju-modal__natal-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  letter-spacing: 0.02em;
+}
+.saju-modal__natal-han {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+}
+/* 천간·지지 한자에 오행별 색상 (오행분포 바와 동일 팔레트 재사용) */
+.saju-modal__natal-han[data-element="목"] { color: var(--saju-el-mok); }
+.saju-modal__natal-han[data-element="화"] { color: var(--saju-el-hwa); }
+.saju-modal__natal-han[data-element="토"] { color: var(--saju-el-to); }
+.saju-modal__natal-han[data-element="금"] { color: var(--saju-el-geum); }
+.saju-modal__natal-han[data-element="수"] { color: var(--saju-el-su); }
+.saju-modal__natal-kor {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-left: 2px;
+}
+.saju-modal__sisung-label {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  cursor: help;
+}
+.saju-modal__daymaster-marker {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-weight: 600;
+}
+
+/* 오행 칩 (색상 + 텍스트 병기 — 색맹 접근성) */
+.saju-modal__element-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.saju-modal__element-chip::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.85;
+}
+.saju-modal__element-chip[data-element="목"] { color: var(--saju-el-mok); }
+.saju-modal__element-chip[data-element="화"] { color: var(--saju-el-hwa); }
+.saju-modal__element-chip[data-element="토"] { color: var(--saju-el-to); }
+.saju-modal__element-chip[data-element="금"] { color: var(--saju-el-geum); }
+.saju-modal__element-chip[data-element="수"] { color: var(--saju-el-su); }
+
+.saju-modal__element-dist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 12px;
+}
+.saju-modal__element-dist-title {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-right: 4px;
+}
+
+/* P4.1: 오행 색상 범례 (원국 테이블 바로 밑 — 글자 색상 안내 전용) */
+.saju-modal__element-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 12px;
+}
+
+/* P4.1: 원국 각 주(柱) 내부 천간↔십성 수직 매칭 */
+.saju-modal__natal-han-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.saju-modal__natal-sisung-row {
+  min-height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+/* P4.1: 오늘의 참고 지수 배지 */
+.saju-modal__score-badge {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin: 0 0 16px;
+  border-radius: 14px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border);
+}
+.saju-modal__score-badge-ring {
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      var(--score-accent, var(--saju-el-mok)) calc(var(--score-pct, 60%) * 1),
+      rgba(255, 255, 255, 0.08) 0
+    );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-primary);
+}
+.saju-modal__score-badge[data-tier="high"] { --score-pct: 85%; --score-accent: var(--saju-el-mok); }
+.saju-modal__score-badge[data-tier="mid_high"] { --score-pct: 70%; --score-accent: var(--saju-el-hwa); }
+.saju-modal__score-badge[data-tier="mid"] { --score-pct: 55%; --score-accent: var(--saju-el-to); }
+.saju-modal__score-badge[data-tier="low"] { --score-pct: 35%; --score-accent: var(--saju-el-geum); }
+.saju-modal__score-badge[data-tier="caution"] { --score-pct: 20%; --score-accent: var(--saju-el-su); }
+.saju-modal__score-badge-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+.saju-modal__score-badge-unit {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-top: 2px;
+}
+.saju-modal__score-badge-meta {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.saju-modal__score-badge-title {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  letter-spacing: 0.02em;
+}
+.saju-modal__score-badge-tier {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.saju-modal__score-badge-hint {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  line-height: 1.4;
+}
+
+/* ──── 용신 배지 (P3, 원국 표 하단) ──── */
+.saju-modal__yongshin {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.saju-modal__yongshin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.saju-modal__yongshin-title {
+  font-weight: 600;
+  color: var(--color-text-secondary, var(--color-text-primary));
+}
+.saju-modal__yongshin-singang {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  cursor: help;
+}
+.saju-modal__yongshin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.saju-modal__yongshin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-card-surface-subtle, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.saju-modal__yongshin-chip-label {
+  font-size: 10px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  margin-right: 2px;
+}
+.saju-modal__yongshin-school {
+  font-size: 10.5px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  font-style: italic;
+}
+.saju-modal__yongshin-reasoning {
+  font-size: 11px;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  line-height: 1.55;
+}
+
+/* 경계월 배너 (월주 절기 비보정 한계) */
+.saju-modal__limitation-banner {
+  padding: 8px 12px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: #a15c00;
+  background: #fff8e7;
+  border: 1px solid #f3d673;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+html[data-theme="dark"] .saju-modal__limitation-banner {
+  color: #ffd45e;
+  background: rgba(240, 180, 40, 0.10);
+  border-color: rgba(240, 180, 40, 0.32);
+}
+
+/* ──── 모바일 480px — 4주 2×2 재배치 (배열 순서 그대로 좌상부터 wrap) ──── */
+@media (max-width: 480px) {
+  .saju-modal__natal {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .saju-modal__natal-cell {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+  .saju-modal__natal-han {
+    font-size: 16px;
+  }
+  .saju-modal__today-badge {
+    padding: 10px 12px;
+  }
+  .saju-modal__today-badge-line1 {
+    font-size: 14px;
+  }
+}
+
+/* ────────── P4.2 풀리딩 UI ────────── */
+
+/* 리드 박스 — natal 한 줄 정의 / yearly 한 줄 정의 등 '첫인상' 섹션 */
+.saju-modal__reading-lead {
+  padding: 16px 18px;
+  margin: 0 0 14px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary, #7aa5c7) 18%, transparent),
+    transparent 70%
+  );
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.saju-modal__reading-lead-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted, var(--color-text-secondary));
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.saju-modal__reading-lead-body {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  margin: 0;
+  word-break: keep-all;
+}
+
+/* 섹션 body 타이포 개선 — 풀리딩 읽기용 */
+.saju-modal__section {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+.saju-modal__section-body {
+  font-size: 15px;
+  line-height: 1.75;
+  word-break: keep-all;
+  white-space: pre-wrap;
+}
+.saju-modal__section-body strong,
+.saju-modal__section-body b {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* P4.2 — 리딩 전용 섹션 카드 (easy_summary · why toggle 없음, 한 호흡으로 읽기) */
+.saju-modal__reading-section {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+.saju-modal__reading-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+.saju-modal__reading-section-emoji {
+  font-size: 17px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.saju-modal__reading-section-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-text-primary);
+  margin: 0;
+  word-break: keep-all;
+}
+.saju-modal__reading-section--checklist .saju-modal__checklist {
+  margin-top: 12px;
+}
+
+/* "쉽게 말하면:" 한 줄 박스 — body 와 reason 토글 사이 */
+.saju-modal__section-easy {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-primary, #7aa5c7) 8%, transparent);
+  border-left: 3px solid var(--color-primary, #7aa5c7);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.saju-modal__section-easy-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: var(--color-primary, #7aa5c7);
+  white-space: nowrap;
+}
+.saju-modal__section-easy-body {
+  flex: 1 1 auto;
+  color: var(--color-text-primary);
+  word-break: keep-all;
+}
+
+/* 체크리스트 섹션 — 불릿 */
+.saju-modal__checklist {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.saju-modal__checklist li {
+  padding: 10px 12px 10px 28px;
+  position: relative;
+  border-radius: 10px;
+  background: var(--color-bg-muted, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--color-border);
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+.saju-modal__checklist li::before {
+  content: "✓";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-primary, #7aa5c7);
+  font-weight: 700;
+}
+
+/* 모바일 대응 — 좁은 화면에서 폭 92vw */
+@media (max-width: 720px) {
+  .saju-modal__dialog {
+    max-width: 92vw;
+  }
+  .saju-modal__reading-lead-body {
+    font-size: 15px;
+  }
+  .saju-modal__section-body,
+  .saju-modal__reading-section-body {
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+  .saju-modal__reading-section {
+    padding: 14px 16px;
+  }
 }
