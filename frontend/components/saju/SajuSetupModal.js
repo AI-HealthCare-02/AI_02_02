@@ -657,7 +657,7 @@ function MonthlyReadingPane({ reading, loading }) {
   );
 }
 
-function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false }) {
+function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false, prefetchedToday = null }) {
   const modalRef = useRef(null);
   const previouslyFocused = useRef(null);
   const [stepIdx, setStepIdx] = useState(initialStep);
@@ -723,14 +723,23 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
       setDemoMode(false);
       setActiveResultTab(defaultResultTabKey);
       setReadings({ natal: null, yearly: null, monthly: null });
-      // result-only 진입(initialStep=3)이면 즉시 today fetch
+      // result-only 진입(initialStep=3): prefetch 가 있으면 즉시 표시 + readings 백그라운드 로드,
+      // 없으면 원래대로 today fetch (loadTodayResult 가 readings 까지 챙김).
       if (initialStep === 3) {
-        loadTodayResult();
+        if (prefetchedToday) {
+          setApiResult(prefetchedToday);
+          // demoMode 가 직전 세션의 stale 값(true)이면 loadReadings 가 빈 결과 반환하므로 prefetch 시점은 정상 백엔드라는 점을 신뢰. demoMode 가 false 인 케이스에서만 호출.
+          if (!demoMode) loadReadings();
+        } else {
+          loadTodayResult();
+        }
       } else {
         setApiResult(null);
       }
     }
-    // loadTodayResult 는 stable deps — 아래에서 useCallback
+    // loadTodayResult / loadReadings 는 useCallback 으로 안정화되어 있고,
+    // prefetchedToday 는 의도적으로 deps 에서 제외 — open 시점 한 번만 캡처해
+    // 모달이 열린 상태에서 prefetch 가 늦게 도착해도 mid-modal 재실행을 막는다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialStep, defaultResultTabKey]);
 
