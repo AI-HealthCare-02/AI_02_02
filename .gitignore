@@ -67,3 +67,6 @@ tools/ml_artifacts/
 catboost_info/
 docs/collaboration/model/reference/
 docs/collaboration/archive/model_reference/
+
+# Design reference images (dev-only, not for deployment)
+docs/design-references/

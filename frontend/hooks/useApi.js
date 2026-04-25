@@ -101,10 +101,11 @@ function isAuthSessionExpired() {
 export async function api(path, options = {}) {
   const token = getToken();
 
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  // FormData는 Content-Type을 browser에 맡겨야 multipart boundary가 자동 설정됨
+  const isFormData = options.body instanceof FormData;
+  const headers = isFormData
+    ? { ...options.headers }
+    : { 'Content-Type': 'application/json', ...options.headers };
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -126,7 +127,6 @@ export async function api(path, options = {}) {
     }
     const refreshed = await refreshToken();
     if (refreshed) {
-      // 새 토큰으로 재요청
       headers['Authorization'] = `Bearer ${getToken()}`;
       return fetch(`${API_BASE}${path}`, {
         ...options,
