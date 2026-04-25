@@ -52,12 +52,12 @@ function formatCategoryValue(key, dailyLog) {
   if (!hasAny) return null;
   if (key === 'sleep') {
     const labels = {
-      very_good: '아주 좋음',
-      excellent: '아주 좋음',
-      good: '좋음',
-      normal: '보통',
-      bad: '나쁨',
-      very_bad: '아주 나쁨',
+      very_good: '푹 잤어요',
+      excellent: '푹 잤어요',
+      good: '잘 잤어요',
+      normal: '조금 뒤척였어요',
+      bad: '자주 깼어요',
+      very_bad: '거의 못 잤어요',
     };
     return labels[dailyLog.sleep_quality] || '기록됨';
   }
@@ -67,7 +67,14 @@ function formatCategoryValue(key, dailyLog) {
   }
   switch (key) {
     case 'sleep': {
-      const q = { excellent: '잘 주무셨어요', good: '그럭저럭', normal: '뒤척임', bad: '푹 못 주무셨어요' }[dailyLog.sleep_quality];
+      const q = {
+        very_good: '푹 잤어요',
+        excellent: '푹 잤어요',
+        good: '잘 잤어요',
+        normal: '조금 뒤척였어요',
+        bad: '자주 깼어요',
+        very_bad: '거의 못 잤어요',
+      }[dailyLog.sleep_quality];
       return q || '기록됨';
     }
     case 'meal': {
@@ -178,11 +185,11 @@ const FIELD_OPTIONS = {
   sleep: {
     field: 'sleep_quality',
     options: [
-      { value: 'very_good', label: '아주 좋음' },
-      { value: 'good', label: '좋음' },
-      { value: 'normal', label: '보통' },
-      { value: 'bad', label: '나쁨' },
-      { value: 'very_bad', label: '아주 나쁨' },
+      { value: 'very_good', label: '푹 잤어요' },
+      { value: 'good', label: '잘 잤어요' },
+      { value: 'normal', label: '조금 뒤척였어요' },
+      { value: 'bad', label: '자주 깼어요' },
+      { value: 'very_bad', label: '거의 못 잤어요' },
     ],
   },
   meal: {
@@ -279,11 +286,11 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         <SelectField
           value={draft.sleep_quality}
           options={[
-            { value: 'very_good', label: '아주 좋음' },
-            { value: 'good', label: '좋음' },
-            { value: 'normal', label: '보통' },
-            { value: 'bad', label: '나쁨' },
-            { value: 'very_bad', label: '아주 나쁨' },
+            { value: 'very_good', label: '푹 잤어요' },
+            { value: 'good', label: '잘 잤어요' },
+            { value: 'normal', label: '조금 뒤척였어요' },
+            { value: 'bad', label: '자주 깼어요' },
+            { value: 'very_bad', label: '거의 못 잤어요' },
           ]}
           onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
         />
@@ -305,10 +312,11 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
           <SelectField
             value={draft.sleep_quality}
             options={[
-              { value: 'excellent', label: '잘 주무셨어요' },
-              { value: 'good', label: '그럭저럭' },
-              { value: 'normal', label: '뒤척임' },
-              { value: 'bad', label: '푹 못 주무셨어요' },
+              { value: 'very_good', label: '푹 잤어요' },
+              { value: 'good', label: '잘 잤어요' },
+              { value: 'normal', label: '조금 뒤척였어요' },
+              { value: 'bad', label: '자주 깼어요' },
+              { value: 'very_bad', label: '거의 못 잤어요' },
             ]}
             onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
           />

@@ -40,6 +40,9 @@ function SajuCardSectionImpl() {
   const [profileExists, setProfileExists] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
+  // 재방문자 모달 진입 시 로딩 텍스트 깜박임 제거 — 카드 마운트 시점에 today 응답 미리 받아둠.
+  // 200 OK 만 저장. 비-200·네트워크 실패는 null 유지 → 모달이 원래 경로(loadTodayResult)로 폴백.
+  const [prefetchedToday, setPrefetchedToday] = useState(null);
 
   // 마운트 시 프로필 존재 확인 (summary 는 사용 안 함 — EntryCard 통일)
   useEffect(() => {
@@ -53,12 +56,37 @@ function SajuCardSectionImpl() {
     };
   }, []);
 
+  // 프로필이 있는 사용자에 한해 today 미리 가져오기 (재방문 모달 즉시 표시).
+  // 첫 방문자(profileExists=false)는 calibration 단계까지 가야 today 가 의미 있으므로 prefetch 스킵.
+  useEffect(() => {
+    if (profileExists !== true) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api('/api/v1/saju/today');
+        if (cancelled) return;
+        if (res.status === 200) {
+          const data = await res.json();
+          setPrefetchedToday(data);
+        }
+      } catch {
+        /* prefetch 실패는 무해 — 모달 오픈 시 원래 fetch 경로로 폴백 */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profileExists]);
+
   const handleOpen = useCallback(() => {
     setModalInitialStep(profileExists ? RESULT_STEP : 0);
     setModalOpen(true);
   }, [profileExists]);
 
   // 모달 닫힐 때 재확인 (방금 동의·프로필 입력 했을 수 있음)
+  // prefetchedToday 는 의도적으로 유지 — 같은 날 안에서 today 응답은 사실상 변하지 않으며,
+  // 닫고 즉시 다시 여는 경우의 깜박임 회귀를 막기 위함. 새 프로필이 막 등록되면 setProfileExists
+  // 가 false→true 로 바뀌어 prefetch effect 가 자연스럽게 새 응답을 채운다.
   const handleClose = useCallback(async () => {
     setModalOpen(false);
     const { exists } = await fetchProfileAndToday();
@@ -82,6 +110,8 @@ function SajuCardSectionImpl() {
         open={modalOpen}
         onClose={handleClose}
         initialStep={modalInitialStep}
+        hasProfile={Boolean(profileExists)}
+        prefetchedToday={prefetchedToday}
       />
     </section>
   );

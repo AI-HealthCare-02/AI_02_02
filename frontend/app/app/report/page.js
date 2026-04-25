@@ -424,7 +424,7 @@ function ProfileCard({ userData, statusData, onUserDataUpdate }) {
   }
 
   const name = localUserData?.name || '사용자';
-  const gender = statusData?.gender;
+  const gender = localUserData?.gender ?? statusData?.gender;
   const height = statusData?.height_cm;
   const weight = statusData?.weight_kg;
   const birthday = localUserData?.birthday;
@@ -444,7 +444,12 @@ function ProfileCard({ userData, statusData, onUserDataUpdate }) {
         <ProfileEditModal
           userData={localUserData}
           onClose={() => setEditOpen(false)}
-          onSave={(updated) => { setLocalUserData(updated); setEditOpen(false); }}
+          onSave={(updated) => {
+            setLocalUserData(updated);
+            setPhoto(updated?.profile_image || null);
+            if (onUserDataUpdate) onUserDataUpdate(updated);
+            setEditOpen(false);
+          }}
         />
       )}
       <div className="border-b border-[#DDE1E8] p-5">
@@ -1477,7 +1482,11 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
           }}
         >
 
-          <ProfileCard userData={userData} statusData={statusData} />
+          <ProfileCard
+            userData={userData}
+            statusData={statusData}
+            onUserDataUpdate={setUserData}
+          />
 
           {/* 건강 위험도 (다나와 모델) — 크게 강조 */}
           <div className="min-h-[148px] border-b border-[#EDF0F5] p-5">

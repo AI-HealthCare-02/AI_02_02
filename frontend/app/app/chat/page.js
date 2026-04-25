@@ -7,7 +7,6 @@ import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
 import VideoRecommendations from '../../../components/VideoRecommendations';
 import { api, getToken } from '../../../hooks/useApi';
-import { formatUserGroupLabel } from '../../../lib/userGroupLabels';
 
 /* ── Right Panel V2 (리디자인) · 기본 활성화 / env 값 0일 때만 비활성화 ── */
 const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
@@ -132,11 +131,11 @@ const SLEEP_LABELS = {
   over_8: '8시간 이상',
 };
 const SLEEP_QUALITY_LABELS = {
-  very_good: '아주 좋음',
-  good: '좋음',
-  normal: '보통',
-  bad: '나쁨',
-  very_bad: '아주 나쁨',
+  very_good: '푹 잤어요',
+  good: '잘 잤어요',
+  normal: '조금 뒤척였어요',
+  bad: '자주 깼어요',
+  very_bad: '거의 못 잤어요',
 };
 const MEAL_LABELS = { hearty: '먹었어요', simple: '먹었어요', skipped: '못 먹었어요' };
 const EXERCISE_TYPES = {
@@ -154,9 +153,9 @@ const HEALTH_OPTION_LABELS = {
   ...SLEEP_QUALITY_LABELS,
   ...MEAL_LABELS,
   ...EXERCISE_TYPES,
-  very_good: '아주 좋음',
-  good: '좋음',
-  normal: '보통',
+  very_good: '푹 잤어요',
+  good: '잘 잤어요',
+  normal: '조금 뒤척였어요',
   enough: '충분히 먹었어요',
   little: '조금 먹었어요',
   none: '거의 못 먹었어요',
@@ -1619,7 +1618,7 @@ const sendMessage = useCallback(async () => {
                       <div className="text-[15px] leading-[1.75] text-nature-900">
                         안녕하세요! 다나아 AI입니다.<br />
                         {risk?.group && <>
-                          <strong>{risk.group}그룹</strong>({risk.groupLabel || formatUserGroupLabel(risk.group)})이시네요.
+                          설문 결과가 반영되어 있어요.
                           {risk.levelLabel && <> 현재 위험도는 <strong>{risk.levelLabel}</strong> 단계예요.</>}
                           <br />
                         </>}
@@ -1892,11 +1891,11 @@ function SleepPanel({ log, update }) {
     { key: 'over_8', label: '8h 이상' },
   ];
   const qualities = [
-    { key: 'very_good', label: '아주 좋음' },
-    { key: 'good', label: '좋음' },
-    { key: 'normal', label: '보통' },
-    { key: 'bad', label: '나쁨' },
-    { key: 'very_bad', label: '아주 나쁨' },
+    { key: 'very_good', label: '푹 잤어요' },
+    { key: 'good', label: '잘 잤어요' },
+    { key: 'normal', label: '조금 뒤척였어요' },
+    { key: 'bad', label: '자주 깼어요' },
+    { key: 'very_bad', label: '거의 못 잤어요' },
   ];
   const durationLocked = false;
   const qualityLocked = false;
