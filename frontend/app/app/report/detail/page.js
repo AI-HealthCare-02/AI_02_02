@@ -156,7 +156,7 @@ function categoryInterpretation(meta, item) {
 
 function ReportTabs() {
   return (
-    <div className="border-b border-black/[.06]">
+    <div>
       <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
         <Link
           href="/app/report"
@@ -795,7 +795,7 @@ export default function ReportDetailPage() {
 
   return (
     <div className="theme-report-page flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center border-b border-[#F5F5F4] bg-white px-4">
+      <header className="flex h-12 shrink-0 items-center px-4">
         <span className="text-[14px] font-medium text-nature-900">리포트</span>
       </header>
       <ReportTabs />

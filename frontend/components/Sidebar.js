@@ -96,7 +96,7 @@ export default function Sidebar({ productGuide = null }) {
   const [userInitial, setUserInitial] = useState('?');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [expandedKeys, setExpandedKeys] = useState(() => new Set(['Do it OS']));
+  const [expandedKeys, setExpandedKeys] = useState(() => new Set());
   const [guideSeen, setGuideSeen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
@@ -106,6 +106,14 @@ export default function Sidebar({ productGuide = null }) {
   useEffect(() => {
     if (window.innerWidth < 768) setOpen(false);
   }, []);
+
+  // Do it OS 하위 페이지를 직접 방문/이동했을 땐 컨텍스트 보존을 위해 자동 펼침.
+  // 그 외 페이지(/app/chat 등)에서는 기본 접힘 유지.
+  useEffect(() => {
+    if (pathname?.startsWith(DOIT_HREF)) {
+      setExpandedKeys((prev) => (prev.has('Do it OS') ? prev : new Set([...prev, 'Do it OS'])));
+    }
+  }, [pathname]);
 
   useEffect(() => {
     try {
