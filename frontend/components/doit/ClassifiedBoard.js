@@ -6,17 +6,23 @@ import { ArrowRight, Cloud, Hourglass, X } from 'lucide-react';
 
 import { CATEGORIES, getByCategory, getSummary } from '../../lib/doit_store';
 
-// todo·health 전용 페이지는 Phase 7+. Phase 6는 대시보드/노트로 폴백.
+// todo/schedule 은 통합 페이지(/schedule, 두 섹션) 진입. health 는 노트 폴백 (Phase 8+ 분리 예정).
 const CATEGORY_HREF = {
-  todo: '/app/do-it-os',
+  todo: '/app/do-it-os/schedule',
   schedule: '/app/do-it-os/schedule',
   project: '/app/do-it-os/project',
   note: '/app/do-it-os/note',
   health: '/app/do-it-os/note',
 };
 
-// Phase 7.1 Bug 2 — 상세 페이지가 실제로 존재하는 카테고리. 나머지는 인라인 확장 토글로 대체.
-const DETAIL_ROUTES = new Set(['project', 'note', 'schedule']);
+// 통합 페이지 내 섹션으로 직접 스크롤하기 위한 anchor 매핑. 빈 문자열은 anchor 없음.
+const CATEGORY_ANCHOR = {
+  todo: '#todo-section',
+  schedule: '#schedule-section',
+};
+
+// 상세 페이지가 실제로 존재하는 카테고리. 나머지는 인라인 확장 토글로 대체.
+const DETAIL_ROUTES = new Set(['todo', 'project', 'note', 'schedule']);
 
 export default function ClassifiedBoard({
   thoughts,
@@ -58,7 +64,8 @@ export default function ClassifiedBoard({
     <div className={`grid gap-3 ${gridCols}`}>
       {primary.map((cat) => {
         const list = getByCategory(thoughts, cat.id);
-        const href = CATEGORY_HREF[cat.id] || '/app/do-it-os';
+        const baseHref = CATEGORY_HREF[cat.id] || '/app/do-it-os';
+        const href = baseHref + (CATEGORY_ANCHOR[cat.id] || '');
         const hasDetail = DETAIL_ROUTES.has(cat.id);
         const expanded = expandedCategories.has(cat.id);
         const previewLimit = compact ? 3 : 10;
