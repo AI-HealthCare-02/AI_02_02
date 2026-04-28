@@ -95,6 +95,7 @@ export default function OnboardingComplete() {
   const [progressLabel, setProgressLabel] = useState('준비 중입니다.');
   const [resultGroup, setResultGroup] = useState(null);
   const [pushPromptDismissed, setPushPromptDismissed] = useState(false);
+  const [pushModalOpen, setPushModalOpen] = useState(false);
   const [pushSaving, setPushSaving] = useState(false);
   const [pushMessage, setPushMessage] = useState(null);
 
@@ -217,6 +218,8 @@ export default function OnboardingComplete() {
     try {
       await enablePushNotifications();
       setPushMessage({ type: 'success', text: '브라우저 알림을 켰어요. 선택한 주기에 맞춰 놓친 기록을 알려드릴게요.' });
+      setPushPromptDismissed(true);
+      window.setTimeout(() => setPushModalOpen(false), 900);
     } catch (err) {
       setPushMessage({ type: 'error', text: err?.message || '브라우저 알림을 켜지 못했어요.' });
     } finally {
@@ -292,45 +295,97 @@ export default function OnboardingComplete() {
 
         {submitState === 'done' && !pushPromptDismissed && getPushPermission() !== 'granted' && (
           <div
-            className="rounded-xl p-4 mb-4 text-left"
+            className="rounded-xl px-4 py-3 mb-4 text-left"
             style={{
               background: 'var(--color-surface-hover)',
               border: '1px solid var(--color-border-light)',
             }}
           >
-            <div className="text-[14px] font-semibold mb-1" style={{ color: 'var(--color-text)' }}>
-              선택한 주기에 맞춰 건강 기록 알림을 받을까요?
-            </div>
-            <div className="text-[12px] leading-5 mb-3" style={{ color: 'var(--color-text-muted)' }}>
-              다른 사이트를 보고 있어도 지나간 시간대의 미입력 질문만 알려드려요.
-            </div>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[14px] font-semibold" style={{ color: 'var(--color-text)' }}>
+                  건강 기록 알림
+                </div>
+                <div className="text-[12px] leading-5" style={{ color: 'var(--color-text-muted)' }}>
+                  선택한 주기에 맞춰 미입력 질문을 알려드려요.
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={enableBrowserPush}
+                onClick={() => {
+                  setPushMessage(null);
+                  setPushModalOpen(true);
+                }}
                 disabled={pushSaving}
-                className="flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
+                className="shrink-0 rounded-lg px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
                 style={{ background: 'var(--color-cta-bg)', color: 'var(--color-cta-text)' }}
               >
-                {pushSaving ? '처리 중' : '브라우저 알림 켜기'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPushPromptDismissed(true)}
-                disabled={pushSaving}
-                className="rounded-lg px-3 py-2 text-[13px] font-semibold disabled:opacity-50"
-                style={{
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text-muted)',
-                  border: '1px solid var(--color-border-light)',
-                }}
-              >
-                나중에
+                설정
               </button>
             </div>
-            {pushMessage && (
+          </div>
+        )}
+
+        {pushModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 px-4">
+            <div
+              className="w-full max-w-[360px] rounded-xl p-5 text-left shadow-modal"
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              <div className="text-[17px] font-bold mb-2" style={{ color: 'var(--color-text)' }}>
+                브라우저 알림을 켤까요?
+              </div>
+              <div className="text-[13px] leading-6 mb-4" style={{ color: 'var(--color-text-muted)' }}>
+                다른 사이트를 보고 있어도 지나간 시간대의 미입력 질문만 알려드려요. 브라우저 권한 창에서 허용을 선택하면 알림이 등록됩니다.
+              </div>
+              {pushMessage && (
+                <div
+                  className="mb-3 rounded-lg px-3 py-2 text-[12px]"
+                  style={{
+                    background: pushMessage.type === 'success' ? '#E6F4EA' : '#FDECEC',
+                    color: pushMessage.type === 'success' ? '#1E5631' : '#B42318',
+                  }}
+                >
+                  {pushMessage.text}
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPushPromptDismissed(true);
+                    setPushModalOpen(false);
+                  }}
+                  disabled={pushSaving}
+                  className="rounded-lg px-3.5 py-2 text-[13px] font-semibold disabled:opacity-50"
+                  style={{
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-text-muted)',
+                    border: '1px solid var(--color-border-light)',
+                  }}
+                >
+                  나중에
+                </button>
+                <button
+                  type="button"
+                  onClick={enableBrowserPush}
+                  disabled={pushSaving}
+                  className="rounded-lg px-3.5 py-2 text-[13px] font-semibold disabled:opacity-50"
+                  style={{ background: 'var(--color-cta-bg)', color: 'var(--color-cta-text)' }}
+                >
+                  {pushSaving ? '처리 중' : '알림 켜기'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {pushMessage && !pushModalOpen && pushPromptDismissed && (
               <div
-                className="mt-3 rounded-lg px-3 py-2 text-[12px]"
+                className="rounded-xl px-5 py-3.5 mb-4 text-[13px]"
                 style={{
                   background: pushMessage.type === 'success' ? '#E6F4EA' : '#FDECEC',
                   color: pushMessage.type === 'success' ? '#1E5631' : '#B42318',
@@ -338,8 +393,6 @@ export default function OnboardingComplete() {
               >
                 {pushMessage.text}
               </div>
-            )}
-          </div>
         )}
 
         {submitState === 'error' && (

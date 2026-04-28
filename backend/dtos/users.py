@@ -40,4 +40,5 @@ class UserInfoResponse(BaseSerializerModel):
     birthday: date | None = None
     gender: Gender | None = None
     provider: str | None = None
+    profile_image: str | None = None
     created_at: datetime

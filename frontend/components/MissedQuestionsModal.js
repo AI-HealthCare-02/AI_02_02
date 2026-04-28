@@ -52,12 +52,12 @@ function formatCategoryValue(key, dailyLog) {
   if (!hasAny) return null;
   if (key === 'sleep') {
     const labels = {
-      very_good: '아주 좋음',
-      excellent: '아주 좋음',
-      good: '좋음',
-      normal: '보통',
-      bad: '나쁨',
-      very_bad: '아주 나쁨',
+      very_good: '푹 잤어요',
+      excellent: '푹 잤어요',
+      good: '잘 잤어요',
+      normal: '조금 뒤척였어요',
+      bad: '자주 깼어요',
+      very_bad: '거의 못 잤어요',
     };
     return labels[dailyLog.sleep_quality] || '기록됨';
   }
@@ -67,7 +67,14 @@ function formatCategoryValue(key, dailyLog) {
   }
   switch (key) {
     case 'sleep': {
-      const q = { excellent: '잘 잤음', good: '그럭저럭', normal: '뒤척임', bad: '푹 못 잠' }[dailyLog.sleep_quality];
+      const q = {
+        very_good: '푹 잤어요',
+        excellent: '푹 잤어요',
+        good: '잘 잤어요',
+        normal: '조금 뒤척였어요',
+        bad: '자주 깼어요',
+        very_bad: '거의 못 잤어요',
+      }[dailyLog.sleep_quality];
       return q || '기록됨';
     }
     case 'meal': {
@@ -75,25 +82,40 @@ function formatCategoryValue(key, dailyLog) {
       return `${done}/3`;
     }
     case 'medication':
-      if (dailyLog.took_medication === true) return '드셨음';
-      if (dailyLog.took_medication === false) return '건너뜀';
+      if (dailyLog.took_medication === true) return '드셨어요';
+      if (dailyLog.took_medication === false) return '건너뛰었어요';
       return null;
     case 'exercise':
-      if (dailyLog.exercise_done === true) return '했음';
-      if (dailyLog.exercise_done === false) return '쉼';
+      if (dailyLog.exercise_done === true) return '했어요';
+      if (dailyLog.exercise_done === false) return '쉬었어요';
       return null;
     case 'water':
       return dailyLog.water_cups > 0 ? `${dailyLog.water_cups}잔` : null;
     case 'mood':
       return { great: '아주 좋음', good: '좋음', normal: '보통', hard: '힘듦' }[dailyLog.mood_level] || null;
     case 'alcohol':
-      if (dailyLog.alcohol_today === false) return '안 마심';
-      if (dailyLog.alcohol_today === true) return '마심';
+      if (dailyLog.alcohol_today === false) return '안 마셨어요';
+      if (dailyLog.alcohol_today === true) return '마셨어요';
       return null;
     default:
       return null;
   }
 }
+
+function isCategoryComplete(key, dailyLog) {
+  if (!dailyLog) return false;
+  const fields = CATEGORY_FIELDS[key] || [];
+  if (key === 'meal') {
+    return fields.every((f) => dailyLog[f] != null && dailyLog[f] !== '');
+  }
+  return fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
+}
+
+const MEAL_FIELD_LABELS = {
+  breakfast_status: '아침',
+  lunch_status: '점심',
+  dinner_status: '저녁',
+};
 
 /**
  * 간이 60s TTL 캐시 · useRef 기반
@@ -163,11 +185,11 @@ const FIELD_OPTIONS = {
   sleep: {
     field: 'sleep_quality',
     options: [
-      { value: 'very_good', label: '아주 좋음' },
-      { value: 'good', label: '좋음' },
-      { value: 'normal', label: '보통' },
-      { value: 'bad', label: '나쁨' },
-      { value: 'very_bad', label: '아주 나쁨' },
+      { value: 'very_good', label: '푹 잤어요' },
+      { value: 'good', label: '잘 잤어요' },
+      { value: 'normal', label: '조금 뒤척였어요' },
+      { value: 'bad', label: '자주 깼어요' },
+      { value: 'very_bad', label: '거의 못 잤어요' },
     ],
   },
   meal: {
@@ -182,7 +204,7 @@ const FIELD_OPTIONS = {
     parse: parseBool,
     options: [
       { value: true, label: '복용했어요' },
-      { value: false, label: '건너뜀' },
+      { value: false, label: '건너뛰었어요' },
     ],
   },
   exercise: {
@@ -214,8 +236,8 @@ const FIELD_OPTIONS = {
     field: 'alcohol_today',
     parse: parseBool,
     options: [
-      { value: false, label: '안 마심' },
-      { value: true, label: '마심' },
+      { value: false, label: '안 마셨어요' },
+      { value: true, label: '마셨어요' },
     ],
   },
 };
@@ -227,6 +249,13 @@ function buildDraftPayload(categoryKey, rawValue) {
   if (!def) return null;
   const parse = def.parse || ((v) => v);
   return { [def.field]: parse(rawValue) };
+}
+
+function buildFieldDraftPayload(categoryKey, field, rawValue) {
+  const def = FIELD_OPTIONS[categoryKey];
+  if (!def) return null;
+  const parse = def.parse || ((v) => v);
+  return { [field]: parse(rawValue) };
 }
 
 /**
@@ -257,11 +286,11 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         <SelectField
           value={draft.sleep_quality}
           options={[
-            { value: 'very_good', label: '아주 좋음' },
-            { value: 'good', label: '좋음' },
-            { value: 'normal', label: '보통' },
-            { value: 'bad', label: '나쁨' },
-            { value: 'very_bad', label: '아주 나쁨' },
+            { value: 'very_good', label: '푹 잤어요' },
+            { value: 'good', label: '잘 잤어요' },
+            { value: 'normal', label: '조금 뒤척였어요' },
+            { value: 'bad', label: '자주 깼어요' },
+            { value: 'very_bad', label: '거의 못 잤어요' },
           ]}
           onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
         />
@@ -283,10 +312,11 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
           <SelectField
             value={draft.sleep_quality}
             options={[
-              { value: 'excellent', label: '잘 잤음' },
-              { value: 'good', label: '그럭저럭' },
-              { value: 'normal', label: '뒤척임' },
-              { value: 'bad', label: '푹 못 잠' },
+              { value: 'very_good', label: '푹 잤어요' },
+              { value: 'good', label: '잘 잤어요' },
+              { value: 'normal', label: '조금 뒤척였어요' },
+              { value: 'bad', label: '자주 깼어요' },
+              { value: 'very_bad', label: '거의 못 잤어요' },
             ]}
             onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
           />
@@ -308,7 +338,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
             value={draft.took_medication}
             options={[
               { value: true, label: '드셨어요' },
-              { value: false, label: '건너뜀' },
+              { value: false, label: '건너뛰었어요' },
             ]}
             parse={parseBool}
             onChange={(v) => setDraft({ ...draft, took_medication: v })}
@@ -319,8 +349,8 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
           <SelectField
             value={draft.exercise_done}
             options={[
-              { value: true, label: '했음' },
-              { value: false, label: '쉼' },
+              { value: true, label: '했어요' },
+              { value: false, label: '쉬었어요' },
             ]}
             parse={parseBool}
             onChange={(v) => setDraft({ ...draft, exercise_done: v })}
@@ -356,8 +386,8 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
           <SelectField
             value={draft.alcohol_today}
             options={[
-              { value: false, label: '안 마심' },
-              { value: true, label: '마심' },
+              { value: false, label: '안 마셨어요' },
+              { value: true, label: '마셨어요' },
             ]}
             parse={parseBool}
             onChange={(v) => setDraft({ ...draft, alcohol_today: v })}
@@ -497,6 +527,7 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
       }
     }
     setEditingCell(null);
+    setPendingDrafts({});
     onClose();
   }, [onClose, pendingDrafts, savePendingDrafts]);
 
@@ -609,12 +640,46 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
                         </td>
                       );
                     }
-                    if (val) {
+                    const complete = isCategoryComplete(cat.key, col.log);
+                    if (val && complete) {
                       return <td key={col.date} className="mqm-cell mqm-cell--filled">{val}</td>;
                     }
                     const optionDef = FIELD_OPTIONS[cat.key];
                     const pendingKey = draftKey(col.date, cat.key);
                     const currentDraft = pendingDrafts[pendingKey];
+                    if (cat.key === 'meal' && optionDef) {
+                      const missingMealFields = CATEGORY_FIELDS.meal.filter((field) => col.log?.[field] == null || col.log?.[field] === '');
+                      return (
+                        <td key={col.date} className="mqm-cell mqm-cell--empty">
+                          {val && <div className="mb-2 text-[12px] font-semibold text-nature-900">{val} 기록됨</div>}
+                          <div className="space-y-2">
+                            {missingMealFields.map((field) => {
+                              const draftValue = currentDraft?.[field] ?? '';
+                              return (
+                                <label key={field} className="block text-left">
+                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">{MEAL_FIELD_LABELS[field]}</span>
+                                  <SelectField
+                                    value={draftValue}
+                                    placeholder="선택"
+                                    options={optionDef.options}
+                                    onChange={(rawValue) => {
+                                      const payload = buildFieldDraftPayload(cat.key, field, rawValue);
+                                      setPendingDrafts((prev) => ({
+                                        ...prev,
+                                        [pendingKey]: {
+                                          ...(prev[pendingKey] || {}),
+                                          ...payload,
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      );
+                    }
                     if (optionDef) {
                       return (
                         <td key={col.date} className="mqm-cell mqm-cell--empty">

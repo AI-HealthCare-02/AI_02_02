@@ -75,9 +75,9 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     "bundle_1": {
         "name": "수면",
         "questions": [
-            {"field": "sleep_quality", "text": "어젯밤 잠은 잘 잤어? 😴",
+            {"field": "sleep_quality", "text": "어젯밤 잠은 잘 주무셨나요? 😴",
              "options": ["very_good", "good", "normal", "bad", "very_bad"]},
-            {"field": "sleep_duration_bucket", "text": "대략 몇 시간 정도 잔 것 같아?",
+            {"field": "sleep_duration_bucket", "text": "대략 몇 시간 정도 주무셨나요?",
              "options": ["under_5", "between_5_6", "between_6_7", "between_7_8", "over_8"]},
         ],
     },
@@ -86,7 +86,7 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
         "questions": [
             {"field": "breakfast_status", "text": "아침 드셨어요? 🍳",
              "options": ["hearty", "skipped"]},
-            {"field": "took_medication", "text": "오늘 약은 챙겨 먹었어요? 💊",
+            {"field": "took_medication", "text": "오늘 약은 챙겨 드셨나요? 💊",
              "options": [True, False], "condition": "group_A_only"},
         ],
     },
@@ -102,13 +102,13 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     "bundle_4": {
         "name": "운동",
         "questions": [
-            {"field": "exercise_done", "text": "오늘 운동은 했어? 🏃",
+            {"field": "exercise_done", "text": "오늘 운동은 하셨나요? 🏃",
              "options": [True, False]},
-            {"field": "exercise_type", "text": "어떤 운동을 했어?",
+            {"field": "exercise_type", "text": "어떤 운동을 하셨나요?",
              "options": ["walking", "running", "cycling", "swimming",
                          "gym", "home_workout", "other"],
              "condition": "exercise_done_true"},
-            {"field": "exercise_minutes", "text": "몇 분 정도 했어?",
+            {"field": "exercise_minutes", "text": "몇 분 정도 하셨나요?",
              "input_type": "number", "condition": "exercise_done_true"},
         ],
     },
@@ -124,7 +124,7 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     "bundle_6": {
         "name": "복약",
         "questions": [
-            {"field": "took_medication", "text": "오늘 약은 잘 챙겨 먹었어? 💊",
+            {"field": "took_medication", "text": "오늘 약은 잘 챙겨 드셨나요? 💊",
              "options": [True, False]},
         ],
         "condition": "group_A_only",
@@ -132,11 +132,11 @@ HEALTH_QUESTION_BUNDLES: dict[str, dict] = {
     "bundle_7": {
         "name": "정서+음주",
         "questions": [
-            {"field": "mood_level", "text": "요즘 기분은 어때? 😊",
+            {"field": "mood_level", "text": "요즘 기분은 어떠신가요? 😊",
              "options": ["very_good", "good", "normal", "stressed", "very_stressed"]},
-            {"field": "alcohol_today", "text": "최근에 술 마신 적 있어? 🍺",
+            {"field": "alcohol_today", "text": "최근에 술을 드신 적이 있으신가요? 🍺",
              "options": [True, False]},
-            {"field": "alcohol_amount_level", "text": "얼마나 마셨어?",
+            {"field": "alcohol_amount_level", "text": "어느 정도 드셨나요?",
              "options": ["light", "moderate", "heavy"],
              "condition": "alcohol_today_true"},
         ],
