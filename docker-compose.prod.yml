@@ -60,6 +60,7 @@ services:
   gemma-runtime:
     container_name: gemma-runtime
     image: vllm/vllm-openai:latest
+    profiles: ["gpu"]
     env_file: envs/.prod.env
     restart: unless-stopped
     gpus: all
