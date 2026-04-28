@@ -1412,7 +1412,7 @@ function buildSmartChallenges(sleep, diet, exercise, challenges) {
     .map((c) => ({ template_id: `smart-${c.key}`, name: c.name, description: c.description, category: c.category }));
 }
 
-function SummarySection({ risk, history, summary, challenges, userData, statusData }) {
+function SummarySection({ risk, history, summary, challenges, userData, statusData, onUserDataUpdate }) {
   const [hoveredRegion, setHoveredRegion] = useState(null);
 
   const prediction = risk?.predicted_score_pct;
@@ -1485,7 +1485,7 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
           <ProfileCard
             userData={userData}
             statusData={statusData}
-            onUserDataUpdate={setUserData}
+            onUserDataUpdate={onUserDataUpdate}
           />
 
           {/* 건강 위험도 (다나와 모델) — 크게 강조 */}
@@ -2091,11 +2091,11 @@ function DashboardDetailTabs({ history, summary, challenges, risk }) {
   );
 }
 
-function DashboardOneScreen({ risk, history, summary, challenges, userData, statusData }) {
+function DashboardOneScreen({ risk, history, summary, challenges, userData, statusData, onUserDataUpdate }) {
   return (
     <section className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1">
-        <SummarySection risk={risk} history={history} summary={summary} challenges={challenges} userData={userData} statusData={statusData} />
+        <SummarySection risk={risk} history={history} summary={summary} challenges={challenges} userData={userData} statusData={statusData} onUserDataUpdate={onUserDataUpdate} />
       </div>
     </section>
   );
@@ -2235,7 +2235,7 @@ export default function ReportPage() {
               </Link>
             </section>
           ) : (
-            <DashboardOneScreen risk={risk} history={history} summary={summary} challenges={challenges} userData={userData} statusData={status} />
+            <DashboardOneScreen risk={risk} history={history} summary={summary} challenges={challenges} userData={userData} statusData={status} onUserDataUpdate={setUserData} />
           )}
         </main>
       </div>
