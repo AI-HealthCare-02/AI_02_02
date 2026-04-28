@@ -58,6 +58,9 @@ jobs:
           script: |
             cd ~/project
             export FASTAPI_IMAGE=ghcr.io/bijeng/danaa-fastapi:latest
+            docker compose -f docker-compose.prod.yml stop fastapi
+            docker compose -f docker-compose.prod.yml rm -f fastapi
+            docker rmi $FASTAPI_IMAGE || true
             docker compose -f docker-compose.prod.yml pull fastapi
             docker compose -f docker-compose.prod.yml up -d --no-deps fastapi
             docker image prune -af
