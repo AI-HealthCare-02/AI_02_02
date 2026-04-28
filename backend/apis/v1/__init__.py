@@ -10,6 +10,7 @@ from backend.apis.v1.onboarding_routers import onboarding_router
 from backend.apis.v1.push_routers import push_router
 from backend.apis.v1.recommendation_routers import recommendation_router
 from backend.apis.v1.risk_routers import risk_router
+from backend.apis.v1.saju_routers import saju_router
 from backend.apis.v1.settings_routers import settings_router
 from backend.apis.v1.user_routers import user_router
 
@@ -26,3 +27,4 @@ v1_routers.include_router(challenge_router)
 v1_routers.include_router(settings_router)
 v1_routers.include_router(recommendation_router)
 v1_routers.include_router(push_router)
+v1_routers.include_router(saju_router)

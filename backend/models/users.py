@@ -22,6 +22,7 @@ class User(models.Model):
     phone_number = fields.CharField(max_length=11, null=True)
     onboarding_completed = fields.BooleanField(default=False)
     onboarding_completed_at = fields.DatetimeField(null=True)
+    profile_image = fields.TextField(null=True)
     is_active = fields.BooleanField(default=True)
     is_admin = fields.BooleanField(default=False)
     last_login = fields.DatetimeField(null=True)

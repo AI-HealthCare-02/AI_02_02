@@ -126,8 +126,8 @@ function ChallengeVisualBadge({ visual, size = 24 }) {
 
 function TabBar({ activeTab, onChange, highlightSelection }) {
   return (
-    <div>
-      <div className="mx-auto flex max-w-[1080px] gap-1 px-6">
+    <div className="shrink-0 border-b border-[#E5E7EB] bg-white">
+      <div className="mx-auto flex w-full max-w-[1260px] gap-0 px-5">
         {CATEGORY_GROUPS.map((tab) => {
           const isActive = activeTab === tab.key;
           const shouldPulse = tab.key === 'select' && highlightSelection;
@@ -559,7 +559,7 @@ export default function ChallengePage() {
 
   return (
     <div className="theme-challenge-page flex h-full flex-col">
-      <header className="flex h-12 shrink-0 items-center px-4">
+      <header className="flex h-12 shrink-0 items-center border-b border-[#E5E7EB] bg-white px-4">
         <span className="text-[14px] font-medium text-nature-900">챌린지</span>
       </header>
       <TabBar activeTab={activeTab} onChange={setActiveTab} highlightSelection={activeChallenges.length === 0} />

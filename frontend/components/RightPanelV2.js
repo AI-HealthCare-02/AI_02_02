@@ -26,6 +26,10 @@ const MissedQuestionsModal = lazy(() => import('./MissedQuestionsModal'));
 // 호버/포커스 시 프리페치해 첫 클릭 지연 제거
 const prefetchMissedModal = () => import('./MissedQuestionsModal');
 
+// 사주 사이드 게임 섹션 — 독립 섹션 (CARD_REGISTRY 와 분리, v2.7)
+// Today 건강 기록 아래, 도전 챌린지 위에 조용히 배치. 번들 보호 목적으로 lazy.
+const SajuCardSection = lazy(() => import('./saju/SajuCardSection'));
+
 /**
  * RpRow · memo 추출 · activeCard 토글 시 2행만 리렌더
  */
@@ -52,7 +56,7 @@ const RpRow = memo(function RpRow({ cardDef, isActive, value, valueMuted, onClic
 /**
  * 요약 문장 생성 (log 기반 derived)
  * — 도메인 규칙: 의료 표현 금지 · 중립 톤
- * — boolean false(쉼/건너뜀/안 마심)도 "기록됨"으로 카운트
+ * — boolean false(쉬었어요/건너뛰었어요/안 마셨어요)도 "기록됨"으로 카운트
  */
 function buildSummaryLine(log) {
   if (!log) return '오늘 기록을 차근차근 쌓아볼까요?';
@@ -155,12 +159,12 @@ function displayValue(key, log) {
       return { value: `${done}/3`, muted: done === 0 };
     }
     case 'medication':
-      if (log.took_medication === true) return { value: '드셨음', muted: false };
-      if (log.took_medication === false) return { value: '건너뜀', muted: false };
+      if (log.took_medication === true) return { value: '드셨어요', muted: false };
+      if (log.took_medication === false) return { value: '건너뛰었어요', muted: false };
       return { value: null, muted: true };
     case 'exercise':
-      if (log.exercise_done === true) return { value: '했음', muted: false };
-      if (log.exercise_done === false) return { value: '쉼', muted: false };
+      if (log.exercise_done === true) return { value: '했어요', muted: false };
+      if (log.exercise_done === false) return { value: '쉬었어요', muted: false };
       return { value: null, muted: true };
     case 'water':
       if (log.water_cups != null && log.water_cups > 0) return { value: `${log.water_cups}잔`, muted: false };
@@ -170,10 +174,10 @@ function displayValue(key, log) {
       return { value: MOOD[log.mood_level] || null, muted: !log.mood_level };
     }
     case 'alcohol':
-      if (log.alcohol_today === false) return { value: '안 마심', muted: false };
+      if (log.alcohol_today === false) return { value: '안 마셨어요', muted: false };
       if (log.alcohol_today === true) {
         const AMT = { light: '가볍게', moderate: '보통', heavy: '많이' };
-        return { value: AMT[log.alcohol_amount_level] || '마심', muted: false };
+        return { value: AMT[log.alcohol_amount_level] || '마셨어요', muted: false };
       }
       return { value: null, muted: true };
     default:
@@ -237,7 +241,8 @@ export default function RightPanelV2({
       aria-label="Today 우측 패널"
       data-variant="v2"
     >
-      <div className="p-5 space-y-6">
+      {/* flex-col + min-h-full → 미응답 질문에 mt-auto 로 패널 하단 고정 가능 */}
+      <div className="p-5 flex flex-col gap-6 min-h-full">
         {/* ═══ 요약 카드 · Stone ═══ */}
         <div className="rp__head">
           <h4 className="rp__title">{t('rightPanel.title')}</h4>
@@ -254,49 +259,80 @@ export default function RightPanelV2({
           </div>
         </div>
 
-        {/* ═══ 카드 목록 ═══ */}
+        {/* ═══ 카드 목록 — 인라인 아코디언 (클릭한 카드 바로 아래 입력창 펼침) ═══
+            이전의 rp-fixed-input 180px 공간 예약을 제거해 챌린지·미응답이 모든 해상도에서
+            첫 화면에 노출되도록 함. 클릭한 row 바로 아래 rp-inline-input 이 조건부 렌더. */}
         <div ref={cardsSectionRef}>
           <div className="rp-rows" data-tutorial="today-cards">
             {visibleCards.map((c) => {
               const { value, muted } = displayValue(c.key, log);
+              const isActive = activeCard === c.key;
               return (
-                <RpRow
-                  key={c.key}
-                  cardDef={c}
-                  isActive={activeCard === c.key}
-                  value={value}
-                  valueMuted={muted}
-                  onClick={() => handleToggleCard(c.key)}
-                />
+                <div key={c.key} className="rp-row-wrap">
+                  <RpRow
+                    cardDef={c}
+                    isActive={isActive}
+                    value={value}
+                    valueMuted={muted}
+                    onClick={() => handleToggleCard(c.key)}
+                  />
+                  {isActive && (
+                    <div className="rp-inline-input">
+                      {c.key === 'sleep' && (
+                        <SleepPanel log={log} update={update} save={save} />
+                      )}
+                      {c.key === 'meal' && (
+                        <MealPanel log={log} update={update} save={save} />
+                      )}
+                      {c.key === 'medication' && (
+                        <MedicationPanel log={log} update={update} />
+                      )}
+                      {c.key === 'exercise' && (
+                        <ExercisePanelV2 log={log} update={update} save={save} />
+                      )}
+                      {c.key === 'water' && (
+                        <WaterPanelV2 log={log} update={update} />
+                      )}
+                      {c.key === 'mood' && (
+                        <MoodPanel log={log} update={update} />
+                      )}
+                      {c.key === 'alcohol' && (
+                        <AlcoholPanel
+                          log={log}
+                          updateAlcoholToday={updateAlcoholToday}
+                          updateAlcoholAmount={updateAlcoholAmount}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
 
-          {/* ═══ Fixed Slot (300px 예약) ═══ */}
-          <div className={`rp-fixed-input ${activeCard ? 'is-filled' : ''}`}>
-            {activeCard === 'sleep' && <SleepPanel log={log} update={update} save={save} />}
-            {activeCard === 'meal' && <MealPanel log={log} update={update} save={save} />}
-            {activeCard === 'medication' && visibleCards.some((c) => c.key === 'medication') && (
-              <MedicationPanel log={log} update={update} />
-            )}
-            {activeCard === 'exercise' && <ExercisePanelV2 log={log} update={update} save={save} />}
-            {activeCard === 'water' && <WaterPanelV2 log={log} update={update} />}
-            {activeCard === 'mood' && <MoodPanel log={log} update={update} />}
-            {activeCard === 'alcohol' && (
-              <AlcoholPanel
-                log={log}
-                updateAlcoholToday={updateAlcoholToday}
-                updateAlcoholAmount={updateAlcoholAmount}
-              />
-            )}
-          </div>
         </div>
+
+        {/* ═══ spacer A — 운세 카드 위 가변 여백 ═══
+            flex-1 · spacer B 와 합쳐 "남는 공간" 을 운세 위/아래 동일 비율로 분배. */}
+        <div className="flex-1" aria-hidden="true" />
+
+        {/* ═══ 사주 사이드 게임 — 패널 중앙에 배치 (v2.7 옵션 B + spacer 균등) ═══
+            cardsSectionRef 밖으로 이동 → flex-1 spacer 로 위아래 대칭 공간 분배 가능.
+            단 건강 카드 입력 중 사주 카드 클릭 시 activeCard 가 닫힘 (바깥 클릭 취급). */}
+        <Suspense fallback={null}>
+          <SajuCardSection />
+        </Suspense>
+
+        {/* ═══ spacer B — 운세 카드 아래 가변 여백 (A 와 동일) ═══ */}
+        <div className="flex-1" aria-hidden="true" />
 
         {/* ═══ 챌린지 ═══ */}
         {HabitsSection && <HabitsSection />}
 
-        {/* ═══ 미응답 질문 섹션 ═══ */}
-        <div>
+        {/* ═══ 미응답 질문 섹션 — subtitle + 카드 (원래 구조 복구) ═══
+            rp-missed-section 의 margin-bottom 32px 가 미응답 카드 top 을
+            AI 채팅 입력란 top 과 동일 y 라인에 정렬. */}
+        <div className="rp-missed-section">
           <div className="rp__subtitle">
             <span>{t('rightPanel.missed.title')}</span>
             <span className="rp__subtitle-action">{t('rightPanel.missed.action.recent3days')}</span>

@@ -207,6 +207,8 @@ class OnboardingStatusResponse(BaseModel):
     user_group: str | None = None
     gender: str | None = None
     age_range: str | None = None
+    height_cm: float | None = None
+    weight_kg: float | None = None
     bmi: float | None = None
     initial_findrisc_score: int | None = None
     initial_risk_level: str | None = None

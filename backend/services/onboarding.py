@@ -227,6 +227,8 @@ class OnboardingService:
                 user_group=profile.user_group if profile else None,
                 gender=profile.gender if profile else None,
                 age_range=profile.age_range if profile else None,
+                height_cm=profile.height_cm if profile else None,
+                weight_kg=profile.weight_kg if profile else None,
                 bmi=profile.bmi if profile else None,
                 initial_findrisc_score=profile.initial_findrisc_score if profile else None,
                 initial_risk_level=profile.initial_risk_level if profile else None,

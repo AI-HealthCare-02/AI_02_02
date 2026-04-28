@@ -7,7 +7,6 @@ import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
 import VideoRecommendations from '../../../components/VideoRecommendations';
 import { api, getToken } from '../../../hooks/useApi';
-import { formatUserGroupLabel } from '../../../lib/userGroupLabels';
 
 /* ── Right Panel V2 (리디자인) · 기본 활성화 / env 값 0일 때만 비활성화 ── */
 const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
@@ -132,11 +131,11 @@ const SLEEP_LABELS = {
   over_8: '8시간 이상',
 };
 const SLEEP_QUALITY_LABELS = {
-  very_good: '아주 좋음',
-  good: '좋음',
-  normal: '보통',
-  bad: '나쁨',
-  very_bad: '아주 나쁨',
+  very_good: '푹 잤어요',
+  good: '잘 잤어요',
+  normal: '조금 뒤척였어요',
+  bad: '자주 깼어요',
+  very_bad: '거의 못 잤어요',
 };
 const MEAL_LABELS = { hearty: '먹었어요', simple: '먹었어요', skipped: '못 먹었어요' };
 const EXERCISE_TYPES = {
@@ -154,9 +153,9 @@ const HEALTH_OPTION_LABELS = {
   ...SLEEP_QUALITY_LABELS,
   ...MEAL_LABELS,
   ...EXERCISE_TYPES,
-  very_good: '아주 좋음',
-  good: '좋음',
-  normal: '보통',
+  very_good: '푹 잤어요',
+  good: '잘 잤어요',
+  normal: '조금 뒤척였어요',
   enough: '충분히 먹었어요',
   little: '조금 먹었어요',
   none: '거의 못 먹었어요',
@@ -190,14 +189,12 @@ function getHealthOptionLabel(option) {
   return stripDisplayEmoji(HEALTH_OPTION_LABELS[option] || String(option).replaceAll('_', ' '));
 }
 
-function ClinicalMark({ label, className = '' }) {
-  return (
-    <span
-      className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-md bg-cream-400 px-2 text-[10px] font-semibold tracking-[0.12em] text-neutral-500 ${className}`}
-    >
-      {label}
-    </span>
-  );
+// ClinicalMark · 각 health panel 의 상단 약자 원형 마크 (SL / AM / NO / PM / VG / BL / EX / WK / WA / CH / Q …)
+// 2026-04-23: 인라인 아코디언 전환 후 시각적으로 과도하게 노출돼 제거. 프로젝트 전반에 영향 0
+// (이 함수는 chat/page.js 내부 전용으로, 모든 사용 지점이 이 파일 안에만 있음).
+// 추후 필요 시 label 을 다시 렌더하려면 원래 구현 복원.
+function ClinicalMark() {
+  return null;
 }
 
 function normalizeMissingSummary(rawSummary) {
@@ -1536,11 +1533,11 @@ const sendMessage = useCallback(async () => {
   const exerciseVal = log.exercise_done === true ? '✓' : log.exercise_done === false ? '✗' : null;
   const waterVal = log.water_cups > 0 ? `${log.water_cups}잔` : null;
   const moodVal = log.mood_level ? getHealthOptionLabel(log.mood_level).replace('아주 ', '') : null;
-  const medicationVal = log.took_medication === true ? '완료' : log.took_medication === false ? '건너뜀' : null;
+  const medicationVal = log.took_medication === true ? '완료' : log.took_medication === false ? '건너뛰었어요' : null;
   const alcoholVal = log.alcohol_today === false
-    ? '안 마심'
+    ? '안 마셨어요'
     : log.alcohol_today === true
-      ? (log.alcohol_amount_level ? getHealthOptionLabel(log.alcohol_amount_level) : '음주')
+      ? (log.alcohol_amount_level ? getHealthOptionLabel(log.alcohol_amount_level) : '마셨어요')
       : null;
 
   const alcoholCardVal = log.alcohol_today === false
@@ -1621,7 +1618,7 @@ const sendMessage = useCallback(async () => {
                       <div className="text-[15px] leading-[1.75] text-nature-900">
                         안녕하세요! 다나아 AI입니다.<br />
                         {risk?.group && <>
-                          <strong>{risk.group}그룹</strong>({risk.groupLabel || formatUserGroupLabel(risk.group)})이시네요.
+                          설문 결과가 반영되어 있어요.
                           {risk.levelLabel && <> 현재 위험도는 <strong>{risk.levelLabel}</strong> 단계예요.</>}
                           <br />
                         </>}
@@ -1894,11 +1891,11 @@ function SleepPanel({ log, update }) {
     { key: 'over_8', label: '8h 이상' },
   ];
   const qualities = [
-    { key: 'very_good', label: '아주 좋음' },
-    { key: 'good', label: '좋음' },
-    { key: 'normal', label: '보통' },
-    { key: 'bad', label: '나쁨' },
-    { key: 'very_bad', label: '아주 나쁨' },
+    { key: 'very_good', label: '푹 잤어요' },
+    { key: 'good', label: '잘 잤어요' },
+    { key: 'normal', label: '조금 뒤척였어요' },
+    { key: 'bad', label: '자주 깼어요' },
+    { key: 'very_bad', label: '거의 못 잤어요' },
   ];
   const durationLocked = false;
   const qualityLocked = false;

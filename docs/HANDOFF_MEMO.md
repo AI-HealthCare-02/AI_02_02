@@ -1,5 +1,417 @@
 # Handoff Memo
 
+## 2026-04-25 Local Workspace Consolidation Handoff
+
+### Current Branch / Workspace State
+
+- Current local branch:
+  - `fix/bj_health-question-panel-polish`
+- The local workspace is no longer limited to the original health-question-panel polish scope.
+- Report dashboard/detail redesign work is currently mixed into this branch locally.
+- This means the branch name no longer reflects the actual working-tree contents.
+
+### Current Modified Files
+
+Tracked modified files:
+
+- `backend/dtos/onboarding.py`
+- `backend/services/onboarding.py`
+- `docs/HANDOFF_MEMO.md`
+- `docs/collaboration/model/design/NON_DIABETIC_TRACK_SCORE_DESIGN.md`
+- `frontend/app/app/challenge/page.js`
+- `frontend/app/app/report/detail/page.js`
+- `frontend/app/app/report/page.js`
+- `frontend/components/Sidebar.js`
+
+Untracked files currently present:
+
+- `.aerich_models_state.txt`
+- `frontend/app/app/report/detail/page.backup-before-report-redesign.js`
+- `frontend/app/app/report/page.backup-before-report-redesign.js`
+- `frontend/public/body-anatomy.png`
+- `frontend/public/human-body.jpg`
+- `frontend/public/report-dashboard.png`
+- `human.eps`
+- `human.jpg`
+- several root-level image reference files with Korean names
+
+### What Changed Since The 2026-04-24 Memo
+
+#### 1. Report Dashboard (`frontend/app/app/report/page.js`)
+
+- The dashboard was iterated further beyond the earlier human-centered composition pass.
+- Left-side content was reworked again toward:
+  - editable profile card
+  - optional profile image upload preview
+  - health prediction score section
+  - FINDRISC score section
+  - lifestyle score section with hover insight popups
+- Additional helper components and legacy in-file variants remain present.
+- The file is now very large and contains multiple generations of dashboard implementations:
+  - `LegacyBodyInsightPanel`
+  - `LegacySummarySection`
+  - `LegacySummarySectionCompact`
+  - current `SummarySection`
+
+#### 2. Report Detail (`frontend/app/app/report/detail/page.js`)
+
+- The detail page was also heavily redesigned.
+- The diff indicates a broader rewrite rather than minor follow-up edits.
+- Newer structure includes:
+  - session cache support for detail data
+  - one-screen detail dashboard treatment
+  - reorganized summary/trend/lifestyle/challenge sections
+  - use of `DashboardOneScreen` style composition
+- This file should be treated as an active redesign surface and reviewed visually before any commit.
+
+#### 3. Onboarding DTO / Service
+
+- `backend/dtos/onboarding.py`
+- `backend/services/onboarding.py`
+
+Added profile fields to onboarding status response:
+
+- `height_cm`
+- `weight_kg`
+
+This appears intended to support richer report/profile presentation in the frontend.
+
+#### 4. Challenge / Sidebar
+
+- `frontend/app/app/challenge/page.js`
+  - tab/header wrapper styling adjusted to align with the newer report/dashboard visual language
+- `frontend/components/Sidebar.js`
+  - newline-only / formatting-level change
+
+### Verification Status
+
+Frontend production build passed during the report redesign session:
+
+```bash
+cd frontend
+npm run build
+```
+
+No current backend-specific test verification was re-run in this handoff step.
+
+### Important Risk Notes
+
+1. Branch mismatch risk
+
+- The current branch name suggests a focused UX polish PR, but the working tree now contains large report redesign work.
+- Do not push/merge this branch casually without deciding whether to:
+  - split report work into a new branch, or
+  - intentionally expand the existing PR scope
+
+2. Large in-file legacy accumulation
+
+- `frontend/app/app/report/page.js` now contains multiple legacy/current variants in one file.
+- Before final merge, it would be safer to:
+  - visually approve the chosen implementation
+  - remove dead/legacy variants if possible
+
+3. Untracked local artifacts
+
+- `.aerich_models_state.txt` must still remain uncommitted.
+- Root-level local reference images should be reviewed before commit.
+- Backup JS files under `frontend/app/app/report/` should only be committed if intentionally preserved.
+
+### Recommended Next Action
+
+1. Decide branch strategy first.
+   - safest option: move report redesign work to a dedicated branch
+2. Visually verify both:
+   - `/app/report`
+   - `/app/report/detail`
+3. Review whether the new profile-card pattern is actually the intended final UX.
+4. Clean or isolate untracked assets before staging.
+5. Only then prepare commit(s) and PR description.
+
+## 2026-04-24 Report Dashboard Human-Centered Composition Handoff
+
+### Current Working State
+
+- The `/app/report` dashboard was further reworked after the one-screen redesign.
+- Main edited file:
+  - `frontend/app/app/report/page.js`
+- Supporting image asset now used by the center visual:
+  - `frontend/public/human-body.jpg`
+- Older in-file versions remain present as fallback/reference components:
+  - `LegacyBodyInsightPanel`
+  - `LegacySummarySection`
+- Local Aerich artifact remains untracked and should not be committed:
+  - `.aerich_models_state.txt`
+
+### User Goal
+
+The user no longer wanted a simple three-column dashboard with a body image in the middle.
+
+Target UX for `/app/report` is now:
+
+- The human visual should feel like the main product feature.
+- Left/right cards should support the body visual, not compete with it.
+- The dashboard should feel like a clean medical SaaS product, not a report page or demo mockup.
+- The center visual should support:
+  - hover tooltip on body points
+  - click selection state
+  - selected region detail card
+- Avoid duplicated score cards in the center.
+- Avoid overly flashy effects; prefer restrained depth and product polish.
+
+### What Was Changed
+
+- Reworked `SummarySection` into a more composition-driven layout:
+  - left: health risk score, diabetes risk, trend preview
+  - center: enlarged body insight panel
+  - right: lifestyle cards and recommended actions
+- Added a new `BodyInsightPanel` implementation and kept the previous one in-file as:
+  - `LegacyBodyInsightPanel`
+- Added a new summary layout implementation and kept the previous one in-file as:
+  - `LegacySummarySection`
+- Center body visual now uses the existing raster asset:
+  - `/human-body.jpg`
+- Body visual interaction supports:
+  - hover-only tooltip
+  - click-to-select point state
+  - selected region detail card
+- Increased body image prominence:
+  - image height set around `560px`
+  - center panel min height increased
+- Added stronger but then toned-down UI treatment after user feedback:
+  - soft radial background glow
+  - body image drop shadow
+  - point ring/glow/dot structure
+- Final pass reduced the effect intensity after the user reported it looked worse:
+  - glow strength reduced
+  - point scale/glow reduced
+  - selected region card moved back below the body visual for a calmer layout
+- Left-side hierarchy was improved:
+  - main risk card shadow increased
+  - graph card background differentiated slightly
+
+### Verification Already Done
+
+Frontend production build passed after the latest 2026-04-24 changes:
+
+```bash
+cd frontend
+npm run build
+```
+
+Build result:
+
+- `/app/report` compiled successfully.
+- No Next.js build errors.
+
+### Important Follow-Up Checks
+
+Manual browser validation is still required. This work is highly visual and the final quality depends on real viewport inspection.
+
+Check `/app/report` at:
+
+- desktop width around 1280-1440px
+- laptop height around 720-900px
+- at least one narrower layout breakpoint
+
+Specific things to verify:
+
+- The human visual reads as the main focal element.
+- Left/right cards feel attached to the central composition instead of three isolated columns.
+- Tooltip position feels anchored to the body points.
+- Selected region card spacing below the image feels intentional.
+- Glow and marker effects are visible but not distracting.
+- The body image does not feel boxed in by an obvious rectangular panel.
+- No awkward overlap between center visual and surrounding cards.
+
+### Known Risk / Likely Next Fix
+
+This is much closer to the target direction, but it is still likely to need a final visual polish pass.
+
+Most likely next fixes:
+
+- fine-tune point coordinates by 1-2%
+- reduce or increase body image height slightly depending on actual viewport fit
+- tighten spacing between the body visual and the selected-region card
+- further normalize card density if left/right columns still feel heavier than the center
+
+Do not add more visual effects by default. The latest feedback was that the previous pass became too flashy and less product-like. The correct direction now is restraint and spacing polish, not more decoration.
+
+### Dev Environment Note
+
+During this session, a `ChunkLoadError` appeared in local dev for:
+
+- `components/RightPanelV2`
+
+Error shape:
+
+```text
+ChunkLoadError: Loading chunk _app-pages-browser_components_RightPanelV2_js failed.
+(error: http://localhost:3000/_next/undefined)
+```
+
+This did **not** come from a broken import introduced in report code. It appears to be a local Next.js dev-server/browser chunk cache mismatch.
+
+Recommended local recovery:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Then fully reload the browser tab. If needed, clear localhost site data and restart the dev server again.
+
+### Suggested Next Action
+
+1. Run the frontend locally and inspect `/app/report` in browser.
+2. Do one final polish pass focused only on:
+   - spacing
+   - point coordinates
+   - effect intensity
+3. Avoid structural rewrites unless the user changes direction again.
+4. After visual approval, remove or clean up legacy in-file components if desired.
+5. Commit the finalized report dashboard changes deliberately after checking `git status --short`.
+
+## 2026-04-23 Report Dashboard One-Screen Redesign Handoff
+
+### Current Working State
+
+- Dashboard redesign work is in progress on the local workspace.
+- Main edited file:
+  - `frontend/app/app/report/page.js`
+- Related files still marked modified from the broader report redesign session:
+  - `frontend/app/app/report/detail/page.js`
+  - `frontend/components/Sidebar.js`
+- Backup files created before the redesign:
+  - `frontend/app/app/report/page.backup-before-report-redesign.js`
+  - `frontend/app/app/report/detail/page.backup-before-report-redesign.js`
+- Local Aerich artifact remains untracked and should not be committed:
+  - `.aerich_models_state.txt`
+
+### User Goal
+
+The report dashboard should feel like a single-screen health dashboard, not a long report page.
+
+Target UX:
+
+- No long page scroll on `/app/report`.
+- Top dashboard fits into one screen below header/tabs.
+- Three-column layout:
+  - left: risk score, key signals, recent change
+  - center: larger human/body visual with health dots
+  - right: recommended actions and challenges
+- Human/body dots must show detail on hover or click.
+- Lower details should be inside tabs/accordion-like panel:
+  - risk trend
+  - lifestyle
+  - challenge
+- Text must not be cut off. Prefer two-line clamping or compact wrapping over hard truncation.
+
+### What Was Changed
+
+- Replaced long stacked dashboard rendering with a one-screen wrapper:
+  - `DashboardOneScreen`
+  - `DashboardDetailTabs`
+- `/app/report` now renders:
+  - `SummarySection`
+  - `DashboardDetailTabs`
+- Removed dashboard calls to the long sections from the main render path:
+  - `TrendSection`
+  - `FactorSection`
+  - `LifestyleSection`
+  - `ChallengeSection`
+- The old section components are still present in the file but are no longer used by the dashboard page.
+- Page container changed to avoid long scroll:
+  - dashboard page body uses `overflow-hidden`
+  - main area uses full height flex layout
+- Added hover/click/focus popups to body visual dots:
+  - FINDRISC
+  - Danaa model
+  - exercise
+  - diet
+  - sleep
+- Increased lower tab content height:
+  - from `h-[150px] overflow-hidden`
+  - to `h-[190px] overflow-visible`
+- Replaced some hard `truncate` usage in the lower challenge/action panel with `line-clamp-2`.
+
+### Verification Already Done
+
+Frontend production build passed:
+
+```bash
+cd frontend
+npm run build
+```
+
+Build result:
+
+- `/app/report` compiled successfully.
+- No Next.js build errors.
+
+### Important Follow-Up Checks
+
+Manual browser check is still required because this is layout-heavy work.
+
+Check `/app/report` at:
+
+- desktop width around 1200-1440px
+- smaller laptop height around 720-800px
+- mobile/tablet if the page must remain usable there
+
+Specific things to verify:
+
+- No vertical page scroll in the intended desktop viewport.
+- Header and report tabs remain visible.
+- Human/body dots show a popup on hover.
+- Human/body dots also toggle popup on click.
+- Popup does not escape awkwardly or cover critical text.
+- Lower tab labels are readable.
+- Challenge/action text is not cut off.
+- Lower panel does not overlap the main dashboard card.
+- If viewport height is too small, decide whether to allow internal panel scroll rather than page scroll.
+
+### Known Risk / Likely Next Fix
+
+The current design forces a one-screen layout. On short laptop screens, one of these may still be necessary:
+
+- reduce vertical padding in `SummarySection`
+- reduce `BodyInsight` SVG height again
+- lower `DashboardDetailTabs` height
+- allow only the lower tab content to scroll internally
+
+Do not reintroduce a long full-page scroll unless the user approves it. The user's stated preference is a compact dashboard with details behind hover/click/tabs.
+
+### Current Git Status Notes
+
+Before committing, inspect and stage deliberately:
+
+```bash
+git status --short
+```
+
+Expected relevant changes:
+
+- `frontend/app/app/report/page.js`
+- `frontend/app/app/report/detail/page.js`
+- `frontend/components/Sidebar.js`
+- backup files under `frontend/app/app/report/`
+
+Do not commit:
+
+- `.aerich_models_state.txt`
+
+### Suggested Next Action
+
+1. Run the app locally and visually inspect `/app/report`.
+2. If the dashboard still feels cramped:
+   - shrink body visual slightly
+   - convert right/left panel long lists into hover/click detail popovers
+   - keep only 2 visible action/challenge rows, with a "more" popup.
+3. After visual approval, clean up unused old section components if desired.
+4. Commit the final dashboard redesign on a dedicated branch.
+
+---
+
 ## 2026-04-22 Next-Day Handoff: Web Push Prod Setup After Merge
 
 ### Current Branch / PR
