@@ -86,6 +86,7 @@ VEGETABLE_SCORE = {"enough": 30, "little": 15, "none": 0}
 BALANCE_SCORE = {"balanced": 30, "protein_veg_heavy": 20, "carb_heavy": 10}
 SWEETDRINK_SCORE = {"none": 20, "one": 10, "two_plus": 0}
 NIGHTSNACK_SCORE = {"none": 20, "light": 10, "heavy": 0}
+MEAL_REGULARITY_SCORE = {"hearty": 100, "simple": 100, "skipped": 0}
 
 
 def _detail_factors(
@@ -494,22 +495,7 @@ class RiskAnalysisService:
         count = 0
 
         for log in logs:
-            day_score = 0
-            has_data = False
-
-            if log.vegetable_intake_level:
-                day_score += VEGETABLE_SCORE.get(log.vegetable_intake_level, 0)
-                has_data = True
-            if log.meal_balance_level:
-                day_score += BALANCE_SCORE.get(log.meal_balance_level, 0)
-                has_data = True
-            if log.sweetdrink_level:
-                day_score += SWEETDRINK_SCORE.get(log.sweetdrink_level, 0)
-                has_data = True
-            if log.nightsnack_level:
-                day_score += NIGHTSNACK_SCORE.get(log.nightsnack_level, 0)
-                has_data = True
-
+            day_score, has_data = RiskAnalysisService._calc_diet_day_score(log)
             if has_data:
                 total += day_score
                 count += 1
@@ -519,6 +505,37 @@ class RiskAnalysisService:
 
         # 만점 = 30+30+20+20 = 100
         return max(0, min(100, round(total / count)))
+
+    @staticmethod
+    def _calc_diet_day_score(log: DailyHealthLog) -> tuple[int, bool]:
+        day_score = 0
+        has_data = False
+
+        score_parts = (
+            (log.vegetable_intake_level, VEGETABLE_SCORE),
+            (log.meal_balance_level, BALANCE_SCORE),
+            (log.sweetdrink_level, SWEETDRINK_SCORE),
+            (log.nightsnack_level, NIGHTSNACK_SCORE),
+        )
+
+        for value, score_map in score_parts:
+            if not value:
+                continue
+            day_score += score_map.get(value, 0)
+            has_data = True
+
+        if has_data:
+            return day_score, True
+
+        meal_values = [log.breakfast_status, log.lunch_status, log.dinner_status]
+        filled_meals = [value for value in meal_values if value]
+        if not filled_meals:
+            return 0, False
+
+        return (
+            round(sum(MEAL_REGULARITY_SCORE.get(value, 0) for value in filled_meals) / len(meal_values)),
+            True,
+        )
 
     @staticmethod
     def _calc_exercise_score(logs: list[DailyHealthLog]) -> int:

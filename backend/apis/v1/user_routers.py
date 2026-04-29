@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import ORJSONResponse as Response
 
 from backend.dependencies.security import get_request_user
-from backend.dtos.users import UserInfoResponse, UserUpdateRequest
+from backend.dtos.users import UserInfoResponse, UserMeasurementsUpdateRequest, UserUpdateRequest
 from backend.models.users import User
 from backend.services.users import UserManageService
 
@@ -34,6 +34,33 @@ async def update_user_me_info(
     updated_user = await user_manage_service.update_user(user=user, data=update_data)
     return Response(
         UserInfoResponse.model_validate(updated_user).model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@user_router.patch("/me/measurements", status_code=status.HTTP_200_OK)
+async def update_user_measurements(
+    update_data: UserMeasurementsUpdateRequest,
+    user: Annotated[User, Depends(get_request_user)],
+) -> Response:
+    """키·몸무게 업데이트 (BMI 자동 재계산)."""
+    from backend.models.health import HealthProfile
+
+    profile = await HealthProfile.get_or_none(user_id=user.id)
+
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="건강 프로필이 없습니다. 온보딩을 먼저 완료해 주세요.")
+
+    if update_data.height_cm is not None:
+        profile.height_cm = update_data.height_cm
+    if update_data.weight_kg is not None:
+        profile.weight_kg = update_data.weight_kg
+
+    profile.bmi = round(profile.weight_kg / (profile.height_cm / 100) ** 2, 1)
+    await profile.save(update_fields=["height_cm", "weight_kg", "bmi"])
+
+    return Response(
+        {"height_cm": profile.height_cm, "weight_kg": profile.weight_kg, "bmi": profile.bmi},
         status_code=status.HTTP_200_OK,
     )
 

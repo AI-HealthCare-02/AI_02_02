@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle2, Droplets, Dumbbell, Footprints, GlassWater, Leaf, Loader2, Medal, Moon, Pill, Sparkles, Soup, Trophy, Utensils, Wine, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, ArrowRight, Candy, CheckCircle2, Clock, Coffee, Droplets, Dumbbell, Footprints, GlassWater, Leaf, Loader2, Medal, Moon, PhoneOff, Pill, Sparkles, Soup, Timer, Trophy, Utensils, Wine, X } from 'lucide-react';
 
 import { api } from '../../../hooks/useApi';
 
@@ -78,40 +78,62 @@ function badgeAchievementText(item) {
   return `누적 ${count}회 달성`;
 }
 
+function normalizeChallengeLabel(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+function challengeListKey(item) {
+  const category = String(item?.category || 'misc').toLowerCase();
+  const normalizedName = normalizeChallengeLabel(item?.name);
+  if (normalizedName) return `${category}:${normalizedName}`;
+  const normalizedCode = normalizeChallengeLabel(item?.code);
+  if (normalizedCode) return `${category}:${normalizedCode}`;
+  return `${category}:${item?.template_id ?? 'unknown'}`;
+}
+
+function dedupeChallengeItems(items) {
+  const seen = new Set();
+  return (Array.isArray(items) ? items : []).filter((item) => {
+    const key = challengeListKey(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function challengeVisual(item) {
   const raw = `${item?.name || ''} ${item?.code || ''}`.toLowerCase();
+  const s = (icon) => ({ icon, shell: 'bg-[#F7F4EF] text-[#6F665C]' });
 
-  if (raw.includes('water_6cups') || raw.includes('water') || raw.includes('물') || item?.category === 'hydration') {
-    return { icon: Droplets, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  // '걷기' 가 '운동' 보다 먼저 매치돼야 Footprints 아이콘이 적용됨 (한글 이름 대응)
-  if (raw.includes('daily_walk_30min') || raw.includes('walk') || raw.includes('걷기')) {
-    return { icon: Footprints, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('exercise_150min') || raw.includes('exercise') || raw.includes('운동') || item?.category === 'exercise') {
-    return { icon: Dumbbell, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('sleep') || raw.includes('수면') || item?.category === 'sleep') {
-    return { icon: Moon, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('alcohol') || raw.includes('drink_less_alcohol') || raw.includes('음주') || raw.includes('술')) {
-    return { icon: Wine, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('약') || raw.includes('medication') || item?.category === 'medication') {
-    return { icon: Pill, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('vegetable_3servings') || raw.includes('채소') || raw.includes('vegetable') || raw.includes('salad')) {
-    return { icon: Leaf, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('no_sweetdrink') || raw.includes('sweetdrink') || raw.includes('soda') || raw.includes('단음료')) {
-    return { icon: GlassWater, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('no_nightsnack') || raw.includes('nightsnack') || raw.includes('야식')) {
-    return { icon: Soup, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
-  if (raw.includes('식') || raw.includes('meal') || raw.includes('diet') || item?.category === 'diet') {
-    return { icon: Utensils, shell: 'bg-[#F7F4EF] text-[#6F665C]' };
-  }
+  // ── 수분 (겹치는 순서 주의: 구체 → 일반) ──────────────────────
+  if (raw.includes('water_before_meal') || raw.includes('식전 물')) return s(GlassWater);
+  if (raw.includes('herbal_tea') || raw.includes('무가당') || raw.includes('차 마시')) return s(Coffee);
+  if (raw.includes('no_sweetdrink') || raw.includes('sweetdrink') || raw.includes('단음료')) return s(X);
+  if (raw.includes('water') || raw.includes('물') || item?.category === 'hydration') return s(Droplets);
+
+  // ── 운동 (걷기·스트레칭 먼저, 150분·일반 운동 구분) ────────────
+  if (raw.includes('walk') || raw.includes('걷기')) return s(Footprints);
+  if (raw.includes('stretch') || raw.includes('스트레칭')) return s(Activity);
+  if (raw.includes('150분') || raw.includes('exercise_150min')) return s(Activity);
+  if (raw.includes('exercise') || raw.includes('유산소') || raw.includes('운동') || item?.category === 'exercise') return s(Dumbbell);
+
+  // ── 수면 ──────────────────────────────────────────────────────
+  if (raw.includes('consistent_bedtime') || raw.includes('규칙적 취침') || raw.includes('bedtime')) return s(Clock);
+  if (raw.includes('no_phone') || raw.includes('스마트폰') || raw.includes('phone')) return s(PhoneOff);
+  if (raw.includes('sleep') || raw.includes('수면') || raw.includes('숙면') || item?.category === 'sleep') return s(Moon);
+
+  // ── 식습관 ────────────────────────────────────────────────────
+  if (raw.includes('no_nightsnack') || raw.includes('야식')) return s(Soup);
+  if (raw.includes('채소') || raw.includes('vegetable')) return s(Leaf);
+  if (raw.includes('식') || raw.includes('meal') || raw.includes('diet') || item?.category === 'diet') return s(Utensils);
+
+  // ── 기타 ──────────────────────────────────────────────────────
+  if (raw.includes('alcohol') || raw.includes('음주') || raw.includes('술')) return s(Wine);
+  if (raw.includes('약') || raw.includes('medication') || item?.category === 'medication') return s(Pill);
+
   return { icon: Sparkles, shell: 'bg-[#F7F4EF] text-[#6C635A]' };
 }
 
@@ -372,6 +394,7 @@ export default function ChallengePage() {
   const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingActive, setEditingActive] = useState(false);
+  const joinInFlightRef = useRef(new Set());
 
   const loadOverview = useCallback(async () => {
     setError('');
@@ -408,8 +431,8 @@ export default function ChallengePage() {
 
   const activeChallenges = Array.isArray(overview?.active) ? overview.active : [];
   const earnedBadges = Array.isArray(overview?.badges) ? overview.badges : [];
-  const recommendedChallenges = Array.isArray(overview?.recommended) ? overview.recommended : [];
-  const catalog = Array.isArray(overview?.catalog) ? overview.catalog : [];
+  const recommendedChallenges = useMemo(() => dedupeChallengeItems(overview?.recommended), [overview?.recommended]);
+  const catalog = useMemo(() => dedupeChallengeItems(overview?.catalog), [overview?.catalog]);
   const stats = overview?.stats || {};
 
   const activeCount = Number(stats.active_count || activeChallenges.length || 0);
@@ -469,6 +492,8 @@ export default function ChallengePage() {
 
   const joinChallenge = useCallback(async (templateId) => {
     const numericId = Number(templateId);
+    if (joinInFlightRef.current.has(numericId)) return;
+    joinInFlightRef.current.add(numericId);
     setBusyKey(`join:${numericId}`);
     setError('');
 
@@ -481,6 +506,7 @@ export default function ChallengePage() {
     } catch (nextError) {
       setError(nextError.message || '챌린지를 시작하지 못했어요.');
     } finally {
+      joinInFlightRef.current.delete(numericId);
       setBusyKey('');
     }
   }, [loadOverview]);

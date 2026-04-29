@@ -2486,7 +2486,7 @@ function UnansweredQuestionsSection({ pendingSummary, hasLiveHealthCard, onJumpT
 function ExercisePanelV2({ log, update, save }) {
   const types = [
     { key: 'walking', label: '걷기 산책' },
-    { key: 'running', label: '달리기' },
+    { key: 'running', label: '러닝' },
     { key: 'cycling', label: '자전거' },
     { key: 'swimming', label: '수영' },
     { key: 'gym', label: '헬스' },
@@ -2518,28 +2518,12 @@ function ExercisePanelV2({ log, update, save }) {
     return (
       <div className="bg-cream-300 rounded-xl p-4.5 mb-4 text-center">
         <div className="text-[17px] mb-2.5">운동</div>
-        <div className="text-[16px] font-medium text-nature-900 mb-3.5">오늘 운동 하셨나요?</div>
-        <div className="flex gap-2 justify-center">
-          <button
-            onClick={() => update('exercise_done', true)}
-            disabled={exerciseDoneLocked}
-            className={`px-4 py-2 rounded-full text-[14px] border transition-all ${
-              exerciseDoneLocked
-                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
-                : 'bg-nature-500 text-white border-nature-500'
-            }`}
-          >
+        <div className="text-[16px] font-medium text-nature-900 mb-3.5">오늘 운동 하셨어요?</div>
+        <div className="flex justify-center gap-2">
+          <button onClick={() => update('exercise_done', true)} disabled={exerciseDoneLocked} className={`px-4 py-2 rounded-full text-[14px] border transition-all ${exerciseDoneLocked ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-nature-500 text-white border-nature-500'}`}>
             했어요
           </button>
-          <button
-            onClick={() => update('exercise_done', false)}
-            disabled={exerciseDoneLocked}
-            className={`px-4 py-2 rounded-full text-[14px] border transition-all ${
-              exerciseDoneLocked
-                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
-                : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
-            }`}
-          >
+          <button onClick={() => update('exercise_done', false)} disabled={exerciseDoneLocked} className={`px-4 py-2 rounded-full text-[14px] border transition-all ${exerciseDoneLocked ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
             못 했어요
           </button>
         </div>
@@ -2550,48 +2534,24 @@ function ExercisePanelV2({ log, update, save }) {
   if (log.exercise_done === false) {
     return (
       <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
-        {panelLocked && (
-          <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
-            이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.
-          </div>
-        )}
-        <div className="flex items-center gap-2 mb-3">
+        {panelLocked && <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.</div>}
+        <div className="mb-3 flex items-center gap-2">
           <span className="text-[16px]">운동</span>
           <span className="text-[15px] font-medium text-nature-900">오늘 운동은 하지 않았어요</span>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => save({ ...log, exercise_done: true, exercise_type: null, exercise_minutes: null })}
-            disabled={exerciseDoneLocked}
-            className={`px-3.5 py-1.5 rounded-full text-[14px] border transition-all ${
-              exerciseDoneLocked
-                ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
-                : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'
-            }`}
-          >
-            운동함으로 바꾸기
+          <button onClick={() => save({ ...log, exercise_done: true, exercise_type: null, exercise_minutes: null })} disabled={exerciseDoneLocked} className={`px-3.5 py-1.5 rounded-full text-[14px] border transition-all ${exerciseDoneLocked ? 'bg-cream-400/70 border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
+            운동했어요로 바꾸기
           </button>
         </div>
-        <div className="border-t border-cream-500 mt-4 pt-4">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="mt-4 border-t border-cream-500 pt-4">
+          <div className="mb-2 flex items-center gap-2">
             <span className="text-[16px]">걷기</span>
-            <span className="text-[15px] font-medium text-nature-900">오늘 산책이나 걷기 하셨나요?</span>
+            <span className="text-[15px] font-medium text-nature-900">오늘 산책이나 걷기 하셨어요?</span>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => update('walk_done', true)}
-              disabled={walkLocked}
-              className={pillClass(log.walk_done === true, walkLocked)}
-            >
-              했어요
-            </button>
-            <button
-              onClick={() => update('walk_done', false)}
-              disabled={walkLocked}
-              className={pillClass(log.walk_done === false, walkLocked)}
-            >
-              못 했어요
-            </button>
+            <button onClick={() => update('walk_done', true)} disabled={walkLocked} className={pillClass(log.walk_done === true, walkLocked)}>했어요</button>
+            <button onClick={() => update('walk_done', false)} disabled={walkLocked} className={pillClass(log.walk_done === false, walkLocked)}>못 했어요</button>
           </div>
         </div>
       </div>
@@ -2599,84 +2559,39 @@ function ExercisePanelV2({ log, update, save }) {
   }
 
   return (
-      <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
-      {panelLocked && (
-        <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">
-          이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.
-        </div>
-      )}
-      <div className="text-[14px] text-neutral-400 mb-2.5">운동 종류</div>
-      <div className="flex flex-wrap gap-2 mb-4">
+    <div className={`bg-cream-300 rounded-xl p-4.5 mb-4 ${panelLocked ? 'opacity-70' : ''}`}>
+      {panelLocked && <div className="mb-3 rounded-xl bg-cream-400 px-3.5 py-3 text-[14px] leading-[1.55] text-neutral-400">이미 저장된 운동 기록은 오늘 화면에서 다시 바뀌지 않아요.</div>}
+      <div className="mb-2.5 text-[14px] text-neutral-400">운동 종류</div>
+      <div className="mb-4 flex flex-wrap gap-2">
         {types.map((type) => (
-          <button
-            key={type.key}
-            onClick={() => update('exercise_type', type.key)}
-            disabled={exerciseTypeLocked}
-            className={`px-2.5 py-1.5 rounded-full text-[14px] transition-all ${
-              log.exercise_type === type.key
-                ? 'bg-nature-500 text-white border border-nature-500'
-                : exerciseTypeLocked
-                  ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed'
-                  : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'
-            }`}
-          >
+          <button key={type.key} onClick={() => update('exercise_type', type.key)} disabled={exerciseTypeLocked} className={`px-2.5 py-1.5 rounded-full text-[14px] transition-all ${log.exercise_type === type.key ? 'bg-nature-500 text-white border border-nature-500' : exerciseTypeLocked ? 'bg-cream-400/70 border border-cream-500 text-[var(--color-text-hint)] cursor-not-allowed' : 'bg-cream-400 border border-cream-500 text-neutral-400 hover:bg-cream-500'}`}>
             {type.label}
           </button>
         ))}
       </div>
 
-      <div className="text-[14px] text-neutral-400 mb-2.5">운동 시간 (분)</div>
-      <div className="flex items-center gap-2.5 mb-4">
-        <button
-          onClick={() => update('exercise_minutes', Math.max(0, (log.exercise_minutes || 0) - 10))}
-          disabled={exerciseMinutesLocked}
-          className={circleButtonClass(exerciseMinutesLocked)}
-        >
-          -
-        </button>
-        <span className="text-[20px] font-semibold text-nature-900 min-w-[48px] text-center">{log.exercise_minutes || 0}</span>
+      <div className="mb-2.5 text-[14px] text-neutral-400">운동 시간 (분)</div>
+      <div className="mb-4 flex items-center gap-2.5">
+        <button onClick={() => update('exercise_minutes', Math.max(0, (log.exercise_minutes || 0) - 5))} disabled={exerciseMinutesLocked} className={circleButtonClass(exerciseMinutesLocked)}>-</button>
+        <input type="number" min="0" max="300" inputMode="numeric" value={log.exercise_minutes ?? 0} onChange={(e) => { const next = Number.parseInt(e.target.value || '0', 10); update('exercise_minutes', Number.isFinite(next) ? Math.max(0, Math.min(300, next)) : 0); }} disabled={exerciseMinutesLocked} className="h-10 w-[72px] rounded-xl border border-cream-500 bg-cream-400 px-3 text-center text-[18px] font-semibold text-nature-900 outline-none transition-colors focus:border-nature-500" />
         <span className="text-[14px] text-[var(--color-text-hint)]">분</span>
-        <button
-          onClick={() => update('exercise_minutes', Math.min(300, (log.exercise_minutes || 0) + 10))}
-          disabled={exerciseMinutesLocked}
-          className={circleButtonClass(exerciseMinutesLocked)}
-        >
-          +
-        </button>
+        <button onClick={() => update('exercise_minutes', Math.min(300, (log.exercise_minutes || 0) + 5))} disabled={exerciseMinutesLocked} className={circleButtonClass(exerciseMinutesLocked)}>+</button>
       </div>
 
       <div className="border-t border-cream-500 pt-4">
-        <div className="flex items-center gap-2 mb-2">
+        <div className="mb-2 flex items-center gap-2">
           <span className="text-[16px]">걷기</span>
-          <span className="text-[15px] font-medium text-nature-900">오늘 산책이나 걷기 하셨나요?</span>
+          <span className="text-[15px] font-medium text-nature-900">오늘 산책이나 걷기 하셨어요?</span>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => update('walk_done', true)}
-            disabled={walkLocked}
-            className={pillClass(log.walk_done === true, walkLocked)}
-          >
-            했어요
-          </button>
-          <button
-            onClick={() => update('walk_done', false)}
-            disabled={walkLocked}
-            className={pillClass(log.walk_done === false, walkLocked)}
-          >
-            못 했어요
-          </button>
+          <button onClick={() => update('walk_done', true)} disabled={walkLocked} className={pillClass(log.walk_done === true, walkLocked)}>했어요</button>
+          <button onClick={() => update('walk_done', false)} disabled={walkLocked} className={pillClass(log.walk_done === false, walkLocked)}>못 했어요</button>
         </div>
       </div>
 
-      <div className="border-t border-cream-500 mt-4 pt-3">
-        <button
-          onClick={() => save({ ...log, exercise_done: false, exercise_type: null, exercise_minutes: null })}
-          disabled={exerciseDoneLocked}
-          className={`text-[14px] transition-colors ${
-            exerciseDoneLocked ? 'text-[var(--color-text-hint)] cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'
-          }`}
-        >
-          운동 안 함으로 바꾸기
+      <div className="mt-4 border-t border-cream-500 pt-3">
+        <button onClick={() => save({ ...log, exercise_done: false, exercise_type: null, exercise_minutes: null })} disabled={exerciseDoneLocked} className={`text-[14px] transition-colors ${exerciseDoneLocked ? 'text-[var(--color-text-hint)] cursor-not-allowed' : 'text-neutral-400 hover:text-nature-900'}`}>
+          운동 안 했어요로 바꾸기
         </button>
       </div>
     </div>

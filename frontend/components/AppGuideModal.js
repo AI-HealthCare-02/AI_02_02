@@ -12,27 +12,27 @@ const TAB_CONFIG = [
 
 const EMPTY_GUIDE = {
   headline: '안내를 불러오는 중이에요.',
-  what_it_is: '현재 서비스 안내를 바로 읽지 못했어요.',
+  what_it_is: '현재 서비스 안내 내용을 바로 읽어오지 못했어요.',
   where_to_check: '잠시 후 다시 열어 보거나 새로고침 후 다시 확인해 주세요.',
-  next_action: '문제가 계속되면 채팅에서 바로 질문해도 돼요.',
-  limitations: '이 창은 공식 안내 원본을 기준으로 보여주기 때문에, 원본을 읽지 못하면 간단한 기본 안내만 표시돼요.',
+  next_action: '문제가 계속되면 채팅에서 바로 질문해도 됩니다.',
+  limitations: '이 창은 서비스 안내 요약본을 보여주는 화면이라, 원본을 읽지 못하면 기본 안내만 표시돼요.',
 };
 
 function GuideSection({ section }) {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-[11px] font-semibold tracking-[0.12em] text-neutral-400 uppercase">한 줄 설명</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">핵심 설명</div>
         <div className="mt-1 text-[18px] font-semibold text-nature-900">{section.headline}</div>
       </div>
 
       <div className="rounded-2xl border border-cream-500 bg-cream-300 px-4 py-3">
-        <div className="text-[12px] font-medium text-nature-900">이 기능이 뭐예요?</div>
+        <div className="text-[12px] font-medium text-nature-900">이 기능은 무엇인가요?</div>
         <div className="mt-1 text-[13px] leading-[1.8] text-neutral-500">{section.what_it_is}</div>
       </div>
 
       <div className="rounded-2xl border border-cream-500 bg-cream-400 px-4 py-3">
-        <div className="text-[12px] font-medium text-nature-900">어디서 보면 돼요?</div>
+        <div className="text-[12px] font-medium text-nature-900">어디서 확인하면 되나요?</div>
         <div className="mt-1 text-[13px] leading-[1.8] text-neutral-500">{section.where_to_check}</div>
       </div>
 
@@ -70,14 +70,14 @@ export default function AppGuideModal({ guide, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm">
-      <div className="flex w-full max-w-[820px] flex-col overflow-hidden rounded-[28px] border border-cream-500 bg-cream-300 shadow-2xl">
+      <div className="flex h-[720px] w-full max-w-[820px] flex-col overflow-hidden rounded-[28px] border border-cream-500 bg-cream-300 shadow-2xl">
         <div className="flex items-start justify-between border-b border-cream-500 px-6 py-5">
           <div>
-            <div className="flex items-center gap-2 text-[12px] font-semibold tracking-[0.12em] text-neutral-400 uppercase">
+            <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
               <BookOpen size={14} />
               서비스 안내 다시보기
             </div>
-            <div className="mt-2 text-[22px] font-semibold text-nature-900">다나아 기능 안내</div>
+            <div className="mt-2 text-[22px] font-semibold text-nature-900">도나 기능 안내</div>
             <div className="mt-1 text-[13px] text-neutral-400">
               채팅, 리포트, 챌린지, 오늘 기록 흐름을 다시 확인할 수 있어요.
             </div>
@@ -98,6 +98,7 @@ export default function AppGuideModal({ guide, onClose }) {
             {TAB_CONFIG.map((tab) => {
               const Icon = tab.icon;
               const isActive = tab.key === activeTab;
+
               return (
                 <button
                   key={tab.key}
@@ -117,7 +118,7 @@ export default function AppGuideModal({ guide, onClose }) {
           </div>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <GuideSection section={activeSection} />
         </div>
       </div>
