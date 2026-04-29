@@ -3,14 +3,11 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Sparkles, X } from 'lucide-react';
+import { nextNonOverlappingPosition, relayoutZeroCards, clampToCanvas, randInt } from '../../lib/doit_canvas_layout';
+import { loadThoughts, saveThoughts } from '../../lib/doit_store';
 
-const STORAGE_KEY = 'danaa_doit_thoughts_v1';
 const COLOR_KEYS = ['cream', 'stone', 'mint', 'lavender', 'blush'];
 const MAX_THOUGHTS = 5000;
-
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 function measureSize(text) {
   const len = text.length;
@@ -19,11 +16,10 @@ function measureSize(text) {
   return { width: 280, height: 160 };
 }
 
-function createThought(text, canvas, excludeColor = null) {
+function createThought(text, canvas, existingThoughts = [], excludeColor = null) {
   const size = measureSize(text);
-  const padding = 12;
-  const maxX = Math.max(canvas.width - size.width - padding, padding);
-  const maxY = Math.max(canvas.height - size.height - padding, padding);
+  const cardSize = { width: size.width, height: size.height };
+  const pos = nextNonOverlappingPosition({ canvas, existingCards: existingThoughts, cardSize });
   const pool = excludeColor
     ? COLOR_KEYS.filter((k) => k !== excludeColor)
     : COLOR_KEYS;
@@ -32,33 +28,13 @@ function createThought(text, canvas, excludeColor = null) {
     id: `t-${Date.now()}-${randInt(1000, 9999)}`,
     text: text.trim(),
     createdAt: new Date().toISOString(),
-    x: randInt(padding, maxX),
-    y: randInt(padding, maxY),
+    x: pos.x,
+    y: pos.y,
     rotation: randInt(-4, 4),
     color: pool[randInt(0, pool.length - 1)],
-    width: size.width,
-    height: size.height,
+    width: cardSize.width,
+    height: cardSize.height,
   };
-}
-
-function loadThoughts() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const list = JSON.parse(raw);
-    return Array.isArray(list) ? list : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveThoughts(list) {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // 용량 초과 등 — 조용히 실패 (사용자 경험 우선, 경고는 상위에서)
-  }
 }
 
 function formatTime(iso) {
@@ -79,8 +55,9 @@ function formatTime(iso) {
 export default function ThoughtCanvas() {
   const [thoughts, setThoughts] = useState([]);
   const [draft, setDraft] = useState('');
-  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 400 });
+  const [canvasSize, setCanvasSize] = useState(null);
   const [hydrated, setHydrated] = useState(false);
+  const [migrationNotice, setMigrationNotice] = useState(null);
   const canvasRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -94,17 +71,87 @@ export default function ThoughtCanvas() {
     saveThoughts(thoughts);
   }, [thoughts, hydrated]);
 
+  // canvasSize 확정 후 stuck (0,0·null·NaN) 카드 자동 재배치.
+  // 자기 전 정리 등에서 새로 추가된 null 좌표 카드도 매번 메인 캔버스 진입 시 정리.
+  useEffect(() => {
+    if (!canvasSize) return;
+    const all = loadThoughts();
+    const stuck = all.filter((t) =>
+      t.x === null || t.y === null ||
+      typeof t.x !== 'number' || typeof t.y !== 'number' ||
+      Number.isNaN(t.x) || Number.isNaN(t.y) ||
+      (t.x === 0 && t.y === 0 && all.length > 1)
+    );
+    if (stuck.length === 0) return;
+    const fixed = relayoutZeroCards(all, canvasSize);
+    saveThoughts(fixed);
+    setThoughts(fixed);
+    // 토스트는 처음 발견 시 1회만
+    const TOAST_SHOWN = 'danaa_doit_layout_toast_shown_v1';
+    if (localStorage.getItem(TOAST_SHOWN) !== '1') {
+      setMigrationNotice(`겹쳐 있던 메모 ${stuck.length}개를 캔버스에 정리했어요.`);
+      localStorage.setItem(TOAST_SHOWN, '1');
+      const timer = setTimeout(() => setMigrationNotice(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [canvasSize]);
+
   useEffect(() => {
     if (!canvasRef.current) return;
     const el = canvasRef.current;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setCanvasSize((prev) => {
+          const next = { width, height };
+          // viewport 크기가 50px 이상 변하면 viewport 밖 카드 clamp
+          if (
+            prev &&
+            (Math.abs(prev.width - width) > 50 || Math.abs(prev.height - height) > 50)
+          ) {
+            // race condition 방지: 다음 프레임에서 clamp 실행
+            requestAnimationFrame(() => {
+              setThoughts((currentThoughts) => {
+                const clamped = currentThoughts.map((t) => {
+                  if (typeof t.x !== 'number' || typeof t.y !== 'number') return t;
+                  const cardW = t.width || 240;
+                  const cardH = t.height || 140;
+                  const isOutside =
+                    t.x + cardW > width - 12 || t.y + cardH > height - 12;
+                  if (!isOutside) return t;
+                  const pos = clampToCanvas({
+                    x: t.x,
+                    y: t.y,
+                    width: cardW,
+                    height: cardH,
+                    canvas: next,
+                  });
+                  return { ...t, x: pos.x, y: pos.y };
+                });
+                // 변경된 카드가 있으면 localStorage 에도 반영
+                if (
+                  clamped.some(
+                    (t, i) =>
+                      t.x !== currentThoughts[i].x || t.y !== currentThoughts[i].y,
+                  )
+                ) {
+                  saveThoughts(clamped);
+                }
+                return clamped;
+              });
+            });
+          }
+          return next;
+        });
+      }
+    });
+    // 초기 측정
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
       setCanvasSize({ width: rect.width, height: rect.height });
-    };
-    update();
-    const resize = new ResizeObserver(update);
-    resize.observe(el);
-    return () => resize.disconnect();
+    }
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   // 생각 쏟기 캔버스는 "미분류 메모"만 보여준다.
@@ -117,10 +164,20 @@ export default function ThoughtCanvas() {
   const addThought = useCallback(() => {
     const text = draft.trim();
     if (!text) return;
+    if (!canvasSize) return;
     if (thoughts.length >= MAX_THOUGHTS) return;
+    // 빠른 연속 입력 시 ResizeObserver 콜백 전에 canvasSize 가 stale 일 수 있으므로
+    // getBoundingClientRect() 로 직접 측정한 liveCanvas 를 우선 사용
+    let liveCanvas = canvasSize;
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        liveCanvas = { width: rect.width, height: rect.height };
+      }
+    }
     const lastVisible = visibleThoughts[visibleThoughts.length - 1];
     const lastColor = lastVisible ? lastVisible.color : null;
-    const next = createThought(text, canvasSize, lastColor);
+    const next = createThought(text, liveCanvas, visibleThoughts, lastColor);
     setThoughts((prev) => [...prev, next]);
     setDraft('');
     requestAnimationFrame(() => textareaRef.current?.focus());
@@ -177,6 +234,18 @@ export default function ThoughtCanvas() {
         ref={canvasRef}
         className="doit-canvas relative flex-1 overflow-hidden bg-[var(--color-bg)]"
       >
+        {migrationNotice && (
+          <div style={{
+            position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(57,198,179,0.95)', color: 'white',
+            padding: '12px 20px', borderRadius: 8,
+            fontSize: 14, fontWeight: 600, zIndex: 50,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            whiteSpace: 'nowrap',
+          }}>
+            {migrationNotice}
+          </div>
+        )}
         {isEmpty ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="max-w-sm px-6 text-center text-[14px] leading-[1.6] text-[var(--color-text-hint)]">
@@ -224,13 +293,14 @@ export default function ThoughtCanvas() {
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={onKeyDown}
             rows={2}
+            disabled={!canvasSize}
             placeholder="머릿속에 떠오른 것을 적어보세요. Enter 누르면 위로 쏟아져요 (줄바꿈은 Shift+Enter)"
-            className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-[14px] leading-[1.6] text-[var(--color-text)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-border-focus)] focus:outline-none"
+            className="flex-1 resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 text-[14px] leading-[1.6] text-[var(--color-text)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-border-focus)] focus:outline-none disabled:opacity-50"
           />
           <button
             type="button"
             onClick={addThought}
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || !canvasSize}
             className="h-12 shrink-0 rounded-xl bg-[var(--color-cta-bg)] px-5 text-[14px] font-medium text-[var(--color-cta-text)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
           >
             쏟아내기
