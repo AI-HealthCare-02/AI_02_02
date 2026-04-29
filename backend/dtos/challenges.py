@@ -33,6 +33,7 @@ class ChallengeRecommendedItem(BaseModel):
     """추천 챌린지 항목."""
 
     template_id: int
+    code: str = ""
     name: str
     emoji: str
     category: str

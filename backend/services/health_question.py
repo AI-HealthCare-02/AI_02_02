@@ -598,19 +598,36 @@ class HealthQuestionService:
             bundle_keys.extend(PUSH_TOUCHPOINT_BUNDLES.get(touchpoint, []))
         return bundle_keys
 
-    async def get_due_push_bundle(self, user_id: int, *, now: datetime | None = None) -> dict[str, object] | None:
+    async def get_due_push_bundle(
+        self,
+        user_id: int,
+        *,
+        now: datetime | None = None,
+        allow_initial_prompt: bool = False,
+    ) -> dict[str, object] | None:
         """Return the oldest unanswered bundle whose intended time window already ended."""
         current_time = now or datetime.now(tz=config.TIMEZONE)
         if self._is_before_sequence_start(current_time):
             return None
 
         elapsed_bundle_keys = set(self._get_elapsed_touchpoint_bundle_keys(current_time))
-        if not elapsed_bundle_keys:
-            return None
-
         today_log = await DailyHealthLog.get_or_none(user_id=user_id, log_date=current_time.date())
         profile = await HealthProfile.get_or_none(user_id=user_id)
         user_group = profile.user_group if profile else UserGroup.C
+
+        if not elapsed_bundle_keys and allow_initial_prompt:
+            for bundle_key in self._get_sequence_order(user_group):
+                payload = self._build_pending_bundle_payload(
+                    bundle_key=bundle_key,
+                    today_log=today_log,
+                    user_group=user_group,
+                )
+                if payload:
+                    return payload
+            return None
+
+        if not elapsed_bundle_keys:
+            return None
 
         for bundle_key in self._get_sequence_order(user_group):
             if bundle_key not in elapsed_bundle_keys:

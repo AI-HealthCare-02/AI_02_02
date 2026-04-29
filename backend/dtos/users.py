@@ -31,6 +31,11 @@ class UserUpdateRequest(BaseModel):
     ]
 
 
+class UserMeasurementsUpdateRequest(BaseModel):
+    height_cm: Annotated[float | None, Field(None, gt=100, le=250)]
+    weight_kg: Annotated[float | None, Field(None, gt=30, le=200)]
+
+
 class UserInfoResponse(BaseSerializerModel):
     id: int
     name: str | None = None

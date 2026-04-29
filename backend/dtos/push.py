@@ -17,6 +17,12 @@ class PushSubscriptionResponse(BaseModel):
     enabled: bool = True
 
 
+class PushSubscriptionStatusResponse(BaseModel):
+    supported: bool = True
+    configured: bool = True
+    subscribed: bool = False
+
+
 class PushPreferenceRequest(BaseModel):
     action: str = Field(pattern="^(mute_today|disable|enable)$")
 
