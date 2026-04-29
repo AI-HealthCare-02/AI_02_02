@@ -29,6 +29,8 @@ import {
   MEAL_STATUS_OPTIONS,
   MOOD_LABELS,
   MOOD_OPTIONS,
+  SLEEP_DURATION_LABELS,
+  SLEEP_DURATION_OPTIONS,
   SLEEP_QUALITY_LABELS,
   SLEEP_QUALITY_OPTIONS,
   WATER_OPTIONS,
@@ -62,8 +64,10 @@ function formatCategoryValue(key, dailyLog) {
   const hasAny = fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
   if (!hasAny) return null;
   if (key === 'sleep') {
-    const labels = { ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' };
-    return labels[dailyLog.sleep_quality] || '기록됨';
+    const quality = ({ ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' })[dailyLog.sleep_quality];
+    const duration = SLEEP_DURATION_LABELS[dailyLog.sleep_duration_bucket];
+    if (quality && duration) return `${quality} · ${duration}`;
+    return quality || duration || '기록됨';
   }
   if (key === 'water') {
     const cups = Number(dailyLog.water_cups || 0);
@@ -72,7 +76,9 @@ function formatCategoryValue(key, dailyLog) {
   switch (key) {
     case 'sleep': {
       const q = ({ ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' })[dailyLog.sleep_quality];
-      return q || '기록됨';
+      const d = SLEEP_DURATION_LABELS[dailyLog.sleep_duration_bucket];
+      if (q && d) return `${q} · ${d}`;
+      return q || d || '기록됨';
     }
     case 'meal': {
       const done = ['breakfast_status', 'lunch_status', 'dinner_status'].filter((f) => dailyLog[f]).length;
@@ -102,7 +108,7 @@ function formatCategoryValue(key, dailyLog) {
 function isCategoryComplete(key, dailyLog) {
   if (!dailyLog) return false;
   const fields = CATEGORY_FIELDS[key] || [];
-  if (key === 'meal') {
+  if (key === 'meal' || key === 'sleep') {
     return fields.every((f) => dailyLog[f] != null && dailyLog[f] !== '');
   }
   return fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
@@ -254,6 +260,11 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
   if (categoryKey === 'sleep') {
     return (
       <div className="mqm-cell-edit">
+        <SelectField
+          value={draft.sleep_duration_bucket}
+          options={SLEEP_DURATION_OPTIONS}
+          onChange={(v) => setDraft({ ...draft, sleep_duration_bucket: v })}
+        />
         <SelectField
           value={draft.sleep_quality}
           options={SLEEP_QUALITY_OPTIONS}
@@ -586,21 +597,32 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
                     const optionDef = FIELD_OPTIONS[cat.key];
                     const pendingKey = draftKey(col.date, cat.key);
                     const currentDraft = pendingDrafts[pendingKey];
-                    if (cat.key === 'meal' && optionDef) {
-                      const missingMealFields = CATEGORY_FIELDS.meal.filter((field) => col.log?.[field] == null || col.log?.[field] === '');
+                    if ((cat.key === 'meal' || cat.key === 'sleep') && optionDef) {
+                      const targetFields = CATEGORY_FIELDS[cat.key];
+                      const missingFields = targetFields.filter((field) => col.log?.[field] == null || col.log?.[field] === '');
                       return (
                         <td key={col.date} className="mqm-cell mqm-cell--empty">
                           {val && <div className="mb-2 text-[12px] font-semibold text-nature-900">{val} 기록됨</div>}
                           <div className="space-y-2">
-                            {missingMealFields.map((field) => {
+                            {missingFields.map((field) => {
                               const draftValue = currentDraft?.[field] ?? '';
+                              const options = field === 'sleep_duration_bucket'
+                                ? SLEEP_DURATION_OPTIONS
+                                : field === 'sleep_quality'
+                                  ? SLEEP_QUALITY_OPTIONS
+                                  : optionDef.options;
+                              const label = field === 'sleep_duration_bucket'
+                                ? '수면 시간'
+                                : field === 'sleep_quality'
+                                  ? '수면 질'
+                                  : MEAL_FIELD_LABELS[field];
                               return (
                                 <label key={field} className="block text-left">
-                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">{MEAL_FIELD_LABELS[field]}</span>
+                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">{label}</span>
                                   <SelectField
                                     value={draftValue}
                                     placeholder="선택"
-                                    options={optionDef.options}
+                                    options={options}
                                     onChange={(rawValue) => {
                                       const payload = buildFieldDraftPayload(cat.key, field, rawValue);
                                       setPendingDrafts((prev) => ({
