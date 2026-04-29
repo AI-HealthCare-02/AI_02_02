@@ -6,6 +6,14 @@ export const SLEEP_QUALITY_OPTIONS = [
   { value: 'very_bad', label: '거의 못 잤어요' },
 ];
 
+export const SLEEP_DURATION_OPTIONS = [
+  { value: 'under_5', label: '5시간 미만' },
+  { value: 'between_5_6', label: '5~6시간' },
+  { value: 'between_6_7', label: '6~7시간' },
+  { value: 'between_7_8', label: '7~8시간' },
+  { value: 'over_8', label: '8시간 이상' },
+];
+
 export const MEAL_STATUS_OPTIONS = [
   { value: 'hearty', label: '먹었어요' },
   { value: 'skipped', label: '못 먹었어요' },
@@ -51,6 +59,10 @@ export const EXERCISE_TYPE_LABELS = {
 
 export const SLEEP_QUALITY_LABELS = Object.fromEntries(
   SLEEP_QUALITY_OPTIONS.map((option) => [option.value, option.label]),
+);
+
+export const SLEEP_DURATION_LABELS = Object.fromEntries(
+  SLEEP_DURATION_OPTIONS.map((option) => [option.value, option.label]),
 );
 
 export const MOOD_LABELS = Object.fromEntries(
