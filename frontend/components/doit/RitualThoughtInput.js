@@ -30,6 +30,12 @@ export default function RitualThoughtInput({ onCount }) {
       text,
       createdAt: new Date().toISOString(),
       category: null,
+      x: null,
+      y: null,
+      width: null,
+      height: null,
+      rotation: 0,
+      color: null,
     };
     const next = [...loadThoughts(), newThought];
     saveThoughts(next);

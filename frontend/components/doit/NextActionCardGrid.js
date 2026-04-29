@@ -17,12 +17,12 @@ import {
 } from 'lucide-react';
 
 import {
-  STORAGE_KEY,
   loadThoughts,
   removeThought,
   saveThoughts,
   todayIso,
 } from '../../lib/doit_store';
+import { nextNonOverlappingPosition, randInt, clampToCanvas } from '../../lib/doit_canvas_layout';
 
 const PRESETS = [
   { id: 'todo',      label: '할 일 추가',   category: 'todo',     icon: Check,          href: '/app/do-it-os' },
@@ -39,13 +39,16 @@ const PRESETS = [
 
 const MEMO_COLORS = ['cream', 'stone', 'mint', 'lavender', 'blush'];
 
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+const CARD_SIZE = { width: 280, height: 160 };
 
-function makeThought({ preset, projectTitle, projectId }) {
+function makeThought({ preset, projectTitle, projectId, canvasSize, existingCards }) {
   const now = new Date().toISOString();
   const extraMeta = preset.category === 'schedule' ? { scheduledDate: todayIso() } : {};
+  const pos = nextNonOverlappingPosition({
+    canvas: canvasSize,
+    existingCards: existingCards,
+    cardSize: CARD_SIZE,
+  });
   return {
     id: `t-${Date.now()}-${randInt(1000, 9999)}`,
     text: projectTitle
@@ -55,22 +58,80 @@ function makeThought({ preset, projectTitle, projectId }) {
     category: preset.category,
     classifiedAt: now,
     projectLinkId: projectId || null,
-    x: randInt(40, 400),
-    y: randInt(40, 260),
+    x: pos.x,
+    y: pos.y,
     rotation: randInt(-3, 3),
     color: MEMO_COLORS[randInt(0, MEMO_COLORS.length - 1)],
-    width: 220,
-    height: 120,
+    width: CARD_SIZE.width,
+    height: CARD_SIZE.height,
     ...extraMeta,
   };
 }
 
 export default function NextActionCardGrid({ projectId, projectTitle }) {
   const [toast, setToast] = useState(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const toastTimerRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => () => {
     if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+  }, []);
+
+  // 캔버스 컨테이너 크기 측정 + viewport 리사이즈 시 이탈 카드 clamp
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const el = canvasRef.current;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (!(width > 0 && height > 0)) continue;
+        setCanvasSize((prev) => {
+          const next = { width, height };
+          // viewport 크기가 50px 이상 변하면 카드 좌표 clamp
+          if (
+            prev &&
+            (Math.abs(prev.width - width) > 50 || Math.abs(prev.height - height) > 50)
+          ) {
+            requestAnimationFrame(() => {
+              const current = loadThoughts();
+              const clamped = current.map((t) => {
+                if (typeof t.x !== 'number' || typeof t.y !== 'number') return t;
+                const cardW = t.width || CARD_SIZE.width;
+                const cardH = t.height || CARD_SIZE.height;
+                const isOutside =
+                  t.x + cardW > width - 12 || t.y + cardH > height - 12;
+                if (!isOutside) return t;
+                const pos = clampToCanvas({
+                  x: t.x,
+                  y: t.y,
+                  width: cardW,
+                  height: cardH,
+                  canvas: next,
+                });
+                return { ...t, x: pos.x, y: pos.y };
+              });
+              if (
+                clamped.some(
+                  (t, i) =>
+                    t.x !== current[i].x || t.y !== current[i].y,
+                )
+              ) {
+                saveThoughts(clamped);
+              }
+            });
+          }
+          return next;
+        });
+      }
+    });
+    // 초기 측정
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      setCanvasSize({ width: rect.width, height: rect.height });
+    }
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   const clearToast = useCallback(() => {
@@ -89,14 +150,29 @@ export default function NextActionCardGrid({ projectId, projectTitle }) {
   // 한 번의 함수형 업데이트 블록에서 읽고 쓰되, 즉시 localStorage 반영.
   const handlePick = useCallback(
     (preset) => {
-      const thought = makeThought({ preset, projectTitle, projectId });
       const current = loadThoughts();
+      // 빠른 연속 입력 시 stale canvasSize 방지: getBoundingClientRect() 로 live 측정
+      let liveCanvas = canvasSize;
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          liveCanvas = { width: rect.width, height: rect.height };
+        }
+      }
+      // 이미 분류된 카드들을 existingCards 로 전달 — 겹침 방지
+      const thought = makeThought({
+        preset,
+        projectTitle,
+        projectId,
+        canvasSize: liveCanvas,
+        existingCards: current,
+      });
       const next = [...current, thought];
       saveThoughts(next);
       setToast({ id: thought.id, preset });
       scheduleDismiss();
     },
-    [projectTitle, projectId, scheduleDismiss],
+    [projectTitle, projectId, canvasSize, scheduleDismiss],
   );
 
   const handleUndo = useCallback(() => {
@@ -111,7 +187,7 @@ export default function NextActionCardGrid({ projectId, projectTitle }) {
   }, [toast, clearToast]);
 
   return (
-    <div className="doit-next-action-grid">
+    <div ref={canvasRef} className="doit-next-action-grid">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
         {PRESETS.map((preset) => {
           const Icon = preset.icon;

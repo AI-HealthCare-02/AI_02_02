@@ -70,3 +70,8 @@ docs/collaboration/archive/model_reference/
 
 # Design reference images (dev-only, not for deployment)
 docs/design-references/
+
+# Remotion guide build artifacts
+tools/remotion-guide/node_modules/
+tools/remotion-guide/out/
+output/2026-04-28-*/
