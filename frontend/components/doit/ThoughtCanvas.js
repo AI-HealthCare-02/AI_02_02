@@ -4,7 +4,12 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Sparkles, X } from 'lucide-react';
 import { nextNonOverlappingPosition, relayoutZeroCards, clampToCanvas, randInt } from '../../lib/doit_canvas_layout';
-import { loadThoughts, saveThoughts } from '../../lib/doit_store';
+import {
+  getUnclassified,
+  loadThoughts,
+  saveThoughts,
+  getLayoutToastKey,
+} from '../../lib/doit_store';
 
 const COLOR_KEYS = ['cream', 'stone', 'mint', 'lavender', 'blush'];
 const MAX_THOUGHTS = 5000;
@@ -86,11 +91,11 @@ export default function ThoughtCanvas() {
     const fixed = relayoutZeroCards(all, canvasSize);
     saveThoughts(fixed);
     setThoughts(fixed);
-    // 토스트는 처음 발견 시 1회만
-    const TOAST_SHOWN = 'danaa_doit_layout_toast_shown_v1';
-    if (localStorage.getItem(TOAST_SHOWN) !== '1') {
+    // 토스트는 처음 발견 시 1회만 (사용자별 격리)
+    const toastShownKey = getLayoutToastKey();
+    if (localStorage.getItem(toastShownKey) !== '1') {
       setMigrationNotice(`겹쳐 있던 메모 ${stuck.length}개를 캔버스에 정리했어요.`);
-      localStorage.setItem(TOAST_SHOWN, '1');
+      localStorage.setItem(toastShownKey, '1');
       const timer = setTimeout(() => setMigrationNotice(null), 5000);
       return () => clearTimeout(timer);
     }
@@ -157,7 +162,7 @@ export default function ThoughtCanvas() {
   // 생각 쏟기 캔버스는 "미분류 메모"만 보여준다.
   // 분류된 메모는 정리 명료화·투영 뷰(프로젝트/일정/노트)에서 관리.
   const visibleThoughts = useMemo(
-    () => thoughts.filter((t) => !t.category),
+    () => getUnclassified(thoughts),
     [thoughts],
   );
 

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
-  STORAGE_KEY,
+  getThoughtsStorageKey,
   getByCategory,
   loadThoughts,
   saveThoughts,
@@ -75,7 +75,7 @@ export default function CalendarView({ categoryId = 'schedule', dateRange = null
     setThoughts(loadThoughts());
     setHydrated(true);
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

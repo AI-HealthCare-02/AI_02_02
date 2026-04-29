@@ -12,8 +12,10 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+import { loginAs, thoughtsKey } from './helpers/auth_storage.mjs';
 
-const STORAGE_KEY = 'danaa_doit_thoughts_v1';
+const TEST_USER_ID = 1;
+const STORAGE_KEY = thoughtsKey(TEST_USER_ID);
 
 // IoU(Intersection over Union) 헬퍼
 function iou(a, b) {
@@ -64,6 +66,11 @@ function ensureReportDir() {
 }
 
 test.describe('Phase B2 — 시각 검증', () => {
+  test.beforeEach(async ({ page }) => {
+    // mock JWT 주입 — user_id=1로 격리된 storage 키 사용
+    await loginAs(page, TEST_USER_ID);
+  });
+
   // ────────────────────────────────────────────────────────────
   // (a) 50개 카드 추가 → IoU 0 검증 + 4사분면 분포
   // ────────────────────────────────────────────────────────────

@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAs, thoughtsKey } from './helpers/auth_storage.mjs';
 
-// ThoughtCanvas 에서 사용하는 localStorage 키 (ThoughtCanvas.js L8)
-const STORAGE_KEY = 'danaa_doit_thoughts_v1';
+const TEST_USER_ID = 1;
+// 사용자별 격리: u1 스코프의 thoughts 키
+const STORAGE_KEY = thoughtsKey(TEST_USER_ID);
 
 // 헬퍼 — IoU(Intersection over Union) 겹침 비율 계산
 function iou(a, b) {
@@ -17,6 +19,8 @@ function iou(a, b) {
 
 test.describe('Do it OS 카드 배치', () => {
   test.beforeEach(async ({ page }) => {
+    // mock JWT 주입 — 모든 navigation에서 user_id=1로 동작
+    await loginAs(page, TEST_USER_ID);
     // localStorage 초기화 — 깨끗한 상태에서 시작
     await page.goto('/app/do-it-os/thinking');
     await page.evaluate((key) => localStorage.removeItem(key), STORAGE_KEY);
