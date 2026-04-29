@@ -7,7 +7,8 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3002',
+    // 다른 워크트리에서 3002를 쓰고 있으면 PLAYWRIGHT_BASE_URL=http://localhost:3003 등으로 override 가능.
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3002',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

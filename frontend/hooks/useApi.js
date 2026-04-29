@@ -45,6 +45,32 @@ export function isLoggedIn() {
 }
 
 /**
+ * 현재 access token에서 user_id를 안전하게 추출.
+ * JWT payload(base64url) → JSON. 실패 시 null.
+ *
+ * 용도: 클라이언트에서 사용자별 localStorage 키 분리에만 사용.
+ * 인증·인가 검증은 백엔드(JwtService.verify_jwt)에서 수행.
+ */
+export function getCurrentUserId() {
+  try {
+    const token = getToken();
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // base64url → base64 + padding 보정
+    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const payload = JSON.parse(atob(b64));
+    const uid = payload?.user_id;
+    if (typeof uid === 'number' && Number.isFinite(uid)) return uid;
+    if (typeof uid === 'string' && uid.length > 0) return uid;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * 세션 복원 시도 — 토큰 없으면 refresh_token 쿠키로 갱신 시도.
  * 마지막 인증 활동 후 12시간이 지나면 다음 접속에서 자동 로그인 복원을 막는다.
  * @returns {Promise<boolean>} 세션 유효 여부

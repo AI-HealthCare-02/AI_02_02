@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, PenLine, Sparkles, StickyNote, Trash2 } from 'lucide-react';
 
 import {
-  STORAGE_KEY,
+  getThoughtsStorageKey,
   getNoteById,
   loadThoughts,
   saveThoughts,
@@ -46,7 +46,7 @@ export default function NoteDetailView({ noteId }) {
 
   useEffect(() => {
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

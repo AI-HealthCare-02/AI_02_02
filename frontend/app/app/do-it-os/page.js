@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 
 import {
-  STORAGE_KEY,
+  getThoughtsStorageKey,
+  getGuideSeenKey,
+  getUnclassified,
   getOverdueScheduled,
   getSummary,
   getTodayScheduled,
@@ -49,7 +51,7 @@ export default function DoItOsDashboard() {
   useEffect(() => {
     setThoughts(loadThoughts());
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -57,7 +59,7 @@ export default function DoItOsDashboard() {
 
   useEffect(() => {
     try {
-      setGuideSeen(localStorage.getItem('danaa_doit_guide_seen_v1') === '1');
+      setGuideSeen(localStorage.getItem(getGuideSeenKey()) === '1');
     } catch {
       setGuideSeen(true);
     }
@@ -65,13 +67,13 @@ export default function DoItOsDashboard() {
 
   const markGuideSeen = () => {
     try {
-      localStorage.setItem('danaa_doit_guide_seen_v1', '1');
+      localStorage.setItem(getGuideSeenKey(), '1');
     } catch {}
     setGuideSeen(true);
   };
 
   const recent = useMemo(
-    () => thoughts.filter((t) => !t.category).slice(-5).reverse(),
+    () => getUnclassified(thoughts).slice(-5).reverse(),
     [thoughts],
   );
 
