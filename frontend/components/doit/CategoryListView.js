@@ -139,16 +139,24 @@ export default function CategoryListView({
     setThoughts(toast.prev);
     setToast(null);
   };
+  // 같은 페이지에 여러 인스턴스가 공존할 때 stale state 로 덮어쓰기 방지: 변경 직전 loadThoughts.
   const handleDateChange = (id, date) => {
-    setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledDate: date || null }));
+    const latest = loadThoughts();
+    const next = updateThoughtMeta(latest, id, { scheduledDate: date || null });
+    saveThoughts(next);
+    setThoughts(next);
   };
   const handleTimeChange = (id, time) => {
-    setThoughts((prev) => updateThoughtMeta(prev, id, { scheduledTime: time || null }));
+    const latest = loadThoughts();
+    const next = updateThoughtMeta(latest, id, { scheduledTime: time || null });
+    saveThoughts(next);
+    setThoughts(next);
   };
   const handleToggleComplete = (id, currentlyCompleted) => {
-    setThoughts((prev) =>
-      currentlyCompleted ? reopenThought(prev, id) : completeThought(prev, id),
-    );
+    const latest = loadThoughts();
+    const next = currentlyCompleted ? reopenThought(latest, id) : completeThought(latest, id);
+    saveThoughts(next);
+    setThoughts(next);
   };
 
   const CATEGORIES_WITH_DETAIL = new Set(['project', 'note']);
@@ -297,9 +305,16 @@ export default function CategoryListView({
         {sections.map((sec) => sec.items.length > 0 && (
           <div key={sec.key}>
             <div className="mb-2 flex items-baseline gap-2">
-              <h2 className="text-[14px] font-semibold text-[var(--color-text)]">
-                {sec.label}
-              </h2>
+              {/* hideHeader=true: 외부에 이미 h1/h2 가 있는 통합 페이지 → 버킷은 h3 로 한 단계 낮춤. */}
+              {hideHeader ? (
+                <h3 className="text-[14px] font-semibold text-[var(--color-text)]">
+                  {sec.label}
+                </h3>
+              ) : (
+                <h2 className="text-[14px] font-semibold text-[var(--color-text)]">
+                  {sec.label}
+                </h2>
+              )}
               <span className="text-[12px] text-[var(--color-text-hint)]">
                 {sec.items.length}개{sec.hint ? ` · ${sec.hint}` : ''}
               </span>

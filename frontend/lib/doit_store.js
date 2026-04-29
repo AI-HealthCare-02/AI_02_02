@@ -31,12 +31,12 @@ export function normalizeThought(raw) {
     projectStatus: raw.projectStatus ?? null,
     noteBody: raw.noteBody ?? null,
     projectLinkId: raw.projectLinkId ?? null,
-    x: raw.x ?? 0,
-    y: raw.y ?? 0,
-    rotation: raw.rotation ?? 0,
-    color: raw.color ?? 'yellow',
-    width: raw.width ?? 220,
-    height: raw.height ?? 220,
+    x: typeof raw.x === 'number' && !Number.isNaN(raw.x) ? raw.x : null,
+    y: typeof raw.y === 'number' && !Number.isNaN(raw.y) ? raw.y : null,
+    rotation: typeof raw.rotation === 'number' ? raw.rotation : 0,
+    color: raw.color || null,
+    width: typeof raw.width === 'number' && raw.width > 0 ? raw.width : null,
+    height: typeof raw.height === 'number' && raw.height > 0 ? raw.height : null,
     urgency: raw.urgency ?? null,
     // Phase 7 추가 필드
     clarification: {
@@ -71,7 +71,8 @@ export function loadThoughts() {
 export function saveThoughts(thoughts) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
+    const normalized = thoughts.map(normalizeThought);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   } catch {
     // 용량 초과 등 — 조용히 실패 (저장 실패 시 사용자 UX 우선)
   }

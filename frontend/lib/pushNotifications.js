@@ -88,10 +88,22 @@ export async function getPushSubscriptionState() {
   const permission = Notification.permission;
   const registration = await getRegistrationIfAny();
   const subscription = await registration?.pushManager.getSubscription();
+  let serverSubscribed = Boolean(subscription);
+
+  try {
+    const response = await api('/api/v1/push/subscriptions/status');
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      serverSubscribed = Boolean(data?.configured) && Boolean(data?.subscribed);
+    }
+  } catch {
+    // Keep local browser state as the fallback.
+  }
+
   return {
     supported: true,
     permission,
-    subscribed: Boolean(subscription),
+    subscribed: Boolean(subscription) && serverSubscribed,
   };
 }
 

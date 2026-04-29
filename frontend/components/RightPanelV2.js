@@ -19,6 +19,7 @@
 import { memo, useMemo, lazy, Suspense, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { getVisibleCards, getVisibleMissedCategories } from '@/lib/chat/cardRegistry';
+import { MOOD_LABELS, SLEEP_QUALITY_LABELS } from '@/lib/healthOptionLabels';
 import { t } from '@/lib/i18n/rightPanel.ko';
 
 // 미응답 모달은 mount-on-open · 초기 청크에서 분리
@@ -122,12 +123,8 @@ function displayValue(key, log) {
       '8_plus': '8시간 이상',
     };
     const qualityLabels = {
-      very_good: '아주 좋음',
-      excellent: '아주 좋음',
-      good: '좋음',
-      normal: '보통',
-      bad: '나쁨',
-      very_bad: '아주 나쁨',
+      ...SLEEP_QUALITY_LABELS,
+      excellent: '푹 잤어요',
     };
     const parts = [durationLabels[dur], qualityLabels[q]].filter(Boolean);
     return { value: parts.join(' · ') || null, muted: false };
@@ -144,12 +141,8 @@ function displayValue(key, log) {
       if (!dur && !q) return { value: null, muted: true };
       const DURATION = { less_5: '5h 미만', '5_6': '5.5h', '6_7': '6.5h', '7_8': '7.5h', '8_plus': '8h+' };
       const QUALITY = {
-        very_good: '아주 좋음',
-        excellent: '아주 좋음',
-        good: '좋음',
-        normal: '보통',
-        bad: '나쁨',
-        very_bad: '아주 나쁨',
+        ...SLEEP_QUALITY_LABELS,
+        excellent: '푹 잤어요',
       };
       const parts = [DURATION[dur], QUALITY[q]].filter(Boolean);
       return { value: parts.join(' · ') || null, muted: false };
@@ -159,18 +152,18 @@ function displayValue(key, log) {
       return { value: `${done}/3`, muted: done === 0 };
     }
     case 'medication':
-      if (log.took_medication === true) return { value: '드셨어요', muted: false };
-      if (log.took_medication === false) return { value: '건너뛰었어요', muted: false };
+      if (log.took_medication === true) return { value: '복용했어요', muted: false };
+      if (log.took_medication === false) return { value: '아직 못 먹었어요', muted: false };
       return { value: null, muted: true };
     case 'exercise':
       if (log.exercise_done === true) return { value: '했어요', muted: false };
-      if (log.exercise_done === false) return { value: '쉬었어요', muted: false };
+      if (log.exercise_done === false) return { value: '못 했어요', muted: false };
       return { value: null, muted: true };
     case 'water':
       if (log.water_cups != null && log.water_cups > 0) return { value: `${log.water_cups}잔`, muted: false };
       return { value: null, muted: true };
     case 'mood': {
-      const MOOD = { great: '아주 좋음', good: '좋음', normal: '보통', hard: '힘듦' };
+      const MOOD = MOOD_LABELS;
       return { value: MOOD[log.mood_level] || null, muted: !log.mood_level };
     }
     case 'alcohol':

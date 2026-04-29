@@ -10,6 +10,7 @@ from backend.dtos.push import (
     PushPreferenceRequest,
     PushSubscriptionRequest,
     PushSubscriptionResponse,
+    PushSubscriptionStatusResponse,
 )
 from backend.models.users import User
 from backend.services.push import PushService, web_push_ready
@@ -25,6 +26,16 @@ async def get_public_key() -> dict[str, str | bool]:
         "enabled": web_push_ready(),
         "public_key": config.WEB_PUSH_VAPID_PUBLIC_KEY,
     }
+
+
+@push_router.get("/subscriptions/status", response_model=PushSubscriptionStatusResponse)
+async def get_subscription_status(
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[PushService, Depends(PushService)],
+) -> PushSubscriptionStatusResponse:
+    return PushSubscriptionStatusResponse.model_validate(
+        await service.get_subscription_status(user.id),
+    )
 
 
 @push_router.post("/subscriptions", status_code=status.HTTP_201_CREATED)

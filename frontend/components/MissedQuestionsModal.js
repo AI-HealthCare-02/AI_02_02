@@ -22,6 +22,17 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/hooks/useApi';
 import { getVisibleMissedCategories } from '@/lib/chat/cardRegistry';
+import {
+  ALCOHOL_OPTIONS,
+  EXERCISE_DONE_OPTIONS,
+  MEDICATION_OPTIONS,
+  MEAL_STATUS_OPTIONS,
+  MOOD_LABELS,
+  MOOD_OPTIONS,
+  SLEEP_QUALITY_LABELS,
+  SLEEP_QUALITY_OPTIONS,
+  WATER_OPTIONS,
+} from '@/lib/healthOptionLabels';
 import { t } from '@/lib/i18n/rightPanel.ko';
 
 const API_MISSING_PATH = '/api/v1/health/daily/missing?lookback_days=3';
@@ -51,14 +62,7 @@ function formatCategoryValue(key, dailyLog) {
   const hasAny = fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
   if (!hasAny) return null;
   if (key === 'sleep') {
-    const labels = {
-      very_good: '푹 잤어요',
-      excellent: '푹 잤어요',
-      good: '잘 잤어요',
-      normal: '조금 뒤척였어요',
-      bad: '자주 깼어요',
-      very_bad: '거의 못 잤어요',
-    };
+    const labels = { ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' };
     return labels[dailyLog.sleep_quality] || '기록됨';
   }
   if (key === 'water') {
@@ -67,14 +71,7 @@ function formatCategoryValue(key, dailyLog) {
   }
   switch (key) {
     case 'sleep': {
-      const q = {
-        very_good: '푹 잤어요',
-        excellent: '푹 잤어요',
-        good: '잘 잤어요',
-        normal: '조금 뒤척였어요',
-        bad: '자주 깼어요',
-        very_bad: '거의 못 잤어요',
-      }[dailyLog.sleep_quality];
+      const q = ({ ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' })[dailyLog.sleep_quality];
       return q || '기록됨';
     }
     case 'meal': {
@@ -82,17 +79,17 @@ function formatCategoryValue(key, dailyLog) {
       return `${done}/3`;
     }
     case 'medication':
-      if (dailyLog.took_medication === true) return '드셨어요';
-      if (dailyLog.took_medication === false) return '건너뛰었어요';
+      if (dailyLog.took_medication === true) return '복용했어요';
+      if (dailyLog.took_medication === false) return '아직 못 먹었어요';
       return null;
     case 'exercise':
       if (dailyLog.exercise_done === true) return '했어요';
-      if (dailyLog.exercise_done === false) return '쉬었어요';
+      if (dailyLog.exercise_done === false) return '못 했어요';
       return null;
     case 'water':
       return dailyLog.water_cups > 0 ? `${dailyLog.water_cups}잔` : null;
     case 'mood':
-      return { great: '아주 좋음', good: '좋음', normal: '보통', hard: '힘듦' }[dailyLog.mood_level] || null;
+      return MOOD_LABELS[dailyLog.mood_level] || null;
     case 'alcohol':
       if (dailyLog.alcohol_today === false) return '안 마셨어요';
       if (dailyLog.alcohol_today === true) return '마셨어요';
@@ -184,61 +181,35 @@ const parseInt10 = (v) => {
 const FIELD_OPTIONS = {
   sleep: {
     field: 'sleep_quality',
-    options: [
-      { value: 'very_good', label: '푹 잤어요' },
-      { value: 'good', label: '잘 잤어요' },
-      { value: 'normal', label: '조금 뒤척였어요' },
-      { value: 'bad', label: '자주 깼어요' },
-      { value: 'very_bad', label: '거의 못 잤어요' },
-    ],
+    options: SLEEP_QUALITY_OPTIONS,
   },
   meal: {
     field: 'breakfast_status',
-    options: [
-      { value: 'hearty', label: '먹었어요' },
-      { value: 'skipped', label: '못 먹었어요' },
-    ],
+    options: MEAL_STATUS_OPTIONS,
   },
   medication: {
     field: 'took_medication',
     parse: parseBool,
-    options: [
-      { value: true, label: '복용했어요' },
-      { value: false, label: '건너뛰었어요' },
-    ],
+    options: MEDICATION_OPTIONS,
   },
   exercise: {
     field: 'exercise_done',
     parse: parseBool,
-    options: [
-      { value: true, label: '운동했어요' },
-      { value: false, label: '쉬었어요' },
-    ],
+    options: EXERCISE_DONE_OPTIONS,
   },
   water: {
     field: 'water_cups',
     parse: parseInt10,
-    options: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
-      value: n,
-      label: n === 10 ? '10잔 이상' : `${n}잔`,
-    })),
+    options: WATER_OPTIONS,
   },
   mood: {
     field: 'mood_level',
-    options: [
-      { value: 'great', label: '아주 좋음' },
-      { value: 'good', label: '좋음' },
-      { value: 'normal', label: '보통' },
-      { value: 'hard', label: '힘듦' },
-    ],
+    options: MOOD_OPTIONS,
   },
   alcohol: {
     field: 'alcohol_today',
     parse: parseBool,
-    options: [
-      { value: false, label: '안 마셨어요' },
-      { value: true, label: '마셨어요' },
-    ],
+    options: ALCOHOL_OPTIONS,
   },
 };
 
@@ -285,13 +256,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
       <div className="mqm-cell-edit">
         <SelectField
           value={draft.sleep_quality}
-          options={[
-            { value: 'very_good', label: '푹 잤어요' },
-            { value: 'good', label: '잘 잤어요' },
-            { value: 'normal', label: '조금 뒤척였어요' },
-            { value: 'bad', label: '자주 깼어요' },
-            { value: 'very_bad', label: '거의 못 잤어요' },
-          ]}
+          options={SLEEP_QUALITY_OPTIONS}
           onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
         />
         <div className="mqm-cell-edit__actions">
@@ -311,13 +276,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.sleep_quality}
-            options={[
-              { value: 'very_good', label: '푹 잤어요' },
-              { value: 'good', label: '잘 잤어요' },
-              { value: 'normal', label: '조금 뒤척였어요' },
-              { value: 'bad', label: '자주 깼어요' },
-              { value: 'very_bad', label: '거의 못 잤어요' },
-            ]}
+            options={SLEEP_QUALITY_OPTIONS}
             onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
           />
         );
@@ -325,10 +284,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.breakfast_status}
-            options={[
-              { value: 'hearty', label: '먹었어요' },
-              { value: 'skipped', label: '못 먹었어요' },
-            ]}
+            options={MEAL_STATUS_OPTIONS}
             onChange={(v) => setDraft({ ...draft, breakfast_status: v })}
           />
         );
@@ -336,10 +292,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.took_medication}
-            options={[
-              { value: true, label: '드셨어요' },
-              { value: false, label: '건너뛰었어요' },
-            ]}
+            options={MEDICATION_OPTIONS}
             parse={parseBool}
             onChange={(v) => setDraft({ ...draft, took_medication: v })}
           />
@@ -348,10 +301,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.exercise_done}
-            options={[
-              { value: true, label: '했어요' },
-              { value: false, label: '쉬었어요' },
-            ]}
+            options={EXERCISE_DONE_OPTIONS}
             parse={parseBool}
             onChange={(v) => setDraft({ ...draft, exercise_done: v })}
           />
@@ -360,10 +310,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.water_cups}
-            options={[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
-              value: n,
-              label: n === 10 ? '10잔 이상' : `${n}잔`,
-            }))}
+            options={WATER_OPTIONS}
             parse={parseInt10}
             onChange={(v) => setDraft({ ...draft, water_cups: v })}
           />
@@ -372,12 +319,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.mood_level}
-            options={[
-              { value: 'great', label: '아주 좋음' },
-              { value: 'good', label: '좋음' },
-              { value: 'normal', label: '보통' },
-              { value: 'hard', label: '힘듦' },
-            ]}
+            options={MOOD_OPTIONS}
             onChange={(v) => setDraft({ ...draft, mood_level: v })}
           />
         );
@@ -385,10 +327,7 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         return (
           <SelectField
             value={draft.alcohol_today}
-            options={[
-              { value: false, label: '안 마셨어요' },
-              { value: true, label: '마셨어요' },
-            ]}
+            options={ALCOHOL_OPTIONS}
             parse={parseBool}
             onChange={(v) => setDraft({ ...draft, alcohol_today: v })}
           />

@@ -1,5 +1,179 @@
 # Handoff Memo
 
+## 2026-04-28 Report/Text Recovery + 3D Body Asset Handoff
+
+### Current Branch / Workspace State
+
+- Current local branch:
+  - `main`
+- `origin/main` and local `main` were previously synced, but the current working tree now contains new uncommitted frontend/report/chat updates.
+- The largest active surface is no longer backend or onboarding; it is:
+  - report dashboard
+  - report detail
+  - chat right-panel exercise card
+  - guide modal sizing/text
+
+### Current Modified Files
+
+Tracked modified files:
+
+- `backend/apis/v1/user_routers.py`
+- `backend/dtos/users.py`
+- `backend/tasks/seed_shared_demo_account.py`
+- `frontend/app/app/challenge/page.js`
+- `frontend/app/app/chat/page.js`
+- `frontend/app/app/report/detail/page.js`
+- `frontend/app/app/report/page.js`
+- `frontend/app/globals.css`
+- `frontend/components/AppGuideModal.js`
+- `frontend/components/MissedQuestionsModal.js`
+- `frontend/components/RightPanelV2.js`
+
+Important untracked files currently present:
+
+- `.codex-review-pr35/`
+- `.codex-review-pr36/`
+- `.codex-review-pr37/`
+- `backend/db/migrations/models/14_20260428_add_more_challenge_templates.py`
+- `frontend/lib/healthOptionLabels.js`
+- `frontend/public/3d_man.png`
+- `frontend/public/body-female.png`
+- `frontend/public/body-man.png`
+- multiple root-level local image references:
+  - `3d_man.png`
+  - `female.png`
+  - `male.jpg`
+  - `man.png`
+  - several Korean-named screenshot/image files
+
+### What Changed In This 2026-04-28 Pass
+
+#### 1. App Guide Modal (`frontend/components/AppGuideModal.js`)
+
+- The service-guide popup was normalized so tab changes no longer resize the whole modal.
+- The `오늘 기록` tab previously expanded the popup differently from `채팅 / 리포트 / 챌린지`.
+- The modal now uses:
+  - fixed overall height
+  - scrollable body section
+  - consistent layout regardless of active tab
+- Visible guide text was also rewritten into readable Korean.
+
+#### 2. Chat Exercise Panel (`frontend/app/app/chat/page.js`)
+
+- The right-panel exercise section had severe text corruption and displayed question marks.
+- The `ExercisePanelV2` block was repaired and normalized.
+- Restored visible Korean labels include:
+  - 운동
+  - 오늘 운동 하셨어요?
+  - 했어요 / 못 했어요
+  - 걷기
+  - 오늘 산책이나 걷기 하셨어요?
+  - 운동 종류
+  - 운동 시간 (분)
+  - 운동 안 했어요로 바꾸기
+- Direct numeric minute input remains enabled.
+
+#### 3. Report Dashboard (`frontend/app/app/report/page.js`)
+
+- The dashboard had mixed issues:
+  - broken Korean text in the center body-visual section
+  - missing/unclear hover feedback text
+  - request to replace the center body asset with a 3D figure
+- The center visual was updated to use:
+  - `frontend/public/3d_man.png`
+- The top body card image was also pointed to `3d_man.png`.
+- Hover-point feedback was reworked so body-point tooltips are based on lifestyle score status:
+  - sleep
+  - exercise
+  - diet
+- Status labels were normalized back to Korean:
+  - 관리 필요
+  - 주의
+  - 양호
+  - 참고
+- Point titles were normalized to:
+  - 수면 · 회복
+  - 운동 · 활동량
+  - 식습관 · 혈당
+
+#### 4. Report Detail (`frontend/app/app/report/detail/page.js`)
+
+- The detail page had widespread text corruption and displayed `??` across most UI labels.
+- Rather than incremental replacement, the file was rewritten into a clean readable Korean version.
+- The current rebuilt detail page includes:
+  - summary header
+  - 3 lifestyle cards
+  - trend graph
+  - `7일 / 30일 / 직접 선택` range control
+  - detail modal for each category
+  - action suggestions section
+- Visible Korean labels were restored across:
+  - headers
+  - graph labels
+  - button labels
+  - empty/loading/error states
+  - modal section labels
+
+### Verification Status
+
+The following checks passed after the latest 2026-04-28 recovery pass:
+
+```bash
+node --check frontend/app/app/chat/page.js
+node --check frontend/app/app/report/page.js
+node --check frontend/app/app/report/detail/page.js
+
+cd frontend
+npm run build
+```
+
+Build status:
+
+- Next.js production build passed successfully.
+- `/app/report` compiled successfully.
+- `/app/report/detail` compiled successfully.
+- `/app/chat` compiled successfully.
+
+### Important Risk Notes
+
+1. Encoding / console-display confusion risk
+
+- Some PowerShell output still renders Korean as mojibake or `??` in console views.
+- This can be misleading during review.
+- The important signal is:
+  - actual file contents
+  - browser rendering
+  - successful Next.js build
+
+2. Report dashboard file still contains older accumulated logic
+
+- `frontend/app/app/report/page.js` remains a large file with older and newer variants coexisting.
+- Even after text recovery, this file should still be treated as a high-risk visual surface.
+
+3. Root-level image clutter remains
+
+- `3d_man.png` was copied into `frontend/public/3d_man.png` for actual app usage.
+- The original root-level image file still remains untracked.
+- Several other root-level image references also remain untracked and should be cleaned before commit.
+
+4. Backend changes are present but not part of this recovery pass
+
+- There are still tracked backend changes in the workspace.
+- They were not revalidated in this handoff step.
+- If preparing a PR, do not assume the workspace is frontend-only.
+
+### Recommended Next Action
+
+1. Manually open and visually verify:
+   - `/app/chat`
+   - `/app/report`
+   - `/app/report/detail`
+2. Confirm whether `3d_man.png` is the final intended dashboard body asset.
+3. Clean or isolate root-level untracked image files before staging.
+4. Decide whether to commit this as:
+   - one frontend recovery commit, or
+   - split report/chat/guide-modal commits.
+
 ## 2026-04-25 Local Workspace Consolidation Handoff
 
 ### Current Branch / Workspace State
@@ -1221,3 +1395,38 @@ docker compose up -d --no-deps fastapi
 ## Known local artifact
 
 - `.aerich_models_state.txt`는 Aerich 로컬 상태 파일로 커밋하지 않는다.
+
+## 2026-04-29 Report / Challenge PR cleanup handoff
+
+### Final asset decision
+- Report dashboard body images are finalized as:
+  - `frontend/public/3d_blue_man.png`
+  - `frontend/public/3d_blue_woman.png`
+- `frontend/app/app/report/page.js` now points only to those two files.
+- Older experimental body assets such as `3d_man.png`, `body-man.png`, `body-female.png`, `man_shadow.png`, and `woman_shadow.png` are not intended for the PR payload.
+
+### Branch packaging rule
+- Include only files actually referenced by the current app code.
+- Exclude review scratch directories and root-level loose images:
+  - `.codex-review-pr35/`
+  - `.codex-review-pr36/`
+  - `.codex-review-pr37/`
+  - root `3d_blue_man.png`
+  - root `3d_blue_woman.png`
+
+### Current PR scope
+- Challenge duplicate join protection and icon cleanup
+- Chat/right-panel health input text fixes
+- Report dashboard/detail rendering and dark-mode adjustments
+- Risk recalculation / missed-input reflection updates
+- Supporting backend migrations, DTO/service updates, and integration coverage
+
+### Verification before merge
+- `frontend`: `npm run build`
+- backend pre-push checks:
+  - `ruff check`
+  - unit tests (`421 passed` when this handoff was written)
+
+### Merge note
+- This cleanup is prepared for a personal-repo branch PR targeting personal `main`.
+- There was no detected upstream-side conflicting change at packaging time, but only the cleaned branch contents should be merged, not loose local artifacts.

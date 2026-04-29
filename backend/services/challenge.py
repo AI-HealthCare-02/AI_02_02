@@ -12,6 +12,8 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from fastapi import HTTPException, status
+from tortoise.exceptions import IntegrityError
+from tortoise.transactions import in_transaction
 
 from backend.core import config
 from backend.core.cache import delete_cached
@@ -28,6 +30,7 @@ from backend.dtos.challenges import (
 )
 from backend.models.challenges import ChallengeCheckin, ChallengeTemplate, UserChallenge
 from backend.models.enums import ChallengeStatus, CheckinStatus, SelectionSource
+from backend.models.users import User
 
 MAX_ACTIVE_CHALLENGES = 2
 SYSTEM_RECOMMENDATION_CODES = {
@@ -214,60 +217,69 @@ class ChallengeService:
         self, user_id: int, template_id: int
     ) -> ChallengeJoinResponse:
         """챌린지 참여."""
-        template = await ChallengeTemplate.get_or_none(
-            id=template_id, is_active=True,
-        )
-        if not template:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="존재하지 않거나 비활성화된 챌린지입니다.",
-            )
+        async with in_transaction() as connection:
+            await User.filter(id=user_id).using_db(connection).select_for_update().first()
 
-        # 최대 2개 제한
-        active_count = await UserChallenge.filter(
-            user_id=user_id, status=ChallengeStatus.ACTIVE,
-        ).count()
-        if active_count >= MAX_ACTIVE_CHALLENGES:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"동시에 최대 {MAX_ACTIVE_CHALLENGES}개까지만 참여할 수 있습니다.",
-            )
+            template = await ChallengeTemplate.get_or_none(
+                id=template_id,
+                is_active=True,
+            ).using_db(connection)
+            if not template:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="존재하지 않거나 비활성화된 챌린지입니다.",
+                )
 
-        # 같은 템플릿 중복 참여 불가
-        existing = await UserChallenge.get_or_none(
-            user_id=user_id,
-            template_id=template_id,
-            status=ChallengeStatus.ACTIVE,
-        )
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="이미 진행 중인 챌린지입니다.",
-            )
+            active_count = await UserChallenge.filter(
+                user_id=user_id,
+                status=ChallengeStatus.ACTIVE,
+            ).using_db(connection).count()
+            if active_count >= MAX_ACTIVE_CHALLENGES:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"활성 챌린지는 최대 {MAX_ACTIVE_CHALLENGES}개까지 참여할 수 있습니다.",
+                )
 
-        # 같은 템플릿을 오늘 체크인한 이력이 있으면 당일 재참여 차단
-        # (취소 후 재선택 시 하루에 같은 챌린지 2번 체크인되는 왜곡 방지)
-        today = date.today()
-        checkin_today = await ChallengeCheckin.filter(
-            user_challenge__user_id=user_id,
-            user_challenge__template_id=template_id,
-            checkin_date=today,
-        ).exists()
-        if checkin_today:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="오늘 체크인한 챌린지는 내일부터 다시 시작할 수 있습니다.",
-            )
+            existing = await UserChallenge.get_or_none(
+                user_id=user_id,
+                template_id=template_id,
+                status=ChallengeStatus.ACTIVE,
+            ).using_db(connection)
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="이미 진행 중인 챌린지입니다.",
+                )
 
-        now = datetime.now(tz=config.TIMEZONE)
-        uc = await UserChallenge.create(
-            user_id=user_id,
-            template_id=template_id,
-            selection_source=SelectionSource.USER_SELECTED,
-            status=ChallengeStatus.ACTIVE,
-            started_at=now,
-            target_days=template.default_duration_days,
-        )
+            today = date.today()
+            checkin_today = await ChallengeCheckin.filter(
+                user_challenge__user_id=user_id,
+                user_challenge__template_id=template_id,
+                checkin_date=today,
+            ).using_db(connection).exists()
+            if checkin_today:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="오늘 이미 체크인한 챌린지는 다시 참여할 수 없습니다.",
+                )
+
+            now = datetime.now(tz=config.TIMEZONE)
+            try:
+                uc = await UserChallenge.create(
+                    user_id=user_id,
+                    template_id=template_id,
+                    selection_source=SelectionSource.USER_SELECTED,
+                    status=ChallengeStatus.ACTIVE,
+                    started_at=now,
+                    target_days=template.default_duration_days,
+                    using_db=connection,
+                )
+            except IntegrityError as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="이미 진행 중인 챌린지입니다.",
+                ) from exc
+
         await self._invalidate_user_caches(user_id)
         return ChallengeJoinResponse(
             user_challenge_id=uc.id,
@@ -472,6 +484,7 @@ class ChallengeService:
                 continue
             recommended.append(ChallengeRecommendedItem(
                 template_id=t.id,
+                code=t.code,
                 name=t.name,
                 emoji=t.emoji,
                 category=t.category,

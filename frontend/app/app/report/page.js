@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
@@ -12,9 +12,12 @@ import {
   CheckCircle2,
   ChevronDown,
   Circle,
+  Clock,
+  Coffee,
   Droplets,
   Dumbbell,
   Footprints,
+  Leaf,
   LineChart,
   Moon,
   Pencil,
@@ -119,6 +122,47 @@ const CHALLENGE_ICON = {
   medication: CheckCircle2,
 };
 
+const CHALLENGE_ICON_BY_CODE = {
+  exercise_3x_week:      Dumbbell,
+  stretching_10min:      Activity,
+  daily_walk_30min:      Footprints,
+  sleep_7h:              Moon,
+  no_phone_before_sleep: Target,
+  consistent_bedtime:    Clock,
+  water_6cups:           Droplets,
+  water_before_meal:     Circle,
+  herbal_tea_daily:      Coffee,
+  vegetable_3servings:   Leaf,
+  no_sweetdrink:         X,
+  no_nightsnack:         UtensilsCrossed,
+  drink_less_alcohol:    Sparkles,
+  medication_daily:      CheckCircle2,
+};
+
+const CHALLENGE_ICON_BY_NAME = {
+  '주 3회 유산소 운동':   Dumbbell,
+  '매일 스트레칭 10분':   Activity,
+  '매일 30분 걷기':       Footprints,
+  '7시간 숙면':           Moon,
+  '취침 전 스마트폰 금지': Target,
+  '규칙적 취침 시간':      Clock,
+  '물 6잔 마시기':        Droplets,
+  '식전 물 한 잔':        Circle,
+  '무가당 차 마시기':      Coffee,
+  '채소 3회 섭취':        Leaf,
+  '단음료 줄이기':        X,
+  '야식 금지':            UtensilsCrossed,
+  '음주 줄이기':          Sparkles,
+  '약 꼬박꼬박 먹기':     CheckCircle2,
+};
+
+function getChallengeIcon(item) {
+  return CHALLENGE_ICON_BY_CODE[item.code]
+    || CHALLENGE_ICON_BY_NAME[item.name]
+    || CHALLENGE_ICON[item.category]
+    || Footprints;
+}
+
 function reportCacheKey(userId) {
   return userId == null ? null : `${REPORT_CACHE_PREFIX}:u${userId}`;
 }
@@ -178,7 +222,7 @@ function calcAgeFromBirthday(birthday) {
 }
 
 function clampPct(value, max = 100) {
-  return Math.max(0, Math.min(100, (Number(value || 0) / max) * 100));
+  return Math.round(Math.max(0, Math.min(100, (Number(value || 0) / max) * 100)) * 10) / 10;
 }
 
 function progressStatus(percent) {
@@ -948,46 +992,74 @@ function LegacyBodyInsightPanel() {
   );
 }
 
-function BodyInsightPanel({ sleepStatus = 'none', dietStatus = 'none', exerciseStatus = 'none', highlightId = null, onPointEnter, onPointLeave, hideImage = false }) {
+function BodyInsightPanel({ sleepStatus = 'none', dietStatus = 'none', exerciseStatus = 'none', highlightId = null, onPointEnter, onPointLeave, hideImage = false, gender = 'MALE' }) {
   const [hoveredId, setHoveredId] = useState(null);
 
   function stColor(s) {
-    if (s === 'danger') return '#EF4444';
-    if (s === 'caution') return '#F59E0B';
-    if (s === 'good') return '#10B981';
-    return '#3B82F6';
+    if (s === 'danger') return 'var(--report-status-danger)';
+    if (s === 'caution') return 'var(--report-status-caution)';
+    if (s === 'good') return 'var(--report-status-good)';
+    return 'var(--report-status-none)';
   }
   function stLabel(s) {
     if (s === 'danger') return '관리 필요';
     if (s === 'caution') return '주의';
-    if (s === 'good') return '정상';
+    if (s === 'good') return '양호';
     return '참고';
+  }
+
+  function feedbackText(kind, status) {
+    const map = {
+      sleep: {
+        danger: '수면 점수가 낮아요. 취침 시간과 수면 길이를 먼저 점검해 보세요.',
+        caution: '수면 패턴이 조금 흔들리고 있어요. 취침 시간을 더 일정하게 맞춰 보세요.',
+        good: '수면 리듬이 비교적 안정적이에요. 현재 패턴을 유지해 보세요.',
+        none: '수면 기록이 아직 부족해요. 오늘 기록을 먼저 남겨 보세요.',
+      },
+      exercise: {
+        danger: '운동 점수가 낮아요. 오늘은 10분이라도 몸을 움직여 보세요.',
+        caution: '활동량이 조금 부족해요. 짧은 산책이나 가벼운 운동을 더해 보세요.',
+        good: '활동량이 잘 유지되고 있어요. 지금 리듬을 이어가면 됩니다.',
+        none: '운동 기록이 아직 부족해요. 오늘 운동 여부를 먼저 남겨 보세요.',
+      },
+      diet: {
+        danger: '식습관 점수가 낮아요. 식사 균형과 음료, 야식 여부를 먼저 점검해 보세요.',
+        caution: '식사 패턴이 조금 흔들리고 있어요. 한 끼만이라도 균형 있게 구성해 보세요.',
+        good: '식습관 점수가 안정적이에요. 현재 식사 패턴을 유지해 보세요.',
+        none: '식사 기록이 아직 부족해요. 오늘 식사 내용을 먼저 남겨 보세요.',
+      },
+    };
+
+    return map[kind]?.[status] ?? map[kind]?.none ?? '기록을 먼저 남겨 주세요.';
   }
 
   const bodyPoints = useMemo(() => [
     {
       id: 'head',
-      label: '수면 · 인지 기능',
-      sub: '수면 패턴이 혈당 조절과 호르몬 균형에 직접 영향을 미칩니다.',
+      label: '수면 · 회복',
+      sub: '수면 패턴이 혈당 조절과 회복 리듬에 직접 영향을 줍니다.',
       color: stColor(sleepStatus),
       statusText: stLabel(sleepStatus),
-      top: '18%', left: '50%', tipDir: 'right',
+      feedback: feedbackText('sleep', sleepStatus),
+      top: '11%', left: '50%', tipDir: 'right',
     },
     {
       id: 'chest',
-      label: '심혈관 · 혈압',
-      sub: '혈압 관리와 규칙적 운동은 당뇨 합병증 예방의 핵심입니다.',
+      label: '운동 · 활동량',
+      sub: '규칙적인 운동과 활동량은 혈당과 대사 흐름에 직접 연결됩니다.',
       color: stColor(exerciseStatus),
       statusText: stLabel(exerciseStatus),
-      top: '38%', left: '50%', tipDir: 'right',
+      feedback: feedbackText('exercise', exerciseStatus),
+      top: '72%', left: '64%', tipDir: 'right',
     },
     {
       id: 'abdomen',
-      label: '혈당 · 대사',
-      sub: '복부 지방과 식습관은 인슐린 저항성을 높이는 주요 원인입니다.',
+      label: '식습관 · 혈당',
+      sub: '식사 패턴과 섭취 내용은 혈당과 인슐린 저항성에 직접 영향을 줍니다.',
       color: stColor(dietStatus),
       statusText: stLabel(dietStatus),
-      top: '56%', left: '50%', tipDir: 'right',
+      feedback: feedbackText('diet', dietStatus),
+      top: '47%', left: '36%', tipDir: 'right',
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [sleepStatus, dietStatus, exerciseStatus]);
@@ -1004,22 +1076,26 @@ function BodyInsightPanel({ sleepStatus = 'none', dietStatus = 'none', exerciseS
     onPointLeave?.();
   }
 
+  const imgSrc = String(gender || '').toUpperCase() === 'FEMALE' ? '/3d_blue_woman.png' : '/3d_blue_man.png';
+
   return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
-      <div className="relative flex h-full items-center justify-center">
-        {/* 인체 이미지 — hideImage=true 이면 상위 레이어에서 배경으로 처리 */}
+    <div className="relative flex h-full w-full items-start justify-center" style={{ overflow: 'visible' }}>
+      <div className="relative flex h-full w-full items-start justify-center">
         {!hideImage && (
           <Image
-            src="/body-clean.png"
+            src={imgSrc}
             alt="건강 상태 인체"
-            width={470}
-            height={720}
+            width={840}
+            height={1320}
             priority
-            className="block h-full w-auto object-contain"
+            className="pointer-events-none block"
             style={{
-              minHeight: '520px',
-              mixBlendMode: 'multiply',
-              filter: 'contrast(1.08) brightness(0.94) saturate(0.9) drop-shadow(0 16px 28px rgba(148,163,184,0.18))',
+              width: 'auto',
+              height: '100%',
+              maxWidth: '100%',
+              position: 'relative',
+              zIndex: 1,
+              filter: 'drop-shadow(0 22px 34px rgba(0,0,0,0.14))',
             }}
           />
         )}
@@ -1065,27 +1141,26 @@ function BodyInsightPanel({ sleepStatus = 'none', dietStatus = 'none', exerciseS
               <span
                 className="absolute rounded-full"
                 style={{
-                  width: '26px', height: '26px',
-                  top: '-8px', left: '-8px',
-                  background: `${point.color}${isActive ? '28' : '18'}`,
+                  width: '38px', height: '38px',
+                  top: '-12px', left: '-12px',
+                  background: `${point.color}${isActive ? '30' : '1c'}`,
                   animation: 'dotPulse 2.6s ease-in-out infinite',
                   transition: 'background 0.2s',
                 }}
               />
               {/* 닷 */}
               <span
-                className="relative block rounded-full border-2 border-white transition-all duration-200"
+                className="relative block rounded-full border-[3px] border-white transition-all duration-200"
                 style={{
-                  width: isActive ? '14px' : '10px',
-                  height: isActive ? '14px' : '10px',
+                  width: isActive ? '20px' : '14px',
+                  height: isActive ? '20px' : '14px',
                   background: point.color,
                   boxShadow: isActive
-                    ? `0 0 0 6px ${point.color}28, 0 6px 18px rgba(0,0,0,0.22)`
-                    : `0 0 0 3px ${point.color}18, 0 3px 8px rgba(0,0,0,0.15)`,
+                    ? `0 0 0 7px ${point.color}30, 0 6px 20px rgba(0,0,0,0.25)`
+                    : `0 0 0 4px ${point.color}20, 0 3px 10px rgba(0,0,0,0.18)`,
                 }}
               />
 
-              {/* 툴팁 */}
               {isHovered && (
                 <span
                   className="absolute z-50 w-[180px] rounded-2xl bg-white p-3.5 text-left shadow-[0_12px_32px_rgba(0,0,0,0.14)] ring-1 ring-[#E2E8F0]"
@@ -1097,20 +1172,9 @@ function BodyInsightPanel({ sleepStatus = 'none', dietStatus = 'none', exerciseS
                   >
                     {point.statusText}
                   </span>
-                  <span className="mt-2 block text-[13px] font-bold text-[#0F172A]">
-                    {point.id === 'head'
-                      ? '수면 기록 피드백'
-                      : point.id === 'chest'
-                        ? '운동 루틴 피드백'
-                        : '식습관 기록 피드백'}
-                  </span>
-                  <span className="mt-1.5 block text-[11px] leading-[1.6] text-[#475569]">
-                    {point.id === 'head'
-                      ? '최근 수면 기록이 들쭉날쭉해서 대시보드가 보수적으로 판단하고 있습니다. 취침 시간과 수면 시간을 더 꾸준히 입력해 주세요.'
-                      : point.id === 'chest'
-                        ? '운동 기록이 부족해서 활동 흐름을 충분히 읽지 못하고 있습니다. 짧은 운동이라도 자주 남기면 피드백 정확도가 올라갑니다.'
-                        : '식사와 섭취 기록이 자주 비어 있어 생활습관 점수가 낮게 잡혀 있습니다. 식사 내용만 꾸준히 남겨도 변화가 바로 반영됩니다.'}
-                  </span>
+                  <span className="mt-2 block text-[13px] font-bold text-[#0F172A]">{point.label}</span>
+                  <span className="mt-1 block text-[11px] text-[#64748B]">{point.sub}</span>
+                  <span className="mt-2 block text-[11px] leading-[1.6] text-[#475569]">{point.feedback}</span>
                 </span>
               )}
             </button>
@@ -1128,7 +1192,7 @@ function BodyInsightPanel({ sleepStatus = 'none', dietStatus = 'none', exerciseS
   );
 }
 
-function DashboardCenterVisual({ sleepStatus, dietStatus, exerciseStatus, highlightId, onPointEnter, onPointLeave, hideImage = false }) {
+function DashboardCenterVisual({ sleepStatus, dietStatus, exerciseStatus, highlightId, onPointEnter, onPointLeave, hideImage = false, gender = 'MALE' }) {
   return (
     <div className="relative h-full w-full">
       <BodyInsightPanel
@@ -1139,6 +1203,7 @@ function DashboardCenterVisual({ sleepStatus, dietStatus, exerciseStatus, highli
         onPointEnter={onPointEnter}
         onPointLeave={onPointLeave}
         hideImage={hideImage}
+        gender={gender}
       />
     </div>
   );
@@ -1465,10 +1530,10 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
     <section
       className="mx-auto flex h-full w-full max-w-[1260px] overflow-hidden rounded-[28px] shadow-[0_18px_42px_rgba(148,163,184,0.14)]"
       style={{
-        minHeight: '760px',
+        minHeight: '650px',
         height: '100%',
         position: 'relative',
-        background: '#F0F2F5',
+        background: 'var(--report-surface)',
       }}
     >
       <div className="relative grid flex-1 w-full" style={{ gridTemplateColumns: '292px minmax(0, 1fr) 278px', alignItems: 'stretch' }}>
@@ -1477,8 +1542,8 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
         <div
           className="flex flex-col overflow-y-auto"
           style={{
-            background: 'rgba(240,242,245,0.97)',
-            boxShadow: 'inset -1px 0 0 #DDE1E8',
+            background: 'var(--report-panel-bg)',
+            boxShadow: 'inset -1px 0 0 var(--report-border)',
           }}
         >
 
@@ -1497,7 +1562,7 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
             <div className="flex items-center gap-3">
               <div className="relative h-[68px] w-[68px] shrink-0">
                 <svg className="-rotate-90" width="68" height="68" viewBox="0 0 68 68">
-                  <circle cx="34" cy="34" r="26" fill="none" stroke="#F0F2F5" strokeWidth="7" />
+                  <circle cx="34" cy="34" r="26" fill="none" stroke="var(--report-track)" strokeWidth="7" />
                   <circle cx="34" cy="34" r="26" fill="none" stroke={predColor} strokeWidth="7" strokeLinecap="round"
                     strokeDasharray={`${(clampPct(prediction) / 100) * Math.PI * 52} ${Math.PI * 52}`} />
                 </svg>
@@ -1508,18 +1573,18 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] font-bold text-[#0F172A]">{prediction ?? '-'} / 100</span>
-                  <span className="ml-auto inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: predColor, backgroundColor: `${predColor}14` }}>
+                  <span className="ml-auto inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: predColor, backgroundColor: predSt === 'danger' ? 'var(--report-status-danger-soft)' : predSt === 'caution' ? 'var(--report-status-caution-soft)' : predSt === 'good' ? 'var(--report-status-good-soft)' : 'rgba(148,163,184,0.16)' }}>
                     {STATUS[predSt].label}
                   </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {signals.slice(0, 2).map((s, i) => (
                     <span key={s} className="rounded-full px-1.5 py-0.5 text-[9px] font-medium"
-                      style={{ color: i === 0 ? '#B91C1C' : '#B45309', backgroundColor: i === 0 ? 'rgba(239,68,68,0.10)' : 'rgba(245,158,11,0.12)' }}>
+                      style={{ color: i === 0 ? 'var(--report-status-danger)' : 'var(--report-status-caution)', backgroundColor: i === 0 ? 'var(--report-status-danger-soft)' : 'var(--report-status-caution-soft)' }}>
                       {s}
                     </span>
                   ))}
-                  {signals.length === 0 && <span className="text-[10px] text-[#10B981]">이상 신호 없음</span>}
+                  {signals.length === 0 && <span className="text-[10px]" style={{ color: 'var(--report-status-good)' }}>이상 신호 없음</span>}
                 </div>
               </div>
             </div>
@@ -1534,20 +1599,20 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
             <div className="flex items-baseline gap-1.5">
               <span className="text-[34px] font-extrabold leading-none" style={{ color: finColor }}>{official ?? '-'}</span>
               <span className="text-[11px] text-[#94A3B8]">/ 26점</span>
-              <span className="ml-auto inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: finColor, backgroundColor: `${finColor}14` }}>
+              <span className="ml-auto inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ color: finColor, backgroundColor: finSt === 'danger' ? 'var(--report-status-danger-soft)' : finSt === 'caution' ? 'var(--report-status-caution-soft)' : finSt === 'good' ? 'var(--report-status-good-soft)' : 'rgba(148,163,184,0.16)' }}>
                 {STATUS[finSt].label}
               </span>
             </div>
             <div className="relative mt-2.5">
               <div className="flex h-2 overflow-hidden rounded-full">
-                <div className="flex-[8] bg-[#DCFCE7]" />
+                <div className="flex-[8]" style={{ background: 'var(--report-status-good-soft)' }} />
                 <div className="mx-px w-px bg-white" />
-                <div className="flex-[12] bg-[#FEF9C3]" />
+                <div className="flex-[12]" style={{ background: 'var(--report-status-caution-soft)' }} />
                 <div className="mx-px w-px bg-white" />
-                <div className="flex-[6] bg-[#FEE2E2]" />
+                <div className="flex-[6]" style={{ background: 'var(--report-status-danger-soft)' }} />
               </div>
-              <span className="absolute -top-0.5 h-3 w-[3px] -translate-x-1/2 rounded-full bg-[#1E293B]"
-                style={{ left: `${Math.min(93, clampPct(official, 26))}%` }} />
+              <span className="absolute -top-0.5 h-3 w-[3px] -translate-x-1/2 rounded-full"
+                style={{ left: `${Math.min(93, clampPct(official, 26))}%`, background: 'var(--color-text)' }} />
             </div>
             <div className="mt-0.5 flex justify-between text-[9px] text-[#94A3B8]">
               <span>낮음</span><span>높음</span>
@@ -1561,18 +1626,18 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
               {signals.length > 0 ? signals.slice(0, 3).map((s, i) => (
                 <div key={s} className="flex items-start gap-2 rounded-lg bg-[#F1F3F5] px-2.5 py-2 text-[10px] text-[#334155]">
                   <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: i === 0 ? '#EF4444' : i === 1 ? '#F59E0B' : '#94A3B8' }} />
+                    style={{ backgroundColor: i === 0 ? 'var(--report-status-danger)' : i === 1 ? 'var(--report-status-caution)' : 'var(--report-status-none)' }} />
                   {s}
                 </div>
               )) : (
-                <div className="flex items-center gap-1.5 rounded-lg bg-[#F0FDF4] px-2.5 py-2 text-[10px] text-[#10B981]">
+                <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px]" style={{ backgroundColor: 'var(--report-status-good-soft)', color: 'var(--report-status-good)' }}>
                   <span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />현재 주요 위험 신호 없음
                 </div>
               )}
               {findriscBreakdown.map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between rounded-lg bg-[#FEF9C3] px-2.5 py-1.5 text-[10px]">
-                  <span className="text-[#92400E]">{FINDRISC_FACTORS[key]?.label || key}</span>
-                  <span className="font-semibold text-[#B45309]">+{value}점</span>
+                <div key={key} className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-[10px]" style={{ backgroundColor: 'var(--report-status-caution-soft)' }}>
+                  <span style={{ color: 'var(--report-status-caution)' }}>{FINDRISC_FACTORS[key]?.label || key}</span>
+                  <span className="font-semibold" style={{ color: 'var(--report-status-caution)' }}>+{value}점</span>
                 </div>
               ))}
             </div>
@@ -1581,25 +1646,38 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
 
         {/* ── CENTER: 도트만 표시 ── */}
         <div
-          className="relative flex flex-col items-center justify-between pb-5 pt-2"
-          style={{ overflow: 'visible', background: 'transparent' }}
+          className="flex flex-col items-center"
+          style={{ background: 'var(--report-panel-bg)', height: '100%' }}
         >
-          <DashboardCenterVisual
-            sleepStatus={sleepSt}
-            dietStatus={dietSt}
-            exerciseStatus={exerciseSt}
-            highlightId={hoveredRegion}
-            onPointEnter={(id) => setHoveredRegion(id)}
-            onPointLeave={() => setHoveredRegion(null)}
-          />
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="flex items-center gap-3 text-[9px] text-[#7B8CA6]">
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#EF4444]" />관리 필요</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />주의</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#10B981]" />양호</span>
+          <div style={{ flex: '1 1 0', minHeight: 0, width: '100%', position: 'relative' }}>
+            <DashboardCenterVisual
+              sleepStatus={sleepSt}
+              dietStatus={dietSt}
+              exerciseStatus={exerciseSt}
+              highlightId={hoveredRegion}
+              onPointEnter={(id) => setHoveredRegion(id)}
+              onPointLeave={() => setHoveredRegion(null)}
+              gender={userData?.gender ?? statusData?.gender}
+            />
+          </div>
+          <div className="flex-shrink-0 flex flex-col items-center gap-1.5 py-2">
+            <div className="flex items-center gap-3 text-[9px] font-semibold">
+              <span className="flex items-center gap-1.5">
+                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#EF4444', flexShrink: 0 }} />
+                <span style={{ color: 'var(--report-status-danger)' }}>관리 필요</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#F59E0B', flexShrink: 0 }} />
+                <span style={{ color: 'var(--report-status-caution)' }}>주의</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', flexShrink: 0 }} />
+                <span style={{ color: 'var(--report-status-good)' }}>양호</span>
+              </span>
             </div>
             <Link href="/app/report/detail"
-              className="inline-flex items-center gap-1 rounded-full bg-white/75 px-3 py-1 text-[10px] font-semibold text-[#3B82F6] shadow-sm backdrop-blur-sm transition-colors hover:bg-white/95">
+              className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-semibold shadow-sm transition-colors"
+              style={{ border: '1px solid var(--report-border)', backgroundColor: 'var(--report-panel-bg)', color: 'var(--color-text)' }}>
               상세 리포트 <ArrowRight size={9} />
             </Link>
           </div>
@@ -1609,8 +1687,8 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
         <div
           className="flex flex-col overflow-y-auto"
           style={{
-            background: 'rgba(240,242,245,0.97)',
-            boxShadow: 'inset 1px 0 0 #DDE1E8',
+            background: 'var(--report-panel-bg)',
+            boxShadow: 'inset 1px 0 0 var(--report-border)',
           }}
         >
 
@@ -1704,7 +1782,7 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
           )}
 
           {/* 챌린지 탭으로 이동 */}
-          <div className="mt-auto p-4">
+          <div className="sticky bottom-0 p-4" style={{ background: 'var(--report-panel-bg)' }}>
             <Link href="/app/challenge"
               className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#DBEAFE] bg-[#EFF6FF] px-3 py-2.5 text-[11px] font-semibold text-[#2563EB] transition-colors hover:bg-[#DBEAFE]">
               챌린지 바꾸러 가기 <ArrowRight size={11} />
@@ -1921,7 +1999,7 @@ function ChallengeSection({ challenges, risk }) {
         <div className="mt-1 text-[12px] text-[#6B7280]">습관 · 시작</div>
         <div className="mt-5 flex-1 space-y-3">
           {recommended.slice(0, 3).map((item) => {
-            const Icon = CHALLENGE_ICON[item.category] || Footprints;
+            const Icon = getChallengeIcon(item);
             return (
               <Link
                 key={item.template_id}
@@ -2071,7 +2149,7 @@ function DashboardDetailTabs({ history, summary, challenges, risk }) {
             </div>
             <div className="grid gap-2">
               {challengeItems.map((item) => {
-                const Icon = CHALLENGE_ICON[item.category] || Footprints;
+                const Icon = getChallengeIcon(item);
                 return (
                   <Link key={item.template_id ?? item.name} href="/app/challenge" className="flex items-center gap-3 rounded-2xl bg-[#F8FAFC] px-4 py-3 transition-colors hover:bg-[#EFF6FF]">
                     <Icon size={16} className="shrink-0 text-[#2563EB]" />
@@ -2110,6 +2188,7 @@ export default function ReportPage() {
   const [userData, setUserData] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -2184,11 +2263,14 @@ export default function ReportPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshNonce]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const handler = () => clearReportCache();
+    const handler = () => {
+      clearReportCache();
+      setRefreshNonce((value) => value + 1);
+    };
     window.addEventListener('danaa:report-cache-refresh', handler);
     return () => window.removeEventListener('danaa:report-cache-refresh', handler);
   }, []);
@@ -2197,7 +2279,7 @@ export default function ReportPage() {
 
   if (!loaded) {
     return (
-      <div className="theme-report-page flex h-full flex-col bg-[#F4F6F8]">
+      <div className="theme-report-page flex h-full flex-col bg-[#F4F6F8]" style={{ backgroundColor: 'var(--color-bg)' }}>
         <header className="flex h-12 shrink-0 items-center border-b border-[#E5E7EB] bg-white px-4">
           <span className="text-[14px] font-medium text-[#111827]">리포트</span>
         </header>
@@ -2208,13 +2290,13 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="theme-report-page flex h-full flex-col bg-[#F5F7FA]">
+    <div className="theme-report-page flex h-full flex-col bg-[#F5F7FA]" style={{ backgroundColor: 'var(--color-bg)' }}>
       <header className="flex h-12 shrink-0 items-center border-b border-[#E5E7EB] bg-white px-4">
         <span className="text-[14px] font-medium text-[#111827]">리포트</span>
       </header>
       <ReportTabs />
 
-      <div className="flex-1 overflow-hidden px-3 py-2">
+      <div className="flex-1 overflow-hidden px-3 py-2" style={{ backgroundColor: 'var(--color-bg)' }}>
         <main className="mx-auto flex h-full max-w-[1360px] flex-col gap-2">
           {error && (
             <div className="flex items-center gap-2 rounded-2xl bg-[#FEE2E2] px-4 py-3 text-[14px] text-[#EF4444] shadow-[0_1px_4px_rgba(0,0,0,0.06)]">

@@ -189,6 +189,34 @@ class TestSettingsAndReports(TestCase):
         assert r.status_code == status.HTTP_200_OK
         assert len(r.json()["history"]) >= 1
 
+    async def test_daily_patch_recalculates_risk_and_meal_fallback_counts_for_diet(self):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            headers = await self._signup_login_consent_survey(c, "risk_patch_refresh@test.com")
+            today = date.today().isoformat()
+
+            patch_res = await c.patch(
+                f"/api/v1/health/daily/{today}",
+                json={
+                    "source": "direct",
+                    "breakfast_status": "hearty",
+                    "lunch_status": "hearty",
+                    "dinner_status": "skipped",
+                    "exercise_done": True,
+                    "exercise_minutes": 25,
+                },
+                headers=headers,
+            )
+            history_res = await c.get("/api/v1/risk/history", headers=headers)
+            current_res = await c.get("/api/v1/risk/current", headers=headers)
+
+        assert patch_res.status_code == status.HTTP_200_OK
+        assert history_res.status_code == status.HTTP_200_OK
+        assert len(history_res.json()["history"]) >= 1
+        assert current_res.status_code == status.HTTP_200_OK
+        body = current_res.json()
+        assert body["diet_score"] > 0
+        assert body["exercise_score"] > 0
+
     async def test_health_weekly_returns_category_summary(self):
         email = "health_weekly@test.com"
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from fastapi import HTTPException, status
 
 from backend.core import config
+from backend.core.logger import setup_logger
 from backend.dtos.health import (
     BatchRequest,
     BatchResponse,
@@ -55,6 +56,8 @@ LEGACY_MEAL_STATUS_ALIASES = {
     "light": "hearty",
     "simple": "hearty",
 }
+
+logger = setup_logger(__name__)
 
 
 def _log_to_response(log: DailyHealthLog) -> DailyLogResponse:
@@ -299,8 +302,19 @@ class HealthDailyService:
             await log.save(update_fields=list(dict.fromkeys(update_fields + ["updated_at"])))
 
         # 건강 기록 변경 → 위험도/이력/요약 캐시 무효화 (코칭은 유지, 다음 6h 내엔 재사용)
-        from backend.services.risk_analysis import invalidate_report_caches
+        from backend.services.risk_analysis import RiskAnalysisService, invalidate_report_caches
+
         await invalidate_report_caches(user_id)
+        try:
+            await RiskAnalysisService().recalculate_risk(
+                user_id=user_id,
+                generate_coaching=False,
+            )
+        except Exception:
+            logger.exception(
+                "health_daily_recalculate_failed",
+                extra={"user_id": user_id, "log_date": log_date.isoformat()},
+            )
 
         return DailyLogPatchResponse(
             daily_log=await self._attach_missing_summary(

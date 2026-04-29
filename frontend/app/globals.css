@@ -477,6 +477,62 @@ html[data-contrast="high"] {
   background-color: var(--color-surface) !important;
 }
 
+.theme-report-page {
+  --report-surface: var(--color-surface);
+  --report-panel-bg: var(--color-card-surface-subtle);
+  --report-border: var(--color-border);
+  --report-track: color-mix(in srgb, var(--color-surface) 70%, var(--color-border) 30%);
+  --report-status-good: #10b981;
+  --report-status-caution: #f59e0b;
+  --report-status-danger: #ef4444;
+  --report-status-none: #94a3b8;
+  --report-status-good-soft: rgba(16, 185, 129, 0.14);
+  --report-status-caution-soft: rgba(245, 158, 11, 0.16);
+  --report-status-danger-soft: rgba(239, 68, 68, 0.14);
+}
+
+.theme-report-page .bg-\[\#F5F7FA\],
+.theme-report-page .bg-\[\#F4F6F8\],
+.theme-report-page .bg-\[\#F8FAFC\],
+.theme-report-page .bg-\[\#F1F3F5\],
+.theme-report-page .bg-\[\#F0FDF4\],
+.theme-report-page .bg-\[\#EFF6FF\],
+.theme-report-page .bg-\[\#FEF9EC\],
+.theme-report-page .bg-\[\#FEF3C7\],
+.theme-report-page .bg-\[\#DBEAFE\],
+.theme-report-page .bg-\[\#E7EBEF\] {
+  background-color: var(--color-card-surface-subtle) !important;
+}
+
+.theme-report-page .text-\[\#111827\],
+.theme-report-page .text-\[\#0F172A\],
+.theme-report-page .text-\[\#374151\],
+.theme-report-page .text-\[\#334155\],
+.theme-report-page .text-\[\#1E293B\] {
+  color: var(--color-text) !important;
+}
+
+.theme-report-page .text-\[\#6B7280\],
+.theme-report-page .text-\[\#64748B\],
+.theme-report-page .text-\[\#94A3B8\],
+.theme-report-page .text-\[\#9CA3AF\],
+.theme-report-page .text-\[\#7B8CA6\],
+.theme-report-page .text-\[\#CBD5E1\] {
+  color: var(--color-text-secondary) !important;
+}
+
+.theme-report-page .border-\[\#E5E7EB\],
+.theme-report-page .border-\[\#EDF0F5\],
+.theme-report-page .border-\[\#DBEAFE\] {
+  border-color: var(--color-border) !important;
+}
+
+.theme-report-page .hover\:bg-\[\#DBEAFE\]:hover,
+.theme-report-page .hover\:bg-\[\#E7EBEF\]:hover,
+.theme-report-page .hover\:bg-white\/95:hover {
+  background-color: var(--color-surface-hover) !important;
+}
+
 .theme-report-page .bg-stone-50,
 .theme-report-page .bg-stone-100,
 .theme-report-page .bg-stone-200,
@@ -535,6 +591,35 @@ html[data-contrast="high"] {
 .theme-report-page .text-red-500,
 .theme-report-page .text-red-400 {
   color: #ef4444 !important;
+}
+
+.theme-report-page .bg-\[\#2563EB\],
+.theme-report-page .bg-\[\#1D4ED8\],
+.theme-report-page .bg-\[\#10B981\],
+.theme-report-page .bg-\[\#F59E0B\],
+.theme-report-page .bg-\[\#EF4444\] {
+  background-color: var(--color-cta-bg) !important;
+}
+
+.theme-report-page .text-\[\#2563EB\],
+.theme-report-page .text-\[\#10B981\],
+.theme-report-page .text-\[\#F59E0B\],
+.theme-report-page .text-\[\#EF4444\],
+.theme-report-page .text-\[\#3B82F6\] {
+  color: var(--color-text) !important;
+}
+
+.theme-report-page .bg-\[\#D1FAE5\],
+.theme-report-page .bg-\[\#DCFCE7\],
+.theme-report-page .bg-\[\#F0FDF4\],
+.theme-report-page .bg-\[\#FEF3C7\],
+.theme-report-page .bg-\[\#FEF9C3\],
+.theme-report-page .bg-\[\#FEE2E2\] {
+  background-color: var(--color-card-surface-subtle) !important;
+}
+
+.theme-report-page .shadow-\[0_18px_42px_rgba\(148\,163\,184\,0\.14\)\] {
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22) !important;
 }
 .tutorial-arrow-bottom::before {
   content: '';

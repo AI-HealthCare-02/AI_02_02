@@ -34,6 +34,21 @@ def web_push_ready() -> bool:
 
 
 class PushService:
+    async def get_subscription_status(self, user_id: int) -> dict[str, bool]:
+        configured = web_push_ready()
+        subscribed = False
+        if configured:
+            subscribed = await PushSubscription.filter(
+                user_id=user_id,
+                is_active=True,
+                disabled_at=None,
+            ).exists()
+        return {
+            "supported": True,
+            "configured": configured,
+            "subscribed": subscribed,
+        }
+
     async def upsert_subscription(self, user_id: int, data: PushSubscriptionRequest) -> PushSubscription:
         settings, _ = await UserSettings.get_or_create(user_id=user_id)
         interval = settings.health_question_interval_minutes or 0
@@ -116,7 +131,12 @@ class PushService:
             user = subscription.user
             if not isinstance(user, User) or not user.is_active or not user.onboarding_completed:
                 continue
-            due_bundle = await health_question_service.get_due_push_bundle(user.id, now=now)
+            allow_initial_prompt = now - subscription.updated_at <= timedelta(minutes=2)
+            due_bundle = await health_question_service.get_due_push_bundle(
+                user.id,
+                now=now,
+                allow_initial_prompt=allow_initial_prompt,
+            )
             if not due_bundle:
                 continue
             if await self._send_one(subscription, user, due_bundle):
