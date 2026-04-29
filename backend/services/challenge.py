@@ -216,7 +216,7 @@ class ChallengeService:
     async def join_challenge(
         self, user_id: int, template_id: int
     ) -> ChallengeJoinResponse:
-        """??? ??."""
+        """챌린지 참여."""
         async with in_transaction() as connection:
             await User.filter(id=user_id).using_db(connection).select_for_update().first()
 
@@ -227,7 +227,7 @@ class ChallengeService:
             if not template:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="???? ??? ????? ??????.",
+                    detail="존재하지 않거나 비활성화된 챌린지입니다.",
                 )
 
             active_count = await UserChallenge.filter(
@@ -237,7 +237,7 @@ class ChallengeService:
             if active_count >= MAX_ACTIVE_CHALLENGES:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail=f"??? ?? {MAX_ACTIVE_CHALLENGES}???? ??? ? ????.",
+                    detail=f"활성 챌린지는 최대 {MAX_ACTIVE_CHALLENGES}개까지 참여할 수 있습니다.",
                 )
 
             existing = await UserChallenge.get_or_none(
@@ -248,7 +248,7 @@ class ChallengeService:
             if existing:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="?? ?? ?? ??????.",
+                    detail="이미 진행 중인 챌린지입니다.",
                 )
 
             today = date.today()
@@ -260,7 +260,7 @@ class ChallengeService:
             if checkin_today:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="?? ???? ???? ?? ?? ??? ? ????.",
+                    detail="오늘 이미 체크인한 챌린지는 다시 참여할 수 없습니다.",
                 )
 
             now = datetime.now(tz=config.TIMEZONE)
@@ -277,7 +277,7 @@ class ChallengeService:
             except IntegrityError as exc:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
-                    detail="?? ?? ?? ??????.",
+                    detail="이미 진행 중인 챌린지입니다.",
                 ) from exc
 
         await self._invalidate_user_caches(user_id)
