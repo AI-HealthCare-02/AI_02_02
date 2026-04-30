@@ -56,12 +56,14 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
           script: |
+            set -eu
             cd ~/project
             export FASTAPI_IMAGE=ghcr.io/bijeng/danaa-fastapi:latest
-            export COMPOSE_PROJECT_NAME=danaa_project
+            export COMPOSE_PROJECT_NAME=project
             docker compose -f docker-compose.prod.yml pull fastapi
-            docker compose -f docker-compose.prod.yml run --rm fastapi uv run --no-sync aerich upgrade
+            docker compose -f docker-compose.prod.yml run --rm --no-deps fastapi uv run --no-sync aerich upgrade
             docker compose -f docker-compose.prod.yml stop fastapi
             docker compose -f docker-compose.prod.yml rm -f fastapi
             docker compose -f docker-compose.prod.yml up -d --no-deps fastapi
