@@ -1814,7 +1814,10 @@ function SummarySection({ risk, history, summary, challenges, userData, statusDa
                     style={{ backgroundColor: isLinked ? `${color}26` : `${color}14` }}>
                     <Icon size={14} style={{ color }} />
                   </div>
-                  <span className="text-[13px] font-semibold text-[#0F172A]">{label}</span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold text-[#0F172A]">{label}</div>
+                    <div className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-[#64748B]">{weakReason}</div>
+                  </div>
                 </div>
                 <div className="mt-3 flex items-center gap-3">
                   <div className="relative h-[48px] w-[48px] shrink-0">

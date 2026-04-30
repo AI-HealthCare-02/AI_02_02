@@ -94,9 +94,37 @@ function badgeTheme(tier) {
   return BADGE_THEME[tier] || BADGE_THEME.unranked;
 }
 
+function challengeBadgeLabel(item) {
+  const label = String(item?.badge_label || '').trim();
+  if (label && label !== 'undefined' && label !== 'null') return label;
+  const tier = String(item?.badge_tier || '').toLowerCase();
+  if (tier === 'unranked') return '미획득';
+  if (Number(item?.days_completed || 0) > 0) return '진행 중';
+  return '시작 전';
+}
+
 function badgeHint(item) {
-  if (!item?.next_badge_label) return '현재 최고 등급입니다.';
-  return `${item.remaining_to_next_badge}회 더 완료하면 ${item.next_badge_label}`;
+  const nextLabel = String(item?.next_badge_label || '').trim();
+  const completed = Number(item?.lifetime_completed_count ?? item?.days_completed ?? 0);
+  const target = Number(item?.target_days ?? item?.default_duration_days ?? CHALLENGE_DAYS);
+  const remainingToNext = Number(item?.remaining_to_next_badge);
+
+  if (nextLabel) {
+    if (Number.isFinite(remainingToNext) && remainingToNext > 0) {
+      return `${remainingToNext}회 더 완료하면 ${nextLabel}`;
+    }
+    return `다음 배지: ${nextLabel}`;
+  }
+
+  const currentLabel = challengeBadgeLabel(item);
+  if (currentLabel === '미획득' || currentLabel === '시작 전' || currentLabel === '진행 중') {
+    const left = Number.isFinite(target) && target > 0 ? Math.max(0, target - completed) : null;
+    if (left == null) return '완료 기록이 쌓이면 배지 진행률이 표시됩니다.';
+    if (left > 0) return `${left}일 더 완료하면 완주 배지에 가까워져요.`;
+    return '완주 기록을 확인 중입니다.';
+  }
+
+  return '현재 달성한 배지입니다.';
 }
 
 function badgeAchievementText(item) {
@@ -222,8 +250,8 @@ function BadgePatchTray({ badges }) {
   if (!featuredBadge) {
     return (
       <div className="rounded-[24px] border border-[#E7E0D6] bg-white px-4 py-4 text-center shadow-sm">
-        <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8B8277]">내 뱃지</div>
-        <div className="mt-3 text-[12px] text-[#8F857A]">아직 획득한 뱃지가 없어요</div>
+        <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8B8277]">내 배지</div>
+        <div className="mt-3 text-[12px] text-[#8F857A]">아직 획득한 배지가 없어요</div>
       </div>
     );
   }
@@ -233,13 +261,13 @@ function BadgePatchTray({ badges }) {
 
   return (
     <div className="rounded-[24px] border border-[#E7E0D6] bg-white px-4 py-4 text-center shadow-sm">
-      <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8B8277]">내 뱃지</div>
+      <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8B8277]">내 배지</div>
       <div className={`relative mx-auto mt-3 inline-flex h-16 w-16 items-center justify-center rounded-full border-2 shadow-sm ${theme.shell}`}>
         <ChallengeVisualBadge visual={visual} size={24} />
         <span className={`absolute -right-0.5 -top-0.5 h-4 w-4 rounded-full ring-2 ring-white ${theme.dot}`} />
       </div>
       <div className={`mt-2 text-[12px] font-semibold uppercase tracking-[0.04em] ${theme.accent}`}>
-        {featuredBadge.badge_label}
+        {challengeBadgeLabel(featuredBadge)}
       </div>
       <div className="mt-1 text-[12px] text-neutral-500">{featuredBadge.name}</div>
     </div>
@@ -253,14 +281,14 @@ function BadgeStatusBoard({ items, earnedBadgeCount }) {
     <section className="rounded-[28px] border border-[#E7E0D6] bg-white p-5 shadow-soft">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <div className="text-[22px] font-semibold text-nature-900">뱃지 현황</div>
-          <div className="mt-1 text-[13px] text-neutral-500">지금까지 획득한 뱃지 {earnedBadgeCount}개</div>
+          <div className="text-[22px] font-semibold text-nature-900">배지 현황</div>
+          <div className="mt-1 text-[13px] text-neutral-500">지금까지 획득한 배지 {earnedBadgeCount}개</div>
         </div>
       </div>
           <div className="mt-4">
         {visibleItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#D7CFC3] bg-white px-5 py-6 text-[13px] text-[#8F857A]">
-            아직 획득한 뱃지가 없습니다. 오늘 챌린지를 완료하면 첫 뱃지에 가까워집니다.
+            아직 획득한 배지가 없습니다. 오늘 챌린지를 완료하면 첫 배지에 가까워집니다.
           </div>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -275,7 +303,7 @@ function BadgeStatusBoard({ items, earnedBadgeCount }) {
                     {!isUnranked && <span className={`absolute -right-0.5 -top-0.5 h-4 w-4 rounded-full ring-2 ring-white ${theme.dot}`} />}
                   </div>
                   <div className={`mt-3 text-[12px] font-semibold uppercase tracking-[0.04em] ${isUnranked ? 'text-[#9A9084]' : theme.accent}`}>
-                    {badge.badge_label}
+                    {challengeBadgeLabel(badge)}
                   </div>
                   <div className={`mt-1 text-[14px] font-semibold ${isUnranked ? 'text-[#7F756A]' : 'text-nature-900'}`}>{badge.name}</div>
                 </div>
@@ -359,7 +387,7 @@ function ActiveChallengeCard({ challenge, busyKey, confirmCancelId, setConfirmCa
               현재 <span className="font-semibold text-nature-950">{challenge.days_completed}일</span> 완료, 연속 <span className="font-semibold text-nature-950">{challenge.current_streak}일</span> 기록 중
             </div>
             <div className="mt-1 text-[12px] text-neutral-400">
-              현재 뱃지: {challenge.badge_label} · {badgeHint(challenge)}
+              배지 상태: {challengeBadgeLabel(challenge)} · {badgeHint(challenge)}
             </div>
           </div>
         </div>
@@ -945,7 +973,7 @@ export default function ChallengePage() {
                           </div>
                           <div className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[12px] ${theme.shell}`}>
                             <BadgeIcon size={12} />
-                            {item.badge_label}
+                            {challengeBadgeLabel(item)}
                           </div>
                         </button>
                       );
