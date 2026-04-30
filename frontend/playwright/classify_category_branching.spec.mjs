@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-const STORAGE_KEY = 'danaa_doit_thoughts_v1';
+// 사용자별 격리: 비로그인 환경의 실제 storage key.
+// (doit_store.js getThoughtsStorageKey 참조 — 2026-04-29 PR #40)
+const STORAGE_KEY = 'danaa_doit_thoughts_v1::anon';
 
 function makeSeed() {
   const today = new Date();
