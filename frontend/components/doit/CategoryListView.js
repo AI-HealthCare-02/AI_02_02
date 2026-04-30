@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
-  STORAGE_KEY,
+  getThoughtsStorageKey,
   completeThought,
   getByCategory,
   getCompleted,
@@ -86,7 +86,7 @@ export default function CategoryListView({
     setThoughts(loadThoughts());
     setHydrated(true);
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

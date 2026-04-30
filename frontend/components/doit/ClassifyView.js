@@ -7,7 +7,7 @@ import { ArrowRight, Cloud, Hourglass, Inbox, ListChecks, Undo2, X } from 'lucid
 import {
   CATEGORIES,
   CATEGORY_LABELS,
-  STORAGE_KEY,
+  getThoughtsStorageKey,
   classifyThought,
   discardThought,
   getByCategory,
@@ -58,7 +58,7 @@ export default function ClassifyView() {
     setThoughts(loadThoughts());
     setHydrated(true);
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

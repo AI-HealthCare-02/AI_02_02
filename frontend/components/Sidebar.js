@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { getGuideSeenKey } from '../lib/doit_store';
 import {
   BarChart3,
   Brain,
@@ -118,7 +119,7 @@ export default function Sidebar({ productGuide = null }) {
 
   useEffect(() => {
     try {
-      setGuideSeen(localStorage.getItem('danaa_doit_guide_seen_v1') === '1');
+      setGuideSeen(localStorage.getItem(getGuideSeenKey()) === '1');
     } catch {
       setGuideSeen(true);
     }
@@ -126,7 +127,7 @@ export default function Sidebar({ productGuide = null }) {
 
   const markGuideSeen = () => {
     try {
-      localStorage.setItem('danaa_doit_guide_seen_v1', '1');
+      localStorage.setItem(getGuideSeenKey(), '1');
     } catch {}
     setGuideSeen(true);
   };

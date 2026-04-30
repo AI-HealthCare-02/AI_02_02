@@ -5,8 +5,10 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { loginAs, thoughtsKey } from './helpers/auth_storage.mjs';
 
-const STORAGE_KEY = 'danaa_doit_thoughts_v1';
+const TEST_USER_ID = 1;
+const STORAGE_KEY = thoughtsKey(TEST_USER_ID);
 const MIGRATION_FLAG = 'danaa_doit_layout_migrated_v1';
 
 /** (0,0) 카드 N개를 localStorage에 강제 주입 */
@@ -27,8 +29,10 @@ function makeStuckCards(n) {
 
 test.describe('Phase B3: 마이그레이션 안정성', () => {
   test.beforeEach(async ({ page }) => {
+    // mock JWT 주입 (user_id=1로 격리된 storage 키 사용)
+    await loginAs(page, TEST_USER_ID);
     // localStorage 초기화
-    await page.goto('http://localhost:3002/app/do-it-os/thinking');
+    await page.goto('/app/do-it-os/thinking');
     await page.evaluate((key) => localStorage.removeItem(key), STORAGE_KEY);
     await page.evaluate((key) => localStorage.removeItem(key), MIGRATION_FLAG);
   });

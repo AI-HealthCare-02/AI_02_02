@@ -15,7 +15,7 @@ import ProjectLinkedNextActions from './ProjectLinkedNextActions';
 
 import {
   PROJECT_STATUS_OPTIONS,
-  STORAGE_KEY,
+  getThoughtsStorageKey,
   getProjectById,
   loadThoughts,
   saveThoughts,
@@ -61,7 +61,7 @@ export default function ProjectDetailView({ projectId }) {
   // storage 동기화 (다른 탭 등)
   useEffect(() => {
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
