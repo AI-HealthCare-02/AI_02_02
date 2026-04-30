@@ -169,6 +169,7 @@ export function normalizeThought(raw) {
     classifiedAt: cleanString(raw.classifiedAt),
     scheduledDate: cleanString(raw.scheduledDate),
     scheduledTime: cleanString(raw.scheduledTime),
+    scheduleNote: cleanString(raw.scheduleNote),
     description: cleanString(raw.description),
     nextAction: cleanString(raw.nextAction),
     projectStatus: cleanString(raw.projectStatus),
@@ -256,11 +257,13 @@ export function unclassifyThought(thoughts, id) {
           classifiedAt: null,
           scheduledDate: null,
           scheduledTime: null,
+          scheduleNote: null,
           urgency: null,
           description: null,
           nextAction: null,
           projectStatus: null,
           noteBody: null,
+          projectLinkId: null,
           // Phase 7: classify flow에서 심은 필드 초기화
           waitingFor: null,
           somedayReason: null,
@@ -295,6 +298,18 @@ export function getByCategory(thoughts, category) {
   return normalizeThoughtList(thoughts).filter(
     (t) => t.category === category && !t.discardedAt && !t.completedAt,
   );
+}
+
+// ProjectPickerInline 등에서 활성 프로젝트 카드 목록을 최근순으로 반환.
+// 분류 패널 외에서 호출되는 경우(드롭다운, 빠른 연결 등)에도 동일 헬퍼 재사용.
+export function getProjectsList(thoughts) {
+  return thoughts
+    .filter((t) => t.category === 'project' && !t.discardedAt && !t.completedAt)
+    .sort((a, b) => {
+      const aTs = a.classifiedAt || a.createdAt || '';
+      const bTs = b.classifiedAt || b.createdAt || '';
+      return bTs.localeCompare(aTs);
+    });
 }
 
 export function getSummary(thoughts) {
