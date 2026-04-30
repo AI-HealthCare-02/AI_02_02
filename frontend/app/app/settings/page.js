@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell, Check, Database, FileText, Lock, User as UserIcon } from 'lucide-react';
-import { api, clearToken } from '../../../hooks/useApi';
+import { api, clearClientSession } from '../../../hooks/useApi';
 import useTheme from '../../../hooks/useTheme';
 import {
   disablePushNotifications,
@@ -27,6 +27,36 @@ function formatPhone(value) {
   if (numbers.length <= 3) return numbers;
   if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
   return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+}
+
+function normalizeEmailDraft(value) {
+  return (value || '').trim().toLowerCase();
+}
+
+function formatEmailVerificationError(detail) {
+  if (!detail) return '이메일 인증 요청을 처리하지 못했어요.';
+  if (detail === 'Email delivery is not configured.') {
+    return '서버 SMTP 설정이 없어 인증 메일을 보낼 수 없어요.';
+  }
+  if (detail === 'SMTP authentication failed. Check the Gmail address and app password.') {
+    return 'SMTP 인증이 실패했어요. 발송 계정과 앱 비밀번호 설정을 확인해 주세요.';
+  }
+  if (detail === 'Failed to send verification email. Check SMTP configuration and network access.') {
+    return '인증 메일 발송에 실패했어요. SMTP 설정이나 서버 네트워크를 확인해 주세요.';
+  }
+  if (detail === 'Verification session not found.') {
+    return '인증 요청이 만료되었어요. 인증 메일을 다시 보내주세요.';
+  }
+  if (detail === 'Verification code expired.') {
+    return '인증코드가 만료되었어요. 새 인증코드를 요청해 주세요.';
+  }
+  if (detail === 'Verification code is invalid.') {
+    return '인증코드가 올바르지 않아요. 다시 확인해 주세요.';
+  }
+  if (detail === 'Email is already in use.') {
+    return '이미 다른 계정에서 사용 중인 이메일이에요.';
+  }
+  return detail;
 }
 
 function Toggle({ value, onChange, disabled = false }) {
@@ -204,6 +234,8 @@ export default function SettingsPage() {
     birthday: '',
     gender: '',
     phone_number: '',
+    height_cm: '',
+    weight_kg: '',
     provider: '',
     email_verified: false,
   });
@@ -213,6 +245,7 @@ export default function SettingsPage() {
     weekly_report: true,
   });
   const [pushPermission, setPushPermission] = useState('unsupported');
+  const [pushConfigured, setPushConfigured] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushSaving, setPushSaving] = useState(false);
   const [pushMessage, setPushMessage] = useState(null);
@@ -260,6 +293,8 @@ export default function SettingsPage() {
           birthday: user.birthday || '',
           gender: user.gender || onboarding.gender || '',
           phone_number: user.phone_number ? formatPhone(user.phone_number) : '',
+          height_cm: onboarding.height_cm ? String(onboarding.height_cm) : '',
+          weight_kg: onboarding.weight_kg ? String(onboarding.weight_kg) : '',
           provider: user.provider || '',
           email_verified: Boolean(user.email_verified),
         });
@@ -275,7 +310,11 @@ export default function SettingsPage() {
         });
         const pushState = await getPushSubscriptionState();
         setPushPermission(pushState.permission);
+        setPushConfigured(Boolean(pushState.configured));
         setPushEnabled(pushState.subscribed);
+        if (!pushState.configured) {
+          setPushMessage({ type: 'error', text: '브라우저 알림 서버 설정이 아직 완료되지 않았어요.' });
+        }
         setDataConsent(consent.health_data_consent ?? true);
       } catch {
         setProfileMessage({ type: 'error', text: '설정 정보를 불러오지 못했습니다.' });
@@ -306,6 +345,26 @@ export default function SettingsPage() {
       if (!response.ok) {
         setProfileMessage({ type: 'error', text: data.detail || '개인정보 저장에 실패했습니다.' });
         return;
+      }
+
+      const hasMeasurements = Boolean(userForm.height_cm || userForm.weight_kg);
+      if (hasMeasurements) {
+        const measurementResponse = await api('/api/v1/users/me/measurements', {
+          method: 'PATCH',
+          body: JSON.stringify({
+            height_cm: userForm.height_cm ? Number(userForm.height_cm) : undefined,
+            weight_kg: userForm.weight_kg ? Number(userForm.weight_kg) : undefined,
+          }),
+        });
+        const measurementData = await measurementResponse.json().catch(() => ({}));
+        if (!measurementResponse.ok) {
+          setProfileMessage({ type: 'error', text: measurementData.detail || '키·몸무게 저장에 실패했습니다.' });
+          return;
+        }
+        setProfileInfo((prev) => ({
+          ...prev,
+          bmi: measurementData.bmi != null ? String(measurementData.bmi) : prev.bmi,
+        }));
       }
 
       setUserForm((prev) => ({
@@ -346,11 +405,13 @@ export default function SettingsPage() {
       await enablePushNotifications();
       const pushState = await getPushSubscriptionState();
       setPushPermission(pushState.permission);
+      setPushConfigured(Boolean(pushState.configured));
       setPushEnabled(pushState.subscribed);
       setPushMessage({ type: 'success', text: '브라우저 알림을 켰어요.' });
     } catch (error) {
       const pushState = await getPushSubscriptionState();
       setPushPermission(pushState.permission);
+      setPushConfigured(Boolean(pushState.configured));
       setPushEnabled(false);
       setPushMessage({ type: 'error', text: error?.message || '브라우저 알림을 켜지 못했어요.' });
     } finally {
@@ -412,7 +473,8 @@ export default function SettingsPage() {
   }, []);
 
   const requestEmailVerification = useCallback(async () => {
-    if (!emailDraft || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailDraft)) {
+    const normalizedEmail = normalizeEmailDraft(emailDraft);
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       setEmailMessage({ type: 'error', text: '올바른 이메일 주소를 입력해주세요.' });
       return;
     }
@@ -423,11 +485,11 @@ export default function SettingsPage() {
     try {
       const response = await api('/api/v1/auth/email/account/request', {
         method: 'POST',
-        body: JSON.stringify({ email: emailDraft }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setEmailMessage({ type: 'error', text: data.detail || '인증 메일 발송에 실패했습니다.' });
+        setEmailMessage({ type: 'error', text: formatEmailVerificationError(data.detail) });
         return;
       }
       setEmailRequested(true);
@@ -622,15 +684,42 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1 block text-[12px] text-neutral-400">전화번호</label>
-                <input
-                  type="tel"
+                <div>
+                  <label className="mb-1 block text-[12px] text-neutral-400">전화번호</label>
+                  <input
+                    type="tel"
                   value={userForm.phone_number}
                   onChange={(e) => setUserForm((prev) => ({ ...prev, phone_number: formatPhone(e.target.value) }))}
                   placeholder="010-1234-5678"
                   className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-[12px] text-neutral-400">키 (cm)</label>
+                  <input
+                    type="number"
+                    min="100"
+                    max="250"
+                    step="0.1"
+                    value={userForm.height_cm}
+                    onChange={(e) => setUserForm((prev) => ({ ...prev, height_cm: e.target.value }))}
+                    className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[12px] text-neutral-400">몸무게 (kg)</label>
+                  <input
+                    type="number"
+                    min="30"
+                    max="200"
+                    step="0.1"
+                    value={userForm.weight_kg}
+                    onChange={(e) => setUserForm((prev) => ({ ...prev, weight_kg: e.target.value }))}
+                    className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -730,7 +819,7 @@ export default function SettingsPage() {
                   <Toggle
                     value={pushEnabled}
                     onChange={toggleBrowserPush}
-                    disabled={pushSaving || pushPermission === 'unsupported' || pushPermission === 'denied'}
+                    disabled={pushSaving || !pushConfigured || pushPermission === 'unsupported' || pushPermission === 'denied'}
                   />
                 </div>
                 {pushMessage && (
@@ -810,19 +899,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => {
                   if (!window.confirm('로그아웃 하시겠어요?')) return;
-                  clearToken();
-                  localStorage.removeItem('danaa_onboarding');
-                  localStorage.removeItem('danaa_risk');
-                  localStorage.removeItem('danaa_tutorial_pending');
-                  localStorage.removeItem('danaa_challenges');
-                  localStorage.removeItem('danaa_conversations');
-                  try {
-                    Object.keys(sessionStorage)
-                      .filter((key) => key.startsWith('danaa:report:'))
-                      .forEach((key) => sessionStorage.removeItem(key));
-                  } catch {
-                    // ignore
-                  }
+                  clearClientSession();
                   window.location.href = '/login';
                 }}
                 className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-cream-300"

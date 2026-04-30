@@ -83,18 +83,20 @@ export async function disablePushNotifications() {
 
 export async function getPushSubscriptionState() {
   if (!isPushSupported()) {
-    return { supported: false, permission: 'unsupported', subscribed: false };
+    return { supported: false, configured: false, permission: 'unsupported', subscribed: false };
   }
   const permission = Notification.permission;
   const registration = await getRegistrationIfAny();
   const subscription = await registration?.pushManager.getSubscription();
+  let configured = true;
   let serverSubscribed = Boolean(subscription);
 
   try {
     const response = await api('/api/v1/push/subscriptions/status');
     const data = await response.json().catch(() => ({}));
     if (response.ok) {
-      serverSubscribed = Boolean(data?.configured) && Boolean(data?.subscribed);
+      configured = Boolean(data?.configured);
+      serverSubscribed = configured && Boolean(data?.subscribed);
     }
   } catch {
     // Keep local browser state as the fallback.
@@ -102,6 +104,7 @@ export async function getPushSubscriptionState() {
 
   return {
     supported: true,
+    configured,
     permission,
     subscribed: Boolean(subscription) && serverSubscribed,
   };

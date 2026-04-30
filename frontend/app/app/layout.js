@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { Suspense } from 'react';
 
+import AppAuthGate from '../../components/AppAuthGate';
 import Sidebar from '../../components/Sidebar';
 
 async function loadProductGuide() {
@@ -18,13 +19,15 @@ export default async function AppLayout({ children }) {
   const productGuide = await loadProductGuide();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-cream-200 text-nature-900">
-      <Suspense fallback={null}>
-        <Sidebar productGuide={productGuide} />
-      </Suspense>
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {children}
+    <AppAuthGate>
+      <div className="flex h-screen w-full overflow-hidden bg-cream-200 text-nature-900">
+        <Suspense fallback={null}>
+          <Sidebar productGuide={productGuide} />
+        </Suspense>
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {children}
+        </div>
       </div>
-    </div>
+    </AppAuthGate>
   );
 }

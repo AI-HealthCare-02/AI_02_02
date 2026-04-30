@@ -621,6 +621,64 @@ html[data-contrast="high"] {
 .theme-report-page .shadow-\[0_18px_42px_rgba\(148\,163\,184\,0\.14\)\] {
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22) !important;
 }
+
+.report-dashboard-shell {
+  container-type: inline-size;
+}
+
+.report-body-visual-image {
+  min-height: 220px;
+}
+
+@media (max-width: 1180px) {
+  .report-dashboard-shell {
+    max-width: 1040px !important;
+  }
+
+  .report-dashboard-grid {
+    grid-template-columns: minmax(220px, 280px) minmax(250px, 360px) minmax(220px, 280px) !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .report-dashboard-shell {
+    border-radius: 18px !important;
+  }
+
+  .report-dashboard-side,
+  .report-dashboard-center {
+    max-height: none !important;
+  }
+
+  .report-body-visual {
+    min-height: 260px;
+  }
+
+  .report-body-visual-image {
+    max-height: 340px !important;
+  }
+}
+
+@media (max-width: 760px), (max-height: 560px) {
+  .report-body-visual {
+    display: none !important;
+  }
+
+  .report-body-panel {
+    justify-content: center;
+  }
+
+  .report-body-text-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .report-dashboard-shell {
+    border-radius: 14px !important;
+    box-shadow: none !important;
+  }
+}
 .tutorial-arrow-bottom::before {
   content: '';
   position: absolute;

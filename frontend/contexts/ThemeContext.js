@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { api, getToken } from '../hooks/useApi';
@@ -47,15 +47,26 @@ function readLocalTheme() {
   }
 }
 
+function hasStoredThemePreference() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return ALLOWED.includes(stored);
+  } catch {
+    return false;
+  }
+}
+
 export function ThemeProvider({ children }) {
   const [theme, setThemeState] = useState(DEFAULT_THEME);
   const [isLoaded, setIsLoaded] = useState(false);
+  const themeRef = useRef(DEFAULT_THEME);
   const pathname = usePathname();
   const forcedLight = isForcedLightPath(pathname);
 
   useEffect(() => {
     const local = readLocalTheme();
     setThemeState(local);
+    themeRef.current = local;
     applyTheme(local);
     setIsLoaded(true);
   }, []);
@@ -75,6 +86,7 @@ export function ThemeProvider({ children }) {
 
     const token = getToken();
     if (!token) return;
+    if (hasStoredThemePreference()) return;
 
     let cancelled = false;
 
@@ -86,8 +98,9 @@ export function ThemeProvider({ children }) {
         const data = await res.json();
         const serverTheme = data.theme_preference;
 
-        if (!cancelled && ALLOWED.includes(serverTheme) && serverTheme !== theme) {
+        if (!cancelled && ALLOWED.includes(serverTheme) && serverTheme !== themeRef.current) {
           setThemeState(serverTheme);
+          themeRef.current = serverTheme;
           if (!forcedLight) applyTheme(serverTheme);
           localStorage.setItem(STORAGE_KEY, serverTheme);
         }
@@ -99,12 +112,13 @@ export function ThemeProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [isLoaded]);
+  }, [forcedLight, isLoaded]);
 
   const setTheme = useCallback(async (value) => {
     if (!ALLOWED.includes(value)) return;
 
     setThemeState(value);
+    themeRef.current = value;
     applyTheme(value);
     localStorage.setItem(STORAGE_KEY, value);
 

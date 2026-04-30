@@ -211,6 +211,31 @@ function formatDateLabel(date) {
   return date.slice(5).replace('-', '.');
 }
 
+function formatXAxisLabel(date, index, total, spanDays) {
+  if (!date) return '';
+  const [year, month, day] = date.split('-').map(Number);
+
+  if (spanDays <= 14) return formatDateLabel(date);
+  if (index === 0 || index === total - 1) {
+    if (spanDays > 365) return `${year}.${String(month).padStart(2, '0')}`;
+    if (spanDays > 45) return `${month}월`;
+    return formatDateLabel(date);
+  }
+  if (spanDays <= 45) {
+    const stride = Math.max(2, Math.ceil(total / 6));
+    return index % stride === 0 ? formatDateLabel(date) : '';
+  }
+  if (spanDays <= 365) {
+    return day === 1 ? `${month}월` : '';
+  }
+  if (spanDays <= 1095) {
+    return day === 1 && [1, 4, 7, 10].includes(month)
+      ? `${year}.${String(month).padStart(2, '0')}`
+      : '';
+  }
+  return month === 1 && day === 1 ? `${year}` : '';
+}
+
 function rangeLabel(startDate, endDate) {
   if (!startDate || !endDate) return '-';
   return `${formatDateLabel(startDate)} - ${formatDateLabel(endDate)}`;
@@ -266,8 +291,8 @@ function SummaryHeader({ risk }) {
     : '최근 생활 습관 점수는 전반적으로 안정적인 흐름이에요.';
 
   return (
-    <SurfaceCard className="rounded-3xl p-6">
-      <div className="flex flex-wrap items-center gap-6">
+    <SurfaceCard className="rounded-3xl p-4 sm:p-6">
+      <div className="flex flex-wrap items-start gap-4 sm:gap-6">
         <div className="flex items-center gap-4">
           <div className="relative h-[76px] w-[76px] shrink-0">
             <svg className="-rotate-90" width="76" height="76" viewBox="0 0 76 76">
@@ -309,7 +334,7 @@ function SummaryHeader({ risk }) {
 
         <div className="hidden h-12 w-px sm:block" style={{ background: THEME.border }} />
 
-        <div className="min-w-[220px] flex-1">
+        <div className="min-w-0 flex-1">
           <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: THEME.hint }}>요약 의견</div>
           <div className="mt-1 text-[15px] font-semibold leading-snug" style={{ color: THEME.text }}>{summary}</div>
           {issues.length > 0 ? (
@@ -389,6 +414,7 @@ function LineGraph({ title, scores, logs, yTicks, yMax, accentColor, emptyMessag
     y: value == null ? null : top + innerHeight - (Math.max(0, Math.min(yMax, value)) / yMax) * innerHeight,
     raw: value,
     date: logs[index]?.log_date,
+    label: formatXAxisLabel(logs[index]?.log_date, index, scores.length, logs.length),
   }));
 
   const pathData = points
@@ -397,7 +423,7 @@ function LineGraph({ title, scores, logs, yTicks, yMax, accentColor, emptyMessag
     .join(' ');
 
   return (
-    <div className="rounded-3xl p-5" style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}>
+    <div className="report-detail-graph rounded-2xl p-4 sm:rounded-3xl sm:p-5" style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }}>
       <div className="mb-4">
         <div className="text-[15px] font-bold" style={{ color: THEME.text }}>{title}</div>
         <div className="text-[12px]" style={{ color: THEME.muted }}>날짜별 점수와 수치를 함께 확인할 수 있어요.</div>
@@ -408,7 +434,7 @@ function LineGraph({ title, scores, logs, yTicks, yMax, accentColor, emptyMessag
           {emptyMessage}
         </div>
       ) : (
-        <svg width="100%" viewBox={`0 0 ${graphWidth} ${graphHeight}`} role="img" aria-label={title}>
+        <svg className="block max-h-[280px] min-h-[190px]" width="100%" viewBox={`0 0 ${graphWidth} ${graphHeight}`} role="img" aria-label={title} preserveAspectRatio="xMidYMid meet">
           {yTicks.map((tick) => {
             const y = top + innerHeight - (tick / yMax) * innerHeight;
             return (
@@ -425,9 +451,11 @@ function LineGraph({ title, scores, logs, yTicks, yMax, accentColor, emptyMessag
           {points.map((point) => (
             <g key={`${point.date}-${point.x}`}>
               {point.y != null ? <circle cx={point.x} cy={point.y} r="4.5" fill="white" stroke={accentColor} strokeWidth="2.5" /> : null}
-              <text x={point.x} y={graphHeight - 14} textAnchor="middle" fontSize="10" fill="currentColor" style={{ color: THEME.hint }}>
-                {formatDateLabel(point.date)}
-              </text>
+              {point.label ? (
+                <text x={point.x} y={graphHeight - 14} textAnchor="middle" fontSize="10" fill="currentColor" style={{ color: THEME.hint }}>
+                  {point.label}
+                </text>
+              ) : null}
               {point.y != null ? (
                 <text x={point.x} y={point.y - 10} textAnchor="middle" fontSize="10" fill={accentColor}>
                   {Math.round(point.raw)}
@@ -458,9 +486,9 @@ function TrendGraph({
   const averageScore = valid.length ? Math.round(valid.reduce((sum, value) => sum + value, 0) / valid.length) : null;
 
   return (
-    <SurfaceCard className="rounded-3xl p-6">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+    <SurfaceCard className="rounded-2xl p-4 sm:rounded-3xl sm:p-6">
+      <div className="mb-5 flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <div className="text-[15px] font-bold" style={{ color: THEME.text }}>최근 생활 점수 추이</div>
           <div className="mt-1 text-[12px]" style={{ color: THEME.muted }}>
             수면, 식습관, 운동 기록을 종합한 일별 흐름이에요. 현재 조회 범위는 {rangeLabel(startDate, endDate)} 입니다.
@@ -471,8 +499,8 @@ function TrendGraph({
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 lg:items-end">
-          <div className="flex items-center gap-2">
+        <div className="flex min-w-0 shrink-0 flex-col gap-3 lg:items-end">
+          <div className="flex flex-wrap items-center gap-2">
             {RANGE_PRESETS.map((item) => {
               const active = preset === item.key;
               return (
@@ -493,11 +521,11 @@ function TrendGraph({
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-[12px]" style={{ color: THEME.muted }}>
+          <div className="flex min-w-0 flex-wrap items-center gap-2 text-[12px]" style={{ color: THEME.muted }}>
             <CalendarDays size={14} />
-            <input type="date" value={customStart} onChange={(e) => onCustomStartChange(e.target.value)} className="rounded-xl px-3 py-2" style={{ background: THEME.surfaceSoft, border: `1px solid ${THEME.border}`, color: THEME.text }} />
+            <input type="date" max={getTodayISO()} value={customStart} onChange={(e) => onCustomStartChange(e.target.value)} className="min-w-0 flex-1 rounded-xl px-3 py-2 sm:flex-none" style={{ background: THEME.surfaceSoft, border: `1px solid ${THEME.border}`, color: THEME.text }} />
             <span>-</span>
-            <input type="date" value={customEnd} onChange={(e) => onCustomEndChange(e.target.value)} className="rounded-xl px-3 py-2" style={{ background: THEME.surfaceSoft, border: `1px solid ${THEME.border}`, color: THEME.text }} />
+            <input type="date" max={getTodayISO()} value={customEnd} onChange={(e) => onCustomEndChange(e.target.value)} className="min-w-0 flex-1 rounded-xl px-3 py-2 sm:flex-none" style={{ background: THEME.surfaceSoft, border: `1px solid ${THEME.border}`, color: THEME.text }} />
             <button type="button" onClick={onApplyCustomRange} className="rounded-xl px-3 py-2 text-[12px] font-semibold" style={{ background: THEME.surfaceSoft, border: `1px solid ${THEME.border}`, color: THEME.text }}>
               적용
             </button>
@@ -526,9 +554,9 @@ function TodayActions({ risk }) {
   if (actions.length < 3) actions.push({ icon: Droplets, title: '물 1.5L 마시기', desc: '기본 생활 습관 관리에 도움이 돼요.', color: '#3B82F6' });
 
   return (
-    <SurfaceCard className="rounded-3xl p-6">
+    <SurfaceCard className="rounded-3xl p-4 sm:p-6">
       <div className="mb-4 text-[15px] font-bold" style={{ color: THEME.text }}>오늘 바로 해볼 행동</div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {actions.slice(0, 3).map((action) => {
           const Icon = action.icon;
           return (
@@ -556,7 +584,7 @@ function DetailModal({ categoryKey, risk, logs, rangeText, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
-      <div className="w-full max-w-[760px] rounded-t-3xl p-6 sm:rounded-3xl" style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }} onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-t-3xl p-4 sm:rounded-3xl sm:p-6" style={{ background: THEME.surface, border: `1px solid ${THEME.border}` }} onClick={(e) => e.stopPropagation()}>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: `${cfg.color}16` }}>
@@ -580,7 +608,7 @@ function DetailModal({ categoryKey, risk, logs, rangeText, onClose }) {
 
         <LineGraph title={`${cfg.label} 추이`} scores={series} logs={logs} yTicks={cfg.yTicks} yMax={cfg.yMax} accentColor={cfg.color} emptyMessage={`${cfg.label} 기록이 부족해서 그래프를 아직 보여줄 수 없어요.`} />
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 md:gap-4">
           <div>
             <div className="mb-2 text-[12px] font-bold" style={{ color: THEME.text }}>점검 포인트</div>
             <div className="space-y-2">
@@ -707,8 +735,13 @@ export default function ReportDetailPage() {
   const rangeText = preset === 'custom' ? rangeLabel(appliedRange.startDate, appliedRange.endDate) : preset === '30d' ? '30일' : '7일';
 
   const handleApplyCustomRange = () => {
+    const today = getTodayISO();
     if (!customStart || !customEnd || customStart > customEnd) {
       setError('조회 시작일과 종료일을 다시 확인해 주세요.');
+      return;
+    }
+    if (customStart > today || customEnd > today) {
+      setError('직접 선택 기간은 오늘 날짜까지만 조회할 수 있어요.');
       return;
     }
     setPreset('custom');
@@ -723,8 +756,8 @@ export default function ReportDetailPage() {
       </header>
       <ReportTabs />
 
-      <div className="flex-1 overflow-y-auto px-5 py-5" style={{ scrollbarGutter: 'stable' }}>
-        <main className="mx-auto max-w-[1260px] space-y-4">
+      <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-5" style={{ scrollbarGutter: 'stable' }}>
+        <main className="mx-auto max-w-[1120px] space-y-4">
           {error ? (
             <div className="flex items-center gap-2 rounded-2xl px-4 py-3 text-[13px]" style={{ background: 'rgba(239,68,68,0.12)', color: '#DC2626' }}>
               <AlertTriangle size={13} />
@@ -756,7 +789,7 @@ export default function ReportDetailPage() {
             <>
               <SummaryHeader risk={risk} />
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {Object.keys(CATEGORY_CONFIG).map((categoryKey) => (
                   <HealthCard
                     key={categoryKey}

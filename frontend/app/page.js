@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { api, ensureAuthSession } from '../hooks/useApi';
+import { api, ensureAuthSession, syncSessionIdentity } from '../hooks/useApi';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -19,6 +19,8 @@ export default function LandingPage() {
         if (!cancelled) setCheckingSession(false);
         return;
       }
+
+      await syncSessionIdentity();
 
       try {
         const statusRes = await api('/api/v1/onboarding/status');

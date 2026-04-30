@@ -18,7 +18,7 @@ self.addEventListener('push', (event) => {
 
   const title = payload.title || '다나아 AI';
   const options = {
-    body: payload.body || '오늘 기록을 이어서 체크해볼까요?',
+    body: payload.body || '오늘 비어 있는 건강 기록을 확인해 볼까요?',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
     data: {
@@ -28,8 +28,8 @@ self.addEventListener('push', (event) => {
     },
     actions: [
       { action: 'open', title: '기록하러 가기' },
-      { action: 'mute_today', title: '오늘은 안뜨게' },
-      { action: 'disable', title: '다음부터 안뜨게' },
+      { action: 'mute_today', title: '오늘은 쉬기' },
+      { action: 'disable', title: '다음부터 끄기' },
     ],
   };
 

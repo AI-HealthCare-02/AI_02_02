@@ -1,5 +1,157 @@
 # Handoff Memo
 
+## 2026-04-29 사이트 피드백 반영 / Codex+Claude 통합 정리
+
+### 작업 배경
+
+사이트 운영 중 수집한 피드백 5건을 Codex + Claude 두 에이전트로 나눠 처리했다.
+이후 세션에서 변경사항 전체를 검토·정리하고 Do-it-os 관련 부분만 선택적으로 롤백했다.
+
+---
+
+### 현재 워크스페이스 상태
+
+- 브랜치: `main`
+- 커밋되지 않은 변경 파일 (트래킹됨):
+  - `backend/apis/v1/user_routers.py`
+  - `backend/dtos/users.py`
+  - `backend/services/challenge.py`
+  - `backend/services/health_daily.py`
+  - `backend/services/risk_analysis.py`
+  - `backend/tasks/seed_shared_demo_account.py`
+  - `backend/tests/integration/test_settings_and_reports.py`
+  - `frontend/app/app/challenge/page.js`
+  - `frontend/app/app/chat/page.js`
+  - `frontend/app/app/report/detail/page.js`
+  - `frontend/app/app/report/page.js`
+  - `frontend/app/globals.css`
+  - `frontend/components/AppGuideModal.js`
+  - `frontend/components/MissedQuestionsModal.js`
+  - `frontend/components/RightPanelV2.js`
+  - `frontend/hooks/useApi.js`
+  - `frontend/app/app/layout.js`
+  - `frontend/app/app/settings/page.js`
+  - `frontend/app/login/page.js`
+  - `frontend/app/onboarding/complete/page.js`
+  - `frontend/app/page.js`
+  - `frontend/app/social-auth/SocialAuthClient.js`
+  - `frontend/contexts/ThemeContext.js`
+- 미트래킹 신규 파일:
+  - `backend/db/migrations/models/14_20260428_add_more_challenge_templates.py`
+  - `backend/db/migrations/models/15_20260429_add_active_user_challenge_unique_index.py`
+  - `frontend/lib/healthOptionLabels.js`
+  - `frontend/public/3d_man.png`, `body-female.png`, `body-man.png`, `man_shadow.png`, `woman_shadow.png`
+  - `.codex-review-pr35/`, `.codex-review-pr36/`, `.codex-review-pr37/` (커밋 불필요)
+  - 루트 레벨 이미지 파일들 (커밋 불필요)
+
+---
+
+### 피드백 항목별 처리 결과
+
+#### 1. 리포트 대시보드 빈 공간 / 호버 상시 표시 — ✅ Codex 처리
+
+- 좌측 컬럼 292px → 320px, 우측 278px → 314px 확장
+- 카드 최소 높이 152px → 182px, 전체 텍스트 크기 9–12px → 10–13px 향상
+- `defaultRegionId` 도입: 가장 점수가 낮은 항목이 마우스 호버 없이도 항상 강조됨
+  - `focusRegion = hoveredRegion || defaultRegionId`
+- 구역 태그(머리/복부/가슴 영역, 연결 상태) 상시 표시로 빈 공간 해소
+
+#### 2. 이메일 인증 오류 — ✅ 코드 버그 수정 + 환경 원인 특정
+
+- **코드 버그**: `formatEmailVerificationError()` 함수가 추가됐으나 실제 에러 표시에서 미사용 →
+  `frontend/app/app/settings/page.js` line 485 수정 완료 (SMTP 인증 실패 등이 이제 한국어로 표시됨)
+- **환경 원인 (코드 외)**: Gmail 앱 비밀번호(`SMTP_PASSWORD`) 만료 가능성 높음.
+  Google 계정 → 보안 → 앱 비밀번호에서 새로 발급 후 `.env` 교체 + 컨테이너 재시작 필요.
+  서버 환경에서 587 포트 아웃바운드가 막힌 경우 `SMTP_PORT=465`, `SMTP_USE_SSL=true`로 전환.
+
+#### 3. 동일 브라우저 계정 전환 시 세션 유지 — ✅ Codex 처리
+
+- `useApi.js`에 `syncSessionIdentity()` 추가: 로그인마다 `/api/v1/users/me`로 유저 ID 확인
+- 이전 유저 ID와 다르면 `ACCOUNT_SCOPED_LOCAL_KEYS` 전부 삭제
+  - 포함 키: `danaa_onboarding`, `danaa_risk`, `danaa_tutorial_pending`, `danaa_challenges`, `danaa_conversations`
+  - `danaa_doit_thoughts_v1`는 제외 (Do-it-os 팀원 처리 예정 → 아래 항목 참고)
+- `clearToken` → `clearClientSession`으로 교체: 로그아웃 시 계정 스코프 데이터 전부 초기화
+
+#### 4. 비로그인 시 메인화면 접근 — ✅ Codex 처리
+
+- `frontend/components/AppAuthGate.js` 신규 추가
+- `frontend/app/app/layout.js`에서 전체 `/app` 경로를 `AppAuthGate`로 감쌈
+- 미인증 상태 → `/login?next=현재경로` 자동 리다이렉트
+- 인증 완료 후 `syncSessionIdentity()` 호출로 계정 전환 감지
+
+#### 5. Do-it-os 계정 격리 — 🔄 팀원 처리 예정 (롤백 완료)
+
+- Codex가 `useApi.js`의 `ACCOUNT_SCOPED_LOCAL_KEYS`에 `danaa_doit_thoughts_v1` 추가
+- 팀원이 Do-it-os 기능 전담 처리 예정 → `danaa_doit_thoughts_v1` 항목 제거로 롤백 완료
+- Do-it-os 관련 파일(`frontend/app/app/do-it-os/`, `frontend/components/doit/`, `frontend/lib/doit_store.js`)은
+  이번 세션에서 수정하지 않았음
+
+---
+
+### Claude가 이번 세션에서 수정한 것
+
+| 파일 | 내용 |
+|------|------|
+| `frontend/app/app/report/page.js` | 바디 점 삼각 배치, 점 크기 확대(10→14px 기본 / 14→20px 활성), 범례(관리필요/주의/양호) 항상 표시, 범례 점 색상 인라인 스타일로 고정(globals.css 우선순위 우회), 이미지 overflow 수정, 챌린지 아이콘 코드-이름 매핑 추가 |
+| `frontend/app/app/challenge/page.js` | `challengeVisual()` 완전 재작성 — 챌린지별 고유 아이콘 적용(14종 각각 다른 아이콘), `PhoneOff`·`Activity`·`Clock`·`Coffee`·`Leaf` 임포트 추가 |
+| `backend/dtos/challenges.py` | `ChallengeRecommendedItem`에 `code: str = ""` 필드 추가 |
+| `backend/services/challenge.py` | `_get_recommended()`에서 `code=t.code` 전달 |
+| `frontend/app/app/settings/page.js` | `formatEmailVerificationError()` 실제 적용 (에러 메시지 한국어화) |
+| `frontend/hooks/useApi.js` | Do-it-os 롤백: `ACCOUNT_SCOPED_LOCAL_KEYS`에서 `danaa_doit_thoughts_v1` 제거 |
+
+---
+
+### Codex가 수정한 것 (유지 중)
+
+| 파일 | 내용 |
+|------|------|
+| `frontend/hooks/useApi.js` | `clearClientSession`, `syncSessionIdentity`, `establishSession`, `ACCOUNT_SCOPED_LOCAL_KEYS`, `SESSION_USER_KEY` 추가 |
+| `frontend/components/AppAuthGate.js` | 신규 — 미인증 시 로그인 리다이렉트 |
+| `frontend/app/app/layout.js` | `AppAuthGate` 래퍼 적용 |
+| `frontend/app/app/settings/page.js` | 키·체중 입력 필드, 이메일 정규화, SMTP 에러 한국어 함수 추가 |
+| `frontend/app/app/report/detail/page.js` | X축 라벨 개선, 날짜 input `max` 속성, 미래 날짜 유효성 검사 |
+| `frontend/app/app/report/page.js` | 컬럼 너비 확장, 카드 크기 향상, `defaultRegionId/focusRegion` 추가 |
+| `frontend/app/app/challenge/page.js` | `CHALLENGE_COPY` / `challengeCopy()` — 챌린지 이름·설명·cadence·target 태그 |
+| `frontend/app/login/page.js` | `setToken` → `establishSession` |
+| `frontend/app/onboarding/complete/page.js` | `setToken` → `establishSession` |
+| `frontend/app/page.js` | `syncSessionIdentity` 호출 |
+| `frontend/app/social-auth/SocialAuthClient.js` | `bootstrap()` 비동기 패턴 |
+| `frontend/contexts/ThemeContext.js` | `hasStoredThemePreference()`로 서버 테마 override 방지 |
+| `backend/tasks/seed_shared_demo_account.py` | 챌린지 씨드 이름 변경 (물 6→8잔, 채소→끼니마다, 음주줄이기→주2회이하) |
+
+---
+
+### 주요 위험 사항
+
+1. **이메일 인증 환경 이슈**: 코드는 정상이나 Gmail 앱 비밀번호 만료 또는 서버 포트 차단이 원인일 수 있음.
+   배포 서버 로그에서 SMTP 에러를 확인하고 앱 비밀번호 재발급 필요.
+
+2. **Do-it-os 계정 격리 미완성**: `danaa_doit_thoughts_v1` 키를 `ACCOUNT_SCOPED_LOCAL_KEYS`에서 제거했으므로
+   현재 계정 전환 시 Do-it-os 데이터는 자동 삭제되지 않음. 팀원이 별도 처리 예정.
+
+3. **커밋 전 제외 대상**:
+   - `.codex-review-pr35/36/37/` 디렉터리
+   - 루트 레벨 이미지 파일들(`3d_man.png`, `female.png`, `male.jpg` 등)
+   - `man_shadow.png`, `woman_shadow.png` (루트 위치 사본)
+
+4. **마이그레이션 파일 신규 추가**: `14_`, `15_` 두 개 미트래킹 상태 → 커밋 전 포함 여부 확인 필요
+
+---
+
+### 권장 다음 액션
+
+1. Gmail 앱 비밀번호 재발급 → `.env` 교체 → 컨테이너 재시작 → 이메일 인증 재테스트
+2. 브라우저에서 `/app/report` 확인:
+   - 좌/우 패널 빈 공간 해소 여부
+   - 항상 강조된 상태(가장 위험한 항목)가 올바른지
+3. 계정 전환 테스트 (카카오 → 구글):
+   - 기존 캐시 데이터 정상 초기화 여부
+   - Do-it-os 데이터는 유지되는지 (현재 의도적)
+4. 챌린지 페이지 아이콘 확인 — 14종 챌린지 각각 다른 아이콘 표시되는지
+5. 커밋 준비 시 `git status --short`로 루트 이미지/codex 리뷰 디렉터리 제외하고 스테이징
+
+---
+
 ## 2026-04-28 Report/Text Recovery + 3D Body Asset Handoff
 
 ### Current Branch / Workspace State
@@ -1430,3 +1582,102 @@ docker compose up -d --no-deps fastapi
 ### Merge note
 - This cleanup is prepared for a personal-repo branch PR targeting personal `main`.
 - There was no detected upstream-side conflicting change at packaging time, but only the cleaned branch contents should be merged, not loose local artifacts.
+
+## 2026-04-30 Session Isolation / Push Audit handoff
+
+### Current state
+- Same-browser account switching was audited with the rule that user-scoped data must not leak across accounts.
+- `/app/*` is behind `AppAuthGate`.
+- `/onboarding/*` is now also behind `AppAuthGate` via `frontend/app/onboarding/layout.js`.
+- Personal `origin/main` had already been merged into the current work branch before these follow-up changes.
+
+### What changed today
+- Added account-scoped client storage helpers in `frontend/hooks/useApi.js`:
+  - `syncSessionIdentity`
+  - `establishSession`
+  - `clearClientSession`
+  - `getScopedStorageKey`
+- Account-specific frontend state was moved off shared keys and onto `::<userId>`-scoped keys for:
+  - onboarding draft
+  - risk snapshot
+  - tutorial pending / done flags
+  - conversations
+  - daily chat log cache / schema version
+  - missed-questions modal draft
+- Updated affected files:
+  - `frontend/hooks/useConversations.js`
+  - `frontend/app/onboarding/[condition]/page.js`
+  - `frontend/app/onboarding/complete/page.js`
+  - `frontend/app/app/chat/page.js`
+  - `frontend/components/Tutorial.js`
+  - `frontend/components/MissedQuestionsModal.js`
+- Added auth guard components/files:
+  - `frontend/components/AppAuthGate.js`
+  - `frontend/app/onboarding/layout.js`
+- `frontend/app/app/layout.js` now wraps the app shell with `AppAuthGate`.
+
+### Do it OS note
+- Do it OS was explicitly inspected but not modified.
+- Existing Do it OS storage keys in `frontend/lib/doit_store.js` were already user-scoped (`getGuideSeenKey`, `getLayoutToastKey`, `getThoughtsStorageKey`).
+- Per request, no Do it OS files were edited.
+
+### Background push notification audit
+- Browser push flow exists end-to-end in code:
+  - frontend registration/subscription:
+    - `frontend/lib/pushNotifications.js`
+    - `frontend/public/sw.js`
+    - `frontend/app/app/settings/page.js`
+  - backend routes/service/scheduler:
+    - `backend/apis/v1/push_routers.py`
+    - `backend/services/push.py`
+    - `backend/tasks/push_notifications.py`
+    - `backend/tasks/scheduler.py`
+- Environment keys for Web Push are present in env templates/local envs:
+  - `WEB_PUSH_ENABLED`
+  - `WEB_PUSH_VAPID_PUBLIC_KEY`
+  - `WEB_PUSH_VAPID_PRIVATE_KEY` / `_B64`
+  - `WEB_PUSH_VAPID_SUBJECT`
+  - `WEB_PUSH_ACTION_API_BASE`
+- `pywebpush` is present in project dependencies / lockfile.
+- Important runtime behavior:
+  - push tick runs every 10 seconds
+  - actual send still requires:
+    - browser permission granted
+    - valid subscription row
+    - `chat_notification=true`
+    - `health_question_interval_minutes > 0`
+    - onboarding completed
+    - due health-question bundle exists
+- No dedicated integration test or in-app “send test push now” tool exists yet, so final confirmation still requires a real browser/device check.
+
+### Verification completed
+- `node --check` passed for the touched session-isolation files during the work.
+- `frontend`: `npm run build` passed after the session-isolation changes.
+- Port 3000 stale `node` listener was killed during debugging.
+
+### Remaining manual verification
+1. Same browser:
+   - login as account A
+   - create onboarding/chat/daily/missed-draft state
+   - logout
+   - login as account B
+   - confirm A state does not appear
+2. Login-less access:
+   - direct-hit `/app/chat`
+   - direct-hit `/onboarding/diabetes`
+   - confirm redirect to `/login`
+3. Background push:
+   - enable browser push in settings
+   - keep permission granted and OS notifications enabled
+   - confirm a due health-question bundle results in a push notification
+
+### Current local worktree notes
+- Modified files still include unrelated in-progress UI/auth work:
+  - login/signup/settings/report/challenge/theme/chat files
+- New files currently present:
+  - `frontend/components/AppAuthGate.js`
+  - `frontend/app/onboarding/layout.js`
+  - `backend/db/migrations/models/16_20260429_refresh_challenge_copy.py`
+- Separate review/worktree folders are still present locally:
+  - `.pr40-mergecheck/`
+  - `.pr40-review-worktree/`

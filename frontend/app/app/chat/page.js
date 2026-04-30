@@ -6,7 +6,7 @@ import { FileText } from 'lucide-react';
 import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
 import VideoRecommendations from '../../../components/VideoRecommendations';
-import { api, getToken } from '../../../hooks/useApi';
+import { api, getScopedStorageKey, getToken } from '../../../hooks/useApi';
 
 /* ── Right Panel V2 (리디자인) · 기본 활성화 / env 값 0일 때만 비활성화 ── */
 const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
@@ -44,10 +44,17 @@ const PANEL_LOG_FIELDS = [
   'alcohol_amount_level',
 ];
 
+const ONBOARDING_STORAGE_KEY = 'danaa_onboarding';
+const RISK_STORAGE_KEY = 'danaa_risk';
+const TUTORIAL_PENDING_KEY = 'danaa_tutorial_pending';
+const TUTORIAL_DONE_KEY = 'danaa_tutorial_done';
+
 /* ── 유틸 ── */
 const todayKey = () => {
   const d = new Date();
-  return `danaa_daily_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return getScopedStorageKey(
+    `danaa_daily_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,
+  );
 };
 
 // KST 고정: 백엔드(Asia/Seoul)와 "오늘" 경계 일치 · 시간대 다른 디바이스에서 자정 경계 버그 방지
@@ -471,7 +478,7 @@ export default function ChatPage() {
     const migratedNext = migrateStoredLog(nextLog);
     try {
       localStorage.setItem(todayKey(), JSON.stringify(migratedNext));
-      localStorage.setItem(DAILY_SCHEMA_VERSION_KEY, DAILY_SCHEMA_VERSION);
+      localStorage.setItem(getScopedStorageKey(DAILY_SCHEMA_VERSION_KEY), DAILY_SCHEMA_VERSION);
     } catch {}
     return migratedNext;
   }, []);
@@ -767,14 +774,14 @@ export default function ChatPage() {
         currentLogRef.current = migratedLog;
         setLog(migratedLog);
         localStorage.setItem(todayKey(), JSON.stringify(migratedLog));
-        localStorage.setItem(DAILY_SCHEMA_VERSION_KEY, DAILY_SCHEMA_VERSION);
+        localStorage.setItem(getScopedStorageKey(DAILY_SCHEMA_VERSION_KEY), DAILY_SCHEMA_VERSION);
       }
-      const ob = localStorage.getItem('danaa_onboarding');
+      const ob = localStorage.getItem(getScopedStorageKey(ONBOARDING_STORAGE_KEY));
       if (ob) setOnboarding(JSON.parse(ob));
-      const rk = localStorage.getItem('danaa_risk');
+      const rk = localStorage.getItem(getScopedStorageKey(RISK_STORAGE_KEY));
       if (rk) setRisk(JSON.parse(rk));
       // 튜토리얼: 온보딩 완료 + 튜토리얼 미완료 시 표시
-      if (ob && !localStorage.getItem('danaa_tutorial_done')) {
+      if (ob && !localStorage.getItem(getScopedStorageKey(TUTORIAL_DONE_KEY))) {
         setShowTutorial(true);
       }
     } catch {}
@@ -870,8 +877,8 @@ export default function ChatPage() {
             level: status.initial_risk_level || null,
             score: status.initial_findrisc_score || null,
           });
-          const tutorialPending = localStorage.getItem('danaa_tutorial_pending') === 'true';
-          const tutorialDone = localStorage.getItem('danaa_tutorial_done') === 'true';
+          const tutorialPending = localStorage.getItem(getScopedStorageKey(TUTORIAL_PENDING_KEY)) === 'true';
+          const tutorialDone = localStorage.getItem(getScopedStorageKey(TUTORIAL_DONE_KEY)) === 'true';
           if (tutorialPending || !tutorialDone) {
             setShowTutorial((prev) => {
               if (!prev) {
@@ -1568,7 +1575,7 @@ const sendMessage = useCallback(async () => {
           key={tutorialKey}
           onComplete={() => {
             try {
-              localStorage.removeItem('danaa_tutorial_pending');
+              localStorage.removeItem(getScopedStorageKey(TUTORIAL_PENDING_KEY));
             } catch {}
             setShowTutorial(false);
           }}
