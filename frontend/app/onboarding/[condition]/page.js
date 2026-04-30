@@ -4,6 +4,7 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation';
 
 import { ONBOARDING_THEME_VARS } from '../../../lib/onboardingTheme';
+import { getScopedStorageKey } from '../../../hooks/useApi';
 
 // ─── Step definitions ───────────────────────────────────────────────────────
 const allSteps = [
@@ -74,6 +75,9 @@ const categories = [
   { e: '⚖️', n: '비만', d: '체중, 활동량', active: false },
   { e: '🫀', n: '심혈관', d: '심장 건강', active: false },
 ];
+
+const ONBOARDING_STORAGE_KEY = 'danaa_onboarding';
+const TUTORIAL_DONE_KEY = 'danaa_tutorial_done';
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
@@ -146,7 +150,7 @@ export default function OnboardingFlow() {
       goals: a[13] ?? [],
       freq: a[15] ?? null,
     };
-    try { localStorage.setItem('danaa_onboarding', JSON.stringify(data)); } catch {}
+    try { localStorage.setItem(getScopedStorageKey(ONBOARDING_STORAGE_KEY), JSON.stringify(data)); } catch {}
   }, [height, weight]);
 
   const goNext = useCallback(() => {
@@ -687,10 +691,10 @@ export default function OnboardingFlow() {
           <button
             onClick={() => {
               // 현재까지 입력된 온보딩 데이터 저장 (없으면 빈 객체)
-              if (!localStorage.getItem('danaa_onboarding')) {
-                localStorage.setItem('danaa_onboarding', JSON.stringify({}));
+              if (!localStorage.getItem(getScopedStorageKey(ONBOARDING_STORAGE_KEY))) {
+                localStorage.setItem(getScopedStorageKey(ONBOARDING_STORAGE_KEY), JSON.stringify({}));
               }
-              localStorage.removeItem('danaa_tutorial_done');
+              localStorage.removeItem(getScopedStorageKey(TUTORIAL_DONE_KEY));
               window.location.href = '/app/chat';
             }}
             className="ml-1 px-2 py-0.5 text-[9px] bg-cream-400 text-neutral-400 rounded hover:bg-cream-500 transition-colors shrink-0"

@@ -20,17 +20,22 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { api } from '@/hooks/useApi';
+import { api, getScopedStorageKey } from '@/hooks/useApi';
 import { getVisibleMissedCategories } from '@/lib/chat/cardRegistry';
 import {
   ALCOHOL_OPTIONS,
   EXERCISE_DONE_OPTIONS,
+  EXERCISE_MINUTES_OPTIONS,
+  EXERCISE_TYPE_OPTIONS,
   MEDICATION_OPTIONS,
   MEAL_STATUS_OPTIONS,
   MOOD_LABELS,
   MOOD_OPTIONS,
+  SLEEP_DURATION_LABELS,
+  SLEEP_DURATION_OPTIONS,
   SLEEP_QUALITY_LABELS,
   SLEEP_QUALITY_OPTIONS,
+  WALK_DONE_OPTIONS,
   WATER_OPTIONS,
 } from '@/lib/healthOptionLabels';
 import { t } from '@/lib/i18n/rightPanel.ko';
@@ -40,6 +45,10 @@ const API_DAILY_PATH = (date) => `/api/v1/health/daily/${date}`;
 const CACHE_TTL_MS = 60 * 1000;
 const DRAFT_KEY = 'danaa_missed_draft_v1';
 
+function getDraftStorageKey() {
+  return getScopedStorageKey(DRAFT_KEY);
+}
+
 /**
  * DB 필드 → 카테고리 매핑 (cardRegistry와 동일 키)
  */
@@ -47,7 +56,7 @@ const CATEGORY_FIELDS = {
   sleep: ['sleep_quality', 'sleep_duration_bucket'],
   meal: ['breakfast_status', 'lunch_status', 'dinner_status'],
   medication: ['took_medication'],
-  exercise: ['exercise_done', 'exercise_type'],
+  exercise: ['exercise_done', 'exercise_type', 'exercise_minutes', 'walk_done'],
   water: ['water_cups'],
   mood: ['mood_level'],
   alcohol: ['alcohol_today'],
@@ -62,8 +71,10 @@ function formatCategoryValue(key, dailyLog) {
   const hasAny = fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
   if (!hasAny) return null;
   if (key === 'sleep') {
-    const labels = { ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' };
-    return labels[dailyLog.sleep_quality] || '기록됨';
+    const quality = ({ ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' })[dailyLog.sleep_quality];
+    const duration = SLEEP_DURATION_LABELS[dailyLog.sleep_duration_bucket];
+    if (quality && duration) return `${quality} · ${duration}`;
+    return quality || duration || '기록됨';
   }
   if (key === 'water') {
     const cups = Number(dailyLog.water_cups || 0);
@@ -72,7 +83,9 @@ function formatCategoryValue(key, dailyLog) {
   switch (key) {
     case 'sleep': {
       const q = ({ ...SLEEP_QUALITY_LABELS, excellent: '푹 잤어요' })[dailyLog.sleep_quality];
-      return q || '기록됨';
+      const d = SLEEP_DURATION_LABELS[dailyLog.sleep_duration_bucket];
+      if (q && d) return `${q} · ${d}`;
+      return q || d || '기록됨';
     }
     case 'meal': {
       const done = ['breakfast_status', 'lunch_status', 'dinner_status'].filter((f) => dailyLog[f]).length;
@@ -82,10 +95,21 @@ function formatCategoryValue(key, dailyLog) {
       if (dailyLog.took_medication === true) return '복용했어요';
       if (dailyLog.took_medication === false) return '아직 못 먹었어요';
       return null;
-    case 'exercise':
-      if (dailyLog.exercise_done === true) return '했어요';
-      if (dailyLog.exercise_done === false) return '못 했어요';
+    case 'exercise': {
+      if (dailyLog.exercise_done === true) {
+        const typeLabel = EXERCISE_TYPE_OPTIONS.find((o) => o.value === dailyLog.exercise_type)?.label;
+        const minLabel = EXERCISE_MINUTES_OPTIONS.find((o) => o.value === dailyLog.exercise_minutes)?.label;
+        if (typeLabel && minLabel) return `${typeLabel} · ${minLabel}`;
+        if (typeLabel) return `했어요 · ${typeLabel}`;
+        return '했어요';
+      }
+      if (dailyLog.exercise_done === false) {
+        if (dailyLog.walk_done === true) return '못 했어요 · 걷기 했어요';
+        if (dailyLog.walk_done === false) return '못 했어요 · 걷기도 못 했어요';
+        return '못 했어요';
+      }
       return null;
+    }
     case 'water':
       return dailyLog.water_cups > 0 ? `${dailyLog.water_cups}잔` : null;
     case 'mood':
@@ -102,8 +126,15 @@ function formatCategoryValue(key, dailyLog) {
 function isCategoryComplete(key, dailyLog) {
   if (!dailyLog) return false;
   const fields = CATEGORY_FIELDS[key] || [];
-  if (key === 'meal') {
+  if (key === 'meal' || key === 'sleep') {
     return fields.every((f) => dailyLog[f] != null && dailyLog[f] !== '');
+  }
+  if (key === 'exercise') {
+    const done = dailyLog.exercise_done;
+    if (done == null) return false;
+    if (done === true) return dailyLog.exercise_type != null && dailyLog.exercise_minutes != null;
+    if (done === false) return dailyLog.walk_done != null;
+    return false;
   }
   return fields.some((f) => dailyLog[f] != null && dailyLog[f] !== '');
 }
@@ -255,6 +286,11 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
     return (
       <div className="mqm-cell-edit">
         <SelectField
+          value={draft.sleep_duration_bucket}
+          options={SLEEP_DURATION_OPTIONS}
+          onChange={(v) => setDraft({ ...draft, sleep_duration_bucket: v })}
+        />
+        <SelectField
           value={draft.sleep_quality}
           options={SLEEP_QUALITY_OPTIONS}
           onChange={(v) => setDraft({ ...draft, sleep_quality: v })}
@@ -299,12 +335,41 @@ function CellEditor({ categoryKey, onSave, onCancel, initialDraft }) {
         );
       case 'exercise':
         return (
-          <SelectField
-            value={draft.exercise_done}
-            options={EXERCISE_DONE_OPTIONS}
-            parse={parseBool}
-            onChange={(v) => setDraft({ ...draft, exercise_done: v })}
-          />
+          <>
+            <SelectField
+              value={draft.exercise_done ?? ''}
+              placeholder="운동 여부"
+              options={EXERCISE_DONE_OPTIONS}
+              parse={parseBool}
+              onChange={(v) => setDraft({ exercise_done: v })}
+            />
+            {draft.exercise_done === true && (
+              <>
+                <SelectField
+                  value={draft.exercise_type ?? ''}
+                  placeholder="운동 종류"
+                  options={EXERCISE_TYPE_OPTIONS}
+                  onChange={(v) => setDraft({ ...draft, exercise_type: v })}
+                />
+                <SelectField
+                  value={draft.exercise_minutes ?? ''}
+                  placeholder="운동 시간"
+                  options={EXERCISE_MINUTES_OPTIONS}
+                  parse={parseInt10}
+                  onChange={(v) => setDraft({ ...draft, exercise_minutes: v })}
+                />
+              </>
+            )}
+            {draft.exercise_done === false && (
+              <SelectField
+                value={draft.walk_done ?? ''}
+                placeholder="걷기 여부"
+                options={WALK_DONE_OPTIONS}
+                parse={parseBool}
+                onChange={(v) => setDraft({ ...draft, walk_done: v })}
+              />
+            )}
+          </>
         );
       case 'water':
         return (
@@ -477,7 +542,7 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
   const handleCellSave = async (categoryKey, date, payload, options = {}) => {
     // sessionStorage 1건 draft (401 리다이렉트 대비)
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ date, key: categoryKey, payload, ts: Date.now() }));
+      sessionStorage.setItem(getDraftStorageKey(), JSON.stringify({ date, key: categoryKey, payload, ts: Date.now() }));
     } catch { /* 용량 초과 등 무시 */ }
 
     const res = await api(API_DAILY_PATH(date), {
@@ -508,7 +573,7 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
     setTimeout(() => setToast(null), 3000);
 
     // 성공 draft 제거
-    try { sessionStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
+    try { sessionStorage.removeItem(getDraftStorageKey()); } catch { /* noop */ }
 
     // 캐시 무효화 + 과거 2일 재조회
     invalidateMissedCache();
@@ -586,21 +651,32 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
                     const optionDef = FIELD_OPTIONS[cat.key];
                     const pendingKey = draftKey(col.date, cat.key);
                     const currentDraft = pendingDrafts[pendingKey];
-                    if (cat.key === 'meal' && optionDef) {
-                      const missingMealFields = CATEGORY_FIELDS.meal.filter((field) => col.log?.[field] == null || col.log?.[field] === '');
+                    if ((cat.key === 'meal' || cat.key === 'sleep') && optionDef) {
+                      const targetFields = CATEGORY_FIELDS[cat.key];
+                      const missingFields = targetFields.filter((field) => col.log?.[field] == null || col.log?.[field] === '');
                       return (
                         <td key={col.date} className="mqm-cell mqm-cell--empty">
                           {val && <div className="mb-2 text-[12px] font-semibold text-nature-900">{val} 기록됨</div>}
                           <div className="space-y-2">
-                            {missingMealFields.map((field) => {
+                            {missingFields.map((field) => {
                               const draftValue = currentDraft?.[field] ?? '';
+                              const options = field === 'sleep_duration_bucket'
+                                ? SLEEP_DURATION_OPTIONS
+                                : field === 'sleep_quality'
+                                  ? SLEEP_QUALITY_OPTIONS
+                                  : optionDef.options;
+                              const label = field === 'sleep_duration_bucket'
+                                ? '수면 시간'
+                                : field === 'sleep_quality'
+                                  ? '수면 질'
+                                  : MEAL_FIELD_LABELS[field];
                               return (
                                 <label key={field} className="block text-left">
-                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">{MEAL_FIELD_LABELS[field]}</span>
+                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">{label}</span>
                                   <SelectField
                                     value={draftValue}
                                     placeholder="선택"
-                                    options={optionDef.options}
+                                    options={options}
                                     onChange={(rawValue) => {
                                       const payload = buildFieldDraftPayload(cat.key, field, rawValue);
                                       setPendingDrafts((prev) => ({
@@ -615,6 +691,87 @@ export default function MissedQuestionsModal({ open, onClose, todayISO, todayLog
                                 </label>
                               );
                             })}
+                          </div>
+                        </td>
+                      );
+                    }
+                    if (cat.key === 'exercise' && optionDef) {
+                      const exerciseDoneValue = currentDraft?.exercise_done ?? col.log?.exercise_done;
+                      return (
+                        <td key={col.date} className="mqm-cell mqm-cell--empty">
+                          <div className="space-y-2">
+                            <label className="block text-left">
+                              <span className="mb-1 block text-[11px] font-semibold text-neutral-500">운동 여부</span>
+                              <SelectField
+                                value={currentDraft?.exercise_done ?? col.log?.exercise_done ?? ''}
+                                placeholder="선택"
+                                options={EXERCISE_DONE_OPTIONS}
+                                parse={parseBool}
+                                onChange={(rawValue) => {
+                                  setPendingDrafts((prev) => {
+                                    const base = { exercise_done: rawValue };
+                                    const existing = prev[pendingKey] || {};
+                                    if (rawValue === true) {
+                                      if (existing.exercise_type) base.exercise_type = existing.exercise_type;
+                                      if (existing.exercise_minutes) base.exercise_minutes = existing.exercise_minutes;
+                                    } else if (rawValue === false) {
+                                      if (existing.walk_done != null) base.walk_done = existing.walk_done;
+                                    }
+                                    return { ...prev, [pendingKey]: base };
+                                  });
+                                }}
+                              />
+                            </label>
+                            {exerciseDoneValue === true && (
+                              <>
+                                <label className="block text-left">
+                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">운동 종류</span>
+                                  <SelectField
+                                    value={currentDraft?.exercise_type ?? col.log?.exercise_type ?? ''}
+                                    placeholder="선택"
+                                    options={EXERCISE_TYPE_OPTIONS}
+                                    onChange={(v) =>
+                                      setPendingDrafts((prev) => ({
+                                        ...prev,
+                                        [pendingKey]: { ...(prev[pendingKey] || {}), exercise_type: v },
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                <label className="block text-left">
+                                  <span className="mb-1 block text-[11px] font-semibold text-neutral-500">운동 시간</span>
+                                  <SelectField
+                                    value={currentDraft?.exercise_minutes ?? col.log?.exercise_minutes ?? ''}
+                                    placeholder="선택"
+                                    options={EXERCISE_MINUTES_OPTIONS}
+                                    parse={parseInt10}
+                                    onChange={(v) =>
+                                      setPendingDrafts((prev) => ({
+                                        ...prev,
+                                        [pendingKey]: { ...(prev[pendingKey] || {}), exercise_minutes: v },
+                                      }))
+                                    }
+                                  />
+                                </label>
+                              </>
+                            )}
+                            {exerciseDoneValue === false && (
+                              <label className="block text-left">
+                                <span className="mb-1 block text-[11px] font-semibold text-neutral-500">걷기 여부</span>
+                                <SelectField
+                                  value={currentDraft?.walk_done ?? col.log?.walk_done ?? ''}
+                                  placeholder="선택"
+                                  options={WALK_DONE_OPTIONS}
+                                  parse={parseBool}
+                                  onChange={(v) =>
+                                    setPendingDrafts((prev) => ({
+                                      ...prev,
+                                      [pendingKey]: { ...(prev[pendingKey] || {}), walk_done: v },
+                                    }))
+                                  }
+                                />
+                              </label>
+                            )}
                           </div>
                         </td>
                       );

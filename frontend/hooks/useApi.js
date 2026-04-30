@@ -5,8 +5,20 @@ import { useCallback } from 'react';
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/$/, '');
 const TOKEN_KEY = 'danaa_token';
 const LAST_AUTH_ACTIVITY_KEY = 'danaa_last_auth_activity_at';
+const REMEMBER_LOGIN_KEY = 'danaa_remember_login';
+const SESSION_USER_KEY = 'danaa_session_user_id';
 const MAX_AUTH_IDLE_MS = 12 * 60 * 60 * 1000;
 const DEV_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
+const ACCOUNT_SCOPED_LOCAL_KEYS = [
+  'danaa_onboarding',
+  'danaa_risk',
+  'danaa_tutorial_pending',
+  'danaa_tutorial_done',
+  'danaa_challenges',
+  'danaa_conversations',
+  'danaa_unanswered_questions',
+  'danaa_daily_schema_v',
+];
 const REFRESH_COOKIE = 'refresh_token'; // httpOnly — 백엔드가 관리
 
 /* ═══════════════════════════════════════════
@@ -25,7 +37,7 @@ export function setToken(token) {
 export function getToken() {
   if (DEV_TOKEN) return DEV_TOKEN;
   if (isAuthSessionExpired()) {
-    clearToken();
+    clearClientSession();
     return null;
   }
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
@@ -39,9 +51,70 @@ export function clearToken() {
   } catch {}
 }
 
+export function setRememberLogin(enabled) {
+  try {
+    localStorage.setItem(REMEMBER_LOGIN_KEY, enabled ? '1' : '0');
+  } catch {}
+}
+
+export function shouldKeepLoggedIn() {
+  try {
+    return localStorage.getItem(REMEMBER_LOGIN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function clearAccountScopedStorage() {
+  try {
+    ACCOUNT_SCOPED_LOCAL_KEYS.forEach((key) => localStorage.removeItem(key));
+    Object.keys(sessionStorage)
+      .filter((key) => key.startsWith('danaa:report:'))
+      .forEach((key) => sessionStorage.removeItem(key));
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('danaa_daily_'))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {}
+}
+
+export function clearClientSession() {
+  clearToken();
+  try {
+    localStorage.removeItem(SESSION_USER_KEY);
+    localStorage.removeItem(REMEMBER_LOGIN_KEY);
+  } catch {}
+  clearAccountScopedStorage();
+}
+
 /** 로그인 상태 확인 */
 export function isLoggedIn() {
   return !!getToken();
+}
+
+/**
+ * 현재 access token에서 user_id를 안전하게 추출.
+ * JWT payload(base64url) → JSON. 실패 시 null.
+ *
+ * 용도: 클라이언트에서 사용자별 localStorage 키 분리에만 사용.
+ * 인증·인가 검증은 백엔드(JwtService.verify_jwt)에서 수행.
+ */
+export function getCurrentUserId() {
+  try {
+    const token = getToken();
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    // base64url → base64 + padding 보정
+    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    const payload = JSON.parse(atob(b64));
+    const uid = payload?.user_id;
+    if (typeof uid === 'number' && Number.isFinite(uid)) return uid;
+    if (typeof uid === 'string' && uid.length > 0) return uid;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -51,7 +124,7 @@ export function isLoggedIn() {
  */
 export async function ensureAuthSession() {
   if (isAuthSessionExpired()) {
-    clearToken();
+    clearClientSession();
     return false;
   }
   if (getToken()) {
@@ -61,12 +134,61 @@ export async function ensureAuthSession() {
   return refreshToken();
 }
 
+export async function syncSessionIdentity(tokenOverride = null) {
+  const token = tokenOverride || getToken();
+  if (!token) return false;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/users/me`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: 'include',
+    });
+    if (!response.ok) return false;
+
+    const data = await response.json().catch(() => ({}));
+    const nextUserId = data?.id != null ? String(data.id) : '';
+    if (!nextUserId) return false;
+
+    const previousUserId = localStorage.getItem(SESSION_USER_KEY);
+    if (previousUserId && previousUserId !== nextUserId) {
+      clearAccountScopedStorage();
+    }
+
+    localStorage.setItem(SESSION_USER_KEY, nextUserId);
+    markAuthActivity();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getStorageScopeSuffix() {
+  const userId = getCurrentUserId();
+  if (userId == null) return 'anon';
+  const safe = String(userId).replace(/[^a-zA-Z0-9_-]/g, '');
+  return safe || 'anon';
+}
+
+export function getScopedStorageKey(baseKey) {
+  return `${baseKey}::${getStorageScopeSuffix()}`;
+}
+
+export async function establishSession(token, options = {}) {
+  setRememberLogin(Boolean(options.remember));
+  setToken(token);
+  await syncSessionIdentity(token);
+}
+
 function markAuthActivity() {
   try { localStorage.setItem(LAST_AUTH_ACTIVITY_KEY, String(Date.now())); } catch {}
 }
 
 function isAuthSessionExpired() {
   if (DEV_TOKEN) return false;
+  if (shouldKeepLoggedIn()) return false;
   try {
     const raw = localStorage.getItem(LAST_AUTH_ACTIVITY_KEY);
     if (!raw) return false;
@@ -121,7 +243,7 @@ export async function api(path, options = {}) {
   // 401 → 토큰 만료 → 자동 갱신 시도
   if (res.status === 401 && token) {
     if (isAuthSessionExpired()) {
-      clearToken();
+      clearClientSession();
       window.location.href = '/login';
       return res;
     }
@@ -135,7 +257,7 @@ export async function api(path, options = {}) {
       });
     } else {
       // 갱신 실패 → 로그아웃
-      clearToken();
+      clearClientSession();
       window.location.href = '/login';
       return res;
     }
@@ -151,7 +273,7 @@ export async function api(path, options = {}) {
 async function refreshToken() {
   try {
     if (isAuthSessionExpired()) {
-      clearToken();
+      clearClientSession();
       return false;
     }
     const res = await fetch(`${API_BASE}/api/v1/auth/token/refresh`, {
@@ -163,6 +285,7 @@ async function refreshToken() {
       const data = await res.json();
       if (data.access_token) {
         setToken(data.access_token);
+        await syncSessionIdentity(data.access_token);
         return true;
       }
     }

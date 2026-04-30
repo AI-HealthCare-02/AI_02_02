@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { setToken } from '../../hooks/useApi';
+import { establishSession } from '../../hooks/useApi';
 
 export default function SocialAuthClient({ searchParams }) {
   const router = useRouter();
@@ -12,18 +12,22 @@ export default function SocialAuthClient({ searchParams }) {
   const error = searchParams?.social_error;
 
   useEffect(() => {
-    if (error) {
-      router.replace(`/login?social_error=${encodeURIComponent(error)}`);
-      return;
+    async function bootstrap() {
+      if (error) {
+        router.replace(`/login?social_error=${encodeURIComponent(error)}`);
+        return;
+      }
+
+      if (accessToken) {
+        await establishSession(accessToken);
+        router.replace(nextPath);
+        return;
+      }
+
+      router.replace('/login');
     }
 
-    if (accessToken) {
-      setToken(accessToken);
-      router.replace(nextPath);
-      return;
-    }
-
-    router.replace('/login');
+    bootstrap();
   }, [accessToken, error, nextPath, router]);
 
   return (

@@ -18,6 +18,7 @@ import {
   saveThoughts,
 } from '../../lib/doit_store';
 import RitualThoughtInput from './RitualThoughtInput';
+import TomorrowReleaseInline from './TomorrowReleaseInline';
 
 const STEPS = [
   { id: 1, label: '쏟기 (선택)', hint: '아직 덜 꺼낸 생각이 있으면 여기에 마저 적어도 돼요. 이미 낮에 쏟아놨다면 바로 다음 단계로 가요.' },
@@ -39,6 +40,16 @@ export default function EndOfDayRitual() {
   const [toast, setToast] = useState(null);
   const [handledIds, setHandledIds] = useState(() => new Set());
   const [step3Snapshot, setStep3Snapshot] = useState([]);
+  // 내일 하기 expand 영역 — 자이가르닉 종결 입력. 입력값은 저장하지 않고 transient 상태만.
+  const [expandedReleaseIds, setExpandedReleaseIds] = useState(() => new Set());
+
+  const closeReleaseExpand = (id) =>
+    setExpandedReleaseIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
 
   const addHandled = (id) =>
     setHandledIds((prev) => new Set(prev).add(id));
@@ -107,8 +118,16 @@ export default function EndOfDayRitual() {
   const toggleSelect = (id) => {
     setSelectedTomorrow((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      const willCheck = !next.has(id);
+      if (willCheck) next.add(id);
+      else next.delete(id);
+      // 체크 켜면 expand 자동으로 열고, 체크 끄면 expand도 닫는다.
+      setExpandedReleaseIds((expandedPrev) => {
+        const expandedNext = new Set(expandedPrev);
+        if (willCheck) expandedNext.add(id);
+        else expandedNext.delete(id);
+        return expandedNext;
+      });
       return next;
     });
   };
@@ -401,11 +420,20 @@ export default function EndOfDayRitual() {
                                   type="checkbox"
                                   checked={selectedTomorrow.has(t.id)}
                                   onChange={() => toggleSelect(t.id)}
+                                  aria-expanded={expandedReleaseIds.has(t.id)}
                                   className="h-4 w-4 accent-[var(--color-text-secondary)]"
                                 />
                                 내일 하기
                               </label>
                             </div>
+                            {expandedReleaseIds.has(t.id) && (
+                              <TomorrowReleaseInline
+                                originalText={t.text}
+                                onComplete={() => closeReleaseExpand(t.id)}
+                                onSkip={() => closeReleaseExpand(t.id)}
+                                testId={`tomorrow-release-inline-${t.id}`}
+                              />
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -452,11 +480,20 @@ export default function EndOfDayRitual() {
                                   type="checkbox"
                                   checked={selectedTomorrow.has(t.id)}
                                   onChange={() => toggleSelect(t.id)}
+                                  aria-expanded={expandedReleaseIds.has(t.id)}
                                   className="h-4 w-4 accent-[var(--color-text-secondary)]"
                                 />
                                 내일로
                               </label>
                             </div>
+                            {expandedReleaseIds.has(t.id) && (
+                              <TomorrowReleaseInline
+                                originalText={t.text}
+                                onComplete={() => closeReleaseExpand(t.id)}
+                                onSkip={() => closeReleaseExpand(t.id)}
+                                testId={`tomorrow-release-inline-${t.id}`}
+                              />
+                            )}
                           </li>
                         ))}
                       </ul>

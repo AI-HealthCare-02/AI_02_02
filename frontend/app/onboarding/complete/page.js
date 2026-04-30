@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
-import { api, setToken } from '../../../hooks/useApi';
+import { api, establishSession, getScopedStorageKey } from '../../../hooks/useApi';
 import { ONBOARDING_THEME_VARS } from '../../../lib/onboardingTheme';
 import { enablePushNotifications, getPushPermission } from '../../../lib/pushNotifications';
 import { formatUserGroupDisplay } from '../../../lib/userGroupLabels';
@@ -98,10 +98,13 @@ export default function OnboardingComplete() {
   const [pushModalOpen, setPushModalOpen] = useState(false);
   const [pushSaving, setPushSaving] = useState(false);
   const [pushMessage, setPushMessage] = useState(null);
+  const onboardingStorageKey = getScopedStorageKey('danaa_onboarding');
+  const tutorialPendingKey = getScopedStorageKey('danaa_tutorial_pending');
+  const riskStorageKey = getScopedStorageKey('danaa_risk');
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('danaa_onboarding');
+      const raw = localStorage.getItem(onboardingStorageKey);
       if (raw) {
         setSavedData(JSON.parse(raw));
       } else {
@@ -174,15 +177,15 @@ export default function OnboardingComplete() {
         }
 
         if (surveyData.access_token) {
-          setToken(surveyData.access_token);
+          await establishSession(surveyData.access_token);
         }
 
         try {
-          localStorage.setItem('danaa_onboarding', JSON.stringify(savedData));
-          localStorage.setItem('danaa_tutorial_pending', 'true');
+          localStorage.setItem(onboardingStorageKey, JSON.stringify(savedData));
+          localStorage.setItem(tutorialPendingKey, 'true');
           if (surveyData.user_group || surveyData.initial_findrisc_score || surveyData.initial_risk_level) {
             localStorage.setItem(
-              'danaa_risk',
+              riskStorageKey,
               JSON.stringify({
                 group: surveyData.user_group || null,
                 score: surveyData.initial_findrisc_score || null,
@@ -210,7 +213,7 @@ export default function OnboardingComplete() {
     return () => {
       cancelled = true;
     };
-  }, [savedData, submitState]);
+  }, [onboardingStorageKey, riskStorageKey, savedData, submitState, tutorialPendingKey]);
 
   const enableBrowserPush = async () => {
     setPushSaving(true);

@@ -49,6 +49,33 @@ const BADGE_THEME = {
   unranked: { icon: Medal, shell: 'border-[#D9D2C8] bg-white text-[#7A7065]', dot: 'bg-[#B8ADA0]', accent: 'text-[#7A7065]' },
 };
 
+const CHALLENGE_COPY = {
+  water_6cups: {
+    name: '물 8잔 마시기',
+    description: '하루 동안 물 8잔 이상을 마셔요.',
+    cadence: '매일',
+    target: '하루 8잔',
+  },
+  vegetable_3servings: {
+    name: '끼니마다 채소 먹기',
+    description: '아침, 점심, 저녁 식사 때마다 채소를 함께 먹어요.',
+    cadence: '매일',
+    target: '하루 3끼',
+  },
+  exercise_3x_week: {
+    name: '주 3회 유산소 운동',
+    description: '일주일에 3번 이상 유산소 운동을 실천해요.',
+    cadence: '주간',
+    target: '주 3회',
+  },
+  drink_less_alcohol: {
+    name: '음주 주 2회 이하',
+    description: '일주일에 2회 이하로 음주 빈도를 줄여요.',
+    cadence: '주간',
+    target: '주 2회 이하',
+  },
+};
+
 function fireChallengeRefresh() {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('danaa:challenge-overview-refresh'));
@@ -102,6 +129,17 @@ function dedupeChallengeItems(items) {
     seen.add(key);
     return true;
   });
+}
+
+function challengeCopy(item) {
+  const override = CHALLENGE_COPY[item?.code] || null;
+  return {
+    name: override?.name || item?.name || '챌린지',
+    description: override?.description || item?.description || '',
+    cadence: override?.cadence || '매일',
+    target: override?.target || null,
+    duration: Number(item?.default_duration_days) > 0 ? `${item.default_duration_days}일 과정` : null,
+  };
 }
 
 function challengeVisual(item) {
@@ -626,11 +664,20 @@ export default function ChallengePage() {
                         </div>
                         {primaryRecommended && (
                           <div className="mt-4 rounded-[22px] border border-[#E8E1D6] bg-white p-4 shadow-sm">
+                            {(() => {
+                              const display = challengeCopy(primaryRecommended);
+                              return (
+                                <>
                             <div className="mb-2 text-[12px] font-semibold tracking-[0.08em] text-[#8B8277]">가장 먼저 추천</div>
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
-                                <div className="text-[18px] font-semibold text-nature-900">{primaryRecommended.name}</div>
-                                <div className="mt-1 text-[13px] text-neutral-500">{primaryRecommended.description}</div>
+                                <div className="text-[18px] font-semibold text-nature-900">{display.name}</div>
+                                <div className="mt-1 text-[13px] text-neutral-500">{display.description}</div>
+                                <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-neutral-500">
+                                  <span className="rounded-full bg-cream-100 px-2.5 py-1">{display.cadence}</span>
+                                  {display.target ? <span className="rounded-full bg-cream-100 px-2.5 py-1">{display.target}</span> : null}
+                                  {display.duration ? <span className="rounded-full bg-cream-100 px-2.5 py-1">{display.duration}</span> : null}
+                                </div>
                               </div>
                               <button
                                 type="button"
@@ -641,6 +688,9 @@ export default function ChallengePage() {
                                 {busyKey === `join:${primaryRecommended.template_id}` ? '시작 중' : '추천 챌린지 시작'}
                               </button>
                             </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         )}
                       </section>
@@ -789,6 +839,7 @@ export default function ChallengePage() {
                         const blockedToday = Boolean(challenge.blocked_today);
                         const disabled = remainingSlots <= 0 || isActiveAlready || blockedToday || busy;
                         const visual = challengeVisual(challenge);
+                        const display = challengeCopy(challenge);
                         let label;
                         if (busy) label = '시작 중';
                         else if (isActiveAlready) label = '진행 중';
@@ -802,8 +853,12 @@ export default function ChallengePage() {
                                 <ChallengeVisualBadge visual={visual} size={20} />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="truncate text-[14px] font-semibold text-nature-900">{challenge.name}</div>
-                                <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-neutral-500">{challenge.description}</div>
+                                <div className="truncate text-[14px] font-semibold text-nature-900">{display.name}</div>
+                                <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-neutral-500">{display.description}</div>
+                                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-neutral-500">
+                                  <span className="rounded-full bg-white px-2 py-0.5">{display.cadence}</span>
+                                  {display.target ? <span className="rounded-full bg-white px-2 py-0.5">{display.target}</span> : null}
+                                </div>
                                 {blockedToday && (
                                   <div className="mt-1 text-[11px] text-neutral-400">오늘 체크인한 챌린지라 내일부터 다시 시작할 수 있어요.</div>
                                 )}
@@ -856,6 +911,7 @@ export default function ChallengePage() {
                       const selectionDisabled = !isSelected && !isActive && !blockedToday && selectedTemplateIds.length >= remainingSlots;
                       const theme = badgeTheme(item.badge_tier);
                       const visual = challengeVisual(item);
+                      const display = challengeCopy(item);
                       const BadgeIcon = theme.icon;
 
                       return (
@@ -873,11 +929,16 @@ export default function ChallengePage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <div className="text-[15px] font-semibold text-nature-900">{item.name}</div>
+                              <div className="text-[15px] font-semibold text-nature-900">{display.name}</div>
                               <span className={`rounded-full px-2.5 py-1 text-[12px] ${categoryBadgeStyle(item.category)}`}>{categoryLabel(item.category)}</span>
                               {blockedToday && <span className="rounded-full bg-cream-300 px-2 py-0.5 text-[11px] text-neutral-500">내일부터</span>}
                             </div>
-                            <div className="mt-1 text-[13px] text-neutral-500">{item.description}</div>
+                            <div className="mt-1 text-[13px] text-neutral-500">{display.description}</div>
+                            <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-neutral-500">
+                              <span className="rounded-full bg-cream-100 px-2 py-0.5">{display.cadence}</span>
+                              {display.target ? <span className="rounded-full bg-cream-100 px-2 py-0.5">{display.target}</span> : null}
+                              {display.duration ? <span className="rounded-full bg-cream-100 px-2 py-0.5">{display.duration}</span> : null}
+                            </div>
                             {blockedToday && (
                               <div className="mt-1 text-[11px] text-neutral-400">오늘 체크인한 챌린지라 내일부터 다시 시작할 수 있어요.</div>
                             )}

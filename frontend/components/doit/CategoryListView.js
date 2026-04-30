@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
-  STORAGE_KEY,
+  getThoughtsStorageKey,
   completeThought,
   getByCategory,
   getCompleted,
@@ -86,7 +86,7 @@ export default function CategoryListView({
     setThoughts(loadThoughts());
     setHydrated(true);
     const onStorage = (event) => {
-      if (event.key === STORAGE_KEY) setThoughts(loadThoughts());
+      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -218,6 +218,14 @@ export default function CategoryListView({
         {categoryId === 'project' && t.description && (
           <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-[1.5] text-[var(--color-text-secondary)] whitespace-pre-wrap">
             {t.description}
+          </p>
+        )}
+        {categoryId === 'schedule' && t.scheduleNote && (
+          <p
+            data-testid="schedule-note-display"
+            className="mt-1.5 line-clamp-1 text-[12.5px] leading-[1.5] text-[var(--color-text-secondary)]"
+          >
+            💬 {t.scheduleNote}
           </p>
         )}
         <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-hint)]">

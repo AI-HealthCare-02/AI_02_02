@@ -15,6 +15,16 @@ from backend.services.health_question import HealthQuestionService
 
 logger = setup_logger("services.push")
 
+PUSH_BUNDLE_NAMES = {
+    "bundle_1": "수면",
+    "bundle_2": "아침 식사",
+    "bundle_3": "식단",
+    "bundle_4": "운동",
+    "bundle_5": "생활 습관",
+    "bundle_6": "복약",
+    "bundle_7": "기분과 음주",
+}
+
 
 def _now() -> datetime:
     return datetime.now(tz=config.TIMEZONE)
@@ -154,11 +164,11 @@ class PushService:
 
         name = user.name or "사용자"
         bundle_key = str(due_bundle.get("bundle_key") or "")
-        bundle_name = str(due_bundle.get("name") or "건강 기록")
+        bundle_name = PUSH_BUNDLE_NAMES.get(bundle_key) or str(due_bundle.get("name") or "건강 기록")
         unanswered_count = int(due_bundle.get("unanswered_count") or 0)
         payload = {
             "title": f"{bundle_name} 기록이 비어 있어요",
-            "body": f"{name}님, 지나간 시간대의 {bundle_name} 질문 {unanswered_count}개를 지금 체크할 수 있어요.",
+            "body": f"{name}님, 지난 시간대의 {bundle_name} 질문 {unanswered_count}개를 지금 체크할 수 있어요.",
             "url": f"/app/chat?from=push&bundle_key={bundle_key}",
             "bundle_key": bundle_key,
             "bundle_name": bundle_name,
