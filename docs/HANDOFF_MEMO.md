@@ -1,5 +1,133 @@
 # Handoff Memo
 
+## 2026-04-30 최신 핸즈오프 / 리포트·챌린지·배포 동기화
+
+### 현재 저장소 상태
+
+- 로컬 `main`, 개인레포 `BIJENG/DANAA_project:main`, 공식레포 `AI-HealthCare-02/AI_02_02:main` 모두 같은 커밋까지 동기화됨.
+- 최신 커밋:
+  - `8702262 Merge remote-tracking branch 'upstream/main'`
+  - 실제 UI 수정 커밋: `147eba5 fix: 리포트 요약과 챌린지 배지 표시 보정`
+  - 자동배포 수정 커밋: `79f4c25 fix: EC2 자동배포 컨테이너 교체 보정`
+- 현재 작업트리는 이 문서 수정 전 기준으로 clean 상태였음.
+
+### 이번에 완료된 주요 작업
+
+#### 1. 리포트 대시보드 UI 보정
+
+- `frontend/app/app/report/page.js`
+- 대시보드 오른쪽 생활습관 카드에 `수면`, `식습관`, `운동` 제목 아래 짧은 상태 설명을 다시 표시하도록 복구.
+- 이전 반응형 수정 과정에서 점수 원형 그래프만 남고 설명 텍스트가 빠져 보이던 문제를 보정.
+- 검증:
+  - `node --check frontend/app/app/report/page.js`
+  - `npm run build`
+
+#### 2. 챌린지 배지 표시/매핑 문구 보정
+
+- `frontend/app/app/challenge/page.js`
+- `badge_label`, `next_badge_label`, `remaining_to_next_badge`가 없는 항목을 무조건 "현재 최고 등급입니다."로 표시하던 로직을 수정.
+- 새 표시 로직:
+  - 배지 라벨이 있으면 그대로 표시.
+  - `unranked`는 `미획득`.
+  - 완료일이 있으면 `진행 중`.
+  - 아직 기록이 없으면 `시작 전`.
+  - 다음 배지 정보가 없으면 최고 등급으로 단정하지 않고 `N일 더 완료하면 완주 배지에 가까워져요.` 또는 `현재 달성한 배지입니다.`로 표시.
+- 사용자에게 보이는 문구는 `뱃지` 대신 `배지`로 정리.
+- 검증:
+  - `node --check frontend/app/app/challenge/page.js`
+  - `npm run build`
+
+#### 3. EC2 자동배포 실패 원인 확인 및 수정
+
+- FastAPI 백엔드 자동배포는 개인레포 `BIJENG/DANAA_project`의 `main` push 기준으로 동작.
+- 공식레포 `AI-HealthCare-02/AI_02_02`의 `ghcr-build`는 아래 조건 때문에 의도적으로 skipped:
+
+```yaml
+if: github.repository == 'BIJENG/DANAA_project'
+```
+
+- 기존 EC2 자동배포 문제:
+  - GitHub Actions는 success로 보였지만 EC2 로그 안에서 컨테이너 교체가 실패했음.
+  - 원인 로그:
+
+```text
+Conflict. The container name "/redis" is already in use
+Conflict. The container name "/fastapi" is already in use
+```
+
+- 원인:
+  - EC2 기존 컨테이너/볼륨은 compose project `project` 기준으로 떠 있었음.
+  - 워크플로우는 `COMPOSE_PROJECT_NAME=danaa_project`로 실행되어 기존 `fastapi` 컨테이너를 제대로 잡지 못하고 새로 만들려다 이름 충돌.
+
+- 수정 파일:
+  - `.github/workflows/ghcr-build.yml`
+
+- 수정 내용:
+
+```yaml
+script_stop: true
+script: |
+  set -eu
+  cd ~/project
+  export FASTAPI_IMAGE=ghcr.io/bijeng/danaa-fastapi:latest
+  export COMPOSE_PROJECT_NAME=project
+  docker compose -f docker-compose.prod.yml pull fastapi
+  docker compose -f docker-compose.prod.yml run --rm --no-deps fastapi uv run --no-sync aerich upgrade
+  docker compose -f docker-compose.prod.yml stop fastapi
+  docker compose -f docker-compose.prod.yml rm -f fastapi
+  docker compose -f docker-compose.prod.yml up -d --no-deps fastapi
+  docker image prune -af
+```
+
+- 효과:
+  - 기존 EC2 compose project와 맞춤.
+  - `script_stop: true`, `set -eu`로 배포 명령 실패 시 Actions가 실패하도록 보정.
+  - migration 실행 시 `--no-deps`로 redis/postgres 재생성 시도를 피함.
+
+- 실제 배포 확인 로그:
+
+```text
+Image ghcr.io/bijeng/danaa-fastapi:latest Pulled
+Success upgrading to 16_20260429_refresh_challenge_copy.py
+Container fastapi Stopped
+Container fastapi Removed
+Container fastapi Created
+Container fastapi Started
+```
+
+#### 4. 개인레포/공식레포 동기화
+
+- 개인레포 `main`에는 UI 수정과 자동배포 수정 모두 직접 반영 완료.
+- 공식레포 `main`은 기존 PR merge commit이 있어 non-fast-forward가 발생했으나, 로컬에서 `upstream/main`을 정상 merge 후 다시 양쪽 main에 푸시 완료.
+- 최종 확인:
+
+```text
+HEAD          87022624a5a0f5ca2935c8bbca46fa95c548727e
+origin/main   87022624a5a0f5ca2935c8bbca46fa95c548727e
+upstream/main 87022624a5a0f5ca2935c8bbca46fa95c548727e
+```
+
+### 검증 이력
+
+- `npm run build` 통과.
+- pre-push backend lint 통과.
+- backend unit test 통과:
+
+```text
+421 passed, 2 warnings
+```
+
+### 남은 확인 포인트
+
+- Vercel 프론트 자동배포는 Vercel Dashboard에서 확인 필요:
+  - 연결된 GitHub repo가 개인레포인지 공식레포인지.
+  - Production Branch가 `main`인지.
+  - Root Directory가 `frontend`인지.
+  - 최신 Deployments의 commit이 `8702262` 또는 최소 `147eba5` 이후인지.
+- 백엔드는 개인레포 `main` push 기준 EC2 자동배포가 동작함. 공식레포 main 머지는 현재 설정상 EC2에 직접 배포하지 않음.
+
+---
+
 ## 2026-04-29 사이트 피드백 반영 / Codex+Claude 통합 정리
 
 ### 작업 배경
