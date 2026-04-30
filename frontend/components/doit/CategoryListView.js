@@ -220,6 +220,14 @@ export default function CategoryListView({
             {t.description}
           </p>
         )}
+        {categoryId === 'schedule' && t.scheduleNote && (
+          <p
+            data-testid="schedule-note-display"
+            className="mt-1.5 line-clamp-1 text-[12.5px] leading-[1.5] text-[var(--color-text-secondary)]"
+          >
+            💬 {t.scheduleNote}
+          </p>
+        )}
         <div className="mt-2 flex items-center gap-2 text-[11.5px] text-[var(--color-text-hint)]">
           <span>쏟은 시각 · {formatTime(t.createdAt)}</span>
           {t.plannedDate && (
