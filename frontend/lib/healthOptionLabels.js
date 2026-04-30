@@ -29,6 +29,31 @@ export const EXERCISE_DONE_OPTIONS = [
   { value: false, label: '못 했어요' },
 ];
 
+export const EXERCISE_TYPE_OPTIONS = [
+  { value: 'walking', label: '걷기 산책' },
+  { value: 'running', label: '러닝' },
+  { value: 'cycling', label: '자전거' },
+  { value: 'swimming', label: '수영' },
+  { value: 'gym', label: '헬스' },
+  { value: 'home_workout', label: '홈트' },
+  { value: 'other', label: '기타' },
+];
+
+export const EXERCISE_MINUTES_OPTIONS = [
+  { value: 10, label: '10분' },
+  { value: 20, label: '20분' },
+  { value: 30, label: '30분' },
+  { value: 45, label: '45분' },
+  { value: 60, label: '1시간' },
+  { value: 90, label: '1시간 30분' },
+  { value: 120, label: '2시간 이상' },
+];
+
+export const WALK_DONE_OPTIONS = [
+  { value: true, label: '걷기 했어요' },
+  { value: false, label: '걷기도 못 했어요' },
+];
+
 export const MOOD_OPTIONS = [
   { value: 'very_good', label: '아주 좋음' },
   { value: 'good', label: '좋음' },

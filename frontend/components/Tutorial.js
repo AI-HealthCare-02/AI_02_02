@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Compass, MessageSquare, BarChart3, HelpCircle, Sparkles } from 'lucide-react';
 
+import { getScopedStorageKey } from '../hooks/useApi';
+
 const STEPS = [
   {
     target: '[data-tutorial="sidebar-nav"]',
@@ -104,7 +106,7 @@ export default function Tutorial({ onComplete }) {
 
   const finish = useCallback(() => {
     try {
-      localStorage.setItem('danaa_tutorial_done', 'true');
+      localStorage.setItem(getScopedStorageKey('danaa_tutorial_done'), 'true');
     } catch {}
     onComplete?.();
   }, [onComplete]);

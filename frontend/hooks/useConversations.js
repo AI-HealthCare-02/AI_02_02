@@ -2,13 +2,17 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
-import { api } from './useApi';
+import { api, getScopedStorageKey } from './useApi';
 
 const STORAGE_KEY = 'danaa_conversations';
 
+function getConversationStorageKey() {
+  return getScopedStorageKey(STORAGE_KEY);
+}
+
 function persistConversations(list) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(getConversationStorageKey(), JSON.stringify(list));
   } catch {}
 }
 
@@ -40,7 +44,7 @@ export default function useConversations() {
       persistConversations(next);
     } catch {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(getConversationStorageKey());
         if (saved) {
           setConversations(JSON.parse(saved));
         }
