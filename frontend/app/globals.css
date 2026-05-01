@@ -107,6 +107,10 @@ html[data-contrast="high"] {
 
 /* ── Base — Modern Nature ────────────────────────────── */
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
+
   body {
     font-family: var(--font-ui), -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
     font-weight: 450;
@@ -117,6 +121,7 @@ html[data-contrast="high"] {
     letter-spacing: -0.01em;
     line-height: 1.6;
     font-size: 15px;
+    overflow-x: hidden;
   }
 
   h1, h2, h3 {
@@ -1780,7 +1785,7 @@ html[data-theme="dark"] .saju-modal__demo-banner {
 .mqm-modal {
   position: relative;
   width: min(780px, 100%);
-  max-height: calc(100vh - 60px);
+  max-height: calc(100dvh - 40px);
   background: var(--color-surface);
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
@@ -2249,7 +2254,7 @@ html[data-theme="dark"] .doit-panel-backdrop,
   position: fixed;
   right: 0;
   top: 0;
-  height: 100vh;
+  height: 100dvh;
   width: min(420px, 100vw);
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);

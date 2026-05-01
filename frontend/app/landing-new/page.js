@@ -79,7 +79,7 @@ export default function DanaaLandingPage() {
           </div>
           {/* Right illustration placeholder */}
           <div className="flex-1 flex justify-center">
-            <div className="w-[320px] h-[300px] bg-nature-50 rounded-lg flex items-center justify-center text-nature-500/60 text-[14px] font-medium">
+            <div className="flex h-[260px] w-full max-w-[320px] items-center justify-center rounded-lg bg-nature-50 text-[14px] font-medium text-nature-500/60 sm:h-[300px]">
               [Hero Illustration]
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function DanaaLandingPage() {
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] flex flex-col md:flex-row items-center gap-12">
           {/* Left illustration */}
           <div className="flex-1 flex justify-center">
-            <div className="w-[320px] h-[300px] bg-nature-50 rounded-lg flex items-center justify-center text-nature-500/60 text-[14px] font-medium">
+            <div className="flex h-[260px] w-full max-w-[320px] items-center justify-center rounded-lg bg-nature-50 text-[14px] font-medium text-nature-500/60 sm:h-[300px]">
               [Mobile Login Illustration]
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function DanaaLandingPage() {
           </div>
 
           {/* Right stats grid */}
-          <div className="flex-1 grid grid-cols-2 gap-x-10 gap-y-8">
+          <div className="grid flex-1 grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 sm:gap-y-8">
             {[
               { icon: <Users size={24} className="text-nature-500" />, number: '16단계', label: '맞춤 온보딩 설문' },
               { icon: <Building2 size={24} className="text-nature-500" />, number: '7개', label: '생활습관 챌린지' },
@@ -241,7 +241,7 @@ export default function DanaaLandingPage() {
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] flex flex-col md:flex-row items-center gap-12">
           {/* Left illustration */}
           <div className="flex-1 flex justify-center">
-            <div className="w-[320px] h-[300px] bg-nature-50 rounded-lg flex items-center justify-center text-nature-500/60 text-[14px] font-medium">
+            <div className="flex h-[260px] w-full max-w-[320px] items-center justify-center rounded-lg bg-nature-50 text-[14px] font-medium text-nature-500/60 sm:h-[300px]">
               [Calendar / Sign-up Illustration]
             </div>
           </div>
@@ -374,9 +374,9 @@ export default function DanaaLandingPage() {
       {/* ══════════════════════════════════════
           FOOTER
          ══════════════════════════════════════ */}
-      <footer className="bg-cream-100 text-white">
+      <footer className="bg-nature-900 text-white">
         <div className="max-w-[1200px] mx-auto px-6 lg:px-[100px] py-12 md:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+          <div className="grid grid-cols-1 gap-10 mb-10 md:grid-cols-2 lg:grid-cols-4">
             {/* Brand column */}
             <div>
               <Link href="/" className="flex items-center gap-1.5 mb-4">
@@ -429,11 +429,11 @@ export default function DanaaLandingPage() {
             {/* Stay up to date */}
             <div>
               <h4 className="text-[16px] font-semibold text-white mb-4">뉴스레터 구독</h4>
-              <div className="flex">
+              <div className="flex min-w-0">
                 <input
                   type="email"
                   placeholder="이메일 주소를 입력하세요"
-                  className="flex-1 px-4 py-2.5 bg-[#FFFFFF14] border border-[#FFFFFF1A] rounded-l-[4px] text-[14px] text-white placeholder-neutral-400/50 focus:outline-none focus:border-nature-500"
+                  className="min-w-0 flex-1 px-4 py-2.5 bg-[#FFFFFF14] border border-[#FFFFFF1A] rounded-l-[4px] text-[14px] text-white placeholder-neutral-400/50 focus:outline-none focus:border-nature-500"
                 />
                 <button className="px-4 py-2.5 bg-nature-500 rounded-r-[4px] hover:bg-nature-600 transition-colors">
                   <ArrowRight size={16} className="text-white" />

@@ -66,6 +66,74 @@ class PasswordChangeRequest(BaseModel):
     new_password: Annotated[str, Field(min_length=8), AfterValidator(validate_password)]
 
 
+class FindEmailRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "Hong Gildong",
+                "birth_date": "1990-01-01",
+            }
+        }
+    }
+
+    name: Annotated[str, Field(max_length=20)]
+    birth_date: Annotated[date, AfterValidator(validate_birthday)]
+
+
+class FoundEmailAccount(BaseModel):
+    masked_email: str
+    account_type: str
+    provider: str | None = None
+    email_verified: bool = False
+
+
+class FindEmailResponse(BaseModel):
+    detail: str
+    accounts: list[FoundEmailAccount]
+
+
+class PasswordResetRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "email": "member@example.com",
+            }
+        }
+    }
+
+    email: Annotated[EmailStr, Field(max_length=40)]
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "email": "member@example.com",
+                "code": "123456",
+                "reset_token": "eyJhbGciOiJIUzI1NiIs...",
+                "new_password": "NewPassword123!",
+            }
+        }
+    }
+
+    email: EmailStr
+    code: Annotated[str, Field(min_length=6, max_length=6)]
+    reset_token: str
+    new_password: Annotated[str, Field(min_length=8), AfterValidator(validate_password)]
+
+
+class PasswordResetResponse(BaseModel):
+    detail: str
+    email_sent: bool
+    delivery_mode: str
+    reset_token: str | None = None
+    dev_verification_code: str | None = None
+
+
+class PasswordResetConfirmResponse(BaseModel):
+    detail: str
+
+
 class EmailSignupVerificationRequest(BaseModel):
     model_config = {
         "json_schema_extra": {

@@ -35,3 +35,69 @@ class TestLoginAPI(TestCase):
 
         # AuthService.authenticate 에서 실패 시 HTTP_400_BAD_REQUEST 발생
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    async def test_find_email_returns_masked_account(self):
+        signup_data = {
+            "email": "find_email_test@example.com",
+            "password": "Password123!",
+            "name": "아이디테스터",
+            "gender": "FEMALE",
+            "birth_date": "1995-05-05",
+            "phone_number": "01022223333",
+        }
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await client.post("/api/v1/auth/signup", json=signup_data)
+            response = await client.post(
+                "/api/v1/auth/account/find-email",
+                json={"name": "아이디테스터", "birth_date": "1995-05-05"},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["accounts"]
+        assert data["accounts"][0]["masked_email"] == "fi*************@example.com"
+        assert data["accounts"][0]["account_type"] == "일반 이메일 계정"
+
+    async def test_password_reset_changes_password(self):
+        signup_data = {
+            "email": "reset_password_test@example.com",
+            "password": "Password123!",
+            "name": "비밀번호테스터",
+            "gender": "FEMALE",
+            "birth_date": "1995-05-05",
+            "phone_number": "01033334444",
+        }
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await client.post("/api/v1/auth/signup", json=signup_data)
+            request_response = await client.post(
+                "/api/v1/auth/password/reset/request",
+                json={"email": "reset_password_test@example.com"},
+            )
+            request_data = request_response.json()
+
+            confirm_response = await client.post(
+                "/api/v1/auth/password/reset/confirm",
+                json={
+                    "email": "reset_password_test@example.com",
+                    "code": request_data["dev_verification_code"],
+                    "reset_token": request_data["reset_token"],
+                    "new_password": "NewPassword123!",
+                },
+            )
+            old_login_response = await client.post(
+                "/api/v1/auth/login",
+                json={"email": "reset_password_test@example.com", "password": "Password123!"},
+            )
+            new_login_response = await client.post(
+                "/api/v1/auth/login",
+                json={"email": "reset_password_test@example.com", "password": "NewPassword123!"},
+            )
+
+        assert request_response.status_code == status.HTTP_201_CREATED
+        assert request_data["reset_token"]
+        assert request_data["dev_verification_code"]
+        assert confirm_response.status_code == status.HTTP_200_OK
+        assert old_login_response.status_code == status.HTTP_400_BAD_REQUEST
+        assert new_login_response.status_code == status.HTTP_200_OK

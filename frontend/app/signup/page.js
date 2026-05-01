@@ -307,8 +307,8 @@ export default function SignupPage() {
   }, [emailCode, form.email]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cream-200 p-6">
-      <div className="w-full max-w-[460px] rounded-xl border border-cream-500 bg-cream-300 p-8 shadow-modal">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-cream-200 p-4 sm:p-6">
+      <div className="w-full max-w-[460px] rounded-xl border border-cream-500 bg-cream-300 p-6 shadow-modal sm:p-8">
         <div className="mb-6 text-center">
           <Link
             href="/"
@@ -323,7 +323,7 @@ export default function SignupPage() {
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-[12px] text-neutral-400">이메일</label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="email"
                 value={form.email}
@@ -335,7 +335,7 @@ export default function SignupPage() {
                 }}
                 disabled={emailVerified}
                 placeholder="email@example.com"
-                className="flex-1 rounded-lg border border-cream-500 px-4 py-3 text-[14px] outline-none transition-colors focus:border-nature-500 focus:ring-2 focus:ring-nature-500/10 disabled:bg-cream-300 disabled:text-neutral-400"
+                  className="min-w-0 flex-1 rounded-lg border border-cream-500 px-4 py-3 text-[14px] outline-none transition-colors focus:border-nature-500 focus:ring-2 focus:ring-nature-500/10 disabled:bg-cream-300 disabled:text-neutral-400"
               />
               {emailVerified ? (
                 <div className="flex items-center gap-1 px-3 text-[12px] font-medium text-nature-500">
@@ -358,7 +358,7 @@ export default function SignupPage() {
 
           {emailSent && !emailVerified ? (
             <div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   type="text"
                   inputMode="numeric"

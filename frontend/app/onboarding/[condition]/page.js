@@ -670,10 +670,10 @@ export default function OnboardingFlow() {
   // ─── Main layout ────────────────────────────────────────────────────────────
   return (
     <div
-      className="onboarding-shell min-h-screen bg-gradient-to-br from-[#F3EFE7] via-[#F7F3EC] to-[#ECE6DB] flex items-center justify-center p-4 md:p-6"
+      className="onboarding-shell flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-[#F3EFE7] via-[#F7F3EC] to-[#ECE6DB] p-3 sm:p-4 md:p-6"
       style={{ ...ONBOARDING_THEME_VARS, colorScheme: 'light' }}
     >
-      <div className="w-[380px] h-[min(720px,calc(100vh-32px))] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[24px] shadow-[0_24px_70px_rgba(52,45,35,0.14)] flex flex-col overflow-hidden">
+      <div className="flex h-[min(720px,calc(100dvh-24px))] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_24px_70px_rgba(52,45,35,0.14)] sm:h-[min(720px,calc(100dvh-32px))]">
         {/* ── Header ── */}
         <div className="px-5 pt-4 pb-3 flex items-center gap-2 shrink-0">
           <div className="w-7 h-7 rounded-full bg-nature-500 text-white flex items-center justify-center text-[11px] font-bold">

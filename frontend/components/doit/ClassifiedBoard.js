@@ -52,7 +52,7 @@ export default function ClassifiedBoard({
   }
 
   const gridCols = compact
-    ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+    ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
     : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5';
 
   // 메인 보드는 primary 카테고리만 (waiting/someday는 하단 보조 행)

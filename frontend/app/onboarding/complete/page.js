@@ -234,11 +234,11 @@ export default function OnboardingComplete() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6"
+      className="flex min-h-[100dvh] items-center justify-center p-4 sm:p-6"
       style={{ ...ONBOARDING_THEME_VARS, background: 'var(--color-bg)' }}
     >
       <div
-        className="w-[380px] min-h-[560px] rounded-xl shadow-modal flex flex-col justify-center p-8 text-center"
+        className="flex min-h-[560px] w-full max-w-[380px] flex-col justify-center rounded-xl p-6 text-center shadow-modal sm:p-8"
         style={{
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
