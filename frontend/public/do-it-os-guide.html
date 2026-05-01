@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Do it OS 학습 가이드 · 처음 사용자용 (Phase 7.3.1)</title>
+<title>Do it OS 학습 가이드 · 처음 사용자용</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 <style>
@@ -561,6 +561,10 @@ section.step:target {
   font-size: 13.5px;
   background: var(--color-surface);
   min-width: 600px;
+  table-layout: fixed;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.55;
 }
 .compare-table thead th {
   background: var(--color-surface-alt);
@@ -725,8 +729,9 @@ html, body { color-scheme: light; }
   <h4>📖 학습 순서</h4>
   <ol>
     <li><a href="#intro">Do it OS가 뭐예요?</a></li>
+    <li><a href="#video-preview">3분 영상으로 먼저 보기</a></li>
     <li><a href="#science">왜 쓰는지 · 근거 5선</a></li>
-    <li><a href="#step1">대시보드 들어가기</a></li>
+    <li><a href="#step1">대시보드에 들어가기</a></li>
     <li><a href="#step2">생각 쏟기 (판단 없이)</a></li>
     <li><a href="#step3">정리 명료화 (인라인)</a></li>
     <li><a href="#step4">카테고리별 관리하기</a></li>
@@ -741,7 +746,7 @@ html, body { color-scheme: light; }
 
 <!-- 인트로 -->
 <header class="intro" id="intro">
-  <div class="eyebrow">다나아 · Do it OS 학습 가이드 · Phase 7.3.1</div>
+  <div class="eyebrow">다나아 · Do it OS 학습 가이드</div>
   <h1>머릿속이 복잡한가요?<br>Do it OS에 내려놓으세요.</h1>
   <p>Do it OS는 "머릿속에서 뱅뱅 도는 생각"을 밖으로 꺼내서 제자리로 보내주는 도구예요. 이 가이드는 처음 사용자도 순서대로 따라가면 바로 쓸 수 있게 준비됐습니다. 심리학·인지과학 근거부터 실제 화면 와이어프레임까지 한 번에 담았어요.</p>
   <div class="intro-map" aria-label="전체 흐름 5단계 지도">
@@ -756,6 +761,60 @@ html, body { color-scheme: light; }
     <span class="intro-step">⑤ 다음 날 순환</span>
   </div>
 </header>
+
+<!-- ==================== SECTION: 영상 미리보기 ==================== -->
+<section class="step" id="video-preview" style="margin-top: var(--gap-lg);">
+  <div class="step-header">
+    <div class="step-badge primary">▶</div>
+    <div class="step-title">
+      <h2>3분 영상으로 먼저 보기</h2>
+      <div class="subtitle">글로 읽기 전에, 실제 화면이 어떻게 흘러가는지 한 번에 감 잡으세요.</div>
+    </div>
+  </div>
+
+  <div class="banner">🎬 모바일 데이터로 보고 계시면 Wi-Fi 환경을 추천드려요 (약 14MB).</div>
+
+  <figure style="
+      max-width: 1200px;
+      margin: var(--gap) auto;
+      background: #0F172A;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: 0;
+      overflow: hidden;">
+    <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000000; border-radius: var(--radius-md) var(--radius-md) 0 0; overflow: hidden;">
+      <video
+        controls
+        preload="metadata"
+        playsinline
+        style="position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #000; object-fit: contain;"
+        aria-label="Do it OS 3분 가이드 영상">
+        <source src="videos/doit-os-guide-v4-final.mp4" type="video/mp4" />
+        <!-- 자막 추가 시: <track kind="subtitles" srclang="ko" label="한국어" src="videos/doit-os-guide-v4-final.ko.vtt" default /> -->
+        영상을 재생할 수 없는 브라우저예요.
+        <a href="videos/doit-os-guide-v4-final.mp4">파일 직접 다운로드</a>
+      </video>
+    </div>
+    <figcaption class="wireframe-caption" style="margin: 10px 16px 0; color: #CBD5E1;">
+      Do it OS 학습 가이드 · 생각 쏟기 → 정리 명료화 → 자기 전 정리 한 사이클
+    </figcaption>
+    <details style="margin: 10px 16px 16px; font-size: 13px; color: #CBD5E1;">
+      <summary style="cursor: pointer; font-weight: 600;">📝 영상 내용 글로 보기 (소리 없이도 OK)</summary>
+      <div style="padding: 8px 0; line-height: 1.7;">
+        1. 왼쪽 메뉴 "🧠 생각 쏟기"를 열고 머릿속 메모 3~5개를 빠르게 입력합니다.<br>
+        2. "✅ 정리 명료화"로 이동, 카드 안에서 7개 칩 중 하나(예: "일정")를 클릭하면 같은 카드 안에서 패널이 펼쳐집니다.<br>
+        3. "실행 가능한가요?" 게이트에 "예" → 날짜·시간 입력 → 저장.<br>
+        4. 밤에 "🌙 자기 전 정리" 3단계(생각 쏟기 → 내일 하기로 고르기 → 버리기·보관)로 마무리합니다.
+      </div>
+    </details>
+  </figure>
+
+  <div class="callout info">
+    <div class="callout-title">💡 영상을 보신 다음에는</div>
+    아래 "왜 쓰는지 · 근거 5선"부터 차근차근 따라오시면 돼요. 각 단계는 1~2분이면 충분합니다.
+  </div>
+</section>
 
 <!-- ==================== SECTION A: 과학적 근거 ==================== -->
 <section class="step" id="science">
@@ -850,6 +909,13 @@ html, body { color-scheme: light; }
   <h3 style="margin: var(--gap-md) 0 var(--gap-sm); font-size: 17px; font-weight: 700;">📊 비교: 다나아 Do it OS vs 전통 To-do vs Notion vs Todoist</h3>
   <div class="compare-table-wrap">
     <table class="compare-table">
+      <colgroup>
+        <col style="width:13%">
+        <col style="width:16%">
+        <col style="width:25%">
+        <col style="width:16%">
+        <col style="width:30%">
+      </colgroup>
       <thead>
         <tr>
           <th>항목</th>
@@ -863,28 +929,28 @@ html, body { color-scheme: light; }
         <tr>
           <td>GTD 기반 단계</td>
           <td>없음</td>
-          <td>5단계 풀 구현 (템플릿)</td>
+          <td>자체 기능 없음 · 유료 템플릿 구매 또는 직접 구축 필요</td>
           <td>부분 반영</td>
-          <td class="highlight">3단계로 단순화</td>
+          <td class="highlight">3단계로 단순화 (기본 내장)</td>
         </tr>
         <tr>
           <td>자이가르닉 리츄얼</td>
           <td>없음</td>
-          <td>플러그인 수동 설정</td>
+          <td>자체 기능 없음 · 데이터베이스·뷰·자동화를 직접 설계해야 함</td>
           <td>없음</td>
           <td class="highlight">기본 내장 (자기 전 정리)</td>
         </tr>
         <tr>
           <td>명료화 동선</td>
           <td>수동 편집</td>
-          <td>드로어/팝업 이동 큼</td>
+          <td>속성·필터·뷰를 직접 만들어야 함 · 페이지 이동 다수</td>
           <td>빠른 추가 (1줄)</td>
           <td class="highlight">카드 내부 인라인 패널</td>
         </tr>
         <tr>
           <td>완료 처리</td>
           <td>체크박스만</td>
-          <td>복잡한 속성 필터</td>
+          <td>속성·필터를 직접 설계해야 작동</td>
           <td>체크 후 자동 숨김</td>
           <td class="highlight">체크박스 + "완료 N개 ▾" 폴더블</td>
         </tr>
@@ -898,9 +964,9 @@ html, body { color-scheme: light; }
         <tr>
           <td>학습 곡선</td>
           <td>낮음 · 기능 제한</td>
-          <td>높음 · 자유도 큼</td>
+          <td>매우 가파름 · 빈 캔버스라 처음 사용자는 포기 빈번</td>
           <td>중간</td>
-          <td class="highlight">균형 (3단계 · 7 카테고리)</td>
+          <td class="highlight">균형 (3단계 · 7 카테고리, 첫 진입 1분)</td>
         </tr>
         <tr>
           <td>건강 단서 격리</td>
@@ -915,7 +981,7 @@ html, body { color-scheme: light; }
 
   <div class="callout info">
     <div class="callout-title">💡 요약</div>
-    Do it OS는 "적은 기능 · 단순한 흐름 · 프라이빗 기본값" 3가지를 원칙으로 해요. Notion처럼 뭐든 할 수 있는 건 아니지만, 자이가르닉 리츄얼과 인라인 명료화 같은 "인지 과학에 뿌리를 둔 디폴트"가 있어요.
+    Notion은 사실 빈 노트·데이터베이스 도구라서 GTD·자이가르닉 같은 흐름을 쓰려면 <strong>유료 템플릿을 사거나 본인이 처음부터 데이터베이스·속성·뷰·자동화를 직접 설계</strong>해야 해요. 그래서 처음 사용자에겐 진입 장벽이 매우 큽니다. <br><br>Do it OS는 "적은 기능 · 단순한 흐름 · 프라이빗 기본값" 3가지를 원칙으로, <strong>설치·구매·설정 없이 자이가르닉 리츄얼과 인라인 명료화 같은 인지 과학 기반 기능이 처음부터 그대로 작동</strong>해요.
   </div>
 </section>
 
@@ -932,26 +998,28 @@ html, body { color-scheme: light; }
   <div class="banner">🗺 "Do it OS는 왼쪽 사이드바에 있어요."</div>
 
   <div class="wireframe">
-    <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="사이드바에서 Do it OS 위치">
-      <rect x="0" y="0" width="720" height="280" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
+    <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="사이드바에서 Do it OS 위치">
+      <rect x="0" y="0" width="720" height="320" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
       <!-- 사이드바 -->
-      <rect x="8" y="8" width="220" height="264" fill="#F8FAFC" stroke="#E2E8F0" rx="8"/>
+      <rect x="8" y="8" width="220" height="304" fill="#F8FAFC" stroke="#E2E8F0" rx="8"/>
       <text x="24" y="36" font-family="Pretendard" font-size="14" font-weight="700" fill="#1E293B">DA-NA-A</text>
       <line x1="20" y1="48" x2="216" y2="48" stroke="#E2E8F0"/>
-      <!-- 메뉴 -->
-      <text x="24" y="76" font-family="Pretendard" font-size="12" fill="#475569">💬 AI 채팅</text>
-      <text x="24" y="100" font-family="Pretendard" font-size="12" fill="#475569">📊 리포트</text>
-      <text x="24" y="124" font-family="Pretendard" font-size="12" fill="#475569">🏆 챌린지</text>
-      <!-- 하이라이트 Do it OS -->
-      <rect x="16" y="138" width="204" height="126" rx="8" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="2"/>
-      <text x="24" y="158" font-family="Pretendard" font-size="13" font-weight="700" fill="#0284C7">⚡ Do it OS</text>
-      <text x="38" y="178" font-family="Pretendard" font-size="11" fill="#475569">📋 대시보드</text>
-      <text x="38" y="194" font-family="Pretendard" font-size="11" fill="#475569">🧠 생각 쏟기</text>
-      <text x="38" y="210" font-family="Pretendard" font-size="11" fill="#475569">✅ 정리 명료화</text>
-      <text x="38" y="226" font-family="Pretendard" font-size="11" fill="#475569">📂 프로젝트 · 📅 일정 · 📝 노트</text>
-      <text x="38" y="244" font-family="Pretendard" font-size="11" fill="#475569">🌙 자기 전 정리</text>
+      <!-- 하이라이트 Do it OS (맨 위) -->
+      <rect x="16" y="56" width="204" height="170" rx="8" fill="#E0F2FE" stroke="#0EA5E9" stroke-width="2"/>
+      <text x="24" y="76" font-family="Pretendard" font-size="13" font-weight="700" fill="#0284C7">⚡ Do it OS</text>
+      <text x="38" y="96" font-family="Pretendard" font-size="11" fill="#475569">📋 대시보드</text>
+      <text x="38" y="112" font-family="Pretendard" font-size="11" fill="#475569">🧠 생각 쏟기</text>
+      <text x="38" y="128" font-family="Pretendard" font-size="11" fill="#475569">✅ 정리 명료화</text>
+      <text x="38" y="144" font-family="Pretendard" font-size="11" fill="#475569">📅 할일·일정</text>
+      <text x="38" y="160" font-family="Pretendard" font-size="11" fill="#475569">📂 프로젝트</text>
+      <text x="38" y="176" font-family="Pretendard" font-size="11" fill="#475569">📝 노트</text>
+      <text x="38" y="192" font-family="Pretendard" font-size="11" fill="#475569">🌙 자기 전 정리</text>
+      <!-- 그 외 메뉴 (Do it OS 아래) -->
+      <text x="24" y="248" font-family="Pretendard" font-size="12" fill="#475569">💬 AI 채팅</text>
+      <text x="24" y="272" font-family="Pretendard" font-size="12" fill="#475569">📊 리포트</text>
+      <text x="24" y="296" font-family="Pretendard" font-size="12" fill="#475569">🏆 챌린지</text>
       <!-- 화살표 -->
-      <path d="M 234 200 L 264 200" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+      <path d="M 234 141 L 264 141" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
       <defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
           <polygon points="0 0, 8 3, 0 6" fill="#EF4444"/>
@@ -964,7 +1032,6 @@ html, body { color-scheme: light; }
       <text x="290" y="118" font-family="Pretendard" font-size="12" fill="#1E293B">2. 7개 하위 메뉴가 펼쳐져요</text>
       <text x="290" y="142" font-family="Pretendard" font-size="12" fill="#1E293B">3. 기본은 <tspan font-weight="700" fill="#0284C7">"대시보드"</tspan>로 진입 (전체 상태 보기)</text>
       <text x="290" y="166" font-family="Pretendard" font-size="12" fill="#1E293B">4. 여기서 <tspan font-weight="700" fill="#10B981">미분류 · 오늘 일정 · 분류 결과</tspan>를 한눈에 확인</text>
-      <text x="290" y="210" font-family="Pretendard" font-size="11" fill="#64748B">* 메뉴 아이콘은 루시드 리액트(lucide-react) 기본 셋이에요.</text>
     </svg>
     <div class="wireframe-caption">사이드바 구조 · Do it OS는 7개 하위 메뉴를 가진 상위 메뉴</div>
   </div>
@@ -998,9 +1065,9 @@ html, body { color-scheme: light; }
   <div class="banner">🧠 "머릿속에 맴도는 것"을 모두 종이 조각에 던진다고 상상하세요.</div>
 
   <ol class="action-list">
-    <li>사이드바에서 <strong>🧠 생각 쏟기</strong> 클릭 → <span class="path">/app/do-it-os/thinking</span> 화면으로 이동</li>
+    <li>왼쪽 메뉴에서 <strong>Do it OS → 🧠 생각 쏟기</strong>를 클릭하면 화면이 열려요</li>
     <li>화면 하단의 입력창에 생각을 <strong>한 문장씩 자유롭게</strong> 적기 (판단·분류 금지)</li>
-    <li><kbd>Enter</kbd> 또는 "쏟아내기" 버튼으로 저장 → 화면 중앙 캔버스에 <strong>파스텔 메모 카드</strong>로 올라옴</li>
+    <li><kbd>Enter</kbd>(엔터키) 또는 "쏟아내기" 버튼으로 저장 → 화면 중앙 캔버스에 <strong>파스텔 메모 카드</strong>로 올라옴</li>
     <li>원하는 만큼 반복. 이 단계에서는 <strong>"많이 꺼낼수록 좋다"</strong>는 게 유일한 규칙</li>
   </ol>
 
@@ -1044,7 +1111,7 @@ html, body { color-scheme: light; }
       <rect x="586" y="264" width="110" height="40" rx="8" fill="#0EA5E9"/>
       <text x="620" y="290" font-family="Pretendard" font-size="13" font-weight="600" fill="#FFFFFF">쏟아내기</text>
     </svg>
-    <div class="wireframe-caption">캔버스에 파스텔 메모 카드 5색(크림·스톤·민트·라벤더·블러시)이 랜덤 위치·회전으로 배치됨</div>
+    <div class="wireframe-caption">캔버스에 파스텔 메모 카드 5색(크림·스톤·민트·라벤더·블러시)이 랜덤 위치·회전으로 배치됨<br><span style="color:var(--color-text-hint); font-size:12px;">※ 이 메모 카드 색깔은 단순한 시각 장식이에요. 다음 단계의 7개 카테고리 색깔과는 무관하고, 어떤 색이든 의미는 같습니다.</span></div>
   </div>
 
   <div class="qa">
@@ -1058,13 +1125,13 @@ html, body { color-scheme: light; }
     </div>
     <div class="qa-item info">
       <p class="qa-q">쏟은 건 어디에 저장돼요?</p>
-      <p class="qa-a">브라우저의 <code>localStorage</code>에 저장돼요 (서버에 안 감). 키 이름은 <code>danaa_doit_thoughts_v1</code>. 같은 브라우저에서만 보여요.</p>
+      <p class="qa-a">메모는 다나아 서버로 보내지 않아요. <strong>이 화면을 띄운 기기(노트북·핸드폰)의 이 브라우저 안에만</strong> 저장돼요. 그래서 노트북에서 쏟은 메모는 핸드폰에서 안 보이고, 그 반대도 마찬가지예요. 로그인하면 같은 기기에서 다른 사람이 들어와도 내 메모는 안 보여요.</p>
     </div>
   </div>
 
   <div class="callout">
-    <div class="callout-title">⏩ 쏟기 다음은?</div>
-    이제 꺼낸 생각들을 <strong>제자리로 보내주는</strong> 정리 명료화 단계입니다. 다음 Step 3으로 이동하세요.
+    <div class="callout-title">⏩ 생각 쏟기 다음은?</div>
+    이제 꺼낸 메모들을 <strong>제자리에 정리하는</strong> 정리 명료화 단계예요. 다음 Step 3으로 이동해 보세요.
   </div>
 </section>
 
@@ -1081,7 +1148,7 @@ html, body { color-scheme: light; }
   <div class="banner">✅ "생각 쏟기에서 나온 메모를 하나씩 제자리로 보내는 단계."</div>
 
   <ol class="action-list">
-    <li>사이드바 <strong>✅ 정리 명료화</strong> 클릭 → <span class="path">/app/do-it-os/classify</span></li>
+    <li>왼쪽 메뉴 <strong>Do it OS → ✅ 정리 명료화</strong> 클릭</li>
     <li>미분류 메모가 한 장씩 카드로 나열됨. <strong>카드에 7개 칩</strong>이 달려있어요</li>
     <li>카드의 <strong>분류 칩을 클릭</strong>하면 → <strong>같은 카드 안에서 인라인 패널이 펼쳐짐</strong> ⭐ (오른쪽 드로어 아님!)</li>
     <li>패널 안에서 <strong>"실행 가능한가요?" 게이트</strong>가 먼저 뜸 → 예/아니오 선택</li>
@@ -1185,28 +1252,28 @@ html, body { color-scheme: light; }
     </div>
   </div>
 
-  <div class="banner">📂 Phase 7.1~7.2 업데이트: <strong>체크박스 · 완료 폴더블 · 분류 해제 · 되돌리기 토스트</strong> 도입</div>
+  <div class="banner">📂 분류 후 각 카테고리 페이지에서 이어 편집 · 완료 체크 · 분류 해제까지</div>
 
   <div class="card-grid">
     <div class="mini-card" style="border-top-color: var(--cat-schedule);">
-      <div class="tag" style="background: var(--cat-schedule-bg); color: var(--cat-schedule);">📅 일정<span class="feature-badge phase71">Phase 7.1</span></div>
+      <div class="tag" style="background: var(--cat-schedule-bg); color: var(--cat-schedule);">📅 일정<span class="feature-badge phase71">새 기능</span></div>
       <h4>좌측 체크박스 + 완료 폴더블</h4>
-      <p>각 일정 카드 좌측에 <strong>체크박스</strong>. 체크 시 본문에 <strong>strike 처리</strong> + "완료된 일정 N개 ▾" foldable 섹션으로 자동 이동. 폴더블을 펼치면 과거 완료 기록이 히스토리로 남아요. 체크 해제하면 활성 목록으로 복귀.</p>
+      <p>각 일정 카드 좌측에 <strong>체크박스</strong>. 체크 시 본문에 <strong>취소선 표시</strong> + "완료된 일정 N개 ▾" foldable 섹션으로 자동 이동. 폴더블을 펼치면 과거 완료 기록이 남아요. 체크 해제하면 활성 목록으로 복귀.<br><span style="font-size:12px;color:var(--color-text-hint);">→ 왼쪽 메뉴 "할일·일정"에서 통합 관리</span></p>
     </div>
     <div class="mini-card" style="border-top-color: var(--cat-todo);">
-      <div class="tag" style="background: var(--cat-todo-bg); color: var(--cat-todo);">✅ 할 일<span class="feature-badge phase71">Phase 7.1</span></div>
+      <div class="tag" style="background: var(--cat-todo-bg); color: var(--cat-todo);">✅ 할 일<span class="feature-badge phase71">새 기능</span></div>
       <h4>체크박스 + 분류 해제 버튼</h4>
-      <p>일정과 동일한 <strong>체크박스</strong> 동작. 카드 우측에 <strong>"분류 해제"</strong> 버튼 (이전 이름: "Inbox로"). 호버 시 "미분류로 돌려보내기" 툴팁. 클릭하면 <strong>5초 되돌리기 토스트</strong>.<span class="feature-badge phase72">Phase 7.2</span></p>
+      <p>일정과 동일한 <strong>체크박스</strong> 동작. 카드 우측에 <strong>"분류 해제"</strong> 버튼 (이전 이름: "Inbox로"). 호버 시 "미분류로 돌려보내기" 툴팁. 클릭하면 <strong>5초 되돌리기 토스트</strong>.<br><span style="font-size:12px;color:var(--color-text-hint);">→ 왼쪽 메뉴 "할일·일정"에서 일정과 함께 표시</span></p>
     </div>
     <div class="mini-card" style="border-top-color: var(--cat-project);">
       <div class="tag" style="background: var(--cat-project-bg); color: var(--cat-project);">📂 프로젝트</div>
-      <h4>연결된 다음 행동 + 히스토리</h4>
-      <p>프로젝트 카드 클릭 → 상세. 설명·상태(진행중/잠시중단/완료) 편집, 10가지 다음 행동 프리셋 카드로 하위 할 일 추가. <strong>⭐ "연결된 다음 행동" 섹션</strong>에 완료 항목도 <em>history view</em>로 남음.</p>
+      <h4>연결된 다음 행동 + 기록</h4>
+      <p><strong>왼쪽 메뉴 → "프로젝트"</strong>에서 프로젝트 카드 클릭 → 상세. 설명·상태(진행중/잠시중단/완료) 편집, 10가지 다음 행동 프리셋 카드로 하위 할 일 추가. <strong>⭐ "연결된 다음 행동" 섹션</strong>에 완료 항목도 <em>기록</em>으로 남음.</p>
     </div>
     <div class="mini-card" style="border-top-color: var(--cat-note);">
       <div class="tag" style="background: var(--cat-note-bg); color: var(--cat-note);">📝 노트</div>
       <h4>제목 + 본문 + 자동 저장</h4>
-      <p>노트 카드 클릭 → 상세. 제목·본문 textarea. <strong>0.7초 입력 멈춤 감지</strong> → 자동 저장. "저장됨" 표시. 상세 페이지에도 <strong>"분류 해제"</strong> 버튼 있음.</p>
+      <p><strong>왼쪽 메뉴 → "노트"</strong>에서 노트 카드 클릭 → 상세. 제목·본문 입력칸. <strong>0.7초 입력 멈춤 감지</strong> → 자동 저장. "저장됨" 표시. 상세 페이지에도 <strong>"분류 해제"</strong> 버튼 있음.</p>
     </div>
     <div class="mini-card" style="border-top-color: var(--cat-waiting);">
       <div class="tag" style="background: var(--cat-waiting-bg); color: var(--cat-waiting);">⏳ 대기 중</div>
@@ -1226,11 +1293,11 @@ html, body { color-scheme: light; }
   </div>
 
   <div class="callout primary">
-    <div class="callout-title">🔄 "분류 해제" 공통 동작 <span class="feature-badge phase71">Phase 7.1</span><span class="feature-badge phase72">Phase 7.2</span></div>
+    <div class="callout-title">🔄 "분류 해제" 공통 동작</div>
     모든 카테고리 카드·상세 페이지에 <strong>"분류 해제"</strong> 버튼이 있어요. 클릭하면:
     <ul style="margin: 8px 0 0; padding-left: 20px;">
-      <li><code>category</code>를 <code>null</code>로 초기화 (미분류 상태)</li>
-      <li><code>scheduledDate</code>, <code>scheduledTime</code>, <code>completedAt</code> 필드도 초기화</li>
+      <li>분류가 풀려서 <strong>미분류 상태</strong>로 돌아가요</li>
+      <li>예정된 날짜·시간, 완료 표시도 함께 풀려요</li>
       <li>화면 하단에 <strong>5초 되돌리기 토스트</strong> 표시 → 클릭하면 원래 카테고리로 복구</li>
       <li>정리 명료화 페이지의 <strong>미분류 카드</strong>로 복귀</li>
     </ul>
@@ -1238,7 +1305,7 @@ html, body { color-scheme: light; }
 
   <div class="callout accent">
     <div class="callout-title">✨ Tip: 프로젝트 ↔ 다음 행동 연결</div>
-    프로젝트 상세에서 "다음 행동 카드 그리드"에서 새 할 일을 만들면 자동으로 <code>projectLinkId</code>가 저장돼요. 그 할 일은 분류 후 프로젝트 상세의 "연결된 다음 행동" 섹션에 자동 표시. 완료 체크 후에도 히스토리로 남아 "무엇을 해왔는지" 한눈에 보여요.
+    프로젝트 상세에서 "다음 행동 카드 그리드"로 새 할 일을 만들면 <strong>그 할 일이 이 프로젝트와 연결되어 있다는 표시</strong>가 자동으로 붙어요. 그 할 일은 분류 후 프로젝트 상세의 "연결된 다음 행동" 섹션에 자동 표시. 완료 체크 후에도 기록으로 남아 "무엇을 해왔는지" 한눈에 보여요.
   </div>
 </section>
 
@@ -1256,13 +1323,13 @@ html, body { color-scheme: light; }
 
   <ol class="action-list">
     <li><strong>21시 이후</strong> 대시보드 방문 → <strong>"자기 전 정리" CTA 카드</strong>가 자동으로 나타남 (미분류 또는 오늘 남은 일정이 있을 때만)</li>
-    <li>또는 언제든지 사이드바 <strong>🌙 자기 전 정리</strong> 클릭 → <span class="path">/app/do-it-os/end-of-day</span></li>
-    <li>3단계 리츄얼 자동 진행 — 각 단계마다 자동 저장, <kbd>ESC</kbd>로 언제든 중단 가능</li>
+    <li>또는 언제든 왼쪽 메뉴 <strong>Do it OS → 🌙 자기 전 정리</strong>를 클릭하면 돼요</li>
+    <li>3단계 리츄얼 자동 진행 — 각 단계마다 자동 저장, <kbd>ESC</kbd>(취소키)로 언제든 중단 가능</li>
   </ol>
 
-  <!-- Phase 7.2 섹션 분리 설명 -->
+  <!-- Step 2 섹션 분리 설명 -->
   <div class="callout info">
-    <div class="callout-title">🆕 Phase 7.2 업데이트 · Step 2 섹션 분리 <span class="feature-badge phase72">Phase 7.2</span></div>
+    <div class="callout-title">🆕 Step 2 섹션 분리 — 최근 업데이트</div>
     Step 2 "내일 고르기"가 <strong>2개 섹션</strong>으로 나뉘어요:
     <ul style="margin: 8px 0 0; padding-left: 20px;">
       <li><strong>📥 미분류 섹션</strong>: 명료화 안 된 메모를 인라인 분류 칩 5개(할 일·일정·프로젝트·노트·건강 단서)로 즉석 분류</li>
@@ -1289,7 +1356,7 @@ html, body { color-scheme: light; }
 
       <!-- Step 1 카드 -->
       <rect x="30" y="80" width="200" height="240" rx="12" fill="#FEF3C7" stroke="#F59E0B"/>
-      <text x="50" y="110" font-family="Pretendard" font-size="15" font-weight="700" fill="#92400E">① 쏟기</text>
+      <text x="50" y="110" font-family="Pretendard" font-size="15" font-weight="700" fill="#92400E">① 생각 쏟기</text>
       <text x="50" y="132" font-family="Pretendard" font-size="11.5" fill="#78350F">머릿속 남은 것 꺼내기</text>
       <line x1="45" y1="144" x2="215" y2="144" stroke="#F59E0B" stroke-dasharray="3 3"/>
       <text x="50" y="168" font-family="Pretendard" font-size="11" fill="#1E293B">💭 오늘 하루 정리해보면...</text>
@@ -1352,14 +1419,14 @@ html, body { color-scheme: light; }
       <rect x="510" y="272" width="160" height="28" rx="6" fill="#10B981"/>
       <text x="590" y="290" font-family="Pretendard" font-size="11.5" font-weight="600" text-anchor="middle" fill="#FFFFFF">완료 →</text>
     </svg>
-    <div class="wireframe-caption">3단계 리츄얼 · Phase 7.3: Step 3 버튼 색상 구분(빨강/노랑/보라) · 단계 간 자동 저장</div>
+    <div class="wireframe-caption">3단계 리츄얼 · Step 3 버튼 색상이 빨강/노랑/보라로 구분 · 단계 간 자동 저장</div>
   </div>
 
-  <!-- Phase 7.2 Step 2 섹션 분리 SVG -->
+  <!-- Step 2 섹션 분리 SVG -->
   <div class="wireframe">
     <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Step 2 섹션 분리">
       <rect x="0" y="0" width="720" height="260" fill="#FFFFFF" stroke="#E2E8F0" rx="12"/>
-      <text x="24" y="30" font-family="Pretendard" font-size="15" font-weight="700" fill="#1E293B">② Step 2 섹션 분리 <tspan font-size="11" fill="#0EA5E9" font-weight="600">(Phase 7.2)</tspan></text>
+      <text x="24" y="30" font-family="Pretendard" font-size="15" font-weight="700" fill="#1E293B">② Step 2 섹션 분리 <tspan font-size="11" fill="#0EA5E9" font-weight="600">(최근 업데이트)</tspan></text>
       <!-- 미분류 섹션 -->
       <rect x="20" y="48" width="335" height="196" rx="10" fill="#F1F5F9" stroke="#CBD5E1"/>
       <text x="34" y="74" font-family="Pretendard" font-size="13" font-weight="700" fill="#334155">📥 미분류 섹션</text>
@@ -1375,7 +1442,7 @@ html, body { color-scheme: light; }
         <rect x="226" y="0" width="70" height="22" rx="11" fill="#EBF7ED" stroke="#7AB07C"/><text x="261" y="15" font-size="10" text-anchor="middle" fill="#2D5E2F">건강 단서</text>
       </g>
       <text x="34" y="202" font-family="Pretendard" font-size="10.5" fill="#94A3B8">→ 즉석 분류 후 자동으로 다음 카드로 이동</text>
-      <text x="34" y="224" font-family="Pretendard" font-size="10.5" fill="#7C3AED" font-style="italic">💡 Phase 7.3.1: Step 1에서 쏟은 메모도 여기 즉시 반영</text>
+      <text x="34" y="224" font-family="Pretendard" font-size="10.5" fill="#7C3AED" font-style="italic">💡 Step 1에서 쏟은 메모도 여기 즉시 반영</text>
 
       <!-- 오늘 일정 섹션 -->
       <rect x="365" y="48" width="335" height="196" rx="10" fill="#FFF5EB" stroke="#F59E0B"/>
@@ -1396,12 +1463,12 @@ html, body { color-scheme: light; }
       </g>
       <text x="379" y="210" font-family="Pretendard" font-size="10.5" fill="#78350F">→ 체크 = 완료 / 빈 체크박스 = 🌙 내일로 넘기기</text>
     </svg>
-    <div class="wireframe-caption">Phase 7.2: Step 2가 "미분류 분류" + "오늘 일정 마무리" 2개 섹션으로 분리. 각각 독립적으로 처리.</div>
+    <div class="wireframe-caption">Step 2가 "미분류 분류" + "오늘 일정 마무리" 2개 섹션으로 분리. 각각 독립적으로 처리.</div>
   </div>
 
-  <!-- Phase 7.3 호버 색상 설명 -->
+  <!-- Step 3 호버 색상 설명 -->
   <div class="callout info">
-    <div class="callout-title">🎨 Phase 7.3 · Step 3 호버 색상 구분 <span class="feature-badge phase73">Phase 7.3</span></div>
+    <div class="callout-title">🎨 Step 3 호버 색상 구분 <span class="feature-badge phase73">새 기능</span></div>
     Step 3에서 각 메모 옆 3개 버튼이 호버 시 명확한 의미 전달 색으로 바뀝니다:
     <ul style="margin: 8px 0 0; padding-left: 20px;">
       <li><strong style="color: var(--color-danger);">🗑 버리기</strong>: 빨강 호버 (결정의 무게)</li>
@@ -1410,16 +1477,16 @@ html, body { color-scheme: light; }
     </ul>
   </div>
 
-  <!-- Phase 7.3.1 fix -->
+  <!-- 최근 수정된 부분 -->
   <div class="callout primary">
-    <div class="callout-title">🔧 Phase 7.3.1 버그 수정 <span class="feature-badge phase731">Phase 7.3.1</span></div>
+    <div class="callout-title">🔧 최근 수정된 부분</div>
     <strong>Step 1에서 쏟은 메모가 Step 2에 즉시 반영됩니다.</strong> 이전엔 Step 1에서 추가 생각을 적으면 Step 2로 넘어갔을 때 미분류 섹션에 보이지 않았는데, 지금은 상태가 공유되어 바로 나타나요. 생각 → 분류 흐름이 끊기지 않습니다.
   </div>
 
   <div class="qa">
     <div class="qa-item info">
       <p class="qa-q">"버리기"는 진짜 삭제되나요?</p>
-      <p class="qa-a"><strong>아니요, 복구 가능해요.</strong> 버리기 클릭 → 토스트에 "버렸어요 · [되돌리기]" 5초 표시. 클릭하면 복구. 토스트가 사라진 후에도 내부적으로는 <code>discardedAt</code> 타임스탬프만 기록되고, 어느 카테고리 목록에도 안 보이도록 숨겨집니다 (물리적 삭제 아님).</p>
+      <p class="qa-a"><strong>아니요, 복구 가능해요.</strong> 버리기 클릭 → 토스트에 "버렸어요 · [되돌리기]" 5초 표시. 클릭하면 복구. 토스트가 사라진 후에는 <strong>버린 시각만 기록</strong>되고, 어느 카테고리 목록에도 보이지 않게 숨겨져요. 데이터 자체가 지워지는 건 아니에요.</p>
     </div>
     <div class="qa-item accent">
       <p class="qa-q">꼭 21시 이후에만 해야 되나요?</p>
@@ -1427,7 +1494,7 @@ html, body { color-scheme: light; }
     </div>
     <div class="qa-item warning">
       <p class="qa-q">"내일도 고민"을 고르면 어떻게 돼요?</p>
-      <p class="qa-a"><code>endOfDay.action='keep'</code>으로 기록만 남고, <strong>카테고리는 유지</strong>됩니다. 다음 날 명료화 페이지 <strong>미분류 섹션</strong>에서 다시 볼 수 있어요. 오늘 결정 안 해도 괜찮다는 느슨한 처리.</p>
+      <p class="qa-a"><strong>"내일도 한 번 더 보겠다"는 표시만 남고, 카테고리는 그대로 유지</strong>됩니다. 다음 날 명료화 페이지 <strong>미분류 섹션</strong>에서 다시 볼 수 있어요. 오늘 결정 안 해도 괜찮다는 느슨한 처리.</p>
     </div>
   </div>
 
@@ -1443,7 +1510,7 @@ html, body { color-scheme: light; }
     <div class="step-badge accent">6</div>
     <div class="step-title">
       <h2>다음 날 순환 — 🌙 내일 하기로 배지와 달력 필터</h2>
-      <div class="subtitle">전체 흐름은 매일 반복돼요. Phase 7.2~7.3 추가 기능 포함.</div>
+      <div class="subtitle">전체 흐름은 매일 반복돼요.</div>
     </div>
   </div>
 
@@ -1452,12 +1519,12 @@ html, body { color-scheme: light; }
     <div class="flow-line">☀️ <strong>낮</strong> <span class="flow-arrow">→</span> 생각 떠오를 때마다 "생각 쏟기"에 던지기</div>
     <div class="flow-line">🕐 <strong>중간</strong> <span class="flow-arrow">→</span> 짬 날 때 "정리 명료화"에서 한꺼번에 분류</div>
     <div class="flow-line">🌙 <strong>저녁 21시 이후</strong> <span class="flow-arrow">→</span> 자기 전 정리 리츄얼 CTA 자동 표시</div>
-    <div class="flow-line">😴 <strong>자기 전</strong> <span class="flow-arrow">→</span> 리츄얼 3단계 (쏟기 → 내일 고르기 → 버리기/보관) → 뇌가 쉼</div>
+    <div class="flow-line">😴 <strong>자기 전</strong> <span class="flow-arrow">→</span> 리츄얼 3단계 (생각 쏟기 → 내일 하기로 고르기 → 버리기·보관) → 뇌가 쉼</div>
     <div class="flow-line">🔁 <strong>다음 날</strong> <span class="flow-arrow">→</span> 맨 위로 순환</div>
   </div>
 
   <div class="callout primary">
-    <div class="callout-title">🌙 "내일 하기로" 배지 (4곳 동기 표시) <span class="feature-badge phase72">Phase 7.2</span><span class="feature-badge phase73">Phase 7.3</span></div>
+    <div class="callout-title">🌙 "내일 하기로" 배지 (4곳 동기 표시)</div>
     자기 전 정리 Step 2에서 체크한 항목은 다음 날 <strong>4곳</strong>에 동시에 🌙 배지로 표시돼요:
     <ol style="margin: 8px 0 0; padding-left: 20px;">
       <li><strong>대시보드</strong>: "🌙 내일 하기로" 섹션 전용 카드</li>
@@ -1469,7 +1536,7 @@ html, body { color-scheme: light; }
   </div>
 
   <div class="callout accent">
-    <div class="callout-title">📅 일정 페이지 필터 <span class="feature-badge phase72">Phase 7.2</span><span class="feature-badge phase73">Phase 7.3</span></div>
+    <div class="callout-title">📅 일정 페이지 필터</div>
     일정 페이지 <strong>달력 뷰</strong>에 기간 필터가 추가됐어요 (리스트 뷰는 그대로):
     <ul style="margin: 8px 0 0; padding-left: 20px;">
       <li><strong>오늘</strong>: 오늘 하루만 표시</li>
@@ -1488,7 +1555,7 @@ html, body { color-scheme: light; }
     <div class="mini-card" style="border-top-color: var(--color-accent);">
       <div class="tag" style="background: var(--color-accent-light); color: var(--color-accent);">📅 오늘 일정 카드</div>
       <h4>자동으로 오늘 일정 표시</h4>
-      <p>어제 <code>plannedDate</code>를 오늘로 설정한 항목들 + schedule 카테고리 중 오늘 날짜 + 기한 지남 배지 (있을 때).</p>
+      <p>어제 "내일 할 일"로 골라둔 항목 + "일정" 카테고리 중 오늘 날짜인 것 + 기한 지난 일 배지 중 오늘 날짜 + 기한 지남 배지 (있을 때).</p>
     </div>
     <div class="mini-card" style="border-top-color: var(--color-warning);">
       <div class="tag" style="background: var(--color-warning-light); color: var(--color-warning);">🌙 저녁 CTA</div>
@@ -1511,11 +1578,11 @@ html, body { color-scheme: light; }
   <details class="faq">
     <summary>"분류 해제"가 뭔가요? 어디로 가나요?</summary>
     <div class="faq-body">
-      <strong>"분류 해제"는 카드를 미분류 상태로 되돌리는 기능이에요.</strong> 이전엔 "Inbox로"라는 이름이었는데 헷갈려서 Phase 7.1부터 "분류 해제"로 바뀌었어요.<br><br>
+      <strong>"분류 해제"는 카드를 미분류 상태로 되돌리는 기능이에요.</strong> 이전엔 "Inbox로"라는 이름이었는데 헷갈려서 "분류 해제"로 이름이 바뀌었어요.<br><br>
       <strong>동작</strong>:
       <ul style="margin: 6px 0; padding-left: 20px;">
-        <li><code>category = null</code>로 초기화</li>
-        <li><code>scheduledDate</code>, <code>scheduledTime</code>, <code>completedAt</code> 함께 초기화</li>
+        <li>분류가 풀려서 <strong>미분류 상태</strong>로 돌아가요</li>
+        <li>예정된 날짜·시간, 완료 표시도 함께 풀려요</li>
         <li>→ <strong>정리 명료화 페이지의 미분류 카드</strong>로 복귀</li>
         <li>화면 하단에 <strong>5초 되돌리기 토스트</strong> 표시 (클릭하면 원래 카테고리로 복구)</li>
       </ul>
@@ -1526,7 +1593,7 @@ html, body { color-scheme: light; }
   <details class="faq">
     <summary>"내일도 고민"을 누르면 어떻게 돼요?</summary>
     <div class="faq-body">
-      <code>endOfDay.action='keep'</code>으로 기록만 남고, 항목의 <strong>카테고리는 그대로 유지</strong>됩니다. 실제 효과:
+      <strong>"내일도 한 번 더 보겠다"는 표시만 남고, 카테고리는 그대로 유지</strong>됩니다. 실제 효과:
       <ul style="margin: 6px 0; padding-left: 20px;">
         <li>자기 전 정리 Step 3에서는 해당 항목이 사라져요</li>
         <li>다음 날 정리 명료화 페이지 <strong>미분류 섹션</strong>에서 다시 볼 수 있어요</li>
@@ -1541,13 +1608,13 @@ html, body { color-scheme: light; }
     <div class="faq-body">
       <strong>아니요, 데이터는 그대로 보존돼요.</strong> 할 일·일정 카드 좌측 체크박스를 누르면:
       <ul style="margin: 6px 0; padding-left: 20px;">
-        <li><code>completedAt</code>에 타임스탬프 기록</li>
-        <li>본문 <strong>strike 처리</strong></li>
+        <li>체크한 <strong>시각이 함께 기록</strong>돼요</li>
+        <li><strong>본문에 취소선 표시</strong></li>
         <li>목록에서 <strong>"완료된 일 N개 ▾"</strong> foldable 섹션으로 이동 (숨김 아님)</li>
         <li>폴더블을 펼치면 과거 완료 항목 모두 확인 가능</li>
         <li><strong>다시 체크 해제하면 활성 목록으로 복귀</strong></li>
       </ul>
-      프로젝트 상세의 "연결된 다음 행동"에서도 완료 항목이 history view로 남아 있어요.
+      프로젝트 상세의 "연결된 다음 행동"에서도 완료 항목이 <strong>기록</strong>으로 남아 있어요.
     </div>
   </details>
 
@@ -1562,7 +1629,7 @@ html, body { color-scheme: light; }
   <details class="faq">
     <summary>데이터는 어디에 저장되나요? 서버에 가나요?</summary>
     <div class="faq-body">
-      <strong>브라우저 로컬스토리지에만 저장</strong>돼요. 서버 호출 0. 키 이름은 <code>danaa_doit_thoughts_v1</code>. 다른 기기·다른 브라우저에서는 동기화되지 않아요. 개인 메모용.<br><br>
+      <strong>이 화면을 띄운 기기(노트북·핸드폰)의 이 브라우저 안에만</strong> 저장돼요. 다나아 서버로 안 보내져요. <strong>로그인하면 계정별로 분리되어, 같은 브라우저를 다른 사람이 써도 내 메모는 안 보여요.</strong> 단, 다른 기기·다른 브라우저에서는 동기화되지 않아요 (개인 메모용).<br><br>
       <strong>⚠️ 건강 단서 카테고리</strong>도 <strong>다나아 건강 기록 DB와 자동 연결되지 않음</strong>. 개인 관찰 메모로만 격리 보관. 챌린지·리포트·AI 채팅에 자동으로 전달되지 않아요. 원한다면 직접 복사해서 건강 기록에 입력해야 해요 (프라이빗 디폴트).
     </div>
   </details>
@@ -1571,14 +1638,6 @@ html, body { color-scheme: light; }
     <summary>대기 중·언젠가 항목은 어디서 봐요?</summary>
     <div class="faq-body">
       사이드바에 별도 메뉴가 없어요 (과밀 방지). <strong>정리 명료화 페이지</strong>의 <strong>하단 "보조 분류" 섹션</strong>에서 2컬럼으로 볼 수 있어요. 그리고 대시보드 통계 1줄에 수량이 표시돼요.
-    </div>
-  </details>
-
-  <details class="faq">
-    <summary>ClassifyInlinePanel이 이전 Phase 6와 뭐가 달라요?</summary>
-    <div class="faq-body">
-      <strong>Phase 6</strong>: 칩 클릭 → 화면 오른쪽 끝에 슬라이드 드로어 → 저장 버튼도 드로어 안 → 마우스 이동 大.<br><br>
-      <strong>Phase 7 (현재)</strong>: 칩 클릭 → <strong>같은 카드 내부</strong>에서 인라인 패널이 max-height 애니메이션으로 확장 → 저장 버튼도 카드 안 → <strong>마우스 이동 최소</strong>. 여러 카드를 한 화면에서 빠르게 처리하는 흐름에 맞춰 개선됨. 근거: Kirsh 2010 외부화 효과 (짧은 동선일수록 외부화 품질 상승).
     </div>
   </details>
 
@@ -1592,7 +1651,7 @@ html, body { color-scheme: light; }
   <details class="faq">
     <summary>프로젝트에 "연결된 다음 행동"은 어떻게 추가해요?</summary>
     <div class="faq-body">
-      프로젝트 상세 페이지 → "다음 행동 카드 그리드" 섹션에서 10개 프리셋(할 일·일정·노트·회의·연락·조사·결정·피드백·리뷰·마감) 중 하나 클릭 → 자동으로 새 할 일 생성되고 <code>projectLinkId</code>가 이 프로젝트로 설정됨. 그 후 해당 할 일은 정리 명료화에서 분류하면 프로젝트 상세에 자동 표시. 완료 체크 후에도 history view로 남아요.
+      프로젝트 상세 페이지 → "다음 행동 카드 그리드" 섹션에서 10개 프리셋(할 일·일정·노트·회의·연락·조사·결정·피드백·리뷰·마감) 중 하나 클릭 → 자동으로 새 할 일이 만들어지고 <strong>이 프로젝트와 연결</strong>돼요. 그 후 해당 할 일은 정리 명료화에서 분류하면 프로젝트 상세에 자동 표시. 완료 체크 후에도 <strong>기록</strong>으로 남아요.
     </div>
   </details>
 
@@ -1600,9 +1659,9 @@ html, body { color-scheme: light; }
     <summary>자주 쓰는 단축키는?</summary>
     <div class="faq-body">
       <ul style="margin: 8px 0; padding-left: 20px;">
-        <li><kbd>Enter</kbd>: 생각 쏟기에서 메모 저장</li>
-        <li><kbd>ESC</kbd>: 인라인 명료화 패널 닫기 / 리츄얼 중단 (데이터 변경 0)</li>
-        <li><kbd>Tab</kbd>: 폼 내부 이동</li>
+        <li><kbd>Enter</kbd>(엔터키): 생각 쏟기에서 메모 저장</li>
+        <li><kbd>ESC</kbd>(취소키): 명료화 패널 닫기 / 자기 전 정리 중단 (저장 내용은 그대로 보존)</li>
+        <li><kbd>Tab</kbd>(탭키): 입력칸 사이 이동</li>
       </ul>
     </div>
   </details>
@@ -1621,8 +1680,7 @@ html, body { color-scheme: light; }
 </section>
 
 <footer>
-  다나아 Do it OS · Phase 7.3.1 학습 가이드 (2026-04-22) · <span class="path">feat/do-it-os-mvp</span> <code>471d5f9</code><br>
-  가이드 디자인 토큰: <code>danaa-visual-style</code> · Pretendard · 1200px 카드 그리드 · 라이트 전용<br>
+  다나아 Do it OS 학습 가이드 · 갱신: 2026-05-01<br>
   인지과학 근거: Zeigarnik 1927 · Allen 2001 · Miller 1956 · Cowan 2001 · Kirsh 2010 · Baumeister 2007
 </footer>
 
