@@ -91,7 +91,7 @@ export default function DoItOsDashboard() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[1400px] px-6 py-8 md:px-10">
+      <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <header className="mb-8">
           <h1 className="text-[28px] font-bold tracking-tight text-[var(--color-text)]">
             Do it OS
@@ -279,7 +279,7 @@ export default function DoItOsDashboard() {
           />
         </section>
 
-        <section className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-5">
+        <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-5">
           {[
             { icon: FolderKanban, label: '프로젝트', href: '/app/do-it-os/project', desc: '큰 흐름을 묶어요' },
             { icon: StickyNote, label: '노트', href: '/app/do-it-os/note', desc: '참고할 생각을 보관' },

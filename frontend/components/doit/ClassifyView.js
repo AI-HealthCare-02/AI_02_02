@@ -181,7 +181,7 @@ export default function ClassifyView() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[960px] px-6 py-8 md:px-10">
+      <div className="mx-auto w-full max-w-[960px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <header className="mb-6">
           <div className="flex items-center gap-1.5">
             <ListChecks size={18} className="text-[var(--color-text-secondary)]" />

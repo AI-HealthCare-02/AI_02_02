@@ -18,8 +18,11 @@ from backend.dtos.auth import (
     AccountEmailVerificationRequest,
     EmailSignupConfirmRequest,
     EmailSignupVerificationRequest,
+    FindEmailRequest,
     LoginRequest,
     PasswordChangeRequest,
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
     SignUpRequest,
 )
 from backend.models.email_signup_sessions import EmailSignupSession
@@ -58,6 +61,17 @@ class AuthService:
         if user.hashed_password:
             return "일반 이메일 계정"
         return "기존 계정"
+
+    @staticmethod
+    def _mask_email(email: str | None) -> str:
+        if not email or "@" not in email:
+            return ""
+        local, domain = email.split("@", 1)
+        if len(local) <= 2:
+            masked_local = local[0] + "*" if local else "*"
+        else:
+            masked_local = f"{local[:2]}{'*' * max(2, len(local) - 2)}"
+        return f"{masked_local}@{domain}"
 
     @staticmethod
     def _is_social_account(user: User) -> bool:
@@ -180,6 +194,8 @@ class AuthService:
         try:
             if kind == "signup":
                 self.email_service.send_signup_verification_code(to_email=to_email, code=code)
+            elif kind == "password-reset":
+                self.email_service.send_password_reset_verification_code(to_email=to_email, code=code)
             else:
                 self.email_service.send_email_link_verification_code(to_email=to_email, code=code)
         except smtplib.SMTPAuthenticationError as err:
@@ -230,6 +246,29 @@ class AuthService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email link token.")
         return payload
 
+    def _encode_password_reset_token(self, *, email: str, user_id: int, code_hash: str) -> str:
+        now = datetime.now(tz=config.TIMEZONE)
+        payload = {
+            "iss": "danaa-password-reset",
+            "purpose": "password-reset",
+            "sub": str(user_id),
+            "user_id": user_id,
+            "email": email,
+            "code_hash": code_hash,
+            "iat": now,
+            "exp": now + timedelta(minutes=10),
+        }
+        return jwt.encode(payload, config.SECRET_KEY, algorithm=config.JWT_ALGORITHM)
+
+    def _decode_password_reset_token(self, token: str) -> dict:
+        try:
+            payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+        except jwt.PyJWTError as err:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password reset token.") from err
+        if payload.get("purpose") != "password-reset":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password reset token.")
+        return payload
+
     async def _get_password_user_by_email(self, email: str | EmailStr) -> User | None:
         accounts = await self.user_repo.get_users_by_email(str(email))
         password_accounts = [account for account in accounts if account.hashed_password]
@@ -251,6 +290,84 @@ class AuthService:
                 gender=data.gender,
                 birthday=data.birth_date,
             )
+
+    async def find_login_email(self, data: FindEmailRequest) -> dict[str, object]:
+        users = (
+            await User.filter(name=data.name.strip(), birthday=data.birth_date, email__isnull=False)
+            .order_by("-created_at")
+            .all()
+        )
+        accounts = [
+            {
+                "masked_email": self._mask_email(user.email),
+                "account_type": self._describe_account(user),
+                "provider": user.provider,
+                "email_verified": user.email_verified,
+            }
+            for user in users
+            if user.email
+        ]
+        return {
+            "detail": "Matching accounts loaded." if accounts else "No matching account found.",
+            "accounts": accounts,
+        }
+
+    async def request_password_reset(self, data: PasswordResetRequest) -> dict[str, str | bool | None]:
+        normalized_email = str(data.email).strip().lower()
+        user = await self._get_password_user_by_email(normalized_email)
+        if not user:
+            accounts = await self.user_repo.get_users_by_email(normalized_email)
+            if accounts:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Social account cannot reset password.",
+                )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found.")
+
+        verification_code = self._generate_verification_code()
+        code_hash = self._hash_verification_code(verification_code)
+        reset_token = self._encode_password_reset_token(
+            email=normalized_email,
+            user_id=user.id,
+            code_hash=code_hash,
+        )
+
+        mail_sent = self._send_verification_email(
+            kind="password-reset",
+            to_email=normalized_email,
+            code=verification_code,
+        )
+
+        return {
+            "detail": (
+                "Password reset code issued and email sent."
+                if mail_sent
+                else "Password reset code issued. SMTP is not configured, use the dev verification code."
+            ),
+            "email_sent": mail_sent,
+            "delivery_mode": "smtp" if mail_sent else "dev-code",
+            "reset_token": reset_token,
+            "dev_verification_code": verification_code if config.ENV != Env.PROD else None,
+        }
+
+    async def confirm_password_reset(self, data: PasswordResetConfirmRequest) -> None:
+        normalized_email = str(data.email).strip().lower()
+        payload = self._decode_password_reset_token(data.reset_token)
+        if payload.get("email") != normalized_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password reset token does not match email.")
+        if payload.get("code_hash") != self._hash_verification_code(data.code):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code is invalid.")
+
+        user = await self.user_repo.get_user(int(payload.get("user_id") or 0))
+        if not user or not user.hashed_password or (user.email or "").lower() != normalized_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password reset account is invalid.")
+
+        await self.user_repo.update_instance(
+            user,
+            {
+                "hashed_password": hash_password(data.new_password),
+            },
+        )
 
     async def request_email_signup_verification(
         self, data: EmailSignupVerificationRequest

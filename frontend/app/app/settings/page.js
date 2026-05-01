@@ -628,7 +628,7 @@ export default function SettingsPage() {
               </h3>
             </div>
             <div className="space-y-3 px-4 py-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-[12px] text-neutral-400">이름</label>
                   <input
@@ -660,7 +660,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-[12px] text-neutral-400">생년월일</label>
                   <input
@@ -695,7 +695,7 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-[12px] text-neutral-400">키 (cm)</label>
                   <input
@@ -770,7 +770,7 @@ export default function SettingsPage() {
                           value={emailCode}
                           onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                           placeholder="인증코드 6자리"
-                          className="w-[180px] rounded-lg border border-cream-500 px-3 py-2 text-[14px] tracking-[0.2em] outline-none focus:border-nature-500"
+                          className="w-full rounded-lg border border-cream-500 px-3 py-2 text-[14px] tracking-[0.2em] outline-none focus:border-nature-500 sm:w-[180px]"
                         />
                         <button
                           type="button"

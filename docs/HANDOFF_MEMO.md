@@ -1,5 +1,200 @@
 # Handoff Memo
 
+## 2026-05-01 최신 핸즈오프 / 계정찾기·반응형·챌린지 배지 PR 준비
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `feat/bj_account-recovery-responsive-challenge`
+- 기준 main:
+  - 로컬 `main`, 개인레포 `origin/main`, 공식레포 `upstream/main` 모두 `f450f17 docs: 최신 핸즈오프 메모 갱신` 기준으로 동기화되어 있었음.
+- 이번 작업 커밋:
+  - `bb44798 feat: add account recovery responsive UI and challenge badges`
+- 동일 커밋을 개인레포와 공식레포 양쪽에 푸시 완료:
+  - `origin/feat/bj_account-recovery-responsive-challenge`
+  - `upstream/feat/bj_account-recovery-responsive-challenge`
+- PR 생성 링크:
+  - 개인레포: https://github.com/BIJENG/DANAA_project/pull/new/feat/bj_account-recovery-responsive-challenge
+  - 공식레포: https://github.com/AI-HealthCare-02/AI_02_02/pull/new/feat/bj_account-recovery-responsive-challenge
+- 이 핸즈오프 업데이트 전 기준 작업트리는 clean 상태였음.
+
+### 이번에 완료된 주요 작업
+
+#### 1. 아이디 찾기 / 비밀번호 재설정 기능
+
+- 백엔드:
+  - `backend/dtos/auth.py`
+  - `backend/services/auth.py`
+  - `backend/services/email.py`
+  - `backend/apis/v1/auth_routers.py`
+- 추가된 주요 API:
+  - `POST /api/v1/auth/account/find-email`
+  - `POST /api/v1/auth/password/reset/request`
+  - `POST /api/v1/auth/password/reset/confirm`
+- 동작 개요:
+  - 이름 + 생년월일로 가입 이메일 후보를 마스킹하여 반환.
+  - 이메일 + 이름 + 생년월일 확인 후 비밀번호 재설정 인증코드 발송.
+  - 인증코드 확인 후 새 비밀번호 저장.
+- 프론트:
+  - 신규 페이지 `frontend/app/account-recovery/page.js`
+  - 로그인 화면에서 아이디 찾기 / 비밀번호 찾기 링크 추가.
+- 테스트:
+  - `backend/tests/integration/auth_apis/test_login_api.py`에 계정 찾기/비밀번호 재설정 API 테스트 추가.
+
+#### 2. 프론트 전체 반응형 보정
+
+- 주요 보정 범위:
+  - 랜딩, 로그인, 회원가입, 계정찾기, 온보딩, 리포트, 설정, 챌린지, Do it OS 주요 화면.
+- 대표 변경:
+  - `100vh` 계열을 모바일 주소창에 강한 `100dvh`로 조정.
+  - 고정폭 카드/폼/그리드를 `w-full`, `max-w`, `sm/md/lg` 기준으로 보정.
+  - 모바일에서 버튼/입력 행이 화면 밖으로 밀리지 않도록 `flex-col sm:flex-row`, `min-w-0` 적용.
+  - `/landing-new` 푸터 태블릿 overflow 수정 및 어두운 푸터 배경으로 가독성 개선.
+  - `frontend/app/layout.js`에 viewport/PWA 설정 추가.
+  - `frontend/public/manifest.webmanifest` 신규 추가.
+- 깨진 문자 점검:
+  - `frontend/app`, `frontend/components`, `frontend/lib` 기준 `�`, `뷁`, `Ã`, `Â`, `ì`, `í`, `ê`, `ë` 패턴 스캔 결과 없음.
+  - PowerShell 기본 출력에서 일부 한글이 깨져 보인 경우가 있었으나, `Get-Content -Encoding UTF8` 기준 파일 내용은 정상.
+
+#### 3. 챌린지 중복 제거
+
+- 중복으로 판단한 챌린지:
+  - `주 3회 유산소 운동` vs `주 150분 운동`
+  - `음주 줄이기` vs `음주 주 2회 이하`
+- 유지:
+  - `exercise_150min` / `주 150분 운동`
+  - `drink_less_alcohol` / `음주 주 2회 이하`
+- 비활성화:
+  - `exercise_3x_week`
+  - `alcohol_limit`
+- 신규 마이그레이션:
+  - `backend/db/migrations/models/17_20260501_deactivate_duplicate_challenges.py`
+- 마이그레이션은 중복 템플릿을 `is_active=false`로 바꾸고, 해당 템플릿으로 진행 중인 `user_challenges`는 `cancelled`로 전환.
+- 현재 로컬 Docker DB에도 같은 처리를 직접 반영했고 확인 결과:
+  - 활성 챌린지: 14개
+  - 중복 템플릿으로 진행 중인 active user challenge: 0개
+
+#### 4. 챌린지 배지 실제 구현
+
+- 기존 상태:
+  - 프론트는 `overview.badges`, `badge_tier`, `next_badge_label` 등을 기대하고 있었으나 백엔드 응답에는 없었음.
+  - 따라서 배지 색상 UI는 일부 준비되어 있었지만 실제 누적 완료 기반 배지는 연결되지 않은 상태였음.
+- 백엔드 구현:
+  - `backend/dtos/challenges.py`
+  - `backend/services/challenge.py`
+- 기준:
+  - 브론즈: 10-29회
+  - 실버: 30-59회
+  - 골드: 60-99회
+  - 다이아: 100-199회
+  - 마스터: 200회 이상
+- 응답에 추가된 주요 필드:
+  - `badges`
+  - `lifetime_completed_count`
+  - `badge_tier`
+  - `badge_label`
+  - `next_badge_tier`
+  - `next_badge_label`
+  - `remaining_to_next_badge`
+  - `stats.earned_badge_count`
+- 검증:
+  - 테스트 계정에 `daily_walk_30min` 누적 완료 10회를 넣어 API가 `bronze`, `브론즈`, 다음 등급 `실버`, `20회 남음`을 반환하는 것 확인.
+  - 테스트 계정은 확인 후 삭제.
+
+#### 5. 챌린지 배지현황 UI / 아이콘 조정
+
+- `frontend/app/app/challenge/page.js`
+- 배지현황 오른쪽에 등급 기준 설명 추가:
+  - 브론즈 10-29회
+  - 실버 30-59회
+  - 골드 60-99회
+  - 다이아 100-199회
+  - 마스터 200회 이상
+- 챌린지 아이콘 중복 완화:
+  - `매일 스트레칭 10분`은 기존 운동 아이콘과 겹치지 않게 `Timer` 아이콘 사용.
+
+### 검증 이력
+
+- 커밋 전:
+  - `python -m py_compile backend/dtos/auth.py backend/dtos/challenges.py backend/services/auth.py backend/services/challenge.py backend/services/email.py backend/tasks/seed_shared_demo_account.py backend/db/migrations/models/17_20260501_deactivate_duplicate_challenges.py`
+  - `node --check frontend/app/app/challenge/page.js`
+  - `npm run build`
+  - `git diff --cached --check`
+- 반응형 브라우저 자동 점검:
+  - Playwright Chromium으로 14개 주요 경로 × 4개 뷰포트 = 56개 조합 검사.
+  - 검사 뷰포트: 320, 390, 768, 1366px.
+  - 최종 결과: 가로 overflow 0건, 깨진 텍스트 패턴 0건.
+- pre-commit:
+  - staged Python 파일 ruff check 통과.
+- pre-push:
+  - backend lint 통과.
+  - backend unit test:
+
+```text
+421 passed, 2 warnings
+```
+
+- push 중 Windows 환경 이슈:
+  - 최초 pre-push에서 `TMPDIR=C:\Users\Public\Documents\ESTsoft\CreatorTemp` 권한 문제로 pytest `tmp_path` 생성 실패.
+  - 코드 실패가 아니라 로컬 임시폴더 권한 문제였음.
+  - `TMP`, `TEMP`, `TMPDIR`을 프로젝트 내부 `.tmp`로 지정하여 재실행했고 정상 통과.
+  - 임시 `.tmp/`는 푸시 후 삭제.
+
+### PR 설명 초안
+
+```md
+## ✅ PR 요약
+- 작업 요약: 아이디/비밀번호 찾기 기능을 추가하고, 주요 프론트 화면을 반응형으로 보정했으며, 챌린지 중복 제거 및 누적 완료 기반 배지 시스템을 구현했습니다.
+
+## 📄 상세 내용
+- [x] 로그인 화면에 아이디 찾기/비밀번호 찾기 진입점을 추가하고, 계정 찾기 전용 페이지 및 백엔드 API를 구현했습니다.
+- [x] 랜딩, 로그인, 회원가입, 온보딩, 앱 주요 화면의 모바일/태블릿 반응형 UI를 보정하고 PWA manifest/viewport 설정을 추가했습니다.
+- [x] 중복 챌린지를 비활성화하고, 챌린지 누적 완료 횟수에 따라 브론즈/실버/골드/다이아/마스터 배지가 표시되도록 구현했습니다.
+
+## 📸 스크린샷 (선택)
+- 필요 시 로그인/계정 찾기 화면, 챌린지 배지 현황 화면 캡처를 첨부합니다.
+
+## 📝 기타 참고 사항
+- 챌린지 중복 제거를 위해 신규 DB 마이그레이션이 포함되어 있습니다.
+- 배지 기준은 브론즈 10회, 실버 30회, 골드 60회, 다이아 100회, 마스터 200회 이상입니다.
+- 프론트만이 아니라 백엔드/API 변경도 포함되어 있어 배포 시 백엔드 반영이 필요합니다.
+
+## 🧪 PR Checklist
+- [x] 커밋 메시지 컨벤션에 맞게 작성했습니다.
+- [x] 변경 사항에 대한 테스트를 했습니다.(버그 수정/기능에 대한 테스트).
+  - `npm run build` 통과
+  - pre-push backend lint 통과
+  - backend unit test `421 passed`
+```
+
+### 배포/머지 주의사항
+
+1. 이번 PR은 프론트만이 아니라 백엔드/API/DB 마이그레이션을 포함한다.
+   - 배포 후 FastAPI 재시작/이미지 반영 필요.
+   - Aerich 마이그레이션 `17_20260501_deactivate_duplicate_challenges.py` 적용 필요.
+2. 중복 챌린지 비활성화가 포함되어 있으므로 기존 진행 중인 중복 챌린지는 `cancelled`로 전환된다.
+3. `backend/tasks/seed_shared_demo_account.py`에서도 `exercise_3x_week` 씨드 항목을 제거했으므로 데모 재시드 시 14개 기준으로 정리된다.
+4. PR 범위가 크다:
+   - account recovery
+   - responsive UI
+   - PWA manifest
+   - challenge duplicate cleanup
+   - challenge badges
+   리뷰 시 섹션별로 확인하는 것이 좋다.
+5. 현재 기준 개인/공식 main과 브랜치 베이스는 같아 충돌 위험은 낮지만, 누군가 먼저 새 `17_...` 마이그레이션을 main에 추가하면 파일명/번호 충돌 가능성이 있다.
+
+### 다음 액션
+
+1. GitHub에서 개인레포/공식레포 PR 생성.
+2. PR에 위 설명 초안 붙여넣기.
+3. 리뷰 전 브라우저에서 최소 확인:
+   - `/login` → 아이디/비밀번호 찾기 링크
+   - `/account-recovery`
+   - `/app/challenge` 배지현황 등급 기준
+   - 모바일 폭에서 랜딩/로그인/회원가입 화면 overflow 없음
+4. 머지 후 백엔드 배포와 DB 마이그레이션 적용 확인.
+
+---
+
 ## 2026-04-30 최신 핸즈오프 / 리포트·챌린지·배포 동기화
 
 ### 현재 저장소 상태

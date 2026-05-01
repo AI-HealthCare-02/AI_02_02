@@ -33,7 +33,7 @@ export default function AppAuthGate({ children }) {
   }, [pathname, router]);
 
   if (!ready) {
-    return <div className="min-h-screen bg-[var(--color-bg)]" />;
+    return <div className="min-h-[100dvh] bg-[var(--color-bg)]" />;
   }
 
   return children;
