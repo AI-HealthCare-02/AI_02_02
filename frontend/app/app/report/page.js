@@ -601,7 +601,7 @@ function ProfileCard({ userData, statusData, onUserDataUpdate }) {
         </div>
 
         {/* 스탯 그리드 */}
-        <div className="mt-5 grid grid-cols-4 gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {stats.map(({ label, value }) => (
             <div key={label} className="flex min-h-[60px] flex-col items-center justify-center rounded-lg bg-[#F8FAFC] px-1.5 py-3">
               <span className="text-[9px] font-medium text-[#94A3B8]">{label}</span>
@@ -1293,7 +1293,7 @@ function LegacySummarySection({ risk, history, summary, challenges }) {
 
   return (
     <section className="h-full min-h-0 overflow-hidden rounded-[28px] bg-white shadow-[0_8px_32px_rgba(37,99,235,0.10)]">
-      <div className="grid h-full min-h-0 grid-cols-[240px_1fr_264px]">
+      <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[240px_1fr_264px]">
 
         {/* ── 왼쪽 패널: 위험도 요약 ── */}
         <div className="flex flex-col gap-2.5 overflow-y-auto border-r border-[#F1F5F9] p-4">
@@ -2205,7 +2205,7 @@ function DashboardDetailTabs({ history, summary, challenges, risk }) {
         )}
 
         {activeTab === 'lifestyle' && (
-          <div className="grid h-full gap-3 md:grid-cols-4">
+          <div className="grid h-full gap-3 sm:grid-cols-2 md:grid-cols-4">
             {HEALTH_CARDS.map((card) => {
               const Icon = card.icon;
               const score = card.scoreKey ? scorecard[card.scoreKey] : null;

@@ -131,7 +131,7 @@ export default function NoteDetailView({ noteId }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="doit-note-detail mx-auto w-full max-w-[760px] px-6 py-8 md:px-8">
+      <div className="doit-note-detail mx-auto w-full max-w-[760px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
         <Link
           href="/app/do-it-os/note"
           className="inline-flex items-center gap-1 text-[12.5px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"

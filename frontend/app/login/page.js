@@ -87,8 +87,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cream-200 p-6">
-      <div className="flex w-[380px] flex-col overflow-hidden rounded-xl border border-cream-500 bg-cream-300 p-8 shadow-modal">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-cream-200 p-4 sm:p-6">
+      <div className="flex w-full max-w-[380px] flex-col overflow-hidden rounded-xl border border-cream-500 bg-cream-300 p-6 shadow-modal sm:p-8">
         <div className="mb-5 text-center">
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-nature-950 text-[15px] font-bold text-[var(--color-cta-text)]">
             D
@@ -120,7 +120,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
@@ -131,13 +131,15 @@ export default function LoginPage() {
               <span className="text-[12px] text-neutral-400">로그인 유지</span>
             </label>
 
-            <button
-              type="button"
-              className="text-[12px] font-medium text-nature-500"
-              onClick={() => alert('비밀번호 재설정 기능은 아직 연결되지 않았습니다.')}
-            >
-              비밀번호 재설정
-            </button>
+            <div className="flex flex-wrap items-center gap-2 text-[12px]">
+              <Link href="/account-recovery#email" className="font-medium text-nature-500">
+                아이디 찾기
+              </Link>
+              <span className="text-cream-600">|</span>
+              <Link href="/account-recovery#password" className="font-medium text-nature-500">
+                비밀번호 재설정
+              </Link>
+            </div>
           </div>
 
           {error ? (

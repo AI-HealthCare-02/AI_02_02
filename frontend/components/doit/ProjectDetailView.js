@@ -175,7 +175,7 @@ export default function ProjectDetailView({ projectId }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="doit-project-detail mx-auto w-full max-w-[760px] px-6 py-8 md:px-8">
+      <div className="doit-project-detail mx-auto w-full max-w-[760px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
         <Link
           href="/app/do-it-os/project"
           className="inline-flex items-center gap-1 text-[12.5px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"

@@ -13,12 +13,14 @@ from datetime import date, datetime
 
 from fastapi import HTTPException, status
 from tortoise.exceptions import IntegrityError
+from tortoise.functions import Count
 from tortoise.transactions import in_transaction
 
 from backend.core import config
 from backend.core.cache import delete_cached
 from backend.dtos.challenges import (
     CalendarDayEntry,
+    ChallengeBadgeItem,
     ChallengeCalendarResponse,
     ChallengeCatalogItem,
     ChallengeCheckinRequest,
@@ -38,6 +40,14 @@ SYSTEM_RECOMMENDATION_CODES = {
     "exercise": "daily_walk_30min",
     "hydration": "water_6cups",
 }
+
+BADGE_TIERS = (
+    {"tier": "bronze", "label": "브론즈", "threshold": 10},
+    {"tier": "silver", "label": "실버", "threshold": 30},
+    {"tier": "gold", "label": "골드", "threshold": 60},
+    {"tier": "diamond", "label": "다이아", "threshold": 100},
+    {"tier": "master", "label": "마스터", "threshold": 200},
+)
 
 
 class ChallengeService:
@@ -80,6 +90,8 @@ class ChallengeService:
                 ).values_list("user_challenge_id", flat=True)
             )
 
+        badge_counts = await self._get_badge_counts(user_id)
+
         active: list[ChallengeOverviewItem] = []
         completed: list[ChallengeOverviewItem] = []
 
@@ -88,6 +100,9 @@ class ChallengeService:
                 uc.id in today_checked_ids
                 if uc.status == ChallengeStatus.ACTIVE
                 else bool(uc.today_checked)
+            )
+            badge_state = self._badge_state(
+                badge_counts.get(int(uc.template_id), 0),
             )
             item = ChallengeOverviewItem(
                 user_challenge_id=uc.id,
@@ -105,6 +120,7 @@ class ChallengeService:
                 days_completed=uc.days_completed,
                 today_checked=computed_today_checked,
                 selection_source=uc.selection_source,
+                **badge_state,
             )
             if uc.status == ChallengeStatus.ACTIVE:
                 active.append(item)
@@ -125,21 +141,99 @@ class ChallengeService:
             }
 
         # 추천 챌린지
-        recommended = await self._get_recommended(user_id, user_group, checked_today_template_ids)
-        catalog = await self._get_catalog(user_id, user_group, recommended, checked_today_template_ids)
+        recommended = await self._get_recommended(
+            user_id, user_group, checked_today_template_ids, badge_counts,
+        )
+        catalog = await self._get_catalog(
+            user_id, user_group, recommended, checked_today_template_ids, badge_counts,
+        )
+        badges = await self._get_badges(user_id, user_group, badge_counts)
 
         return ChallengeOverviewResponse(
             active=active,
             completed=completed,
             recommended=recommended,
             catalog=catalog,
+            badges=badges,
             stats={
                 "active_count": len(active),
                 "completed_count": len(completed),
                 "max_active_count": MAX_ACTIVE_CHALLENGES,
                 "remaining_active_slots": max(0, MAX_ACTIVE_CHALLENGES - len(active)),
+                "earned_badge_count": len(badges),
             },
         )
+
+    async def _get_badge_counts(self, user_id: int) -> dict[int, int]:
+        rows = await ChallengeCheckin.filter(
+            user_challenge__user_id=user_id,
+            status=CheckinStatus.ACHIEVED,
+        ).group_by("user_challenge__template_id").annotate(
+            completed_count=Count("id"),
+        ).values("user_challenge__template_id", "completed_count")
+
+        return {
+            int(row["user_challenge__template_id"]): int(row["completed_count"] or 0)
+            for row in rows
+        }
+
+    @staticmethod
+    def _badge_state(completed_count: int) -> dict:
+        count = max(0, int(completed_count or 0))
+        current = None
+        for tier in BADGE_TIERS:
+            if count >= tier["threshold"]:
+                current = tier
+            else:
+                break
+
+        next_tier = next(
+            (tier for tier in BADGE_TIERS if count < tier["threshold"]),
+            None,
+        )
+
+        return {
+            "lifetime_completed_count": count,
+            "badge_tier": current["tier"] if current else "unranked",
+            "badge_label": current["label"] if current else "미획득",
+            "next_badge_tier": next_tier["tier"] if next_tier else None,
+            "next_badge_label": next_tier["label"] if next_tier else None,
+            "remaining_to_next_badge": (
+                max(0, next_tier["threshold"] - count) if next_tier else None
+            ),
+        }
+
+    async def _get_badges(
+        self,
+        user_id: int,
+        user_group: str,
+        badge_counts: dict[int, int],
+    ) -> list[ChallengeBadgeItem]:
+        if not badge_counts:
+            return []
+
+        templates = await ChallengeTemplate.filter(
+            id__in=list(badge_counts.keys()),
+            is_active=True,
+        ).order_by("category", "id")
+
+        badges: list[ChallengeBadgeItem] = []
+        for template in templates:
+            if user_group not in template.for_groups:
+                continue
+            badge_state = self._badge_state(badge_counts.get(int(template.id), 0))
+            if badge_state["badge_tier"] == "unranked":
+                continue
+            badges.append(ChallengeBadgeItem(
+                template_id=template.id,
+                code=template.code,
+                name=template.name,
+                emoji=template.emoji,
+                category=template.category,
+                **badge_state,
+            ))
+
+        return badges
 
     async def _ensure_system_recommended_challenge(
         self,
@@ -466,6 +560,7 @@ class ChallengeService:
         user_id: int,
         user_group: str,
         checked_today_template_ids: set[int] | None = None,
+        badge_counts: dict[int, int] | None = None,
     ) -> list[ChallengeRecommendedItem]:
         """추천 챌린지 목록."""
         # 이미 진행중인 템플릿 ID
@@ -474,6 +569,7 @@ class ChallengeService:
         ).values_list("template_id", flat=True)
 
         blocked = checked_today_template_ids or set()
+        counts = badge_counts or {}
         templates = await ChallengeTemplate.filter(is_active=True)
         recommended: list[ChallengeRecommendedItem] = []
 
@@ -482,6 +578,7 @@ class ChallengeService:
                 continue
             if user_group not in t.for_groups:
                 continue
+            badge_state = self._badge_state(counts.get(int(t.id), 0))
             recommended.append(ChallengeRecommendedItem(
                 template_id=t.id,
                 code=t.code,
@@ -491,6 +588,7 @@ class ChallengeService:
                 description=t.description,
                 default_duration_days=t.default_duration_days,
                 blocked_today=t.id in blocked,
+                **badge_state,
             ))
 
         return recommended[:5]
@@ -501,15 +599,18 @@ class ChallengeService:
         user_group: str,
         recommended: list[ChallengeRecommendedItem],
         checked_today_template_ids: set[int] | None = None,
+        badge_counts: dict[int, int] | None = None,
     ) -> list[ChallengeCatalogItem]:
         recommended_ids = {item.template_id for item in recommended}
         blocked = checked_today_template_ids or set()
+        counts = badge_counts or {}
         templates = await ChallengeTemplate.filter(is_active=True).order_by("category", "id")
 
         catalog: list[ChallengeCatalogItem] = []
         for template in templates:
             if user_group not in template.for_groups:
                 continue
+            badge_state = self._badge_state(counts.get(int(template.id), 0))
             catalog.append(
                 ChallengeCatalogItem(
                     template_id=template.id,
@@ -521,6 +622,7 @@ class ChallengeService:
                     default_duration_days=template.default_duration_days,
                     is_recommended=template.id in recommended_ids,
                     blocked_today=template.id in blocked,
+                    **badge_state,
                 )
             )
 

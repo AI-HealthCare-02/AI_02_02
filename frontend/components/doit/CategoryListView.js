@@ -338,7 +338,7 @@ export default function CategoryListView({
 
   return (
     <div className={hideHeader ? '' : 'flex-1 overflow-y-auto'}>
-      <div className="mx-auto w-full max-w-[900px] px-6 py-8 md:px-10">
+      <div className="mx-auto w-full max-w-[900px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         {!hideHeader && (
           <header className="mb-6">
             <div className="flex items-center gap-1.5">

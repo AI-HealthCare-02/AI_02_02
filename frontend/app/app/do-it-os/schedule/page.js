@@ -92,7 +92,7 @@ export default function TasksPage() {
   return (
     <div className="flex-1 overflow-y-auto">
       {/* 페이지 헤더 */}
-      <div className="mx-auto w-full max-w-[1100px] px-6 pt-8 pb-2 md:px-10">
+      <div className="mx-auto w-full max-w-[1100px] px-4 pt-6 pb-2 sm:px-6 sm:pt-8 md:px-10">
         <header className="mb-6">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 size={18} className="text-[var(--color-text-secondary)]" />
@@ -113,7 +113,7 @@ export default function TasksPage() {
         aria-labelledby="todo-section-heading"
         className="scroll-mt-6"
       >
-        <div className="mx-auto w-full max-w-[1100px] px-6 md:px-10">
+        <div className="mx-auto w-full max-w-[1100px] px-4 sm:px-6 md:px-10">
           <header className="mb-3">
             <div className="flex items-center gap-1.5">
               <CheckCircle2 size={18} className="text-[var(--color-text-secondary)]" />
@@ -142,7 +142,7 @@ export default function TasksPage() {
 
       {/* 두 섹션 시각 분리 */}
       <div
-        className="mx-auto w-full max-w-[1100px] px-6 md:px-10"
+        className="mx-auto w-full max-w-[1100px] px-4 sm:px-6 md:px-10"
         aria-hidden="true"
       >
         <div className="my-2 border-t border-[var(--color-border)]" />
@@ -154,7 +154,7 @@ export default function TasksPage() {
         aria-labelledby="schedule-section-heading"
         className="scroll-mt-6"
       >
-        <div className="mx-auto w-full max-w-[1100px] px-6 md:px-10">
+        <div className="mx-auto w-full max-w-[1100px] px-4 sm:px-6 md:px-10">
           <header className="mb-3 flex items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-1.5">

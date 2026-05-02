@@ -103,17 +103,6 @@ CHALLENGE_TEMPLATES = [
         "for_groups": ["A", "B", "C"],
     },
     {
-        "code": "exercise_3x_week",
-        "name": "주 3회 유산소 운동",
-        "emoji": "",
-        "category": ChallengeCategory.EXERCISE,
-        "description": "일주일에 3번 이상 유산소 운동을 해요.",
-        "goal_criteria": {"field": "exercise_done", "daily_target": True},
-        "default_duration_days": 14,
-        "evidence_summary": "규칙적 유산소 운동은 인슐린 감수성 개선에 효과적입니다.",
-        "for_groups": ["A", "B", "C"],
-    },
-    {
         "code": "stretching_10min",
         "name": "매일 스트레칭 10분",
         "emoji": "",

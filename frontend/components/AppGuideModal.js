@@ -143,9 +143,9 @@ export default function AppGuideModal({ guide, onClose }) {
   const activeSection = sections[activeTab] || EMPTY_GUIDE;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm">
-      <div className="flex h-[720px] w-full max-w-[820px] flex-col overflow-hidden rounded-[28px] border border-cream-500 bg-cream-300 shadow-2xl">
-        <div className="flex items-start justify-between border-b border-cream-500 px-6 py-5">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 px-3 py-4 backdrop-blur-sm sm:px-4 sm:py-6">
+      <div className="flex max-h-[calc(100dvh-32px)] min-h-0 w-full max-w-[820px] flex-col overflow-hidden rounded-[24px] border border-cream-500 bg-cream-300 shadow-2xl sm:max-h-[min(720px,calc(100dvh-48px))] sm:rounded-[28px]">
+        <div className="flex items-start justify-between gap-3 border-b border-cream-500 px-4 py-4 sm:px-6 sm:py-5">
           <div>
             <div className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
               <BookOpen size={14} />
@@ -192,7 +192,7 @@ export default function AppGuideModal({ guide, onClose }) {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           <GuideSection section={activeSection} />
         </div>
       </div>

@@ -170,7 +170,7 @@ export default function CalendarView({ categoryId = 'schedule', dateRange = null
     (selected ? `${selected.slice(5, 7)}/${selected.slice(8, 10)}` : '');
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-6 py-6 md:px-10">
+    <div className="mx-auto w-full max-w-[1100px] px-4 py-5 sm:px-6 sm:py-6 md:px-10">
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button
