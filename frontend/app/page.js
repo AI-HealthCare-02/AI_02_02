@@ -1,138 +1,43 @@
-'use client';
+import dynamic from 'next/dynamic';
+import AuthRedirectGate from './AuthRedirectGate';
+import LandingPage from '../components/landing/LandingPage';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+/**
+ * Root URL `/` — 다나아 V4 랜딩페이지 진입점.
+ *
+ * Server component. LandingPage 마크업이 SSR HTML에 그대로 포함되어
+ * SEO 크롤러·JS-off 사용자·첫 페인트 모두 정상 노출됨 (V4 안정성 검증 권고 반영).
+ *
+ * 인증된 사용자는 마운트 후 AuthRedirectGate 의 useEffect 가 router.replace 로
+ * /app/chat 또는 /onboarding/diabetes 로 즉시 이동. (잠깐 LandingPage가 보일 수 있으나 SEO 가치를 우선).
+ */
+export const metadata = {
+  title: 'DANAA — 매일 쓰는 AI 옆에서, 자연스럽게 건강관리까지',
+  description:
+    '새 앱 설치도, 비싼 센서도 없습니다. 평소처럼 AI와 대화하는 동안 식사·수면·기분 같은 생활 패턴이 자동으로 쌓이고, FINDRISC 기반 참고 위험도와 7일 챌린지로 자연스럽게 이어지는 만성질환 생활관리 솔루션.',
+  alternates: { canonical: 'https://danaa.kr/' },
+  openGraph: {
+    type: 'website',
+    title: 'DANAA — 매일 쓰는 AI 옆에서, 자연스럽게 건강관리까지',
+    description:
+      '별도 앱·센서 0. AI 대화에 녹아들어 생활 패턴이 쌓이고, FINDRISC 기반 위험도와 7일 챌린지로 이어지는 만성질환 생활관리 솔루션.',
+    url: 'https://danaa.kr/',
+    siteName: 'DANAA',
+    locale: 'ko_KR',
+    images: [{ url: 'https://danaa.kr/og-image-1200x630.png', width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DANAA — 매일 쓰는 AI 옆에서, 자연스럽게 건강관리까지',
+    description: 'AI 대화에 녹아드는 만성질환 생활관리 솔루션. 별도 앱·센서 없이 시작합니다.',
+  },
+};
 
-import { api, ensureAuthSession, syncSessionIdentity } from '../hooks/useApi';
-
-export default function LandingPage() {
-  const router = useRouter();
-  const [checkingSession, setCheckingSession] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function bootstrapSession() {
-      const restored = await ensureAuthSession();
-      if (!restored || cancelled) {
-        if (!cancelled) setCheckingSession(false);
-        return;
-      }
-
-      await syncSessionIdentity();
-
-      try {
-        const statusRes = await api('/api/v1/onboarding/status');
-        if (!statusRes.ok) throw new Error('status_check_failed');
-
-        const status = await statusRes.json();
-        if (!cancelled) {
-          router.replace(status.is_completed ? '/app/chat' : '/onboarding/diabetes');
-        }
-      } catch {
-        if (!cancelled) setCheckingSession(false);
-      }
-    }
-
-    bootstrapSession();
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
-
-  if (checkingSession) {
-    return <div className="min-h-screen bg-[var(--color-bg)] transition-colors" />;
-  }
-
+export default function Page() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] transition-colors">
-      <nav className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-[color:color-mix(in_srgb,var(--color-bg)_88%,transparent)] px-4 py-4 backdrop-blur-xl transition-colors sm:px-8 lg:px-12">
-        <div className="text-lg font-bold tracking-tight text-[var(--color-text)]">DA-NA-A</div>
-        <div className="h-10 w-[80px] sm:h-12 sm:w-[120px]" />
-      </nav>
-
-      <section className="mx-auto max-w-[640px] px-5 pb-12 pt-16 text-center sm:px-8 sm:pb-16 sm:pt-24 lg:px-12">
-        <h1 className="mb-5 text-3xl font-bold leading-[1.3] tracking-tight text-[var(--color-text)] sm:text-4xl">
-          AI 쓰면서
-          <br />
-          <span className="font-bold text-[var(--color-text)]">건강관리까지</span>
-        </h1>
-        <p className="mx-auto mb-9 max-w-[480px] text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
-          ChatGPT, Claude, Gemini를 쓰는 동안
-          <br />
-          자연스럽게 건강 데이터가 쌓이고 AI가 맞춤 리포트를 만들어줍니다.
-        </p>
-        <Link
-          href="/login"
-          className="inline-block rounded-full bg-nature-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-nature-600 hover:shadow-float sm:px-10 sm:py-4"
-        >
-          지금 무료로 시작하기
-        </Link>
-        <div className="mt-4 text-xs text-[var(--color-text-hint)]">가입 즉시 바로 사용 가능, 카드 등록 불필요</div>
-      </section>
-
-      <section className="mx-auto max-w-[640px] px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
-        <h2 className="mb-8 text-center text-xl font-bold tracking-tight text-[var(--color-text)]">이렇게 시작해요</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-5">
-          {[
-            { num: '1', title: '간단 설문', desc: '2분이면 끝나는\n건강 프로필 설정' },
-            { num: '2', title: '확장 연결', desc: 'Chrome Extension\n또는 MCP 연결' },
-            { num: '3', title: 'AI와 대화', desc: '평소처럼 쓰면\n데이터가 쌓여요' },
-          ].map((step) => (
-            <div
-              key={step.num}
-              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-5 text-center transition-all hover:-translate-y-1 hover:shadow-float sm:p-7"
-            >
-              <div className="mx-auto mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-nature-500 text-sm font-bold text-white">
-                {step.num}
-              </div>
-              <h3 className="mb-2 text-base font-semibold text-[var(--color-text)]">{step.title}</h3>
-              <p className="whitespace-pre-line text-xs leading-relaxed text-[var(--color-text-secondary)]">{step.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-[640px] px-5 pb-12 sm:px-8 sm:pb-16 lg:px-12">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {[
-            { emoji: '📝', title: '식사 기록', desc: '"오늘 뭐 먹었어요?" 한 번이면 충분해요' },
-            { emoji: '📊', title: 'AI 주간 리포트', desc: '일주일 데이터를 종합 분석해요' },
-            { emoji: '🎯', title: '작은 습관 챌린지', desc: '가볍게 시작하고 꾸준히 이어가요' },
-            { emoji: '🩺', title: '건강 위험 예측', desc: '생활습관 기반 AI 분석을 제공해요' },
-          ].map((feat) => (
-            <div
-              key={feat.title}
-              className="flex items-start gap-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-soft"
-            >
-              <span className="mt-0.5 text-2xl">{feat.emoji}</span>
-              <div>
-                <h3 className="mb-1 text-sm font-semibold text-[var(--color-text)]">{feat.title}</h3>
-                <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">{feat.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-4 mb-12 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-10 text-center transition-colors sm:mx-8 sm:mb-16 sm:px-12 sm:py-14 lg:mx-12">
-        <h2 className="mb-3 text-xl font-bold tracking-tight text-[var(--color-text)] sm:text-2xl">지금 시작하세요</h2>
-        <p className="mb-7 text-base text-[var(--color-text-secondary)]">작은 변화가 3개월 후 큰 차이를 만들어요</p>
-        <Link
-          href="/login"
-          className="inline-block rounded-full bg-nature-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition-all hover:-translate-y-0.5 hover:bg-nature-600 hover:shadow-float sm:px-10 sm:py-4"
-        >
-          무료로 시작하기
-        </Link>
-      </section>
-
-      <footer className="border-t border-[var(--color-border)] py-6 text-center text-xs text-[var(--color-text-hint)] transition-colors">
-        © 2026 DA-NA-A ·{' '}
-        <Link href="/terms" className="hover:underline">이용약관</Link>
-        {' · '}
-        <Link href="/privacy" className="hover:underline">개인정보처리방침</Link>
-      </footer>
-    </div>
+    <>
+      <AuthRedirectGate />
+      <LandingPage />
+    </>
   );
 }

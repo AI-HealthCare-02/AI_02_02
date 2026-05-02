@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
+@import "./landing.css";
 
 /* ── Theme Variables — Single source of truth ─────────── */
 /* 기본값 = dark (fallback) */

@@ -1,0 +1,2054 @@
+/* ═════════════════════════════════════════════════════════════
+   DANAA V4 LANDING — Production Stylesheet
+   원본: docs/landing-mockup/danaa-landing-v4.html
+   범위: .danaa-landing 페이지 스코프 — 다른 라우트 영향 0
+   생성: tools/python/convert_v4_css.py 자동 변환
+   ═════════════════════════════════════════════════════════════ */
+
+/* ═════════════════════════════════════════════════════════════
+     DANAA Landing V2 — Commercial Grade
+     9 agents · 3 rounds (research / cross-perspective / hardening)
+     ═════════════════════════════════════════════════════════════ */
+
+  /* ─── Design Tokens ─────────────────────────── */
+  :where(.danaa-landing) {
+    /* Background hierarchy 4 steps */
+    --bg:          #F8F8F6;
+    --section-bg:  #F2F1ED;
+    --card-bg:     #FFFFFF;
+    --card-hover:  #FAFAF7;
+
+    /* Neutral 7 steps */
+    --gray-50:  #FAFAFA;
+    --gray-100: #F4F4F4;
+    --gray-200: #E5E5E5;
+    --gray-400: #A0A0A0;
+    --gray-600: #626262;
+    --gray-800: #262626;
+    --gray-950: #0F0F0F;
+
+    /* Ink */
+    --ink:    #111111;
+    --ink-2:  #3A3A38;
+    --ink-3:  #6E6E68;
+    --line:   #E6E4DD;
+    --line-soft: #EFEDE6;
+
+    /* Primary green 5 steps */
+    --green-50:  #F0F6F1;
+    --green-100: #D9E8DC;
+    --green-300: #8AB896;
+    --green-500: #3D7C3F;
+    --green-700: #2D5F31;
+    --green-900: #1A3A1D;
+
+    /* Accent orange 4 steps */
+    --orange-100: #FCEFD9;
+    --orange-300: #FDB878;
+    --orange-500: #E07800;
+    --orange-700: #B85900;   /* WCAG 4.8:1 */
+
+    /* Pill semantics (6 colors) */
+    --pill-green-bg:  #E7F0E5;  --pill-green-fg:  #2D5F31;
+    --pill-orange-bg: #FCEFD9;  --pill-orange-fg: #B85900;
+    --pill-red-bg:    #F7E3E1;  --pill-red-fg:    #9A2E2E;
+    --pill-purple-bg: #EFE6F5;  --pill-purple-fg: #5F3680;
+    --pill-gray-bg:   #EAE8E0;  --pill-gray-fg:   #3A3A38;
+    --pill-blue-bg:   #DDE7F4;  --pill-blue-fg:   #1E5BA8;
+
+    /* Shadow 6 steps */
+    --shadow-xs:  0 1px 2px rgba(17,17,17,.05);
+    --shadow-sm:  0 2px 4px rgba(17,17,17,.07), 0 1px 2px rgba(17,17,17,.04);
+    --shadow-md:  0 4px 12px rgba(17,17,17,.10), 0 2px 4px rgba(17,17,17,.06);
+    --shadow-lg:  0 8px 24px rgba(17,17,17,.12), 0 4px 8px rgba(17,17,17,.06);
+    --shadow-xl:  0 16px 40px rgba(17,17,17,.14), 0 6px 12px rgba(17,17,17,.06);
+    --shadow-2xl: 0 24px 64px rgba(17,17,17,.18), 0 8px 16px rgba(17,17,17,.06);
+
+    /* Radius */
+    --r-sm: 10px;  --r-md: 14px;  --r-lg: 20px;  --r-xl: 28px;  --r-2xl: 36px;  --r-pill: 999px;
+
+    /* Easing & Duration */
+    --ease-out:   cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-xs: 100ms;  --dur-sm: 150ms;  --dur-md: 200ms;  --dur-lg: 300ms;  --dur-xl: 400ms;
+
+    /* Layout */
+    --container: 1240px;
+    --nav-h: 68px;
+
+    /* Mouse parallax (set by JS) */
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+  }
+
+  /* ─── Reset & base ─────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  .danaa-landing {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .danaa-landing {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1, 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    /* 한국어 단어 단위 줄바꿈 — "다." 한 글자만 떨어지는 것 방지 */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  .danaa-landing::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' seed='42'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.7 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+    opacity: .04;
+    z-index: 1;
+    mix-blend-mode: multiply;
+  }
+
+  .danaa-landing a { color: inherit; text-decoration: none; }
+  .danaa-landing img,
+  .danaa-landing svg { display: block; max-width: 100%; }
+  .danaa-landing button { font-family: inherit; cursor: pointer; border: 0; background: transparent; }
+
+  .danaa-landing ::selection { background-color: var(--green-500); color: #fff; }
+
+  .danaa-landing ::-webkit-scrollbar { width: 12px; height: 12px; }
+  .danaa-landing ::-webkit-scrollbar-track { background: var(--bg); }
+  .danaa-landing ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 6px; border: 3px solid var(--bg); }
+  .danaa-landing ::-webkit-scrollbar-thumb:hover { background: var(--gray-400); }
+
+  .danaa-landing :focus-visible {
+    outline: 2px solid var(--green-500);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .danaa-landing .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+
+  /* ─── Typography ─────────────────────────── */
+  .danaa-landing .geist { font-family: 'Geist', 'Pretendard Variable', sans-serif; }
+
+  .danaa-landing .h1 {
+    font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.05;
+    letter-spacing: -0.028em;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .danaa-landing .h2 {
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.12;
+    letter-spacing: -0.022em;
+    font-weight: 800;
+    margin: 0;
+  }
+
+  .danaa-landing .h3 {
+    font-size: 22px;
+    line-height: 1.3;
+    letter-spacing: -0.012em;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .danaa-landing .lead {
+    font-size: clamp(15.5px, 1.4vw, 18px);
+    line-height: 1.65;
+    color: var(--ink-2);
+    margin: 0;
+  }
+
+  .danaa-landing .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green-700);
+    background: var(--green-50);
+    padding: 6px 12px;
+    border-radius: var(--r-pill);
+    border: 1px solid var(--green-100);
+  }
+  .danaa-landing .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green-500); }
+
+  .danaa-landing .num {
+    display: inline-block;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--green-700);
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── Skip link & progress ─────────────────────────── */
+  .danaa-landing .skip-link {
+    position: absolute; left: 16px; top: 16px;
+    background: var(--ink); color: #fff;
+    padding: 10px 16px; border-radius: var(--r-sm);
+    transform: translateY(-200%);
+    transition: transform var(--dur-md) var(--ease-out);
+    z-index: 9999;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .danaa-landing .skip-link:focus { transform: translateY(0); }
+
+  .danaa-landing .scroll-progress {
+    position: fixed; top: 0; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green-500), var(--orange-500));
+    z-index: 100;
+    width: 0;
+    transition: width 90ms linear;
+    pointer-events: none;
+  }
+
+  /* ─── Container ─────────────────────────── */
+  .danaa-landing .container {
+    width: 100%;
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+  }
+
+  /* ─── Nav ─────────────────────────── */
+  .danaa-landing .nav {
+    position: sticky; top: 0;
+    height: var(--nav-h);
+    background: rgba(248,248,246,.78);
+    z-index: 80;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--dur-md) var(--ease-out), background var(--dur-md) var(--ease-out);
+  }
+  @supports (backdrop-filter: blur(1px)) {
+    .danaa-landing .nav {
+      background: rgba(248,248,246,.65);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+    }
+  }
+  .danaa-landing .nav.is-stuck { border-color: var(--line); background: rgba(248,248,246,.92); }
+
+  .danaa-landing .nav__inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 100%;
+  }
+
+  .danaa-landing .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 800;
+    font-family: 'Geist', 'Pretendard Variable', sans-serif;
+    letter-spacing: -0.01em;
+  }
+  .danaa-landing .brand__mark {
+    width: 30px; height: 30px;
+    border-radius: 9px;
+    background: var(--ink);
+    color: var(--green-300);
+    display: grid; place-items: center;
+    font-size: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .danaa-landing .brand__name { font-size: 17px; }
+
+  .danaa-landing .nav__links {
+    display: flex; gap: 4px;
+    list-style: none; margin: 0; padding: 0;
+  }
+  .danaa-landing .nav__links a {
+    display: inline-flex; align-items: center;
+    padding: 8px 14px;
+    font-size: 14.5px; font-weight: 500;
+    color: var(--ink-2);
+    border-radius: var(--r-pill);
+    transition: background var(--dur-md) var(--ease-out), color var(--dur-md) var(--ease-out);
+  }
+  .danaa-landing .nav__links a:hover { background: var(--gray-100); color: var(--ink); }
+
+  /* ─── Buttons ─────────────────────────── */
+  .danaa-landing .btn {
+    --btn-x: 0; --btn-y: 0;
+    position: relative;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 20px;
+    font-size: 14.5px;
+    font-weight: 600;
+    border-radius: var(--r-pill);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transform: translate(var(--btn-x), var(--btn-y));
+transition: transform var(--dur-md) var(--ease-out), box-shadow var(--dur-md) var(--ease-out), background var(--dur-md) var(--ease-out), color var(--dur-md) var(--ease-out);
+    will-change: transform;
+  }
+  .danaa-landing .btn--lg { padding: 16px 26px; font-size: 16px; }
+
+  .danaa-landing .btn--primary {
+    background: var(--ink);
+    color: #fff;
+  }
+  .danaa-landing .btn--primary:hover {
+    background: var(--green-700);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .danaa-landing .btn--ghost {
+    background: rgba(255,255,255,.65);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  .danaa-landing .btn--ghost:hover { background: #fff; border-color: var(--ink-2); box-shadow: var(--shadow-sm); }
+
+  .danaa-landing .btn--white {
+    background: #fff;
+    color: var(--ink);
+  }
+  .danaa-landing .btn--white:hover { background: var(--green-50); color: var(--green-700); box-shadow: var(--shadow-lg); }
+
+  .danaa-landing .btn--outline-light {
+    background: transparent;
+    color: #fff;
+    border-color: rgba(255,255,255,.28);
+  }
+  .danaa-landing .btn--outline-light:hover { background: rgba(255,255,255,.08); border-color: #fff; }
+
+  /* ─── Section utilities ─────────────────────────── */
+  .danaa-landing section { position: relative; z-index: 2; }
+  .danaa-landing .section { padding: 120px 0; }
+  .danaa-landing .section--tight { padding: 88px 0; }
+
+  .danaa-landing .section__head {
+    max-width: 760px;
+    margin: 0 auto 64px;
+    text-align: center;
+  }
+  .danaa-landing .section__head .eyebrow { margin-bottom: 18px; }
+  .danaa-landing .section__head .h2 { margin-bottom: 16px; }
+
+  /* Reveal animation */
+  .danaa-landing [data-reveal] {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+  }
+  .danaa-landing [data-reveal].is-in { opacity: 1; transform: translateY(0); }
+  .danaa-landing [data-reveal-stagger] > * {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
+  }
+  .danaa-landing [data-reveal-stagger].is-in > *:nth-child(1) { transition-delay: 0ms;   opacity: 1; transform: none; }
+  .danaa-landing [data-reveal-stagger].is-in > *:nth-child(2) { transition-delay: 80ms;  opacity: 1; transform: none; }
+  .danaa-landing [data-reveal-stagger].is-in > *:nth-child(3) { transition-delay: 160ms; opacity: 1; transform: none; }
+  .danaa-landing [data-reveal-stagger].is-in > *:nth-child(4) { transition-delay: 240ms; opacity: 1; transform: none; }
+  .danaa-landing [data-reveal-stagger].is-in > *:nth-child(5) { transition-delay: 320ms; opacity: 1; transform: none; }
+  .danaa-landing [data-reveal-stagger].is-in > *:nth-child(6) { transition-delay: 400ms; opacity: 1; transform: none; }
+
+  /* ───────────────────────────────────────────
+     1. HERO
+     ─────────────────────────────────────────── */
+  .danaa-landing .hero {
+    padding: 96px 0 64px;
+    overflow: hidden;
+  }
+  .danaa-landing .hero__inner {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 56px;
+    align-items: center;
+  }
+
+  .danaa-landing .hero__copy .eyebrow { margin-bottom: 22px; }
+  .danaa-landing .hero__copy .h1 {
+    font-size: clamp(28px, 3.6vw, 44px);
+    line-height: 1.22;
+    letter-spacing: -0.022em;
+    word-break: keep-all;
+  }
+  .danaa-landing .hero__copy .h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, var(--green-700), var(--orange-500) 80%);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+  .danaa-landing .hero__sub {
+    margin: 22px 0 32px;
+    max-width: 560px;
+  }
+  .danaa-landing .hero__cta {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .danaa-landing .hero__assure {
+    margin-top: 16px;
+    font-size: 13.5px;
+    color: var(--ink-3);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .danaa-landing .hero__assure svg { color: var(--green-500); flex: none; }
+  .danaa-landing .hero__disclaimer {
+    margin-top: 22px;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-sm);
+    color: var(--ink-3);
+    font-size: 12.5px;
+    max-width: 560px;
+  }
+
+  /* ─── Hero visual: omni circular animation ─── */
+  .danaa-landing .hero__visual {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    max-width: 520px;
+    margin-left: auto;
+    transform: translate(calc((var(--mouse-x) - 50%) * 0.04), calc((var(--mouse-y) - 50%) * 0.04));
+    transition: transform 200ms var(--ease-out);
+  }
+
+  .danaa-landing .orb {
+    position: absolute; inset: 8%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 28%, #fff 0%, var(--green-50) 35%, var(--orange-100) 70%, transparent 100%);
+    box-shadow: var(--shadow-xl);
+    filter: saturate(108%);
+  }
+  .danaa-landing .orb::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 70% 80%, rgba(61,124,63,.18), transparent 55%);
+  }
+
+  .danaa-landing .omni {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+  .danaa-landing .omni svg { width: 100%; height: 100%; }
+  .danaa-landing .omni__ring {
+    transform-origin: 50% 50%;
+    transform-box: fill-box;
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 6 10;
+    stroke-width: 1.6;
+  }
+  .danaa-landing .omni__ring--1 {
+    stroke: var(--green-500);
+    stroke-opacity: .55;
+    animation: omniDraw1 1.4s var(--ease-out) both, omniSpin 20s linear 1.4s infinite;
+  }
+  .danaa-landing .omni__ring--2 {
+    stroke: var(--orange-500);
+    stroke-opacity: .35;
+    animation: omniDraw2 1.4s var(--ease-out) .15s both, omniSpin 28s linear 1.55s infinite;
+  }
+  .danaa-landing .omni__ring--3 {
+    stroke: #6B3D8E;
+    stroke-opacity: .28;
+    animation: omniDraw3 1.4s var(--ease-out) .3s both, omniSpin 36s linear 1.7s infinite;
+  }
+
+  /* circumference: 2πr ≈ 377 / 565 / 754 (r=60/90/120) */
+  @keyframes omniDraw1 {
+    from { stroke-dashoffset: 377; }
+    to   { stroke-dashoffset: 0; }
+  }
+  @keyframes omniDraw2 {
+    from { stroke-dashoffset: 565; }
+    to   { stroke-dashoffset: 0; }
+  }
+  @keyframes omniDraw3 {
+    from { stroke-dashoffset: 754; }
+    to   { stroke-dashoffset: 0; }
+  }
+  @keyframes omniSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  .danaa-landing .omni__label {
+    position: absolute;
+    inset: 0;
+    display: grid; place-items: center;
+    text-align: center;
+    pointer-events: none;
+  }
+  .danaa-landing .omni__label-mark {
+    font-family: 'Geist', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+  .danaa-landing .omni__label-sub {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: 0.02em;
+  }
+
+  /* Floating chips */
+  .danaa-landing .chip {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    box-shadow: var(--shadow-md);
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+transform: translate(calc((var(--mouse-x) - 50%) * var(--mx-mult, 0.06)), calc((var(--mouse-y) - 50%) * var(--my-mult, 0.06)));
+    transition: transform 280ms var(--ease-out);
+  }
+  .danaa-landing .chip__icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: grid; place-items: center;
+    background: var(--green-50); color: var(--green-700);
+    flex: none;
+  }
+  .danaa-landing .chip--alt .chip__icon { background: var(--orange-100); color: var(--orange-700); }
+  .danaa-landing .chip--purple .chip__icon { background: #EFE6F5; color: #5F3680; }
+  .danaa-landing .chip--blue .chip__icon { background: var(--pill-blue-bg); color: var(--pill-blue-fg); }
+  .danaa-landing .chip--gray .chip__icon { background: var(--gray-100); color: var(--gray-800); }
+
+  .danaa-landing .chip--c1 { top: 4%;   left: -2%;  --mx-mult: 0.08;  --my-mult: 0.06; }
+  .danaa-landing .chip--c2 { top: 22%;  right: -6%; --mx-mult: -0.07; --my-mult: 0.05; }
+  .danaa-landing .chip--c3 { bottom: 14%; left: -8%; --mx-mult: 0.06; --my-mult: -0.04; }
+  .danaa-landing .chip--c4 { bottom: 4%;  right: 6%; --mx-mult: -0.05; --my-mult: -0.06; }
+  .danaa-landing .chip--c5 { top: 50%;  right: -2%; --mx-mult: 0.04;  --my-mult: 0.08; }
+
+  /* ─── V3: Hero product mock (브라우저 탭 + AI 채팅) ─── */
+  .danaa-landing .hero__visual--mock {
+    aspect-ratio: auto;
+    max-width: 560px;
+    padding: 8px 0;
+  }
+  .danaa-landing .mock-window {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+    transform: perspective(1400px) rotateY(-3deg) rotateX(2deg);
+    transform-origin: center center;
+    transition: transform 400ms var(--ease-out);
+  }
+  .danaa-landing .hero__visual--mock:hover .mock-window {
+    transform: perspective(1400px) rotateY(-1.5deg) rotateX(1deg) translateY(-4px);
+  }
+  .danaa-landing .mock-window__bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px 0;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .danaa-landing .mock-dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    flex: none;
+  }
+  .danaa-landing .mock-dot--r { background: #FF6058; }
+  .danaa-landing .mock-dot--y { background: #FFBD2E; }
+  .danaa-landing .mock-dot--g { background: #28CA42; }
+  .danaa-landing .mock-tabs {
+    display: flex; align-items: flex-end; gap: 4px;
+    margin-left: 14px;
+    padding-bottom: 0;
+  }
+  .danaa-landing .mock-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px 10px;
+    background: var(--gray-100);
+    color: var(--ink-3);
+    font-size: 12.5px;
+    font-weight: 500;
+    border-radius: 8px 8px 0 0;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    margin-bottom: -1px;
+  }
+  .danaa-landing .mock-tab.is-active {
+    background: #fff;
+    color: var(--ink);
+    font-weight: 700;
+    border-color: var(--line-soft);
+    box-shadow: 0 -1px 0 var(--green-500) inset;
+  }
+  .danaa-landing .mock-tab__mark {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    background: var(--ink);
+    color: var(--green-300);
+    display: grid; place-items: center;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .danaa-landing .mock-tab--ghost {
+    background: transparent;
+    color: var(--gray-400);
+    padding: 9px 12px 10px;
+    font-size: 14px;
+  }
+  .danaa-landing .mock-url {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px;
+    background: #fff;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-pill);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .danaa-landing .mock-window__body {
+    padding: 22px 22px 26px;
+    background: linear-gradient(180deg, #fff 0%, var(--gray-50) 100%);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .danaa-landing .mock-bubble {
+    padding: 11px 14px;
+    border-radius: 14px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 90%;
+  }
+  .danaa-landing .mock-bubble--me {
+    background: var(--ink);
+    color: #fff;
+    border-radius: 14px 14px 4px 14px;
+    align-self: flex-end;
+    font-weight: 500;
+  }
+  .danaa-landing .mock-bubble--ai {
+    background: var(--gray-100);
+    color: var(--ink);
+    border-radius: 14px 14px 14px 4px;
+    align-self: flex-start;
+  }
+  .danaa-landing .mock-bubble__name {
+    font-family: 'Geist', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--green-700);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .danaa-landing .mock-card {
+    margin-top: 4px;
+    background: linear-gradient(180deg, var(--orange-100) 0%, #fff 100%);
+    border: 1.5px solid var(--orange-300);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .danaa-landing .mock-card__head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .danaa-landing .mock-card__icon {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--orange-300);
+    color: #fff;
+    display: grid; place-items: center;
+    flex: none;
+  }
+  .danaa-landing .mock-card__label {
+    font-family: 'Geist', sans-serif;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--orange-700);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .danaa-landing .mock-card__title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .danaa-landing .mock-card__opts {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .danaa-landing .mock-opt {
+    flex: 1;
+    min-width: 70px;
+    text-align: center;
+    padding: 9px 12px;
+    background: #fff;
+    border: 1px solid var(--orange-300);
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--orange-700);
+  }
+  .danaa-landing .mock-opt--mid { color: var(--gray-800); border-color: var(--line); }
+  .danaa-landing .mock-opt--low { color: var(--gray-600); border-color: var(--line); }
+
+  .danaa-landing .hero-float {
+    position: absolute;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-lg);
+transform: translate(calc((var(--mouse-x) - 50%) * var(--mx-mult, 0.04)), calc((var(--mouse-y) - 50%) * var(--my-mult, 0.04)));
+    transition: transform 280ms var(--ease-out);
+    min-width: 200px;
+    z-index: 2;
+  }
+  .danaa-landing .hero-float--risk {
+    top: 18%;
+    left: -12%;
+    --mx-mult: 0.06; --my-mult: 0.04;
+  }
+  .danaa-landing .hero-float--challenge {
+    bottom: -8%;
+    left: -8%;
+    --mx-mult: -0.05; --my-mult: -0.04;
+  }
+  .danaa-landing .hero-float__label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .danaa-landing .hero-float__value {
+    display: flex; align-items: baseline; gap: 4px;
+    font-family: 'Geist', sans-serif;
+    margin-bottom: 8px;
+  }
+  .danaa-landing .hero-float__value strong {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .danaa-landing .hero-float__value span {
+    font-size: 13px;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .danaa-landing .hero-float__tag {
+    margin-left: auto;
+    padding: 2px 8px;
+    font-style: normal;
+    background: var(--orange-100);
+    color: var(--orange-700);
+    border-radius: var(--r-pill);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .danaa-landing .hero-float__bar {
+    height: 6px;
+    background: var(--gray-100);
+    border-radius: var(--r-pill);
+    overflow: hidden;
+  }
+  .danaa-landing .hero-float__bar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-500), var(--orange-500));
+    border-radius: var(--r-pill);
+  }
+  .danaa-landing .hero-float__foot {
+    margin-top: 8px;
+    font-size: 10.5px;
+    color: var(--ink-3);
+  }
+  .danaa-landing .hero-float__row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .danaa-landing .hero-float__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .danaa-landing .hero-float__count {
+    font-family: 'Geist', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--green-700);
+  }
+  .danaa-landing .hero-float__dots {
+    display: flex; gap: 4px;
+  }
+  .danaa-landing .hero-float__dots .dot {
+    width: 16px; height: 6px;
+    border-radius: 3px;
+    background: var(--gray-200);
+  }
+  .danaa-landing .hero-float__dots .dot.dot--on {
+    background: linear-gradient(90deg, var(--green-500), var(--green-700));
+  }
+
+  /* ───────────────────────────────────────────
+     2. PAIN
+     ─────────────────────────────────────────── */
+  .danaa-landing .pain {
+    background: var(--section-bg);
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .danaa-landing .pain__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .danaa-landing .pain__card {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 30px 26px;
+    transition: transform var(--dur-md) var(--ease-out), box-shadow var(--dur-md) var(--ease-out);
+    position: relative;
+  }
+  .danaa-landing .pain__card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  .danaa-landing .pain__num {
+    display: inline-block;
+    font-family: 'Geist', sans-serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--green-300);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .danaa-landing .pain__title {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .danaa-landing .pain__desc { color: var(--ink-2); font-size: 14.5px; margin: 0; line-height: 1.65; }
+
+  /* ───────────────────────────────────────────
+     3. SOLUTION FLOW
+     ─────────────────────────────────────────── */
+  .danaa-landing .solution__steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    counter-reset: step;
+  }
+  .danaa-landing .step {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    padding: 36px 30px;
+    position: relative;
+    transition: transform var(--dur-md) var(--ease-out), box-shadow var(--dur-md) var(--ease-out), border-color var(--dur-md) var(--ease-out);
+    overflow: hidden;
+  }
+  .danaa-landing .step::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 100%, var(--green-50), transparent 65%);
+    opacity: 0;
+    transition: opacity var(--dur-md) var(--ease-out);
+    pointer-events: none;
+  }
+  .danaa-landing .step:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); border-color: var(--green-300); }
+  .danaa-landing .step:hover::after { opacity: 1; }
+
+  .danaa-landing .step__head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .danaa-landing .step__index {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: var(--ink);
+    color: var(--green-300);
+    font-family: 'Geist', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .danaa-landing .step__icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--green-50);
+    color: var(--green-700);
+    display: grid; place-items: center;
+  }
+  .danaa-landing .step__title {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+  .danaa-landing .step__desc { color: var(--ink-2); font-size: 14.5px; margin: 0; position: relative; z-index: 1; line-height: 1.65; }
+
+  /* ───────────────────────────────────────────
+     4. BENTO
+     ─────────────────────────────────────────── */
+  .danaa-landing .bento__grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: minmax(220px, auto);
+    gap: 16px;
+  }
+  .danaa-landing .bento__cell {
+    --pad: 28px;
+    position: relative;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-xl);
+    padding: var(--pad);
+    overflow: hidden;
+transition: transform var(--dur-md) var(--ease-out), box-shadow var(--dur-md) var(--ease-out), border-color var(--dur-md) var(--ease-out), background var(--dur-md) var(--ease-out);
+    isolation: isolate;
+  }
+  .danaa-landing .bento__cell::after {
+    /* fake shadow via ::after to keep GPU compositing cheap */
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    box-shadow: var(--shadow-xl);
+    opacity: 0;
+    transition: opacity var(--dur-md) var(--ease-out);
+    z-index: -1;
+  }
+  .danaa-landing .bento__cell:hover::after { opacity: 1; }
+
+  .danaa-landing .bento__head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .danaa-landing .bento__icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    flex: none;
+    background: var(--green-50);
+    color: var(--green-700);
+  }
+  .danaa-landing .bento__num {
+    margin-left: auto;
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: 0.08em;
+  }
+
+  .danaa-landing .bento__title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 8px;
+    letter-spacing: -0.014em;
+    line-height: 1.25;
+  }
+  .danaa-landing .bento__desc {
+    color: var(--ink-2);
+    font-size: 14.5px;
+    margin: 0;
+    line-height: 1.65;
+  }
+  .danaa-landing .bento__footnote {
+    margin-top: 14px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.5;
+  }
+
+  /* A — Do it OS (대형, span 7/2) */
+  .danaa-landing .bento__cell--a {
+    grid-column: span 7;
+    grid-row: span 2;
+    --pad: 36px;
+    background:
+radial-gradient(900px 400px at calc(var(--mx, 50%) * 1) calc(var(--my, 50%) * 1), rgba(61,124,63,.10), transparent 50%), var(--card-bg);
+  }
+  .danaa-landing .bento__cell--a:hover { transform: translateY(-8px) scale(1.005); border-color: var(--green-300); }
+  .danaa-landing .bento__cell--a .bento__title { font-size: 30px; max-width: 480px; }
+  .danaa-landing .bento__cell--a .bento__desc { max-width: 480px; font-size: 16px; }
+
+  .danaa-landing .doit-mock {
+    margin-top: 28px;
+    background: var(--section-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .danaa-landing .doit-mock__col h4 {
+    margin: 0 0 10px;
+    font-family: 'Geist', sans-serif;
+    font-size: 11px; font-weight: 600;
+    color: var(--ink-3); letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .danaa-landing .doit-mock__row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  .danaa-landing .doit-mock__row:last-child { margin-bottom: 0; }
+  .danaa-landing .doit-mock__check {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    border: 1.5px solid var(--gray-400);
+    flex: none;
+  }
+  .danaa-landing .doit-mock__check.is-done {
+    background: var(--green-500);
+    border-color: var(--green-500);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7l3 3 5-7'/%3E%3C/svg%3E");
+    background-size: 12px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  .danaa-landing .pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    border-radius: var(--r-pill);
+    font-size: 11px; font-weight: 700;
+    margin-left: auto;
+    font-family: 'Geist', sans-serif;
+    letter-spacing: 0.02em;
+  }
+  .danaa-landing .pill--green { background: var(--pill-green-bg); color: var(--pill-green-fg); }
+  .danaa-landing .pill--orange { background: var(--pill-orange-bg); color: var(--pill-orange-fg); }
+  .danaa-landing .pill--red { background: var(--pill-red-bg); color: var(--pill-red-fg); }
+  .danaa-landing .pill--purple { background: var(--pill-purple-bg); color: var(--pill-purple-fg); }
+  .danaa-landing .pill--gray { background: var(--pill-gray-bg); color: var(--pill-gray-fg); }
+  .danaa-landing .pill--blue { background: var(--pill-blue-bg); color: var(--pill-blue-fg); }
+  .danaa-landing .pill--lg { padding: 4px 12px; font-size: 12px; }
+
+  /* B — AI 채팅 */
+  .danaa-landing .bento__cell--b { grid-column: span 5; grid-row: span 1; }
+  .danaa-landing .bento__cell--b .bento__icon { background: var(--orange-100); color: var(--orange-700); }
+  .danaa-landing .bento__cell--b:hover { transform: translateY(-6px) rotate(.4deg); }
+
+  .danaa-landing .chat-mock {
+    margin-top: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .danaa-landing .chat-mock__bubble {
+    background: var(--gray-100);
+    border-radius: 14px 14px 14px 4px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--ink-2);
+    align-self: flex-start;
+    max-width: 80%;
+  }
+  .danaa-landing .chat-mock__card {
+    border: 1.5px solid var(--orange-300);
+    background: linear-gradient(180deg, var(--orange-100), #fff);
+    border-radius: 14px;
+    padding: 12px 14px;
+    align-self: stretch;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px;
+  }
+  .danaa-landing .chat-mock__card strong { font-size: 13.5px; color: var(--orange-700); }
+
+  /* C — 참고 위험도 */
+  .danaa-landing .bento__cell--c { grid-column: span 5; grid-row: span 1; }
+  .danaa-landing .bento__cell--c:hover { transform: translateY(-3px); }
+
+  .danaa-landing .gauge {
+    margin-top: 14px;
+    height: 10px;
+    background: var(--gray-100);
+    border-radius: var(--r-pill);
+    overflow: hidden;
+    position: relative;
+  }
+  .danaa-landing .gauge__fill {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-500) 0%, var(--orange-500) 100%);
+    border-radius: var(--r-pill);
+    transition: width 1.4s var(--ease-out);
+  }
+  .danaa-landing .bento__cell--c.is-in .gauge__fill { width: 62%; }
+  .danaa-landing .gauge__legend {
+    display: flex; justify-content: space-between;
+    margin-top: 10px;
+    font-size: 11.5px; color: var(--ink-3);
+    font-family: 'Geist', sans-serif;
+  }
+  .danaa-landing .gauge__value {
+    margin-top: 14px;
+    font-size: 28px;
+    font-weight: 800;
+    font-family: 'Geist', sans-serif;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .danaa-landing .gauge__value small {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-3);
+    margin-left: 6px;
+    letter-spacing: 0;
+  }
+
+  /* D — 챌린지·뱃지 (다크) */
+  .danaa-landing .bento__cell--d {
+    grid-column: span 6; grid-row: span 1;
+    background: linear-gradient(150deg, #1A1A1A 0%, #262626 100%);
+    color: #fff;
+    border-color: rgba(255,255,255,.08);
+  }
+  .danaa-landing .bento__cell--d:hover { transform: translateY(-4px); border-color: var(--green-300); }
+  .danaa-landing .bento__cell--d .bento__icon { background: rgba(138,184,150,.12); color: var(--green-300); }
+  .danaa-landing .bento__cell--d .bento__title { color: #fff; }
+  .danaa-landing .bento__cell--d .bento__desc { color: rgba(255,255,255,.72); }
+  .danaa-landing .bento__cell--d .bento__num { color: rgba(255,255,255,.5); }
+
+  .danaa-landing .badges {
+    margin-top: 18px;
+    display: flex; gap: 8px;
+    align-items: center;
+  }
+  .danaa-landing .badge {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    border: 2px solid rgba(255,255,255,.1);
+    color: #fff;
+    transition: transform var(--dur-md) var(--ease-out);
+    flex: none;
+  }
+  .danaa-landing .bento__cell--d:hover .badge:nth-child(1) { transform: rotate(-8deg) scale(1.05); }
+  .danaa-landing .bento__cell--d:hover .badge:nth-child(2) { transform: rotate(-4deg) scale(1.05); transition-delay: 40ms; }
+  .danaa-landing .bento__cell--d:hover .badge:nth-child(3) { transform: scale(1.05); transition-delay: 80ms; }
+  .danaa-landing .bento__cell--d:hover .badge:nth-child(4) { transform: rotate(4deg) scale(1.05); transition-delay: 120ms; }
+  .danaa-landing .bento__cell--d:hover .badge:nth-child(5) { transform: rotate(8deg) scale(1.05); transition-delay: 160ms; }
+  .danaa-landing .bento__cell--d:hover .badge:nth-child(6) { transform: rotate(12deg) scale(1.05); transition-delay: 200ms; }
+
+  .danaa-landing .badge--bronze { background: linear-gradient(150deg, #B97444, #8B5430); }
+  .danaa-landing .badge--silver { background: linear-gradient(150deg, #C0C0C0, #909090); }
+  .danaa-landing .badge--gold { background: linear-gradient(150deg, #E0B14C, #B88A28); }
+  .danaa-landing .badge--diamond { background: linear-gradient(150deg, #6CC8E8, #2588B6); }
+  .danaa-landing .badge--master { background: linear-gradient(150deg, #B574E8, #6E3DA8); }
+  .danaa-landing .badge--champ { background: linear-gradient(150deg, #FF6B6B, #C03434); }
+
+  /* E — 사주 (보라 그라데이션) */
+  .danaa-landing .bento__cell--e {
+    grid-column: span 6; grid-row: span 1;
+    background: linear-gradient(150deg, #FAF6FE 0%, #F0E8FA 60%, #E2D2F2 100%);
+    border-color: #E0CCEE;
+  }
+  .danaa-landing .bento__cell--e:hover { transform: translateY(-4px) skew(-0.4deg); border-color: #6B3D8E; }
+  .danaa-landing .bento__cell--e .bento__icon { background: rgba(107,61,142,.1); color: #5F3680; }
+
+  .danaa-landing .saju-mock {
+    margin-top: 16px;
+    display: flex; gap: 10px;
+    align-items: center;
+  }
+  .danaa-landing .saju-card {
+    background: #fff;
+    border: 1px solid #E0CCEE;
+    border-radius: 12px;
+    padding: 12px 14px;
+    flex: 1;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .danaa-landing .saju-card__day {
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    color: #6B3D8E;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .danaa-landing .saju-card__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .danaa-landing .saju-card__sub {
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+
+  /* F — Data flow (가로 wide) */
+  .danaa-landing .bento__cell--f {
+    grid-column: span 12; grid-row: span 1;
+    background: linear-gradient(180deg, var(--card-bg), var(--section-bg));
+  }
+  .danaa-landing .bento__cell--f:hover { transform: translateY(-3px); }
+  .danaa-landing .bento__cell--f .bento__title { font-size: 19px; }
+
+  .danaa-landing .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 18px;
+    align-items: stretch;
+    position: relative;
+  }
+  .danaa-landing .flow__step {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    position: relative;
+  }
+  .danaa-landing .flow__step::after {
+    content: '→';
+    position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-3);
+    font-size: 14px;
+    z-index: 1;
+  }
+  .danaa-landing .flow__step:last-child::after { display: none; }
+  .danaa-landing .flow__label {
+    display: inline-block;
+    font-family: 'Geist', sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .danaa-landing .flow__title {
+    font-size: 14px; font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--ink);
+  }
+  .danaa-landing .flow__desc {
+    font-size: 12.5px;
+    color: var(--ink-3);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .danaa-landing .bento__disclaim {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--ink-3);
+    padding: 0 24px;
+  }
+
+  /* ───────────────────────────────────────────
+     5. SERVICE FLOW — Horizontal 3D Deck (V3, 다크)
+        Airtable 스타일: 가로 원근 카드 + 좌측 동기 메뉴
+     ─────────────────────────────────────────── */
+  .danaa-landing .scroll-nav {
+    background: var(--gray-950);
+    color: #fff;
+    padding: 120px 0 100px;
+    overflow: hidden;
+    position: relative;
+  }
+  .danaa-landing .scroll-nav::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+radial-gradient(800px 600px at 25% 30%, rgba(61,124,63,.20), transparent 60%), radial-gradient(700px 500px at 80% 70%, rgba(224,120,0,.14), transparent 65%);
+    pointer-events: none;
+  }
+  .danaa-landing .scroll-nav .section__head { color: #fff; }
+  .danaa-landing .scroll-nav .section__head .h2 { color: #fff; }
+  .danaa-landing .scroll-nav .section__head .lead { color: rgba(255,255,255,.7); }
+  .danaa-landing .scroll-nav .eyebrow { background: rgba(138,184,150,.12); color: var(--green-300); border-color: transparent; }
+
+  /* Tab nav (가로) */
+  .danaa-landing .scroll-nav__tabs {
+    display: flex; justify-content: center;
+    gap: 6px;
+    margin: 0 auto 48px;
+    padding: 6px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--r-pill);
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
+    list-style: none;
+  }
+  .danaa-landing .scroll-nav__tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--r-pill);
+    color: rgba(255,255,255,.55);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background var(--dur-md) var(--ease-out), color var(--dur-md) var(--ease-out);
+    cursor: pointer;
+    background: transparent;
+  }
+  .danaa-landing .scroll-nav__tab:hover { color: rgba(255,255,255,.85); }
+  .danaa-landing .scroll-nav__tab[aria-current="true"] {
+    background: #fff;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .danaa-landing .scroll-nav__tab[aria-current="true"] .scroll-nav__num { color: var(--green-700); }
+  .danaa-landing .scroll-nav__num {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green-300);
+    letter-spacing: 0.04em;
+  }
+
+  /* Horizontal perspective deck (Airtable style) */
+  .danaa-landing .deck-stage {
+    position: relative;
+    perspective: 1800px;
+    perspective-origin: 50% 50%;
+    height: 520px;
+    margin: 0 auto;
+    max-width: 1200px;
+    overflow: visible;
+  }
+  .danaa-landing .deck-track {
+    position: absolute; inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .danaa-landing .deck-card {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 560px;
+    max-width: 70vw;
+    background: linear-gradient(155deg, #1F1F1F 0%, #2A2A2A 100%);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px;
+    padding: 32px 30px 28px;
+    box-shadow: var(--shadow-2xl);
+    transform-style: preserve-3d;
+    transform-origin: center center;
+transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms var(--ease-out), filter 500ms var(--ease-out);
+    overflow: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
+  }
+  .danaa-landing .deck-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(600px 300px at 50% 0%, rgba(138,184,150,.10), transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Position rules driven by --offset (-2..+2 from active card) */
+  .danaa-landing .deck-card[data-offset="0"] {
+    transform: translate(-50%, -50%) translateZ(60px);
+    opacity: 1; z-index: 5;
+    filter: brightness(1);
+  }
+  .danaa-landing .deck-card[data-offset="-1"] {
+    transform: translate(-130%, -50%) translateZ(-80px) rotateY(28deg);
+    opacity: .7; z-index: 4;
+    filter: brightness(.75);
+  }
+  .danaa-landing .deck-card[data-offset="1"] {
+    transform: translate(30%, -50%) translateZ(-80px) rotateY(-28deg);
+    opacity: .7; z-index: 4;
+    filter: brightness(.75);
+  }
+  .danaa-landing .deck-card[data-offset="-2"] {
+    transform: translate(-200%, -50%) translateZ(-220px) rotateY(36deg);
+    opacity: .35; z-index: 3;
+    filter: brightness(.55);
+  }
+  .danaa-landing .deck-card[data-offset="2"] {
+    transform: translate(100%, -50%) translateZ(-220px) rotateY(-36deg);
+    opacity: .35; z-index: 3;
+    filter: brightness(.55);
+  }
+  .danaa-landing .deck-card[data-offset="hidden"] {
+    transform: translate(-50%, -50%) translateZ(-400px);
+    opacity: 0; z-index: 1;
+    pointer-events: none;
+  }
+
+  .danaa-landing .deck-card__head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .danaa-landing .deck-card__num {
+    font-family: 'Geist', sans-serif;
+    font-size: 12px; font-weight: 700;
+    color: var(--green-300);
+    letter-spacing: 0.08em;
+  }
+  .danaa-landing .deck-card__title {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 14px;
+    letter-spacing: -0.018em;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .danaa-landing .deck-card__desc {
+    color: rgba(255,255,255,.72);
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0 0 20px;
+  }
+  .danaa-landing .deck-card__visual {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 14px;
+    padding: 16px;
+    display: grid;
+    gap: 8px;
+  }
+  .danaa-landing .deck-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,.04);
+    border-radius: 10px;
+    font-size: 13px;
+    color: rgba(255,255,255,.85);
+  }
+  .danaa-landing .deck-row strong { font-weight: 600; color: #fff; }
+  .danaa-landing .deck-tag {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px;
+    background: rgba(138,184,150,.16);
+    color: var(--green-300);
+    border-radius: var(--r-pill);
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: auto;
+    font-family: 'Geist', sans-serif;
+  }
+  .danaa-landing .deck-tag--orange { background: rgba(253,184,120,.16); color: var(--orange-300); }
+  .danaa-landing .deck-tag--purple { background: rgba(181,116,232,.16); color: #B574E8; }
+
+  /* Stage controls */
+  .danaa-landing .deck-controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px;
+    margin-top: 32px;
+  }
+  .danaa-landing .deck-arrow {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.12);
+    color: #fff;
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: background var(--dur-md) var(--ease-out), transform var(--dur-md) var(--ease-out);
+  }
+  .danaa-landing .deck-arrow:hover { background: rgba(255,255,255,.12); transform: scale(1.05); }
+  .danaa-landing .deck-arrow:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+  .danaa-landing .deck-dots {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .danaa-landing .deck-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    transition: background var(--dur-md) var(--ease-out), width var(--dur-md) var(--ease-out);
+  }
+  .danaa-landing .deck-dot[aria-current="true"] {
+    background: var(--green-300);
+    width: 24px;
+    border-radius: var(--r-pill);
+  }
+
+  /* ───────────────────────────────────────────
+     6. COMPARE
+     ─────────────────────────────────────────── */
+  .danaa-landing .compare__wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2xl);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+  .danaa-landing .compare__scroll {
+    overflow: auto;
+    max-height: 540px;
+  }
+  .danaa-landing .compare {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 760px;
+  }
+  .danaa-landing .compare thead th {
+    position: sticky; top: 0;
+    background: var(--section-bg);
+    text-align: left;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--ink-2);
+    padding: 18px 22px;
+    letter-spacing: -0.005em;
+    border-bottom: 1px solid var(--line);
+    z-index: 5;
+  }
+  .danaa-landing .compare thead th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: var(--section-bg);
+    padding-left: 32px;
+  }
+  .danaa-landing .compare thead th.is-self {
+    background: linear-gradient(180deg, var(--green-50), var(--card-bg));
+    color: var(--green-700);
+  }
+  .danaa-landing .compare tbody td {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 14px;
+    vertical-align: middle;
+    background: var(--card-bg);
+    transition: background var(--dur-md) var(--ease-out);
+  }
+  .danaa-landing .compare tbody th[scope="row"] {
+    position: sticky; left: 0;
+    background: var(--card-bg);
+    padding: 18px 22px 18px 32px;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: left;
+    z-index: 4;
+    border-right: 1px solid var(--line-soft);
+  }
+  .danaa-landing .compare tbody tr:last-child td,
+  .danaa-landing .compare tbody tr:last-child th { border-bottom: 0; }
+  .danaa-landing .compare tbody tr:hover td,
+  .danaa-landing .compare tbody tr:hover th[scope="row"] {
+    background: linear-gradient(90deg, var(--green-50), var(--card-bg) 80%);
+  }
+  .danaa-landing .compare td.is-self {
+    background: linear-gradient(180deg, rgba(61,124,63,.05), var(--card-bg));
+    font-weight: 500;
+  }
+
+  /* ───────────────────────────────────────────
+     7. TRUST  (다크 그라데이션)
+     ─────────────────────────────────────────── */
+  .danaa-landing .trust {
+    background: linear-gradient(180deg, var(--gray-950) 0%, #1A1A1A 100%);
+    color: #fff;
+    overflow: hidden;
+    position: relative;
+  }
+  .danaa-landing .trust::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(700px 500px at 80% 20%, rgba(138,184,150,.18), transparent 60%);
+    pointer-events: none;
+  }
+  .danaa-landing .trust .section__head .h2 { color: #fff; }
+  .danaa-landing .trust .section__head .lead { color: rgba(255,255,255,.72); }
+  .danaa-landing .trust .eyebrow { background: rgba(138,184,150,.12); color: var(--green-300); border-color: transparent; }
+
+  .danaa-landing .trust__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    margin-bottom: 56px;
+  }
+  .danaa-landing .trust__card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--r-xl);
+    padding: 30px 26px;
+    transition: transform var(--dur-md) var(--ease-out), border-color var(--dur-md) var(--ease-out), background var(--dur-md) var(--ease-out);
+  }
+  .danaa-landing .trust__card:hover {
+    transform: translateY(-4px);
+    border-color: var(--green-300);
+    background: rgba(255,255,255,.05);
+  }
+  .danaa-landing .trust__icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(138,184,150,.14);
+    color: var(--green-300);
+    display: grid; place-items: center;
+    margin-bottom: 18px;
+  }
+  .danaa-landing .trust__title {
+    font-size: 18.5px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .danaa-landing .trust__desc {
+    font-size: 14px;
+    color: rgba(255,255,255,.7);
+    margin: 0;
+    line-height: 1.65;
+  }
+
+  .danaa-landing .trust__stats {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: var(--r-2xl);
+    padding: 36px 32px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    backdrop-filter: blur(8px);
+  }
+  .danaa-landing .trust__stat strong {
+    display: block;
+    font-family: 'Geist', sans-serif;
+    font-size: clamp(22px, 2.6vw, 32px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--green-300);
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .danaa-landing .trust__stat span {
+    display: block;
+    font-size: 13px;
+    color: rgba(255,255,255,.65);
+    line-height: 1.4;
+  }
+
+  .danaa-landing .trust__disclaim {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 12.5px;
+    color: rgba(255,255,255,.5);
+    line-height: 1.6;
+  }
+
+  /* ───────────────────────────────────────────
+     8. CTA  (다크)
+     ─────────────────────────────────────────── */
+  .danaa-landing .cta {
+    padding: 96px 0 100px;
+  }
+  .danaa-landing .cta__box {
+    position: relative;
+    background: var(--gray-950);
+    color: #fff;
+    border-radius: 40px;
+    padding: 72px 64px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: center;
+    gap: 40px;
+    box-shadow: var(--shadow-2xl);
+  }
+  .danaa-landing .cta__box::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+radial-gradient(900px 500px at 80% 20%, rgba(61,124,63,.45), transparent 60%), radial-gradient(700px 400px at 20% 100%, rgba(224,120,0,.18), transparent 65%);
+    pointer-events: none;
+  }
+  .danaa-landing .cta__box::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(138,184,150,.4), transparent 60%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+  }
+  .danaa-landing .cta__copy { position: relative; z-index: 1; }
+  .danaa-landing .cta__title {
+    font-size: clamp(28px, 3.4vw, 44px);
+    font-weight: 800;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+  }
+  .danaa-landing .cta__sub {
+    color: rgba(255,255,255,.78);
+    font-size: 16px;
+    margin: 0 0 28px;
+    max-width: 460px;
+  }
+  .danaa-landing .cta__actions {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .danaa-landing .cta__assure {
+    margin-top: 18px;
+    color: rgba(255,255,255,.55);
+    font-size: 12.5px;
+  }
+
+  .danaa-landing .cta__panel {
+    position: relative; z-index: 1;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
+  }
+  .danaa-landing .cta__panel-head {
+    display: flex; align-items: center; gap: 8px;
+    color: rgba(255,255,255,.65);
+    font-family: 'Geist', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .danaa-landing .cta__panel-head .pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green-300);
+    box-shadow: 0 0 0 0 rgba(138,184,150,.6);
+    animation: pulse 1.8s var(--ease-out) infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(138,184,150,.6); }
+    70% { box-shadow: 0 0 0 12px rgba(138,184,150,0); }
+    100% { box-shadow: 0 0 0 0 rgba(138,184,150,0); }
+  }
+  .danaa-landing .cta__panel-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    font-size: 13.5px;
+    color: rgba(255,255,255,.85);
+  }
+  .danaa-landing .cta__panel-row:last-of-type { border-bottom: 0; }
+  .danaa-landing .cta__panel-row svg { color: var(--green-300); flex: none; }
+  .danaa-landing .cta__panel-tags {
+    margin-top: 14px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .danaa-landing .cta__panel-tags .pill { margin: 0; }
+
+  /* ───────────────────────────────────────────
+     FOOTER
+     ─────────────────────────────────────────── */
+  .danaa-landing .footer {
+    border-top: 1px solid var(--line);
+    padding: 56px 0 64px;
+    background: var(--bg);
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .danaa-landing .footer__top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+  .danaa-landing .footer__brand-block {
+    max-width: 380px;
+  }
+  .danaa-landing .footer__brand-block .brand { margin-bottom: 12px; }
+  .danaa-landing .footer__brand-block p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .danaa-landing .footer__cols {
+    display: flex; gap: 56px;
+    flex-wrap: wrap;
+  }
+  .danaa-landing .footer__col h4 {
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+  .danaa-landing .footer__col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  .danaa-landing .footer__col a { font-size: 13.5px; color: var(--ink-2); transition: color var(--dur-md) var(--ease-out); }
+  .danaa-landing .footer__col a:hover { color: var(--ink); }
+
+  .danaa-landing .footer__legal {
+    border-top: 1px solid var(--line-soft);
+    padding-top: 22px;
+    color: var(--ink-3);
+    font-size: 12px;
+    line-height: 1.7;
+    max-width: 980px;
+  }
+  .danaa-landing .footer__legal strong { color: var(--ink-2); }
+
+  /* ───────────────────────────────────────────
+     RESPONSIVE
+     ─────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .danaa-landing .hero__inner { grid-template-columns: 1fr; gap: 56px; }
+    .danaa-landing .hero__visual { max-width: 480px; margin: 0 auto; }
+    .danaa-landing .hero__visual--mock { max-width: 520px; }
+    .danaa-landing .hero-float--risk { top: -10px;  left: -8px; }
+    .danaa-landing .hero-float--challenge { bottom: -10px; right: -8px; }
+
+    .danaa-landing .deck-stage { height: 560px; }
+    .danaa-landing .deck-card { width: 460px; padding: 28px 26px; }
+    .danaa-landing .deck-card[data-offset="-1"] { transform: translate(-110%, -50%) translateZ(-80px) rotateY(24deg); }
+    .danaa-landing .deck-card[data-offset="1"] { transform: translate(10%, -50%) translateZ(-80px) rotateY(-24deg); }
+    .danaa-landing .deck-card[data-offset="-2"] { transform: translate(-180%, -50%) translateZ(-220px) rotateY(32deg); }
+    .danaa-landing .deck-card[data-offset="2"] { transform: translate(80%, -50%) translateZ(-220px) rotateY(-32deg); }
+  }
+
+  @media (max-width: 920px) {
+    .danaa-landing .bento__cell--a { grid-column: span 12; grid-row: span 1; }
+    .danaa-landing .bento__cell--b,
+    .danaa-landing .bento__cell--c { grid-column: span 6; }
+    .danaa-landing .bento__cell--d,
+    .danaa-landing .bento__cell--e { grid-column: span 12; }
+    .danaa-landing .flow { grid-template-columns: repeat(2, 1fr); }
+    .danaa-landing .flow__step::after { display: none; }
+
+    .danaa-landing .trust__stats { grid-template-columns: repeat(2, 1fr); padding: 28px; }
+    .danaa-landing .trust__grid { grid-template-columns: 1fr; }
+    .danaa-landing .cta__box { grid-template-columns: 1fr; padding: 48px 36px; border-radius: 28px; }
+  }
+
+  @media (max-width: 720px) {
+    .danaa-landing .container { padding: 0 22px; }
+    .danaa-landing .section { padding: 80px 0; }
+    .danaa-landing .section__head { margin-bottom: 44px; }
+    .danaa-landing .hero { padding: 56px 0 32px; }
+    .danaa-landing .nav__links { display: none; }
+    .danaa-landing .pain__grid { grid-template-columns: 1fr; }
+    .danaa-landing .solution__steps { grid-template-columns: 1fr; }
+    .danaa-landing .bento__grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: auto; }
+    .danaa-landing .bento__cell { grid-column: span 2 !important; grid-row: auto !important; }
+    .danaa-landing .bento__cell--a .bento__title { font-size: 24px; }
+    .danaa-landing .doit-mock { grid-template-columns: 1fr; }
+    .danaa-landing .compare { min-width: 0; }
+    .danaa-landing .compare__scroll { max-height: none; }
+    .danaa-landing .compare,
+    .danaa-landing .compare thead,
+    .danaa-landing .compare tbody,
+    .danaa-landing .compare tr,
+    .danaa-landing .compare td,
+    .danaa-landing .compare th { display: block; width: 100%; }
+    .danaa-landing .compare thead { display: none; }
+    .danaa-landing .compare tbody tr {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--r-md);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .danaa-landing .compare tbody td,
+    .danaa-landing .compare tbody th {
+      padding: 10px 12px !important;
+      border: 0 !important;
+      position: static !important;
+    }
+    .danaa-landing .compare tbody td::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      font-family: 'Geist', sans-serif;
+    }
+    .danaa-landing .footer__top { flex-direction: column; align-items: flex-start; }
+    .danaa-landing .cta__box { padding: 36px 24px; }
+    .danaa-landing .scroll-nav { padding: 80px 0 64px; }
+
+    /* Mobile deck: side cards 거의 가리고 중앙만 강조 */
+    .danaa-landing .deck-stage { height: 600px; perspective: 1200px; }
+    .danaa-landing .deck-card { width: 88vw; max-width: 380px; padding: 24px 22px; }
+    .danaa-landing .deck-card__title { font-size: 21px; }
+    .danaa-landing .deck-card[data-offset="-1"] { transform: translate(-140%, -50%) translateZ(-60px) rotateY(20deg); opacity: .25; }
+    .danaa-landing .deck-card[data-offset="1"] { transform: translate(40%, -50%) translateZ(-60px) rotateY(-20deg); opacity: .25; }
+    .danaa-landing .deck-card[data-offset="-2"],
+    .danaa-landing .deck-card[data-offset="2"] { opacity: 0; }
+
+    .danaa-landing .scroll-nav__tabs { font-size: 12px; }
+    .danaa-landing .scroll-nav__tab { padding: 8px 12px; font-size: 12.5px; }
+
+    /* Hero floats: 모바일은 하단 grid로 */
+    .danaa-landing .hero__visual--mock { padding-top: 0; }
+    .danaa-landing .hero-float { position: relative; top: auto; left: auto; right: auto; bottom: auto; }
+    .danaa-landing .hero-float--risk,
+    .danaa-landing .hero-float--challenge { transform: none; }
+    .danaa-landing .hero__visual--mock {
+      display: flex; flex-direction: column; gap: 14px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .danaa-landing .h1 { font-size: 36px; }
+    .danaa-landing .h2 { font-size: 26px; }
+    .danaa-landing .bento__cell { padding: 22px; }
+    .danaa-landing .trust__stats { grid-template-columns: 1fr; }
+  }
+
+  /* ─── prefers-reduced-motion ─────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+    }
+    .danaa-landing .omni__ring { animation: none; }
+    .danaa-landing .hero__visual { transform: none !important; }
+    .danaa-landing .chip,
+    .danaa-landing .hero-float,
+    .danaa-landing .mock-window { transform: none !important; }
+    .danaa-landing .bento__cell--a { background: var(--card-bg) !important; }
+    .danaa-landing [data-reveal],
+    .danaa-landing [data-reveal-stagger] > * { opacity: 1 !important; transform: none !important; }
+  }
+
+  /* ─── V4 → React 통합 패치 ───────────────────────────────
+     Hero omni 부활 (mock-window와 공존) + ThemeToggle 숨김
+     ──────────────────────────────────────────────────────── */
+  .danaa-landing .hero__visual--mock { position: relative; }
+
+  .danaa-landing .hero-omni {
+    position: absolute;
+    inset: 4%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.55;
+  }
+  .danaa-landing .hero-omni .orb {
+    position: absolute; inset: 12%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #fff 0%, var(--green-50) 35%, var(--orange-100) 70%, transparent 100%);
+    filter: saturate(108%) blur(2px);
+  }
+  .danaa-landing .hero-omni .omni { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .danaa-landing .hero-omni .omni svg { width: 100%; height: 100%; }
+  .danaa-landing .hero-omni .omni__ring {
+    transform-origin: 50% 50%;
+    transform-box: fill-box;
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 6 10;
+    stroke-width: 1.6;
+  }
+  .danaa-landing .hero-omni .omni__ring--1 {
+    stroke: var(--green-500);
+    stroke-opacity: .55;
+    animation: omniDraw1 1.4s var(--ease-out) both, omniSpin 20s linear 1.4s infinite;
+  }
+  .danaa-landing .hero-omni .omni__ring--2 {
+    stroke: var(--orange-500);
+    stroke-opacity: .35;
+    animation: omniDraw2 1.4s var(--ease-out) .15s both, omniSpin 28s linear 1.55s infinite;
+  }
+  .danaa-landing .hero-omni .omni__ring--3 {
+    stroke: #6B3D8E;
+    stroke-opacity: .28;
+    animation: omniDraw3 1.4s var(--ease-out) .3s both, omniSpin 36s linear 1.7s infinite;
+  }
+
+  .danaa-landing .mock-window { position: relative; z-index: 1; }
+  .danaa-landing .hero-float { z-index: 2; }
+
+  @media (max-width: 720px) {
+    .danaa-landing .hero-omni { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .danaa-landing .hero-omni .omni__ring { animation: none !important; }
+  }
+
+  /* footer h3 (이전 h4) — V4 시각 동일 유지 (heading 계층만 정정) */
+  .danaa-landing .footer__col-title {
+    font-family: 'Geist', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+
+  /* ─── 가독성 패치 (사용자 피드백 반영) ─────────────────────
+     1) section__head .lead — 마지막 한 단어만 외롭게 떨어지는 현상 해소
+        · max-width 760 → 660 + text-wrap: balance 로 줄 균형
+     2) CTA __sub — 다크 배경에 색상 흐려 잘 안 보임 → 진하게
+     3) 다크 섹션 lead (scroll-nav, trust) 도 일관 진하게
+     ──────────────────────────────────────────────────────── */
+  .danaa-landing .section__head .lead {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+    text-wrap: balance;
+    word-break: keep-all;
+  }
+  /* 모바일에서는 max-width 자동 (좌우 padding이 더 중요) */
+  @media (max-width: 720px) {
+    .danaa-landing .section__head .lead {
+      max-width: none;
+    }
+  }
+
+  /* CTA 다크 박스 안 텍스트 가독성 강화 — 제목은 흰색, 부제도 흰색 */
+  .danaa-landing .cta__title {
+    color: #ffffff;
+  }
+  .danaa-landing .cta__sub {
+    color: #ffffff;
+    font-weight: 500;
+    line-height: 1.6;
+    text-wrap: balance;
+    word-break: keep-all;
+  }
+  .danaa-landing .cta__assure {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  /* 다크 섹션 lead 색상 진하게 */
+  .danaa-landing .scroll-nav .section__head .lead { color: rgba(255, 255, 255, 0.85); }
+  .danaa-landing .trust .section__head .lead { color: rgba(255, 255, 255, 0.85); }
+
+  /* h2 도 balance 적용 — 헤드라인이 한 단어만 떨어지는 현상 방지 */
+  .danaa-landing .section__head .h2 {
+    text-wrap: balance;
+  }
