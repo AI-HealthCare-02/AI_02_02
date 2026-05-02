@@ -1,5 +1,68 @@
 # Handoff Memo
 
+## 2026-05-02 최신 핸즈오프 / V4 랜딩페이지 머지·배포 완료
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `main` (작업 브랜치 없음, 모든 작업 머지 완료)
+- `origin/main` 최신 커밋: `5d24f75 feat: V4 랜딩페이지 production 통합`
+- 로컬 `main` = `origin/main` 동기화 완료
+- `upstream` (공식레포)은 아직 이번 V4 랜딩 변경 미반영 상태
+
+### 이번에 완료된 작업
+
+#### 1. V4 랜딩페이지 PR (#45) 충돌 해결 및 머지
+
+- PR 작성자: `LAP-TIME2`
+- 충돌 파일: `frontend/app/page.js`
+- 충돌 원인: `main`에 이미 머지된 PR #43의 반응형 수정(구버전 클라이언트 컴포넌트)과 V4 서버 컴포넌트가 동일 파일 충돌
+- 해결 방법: V4 버전 채택 (구버전 랜딩 전체 교체가 목적이므로 반응형 패치는 불필요)
+- 머지 커밋: `5d24f75`
+- 421 테스트 통과 (Windows TMPDIR 권한 이슈 `.tmp/` 우회 적용)
+
+#### 2. V4 랜딩페이지 내용
+
+- `frontend/app/page.js` → 서버 컴포넌트로 교체, V4 metadata(og/twitter/canonical) export
+- `frontend/app/AuthRedirectGate.jsx` → 인증 분기 클라이언트 컴포넌트 (`?preview=1` 우회 지원)
+- `frontend/app/landing.css` → V4 CSS 2000줄 `.danaa-landing` 스코프 캡슐화
+- `frontend/components/landing/*` → 14개 컴포넌트 (8섹션 + Nav/Footer + SymbolDefs/Icon/HeroOmni)
+- `frontend/hooks/landing/*` → 7개 훅 (Reduced motion · Scroll progress · Sticky nav · Reveal · Mouse tracking · Magnetic · Deck nav)
+- 4가지 핵심 효과: 벤토 박스, 옴니 원형, 인터랙티브 비교표, 3D 입체 덱
+- `/` First Load JS **99.6 kB** (외부 라이브러리 추가 없음)
+- 인증 사용자는 마운트 후 `/app/chat` 또는 `/onboarding/diabetes` 자동 이동 (보존)
+
+#### 3. 배포 완료 (CI/CD 자동)
+
+- 머지 트리거로 GitHub Actions 배포 파이프라인 자동 실행
+- Docker 이미지 빌드: `ghcr.io/bijeng/danaa-fastapi:main-5d24f75`
+- 서버 배포 절차: pull → aerich upgrade (`No upgrade items found`) → 컨테이너 재시작 → 구 이미지 prune (402.8MB 회수)
+- 배포 결과: `✅ Successfully executed commands to all host.`
+- 참고: CI 로그의 `err:` 접두사는 Docker가 진행 상황을 stderr로 출력하는 정상 동작 (에러 아님)
+
+### 현재 `origin/main` 커밋 히스토리 (최근 5개)
+
+```
+5d24f75 feat: V4 랜딩페이지 production 통합 (Airtable 벤치마크 기반 4가지 효과)
+fa1ba96 Merge branch 'main' into feat/doit-os-guide-update-2026-05-01
+1d3161c feat: V4 랜딩페이지 production 통합 — Airtable 벤치마크 기반 4가지 효과
+0914d3b Merge pull request #44 from BIJENG/feat/doit-os-guide-update-2026-05-01
+15f51dd Merge pull request #43 from BIJENG/feat/bj_account-recovery-responsive-challenge
+```
+
+### 미반영/잔여 사항
+
+- `docker-compose.prod.yml` 로컬 수정사항 있음 (unstaged) — 내용 확인 후 커밋 또는 복구 필요
+- `upstream` (공식레포 `AI-HealthCare-02/AI_02_02`)에 PR #43(계정찾기·반응형·챌린지 배지), V4 랜딩 변경 아직 미제출
+- reviewer 1440px·360px 시각 확인 체크리스트 미완료 (PR #45 체크리스트 잔여)
+
+### 다음 액션
+
+1. `docker-compose.prod.yml` 로컬 변경사항 확인 및 처리
+2. 공식레포(`upstream`)에 계정찾기·반응형·챌린지 배지 PR 제출 (핸즈오프 2026-05-01 참고)
+3. V4 랜딩 실제 브라우저 확인: `/` 비로그인 접근, `?preview=1` 우회, 인증 후 자동 리다이렉트
+
+---
+
 ## 2026-05-01 최신 핸즈오프 / 계정찾기·반응형·챌린지 배지 PR 준비
 
 ### 현재 저장소/브랜치 상태
