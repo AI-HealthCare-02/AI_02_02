@@ -211,8 +211,8 @@ function ChallengeVisualBadge({ visual, size = 24 }) {
 /* ── 탭바 ────────────────────────────────────────────── */
 function TabBar({ activeTab, onChange, highlightSelection }) {
   return (
-    <div className="shrink-0 border-b border-[#E5E7EB] bg-white">
-      <div className="mx-auto flex w-full max-w-[960px] gap-0 px-4">
+    <div className="shrink-0 border-b border-[#E5E7EB] bg-white dark:border-[var(--color-border)] dark:bg-[var(--color-card)]">
+      <div className="mx-auto flex w-full max-w-[1260px] gap-0 px-5">
         {CATEGORY_GROUPS.map((tab) => {
           const isActive = activeTab === tab.key;
           const shouldPulse = tab.key === 'select' && highlightSelection;
@@ -223,8 +223,8 @@ function TabBar({ activeTab, onChange, highlightSelection }) {
               onClick={() => onChange(tab.key)}
               className={`relative inline-flex cursor-pointer items-center border-b-2 px-5 py-3 text-[14px] font-semibold transition-colors ${
                 isActive
-                  ? 'border-nature-500 text-nature-900'
-                  : 'border-transparent text-neutral-500 hover:text-nature-800'
+                  ? 'border-[#2563EB] text-[#111827] dark:border-blue-400 dark:text-white'
+                  : 'border-transparent text-[#6B7280] hover:text-[#111827] dark:hover:text-white'
               }`}
             >
               {tab.label}
@@ -828,21 +828,21 @@ export default function ChallengePage() {
               <div
                 className={`rounded-2xl border px-4 py-4 ${
                   isFull
-                    ? 'border-amber-200 bg-amber-50'
-                    : 'border-nature-950/30 bg-cream-100'
+                    ? 'border-amber-200 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30'
+                    : 'border-nature-950/30 bg-cream-100 dark:border-nature-400/30 dark:bg-nature-900/20'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div
                     className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white ${
-                      isFull ? 'bg-amber-500' : 'bg-nature-950'
+                      isFull ? 'bg-amber-500' : 'bg-nature-950 dark:bg-nature-500'
                     }`}
                   >
                     {isFull ? <X size={14} /> : <Sparkles size={14} />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold text-nature-950">{selectStatusTitle}</div>
-                    <div className="mt-0.5 text-[12px] text-neutral-500">{selectStatusBody}</div>
+                    <div className="text-[14px] font-semibold text-nature-950 dark:text-[var(--color-text)]">{selectStatusTitle}</div>
+                    <div className="mt-0.5 text-[12px] text-neutral-500 dark:text-neutral-400">{selectStatusBody}</div>
                   </div>
                   {!isEmpty && (
                     <button
