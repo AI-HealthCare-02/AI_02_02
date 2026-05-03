@@ -8,13 +8,21 @@ import { needsMigration, runMigration } from '../../lib/doit_store';
  * initDoitStore() 완료 후 needsMigration()이 true일 때 렌더링한다.
  */
 export default function MigrationBanner({ onComplete }) {
-  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'done'
+  const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error' | 'done'
+  const [errorMsg, setErrorMsg] = useState(null);
 
   if (!needsMigration()) return null;
+  if (status === 'done') return null;
 
   const handleMigrate = async () => {
     setStatus('loading');
-    await runMigration();
+    setErrorMsg(null);
+    const result = await runMigration();
+    if (!result.success) {
+      setStatus('error');
+      setErrorMsg(result.error ?? '알 수 없는 오류가 발생했어요.');
+      return;
+    }
     setStatus('done');
     if (typeof onComplete === 'function') onComplete();
   };
@@ -24,8 +32,6 @@ export default function MigrationBanner({ onComplete }) {
     if (typeof onComplete === 'function') onComplete();
   };
 
-  if (status === 'done') return null;
-
   return (
     <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card-surface)] p-4 shadow-sm">
       <p className="text-[13.5px] font-medium text-[var(--color-text)]">
@@ -34,6 +40,11 @@ export default function MigrationBanner({ onComplete }) {
       <p className="mt-1 text-[12.5px] text-[var(--color-text-secondary)]">
         기기 로컬에 남아 있는 생각들을 계정에 옮겨드릴게요.
       </p>
+      {status === 'error' && (
+        <p className="mt-2 text-[12px] text-red-500">
+          옮기기 실패: {errorMsg} 잠시 후 다시 시도해 주세요.
+        </p>
+      )}
       <div className="mt-3 flex gap-2">
         <button
           type="button"
@@ -41,7 +52,7 @@ export default function MigrationBanner({ onComplete }) {
           disabled={status === 'loading'}
           className="rounded-full bg-[var(--color-text)] px-4 py-1.5 text-[13px] font-medium text-[var(--color-surface)] transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          {status === 'loading' ? '옮기는 중…' : '계정으로 옮기기'}
+          {status === 'loading' ? '옮기는 중…' : status === 'error' ? '다시 시도' : '계정으로 옮기기'}
         </button>
         <button
           type="button"

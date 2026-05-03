@@ -23,6 +23,7 @@ import {
   loadThoughts,
   needsMigration,
   normalizeThought,
+  runMigration,
   saveThoughts,
   _resetStoreForTest,
 } from '../lib/doit_store';
@@ -200,6 +201,51 @@ describe('doit_store — 마이그레이션 감지', () => {
     setUser(1);
     await initDoitStore();
     expect(needsMigration()).toBe(false);
+  });
+});
+
+// ── runMigration ────────────────────────────────────────────────────────────
+
+describe('doit_store — runMigration', () => {
+  it('성공 시 { success: true } 반환하고 캐시 업데이트', async () => {
+    const { doitBulkSync } = await import('../lib/doit_api');
+    setUser(1);
+    window.localStorage.setItem(
+      getThoughtsStorageKey(),
+      JSON.stringify([{ id: 'loc1', text: '로컬 생각', category: 'todo', createdAt: new Date().toISOString() }]),
+    );
+    await initDoitStore(); // DB 비어있음 → needsMigration true
+
+    const result = await runMigration();
+    expect(result.success).toBe(true);
+    expect(doitBulkSync).toHaveBeenCalledTimes(1);
+    expect(loadThoughts()).toHaveLength(1);
+    expect(needsMigration()).toBe(false);
+  });
+
+  it('doitBulkSync 실패 시 { success: false, error } 반환하고 needsMigration 유지', async () => {
+    const { doitBulkSync } = await import('../lib/doit_api');
+    doitBulkSync.mockRejectedValueOnce(new Error('bulk-sync network error'));
+
+    setUser(1);
+    window.localStorage.setItem(
+      getThoughtsStorageKey(),
+      JSON.stringify([{ id: 'loc2', text: '로컬 생각2', category: 'todo', createdAt: new Date().toISOString() }]),
+    );
+    await initDoitStore();
+
+    const result = await runMigration();
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/bulk-sync/);
+    expect(needsMigration()).toBe(true); // 다음 시도를 위해 유지
+  });
+
+  it('localStorage 비어있으면 즉시 { success: true } 반환', async () => {
+    setUser(1);
+    await initDoitStore(); // DB 비어있음, localStorage도 비어있음
+    // needsMigration = false (localStorage도 없으므로)
+    const result = await runMigration();
+    expect(result.success).toBe(false); // _needsMigration = false → 즉시 반환
   });
 });
 

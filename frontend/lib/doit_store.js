@@ -174,6 +174,23 @@ let _initPromise = null;    // singleton init guard
 let _syncTimer = null;      // debounce handle for diff-based API sync
 let _prevBeforeSync = null; // snapshot captured before the current pending diff batch
 let _needsMigration = false;
+let _bc = undefined;        // undefined = not set up; null = not available; BroadcastChannel = active
+
+function _ensureBroadcastChannel() {
+  if (_bc !== undefined) return _bc;
+  if (typeof window === 'undefined' || typeof window.BroadcastChannel !== 'function') {
+    _bc = null;
+    return null;
+  }
+  _bc = new window.BroadcastChannel('danaa_doit_store_v1');
+  _bc.onmessage = (event) => {
+    if (event.data?.type === 'cache_update' && Array.isArray(event.data.cache)) {
+      _cache = normalizeThoughtList(event.data.cache);
+      window.dispatchEvent(new CustomEvent('doit-store-update'));
+    }
+  };
+  return _bc;
+}
 
 // ── Public store API ──
 
@@ -182,7 +199,7 @@ export function loadThoughts() {
   return _cache ?? [];
 }
 
-/** Thought 배열 전체를 저장. 캐시 갱신 → 이벤트 dispatch → diff API sync 예약. */
+/** Thought 배열 전체를 저장. 캐시 갱신 → 이벤트 dispatch → 다른 탭 동기화 → diff API sync 예약. */
 export function saveThoughts(thoughts) {
   if (_cache === null) return; // initDoitStore 완료 전 저장 무시
   const prev = _cache ?? [];
@@ -191,6 +208,8 @@ export function saveThoughts(thoughts) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('doit-store-update'));
   }
+  // 같은 origin의 다른 탭에 즉시 반영 (크로스-탭 동기화)
+  _ensureBroadcastChannel()?.postMessage({ type: 'cache_update', cache: normalized });
   _scheduleDiff(prev, normalized);
 }
 
@@ -218,21 +237,26 @@ export function needsMigration() {
   return _needsMigration;
 }
 
-/** localStorage → DB 1회 이전. 완료 후 _needsMigration = false, 이벤트 dispatch. */
+/**
+ * localStorage → DB 1회 이전.
+ * 반환: { success: true } 또는 { success: false, error: string }
+ */
 export async function runMigration() {
-  if (!_needsMigration || typeof window === 'undefined') return;
+  if (!_needsMigration || typeof window === 'undefined') return { success: false };
   try {
     const raw = window.localStorage.getItem(getThoughtsStorageKey());
-    if (!raw) { _needsMigration = false; return; }
+    if (!raw) { _needsMigration = false; return { success: true }; }
     const local = JSON.parse(raw);
-    if (!Array.isArray(local) || local.length === 0) { _needsMigration = false; return; }
+    if (!Array.isArray(local) || local.length === 0) { _needsMigration = false; return { success: true }; }
     const normalized = normalizeThoughtList(local);
     await doitBulkSync(normalized);
     _cache = normalized;
     _needsMigration = false;
     window.dispatchEvent(new CustomEvent('doit-store-update'));
-  } catch {
-    // 마이그레이션 실패 — 다음 로드 때 재시도 가능.
+    return { success: true };
+  } catch (err) {
+    // _needsMigration은 true 유지 → 다음 방문 시 재시도 가능.
+    return { success: false, error: err?.message ?? '알 수 없는 오류' };
   }
 }
 
@@ -283,11 +307,28 @@ async function _doApiDiff(prev, next) {
     if (!nextMap.has(id)) deletes.push(id);
   }
 
-  await Promise.allSettled([
+  if (creates.length === 0 && updates.length === 0 && deletes.length === 0) return;
+
+  const results = await Promise.allSettled([
     ...creates.map((t) => doitCreate(t)),
     ...updates.map((t) => doitUpdate(t.id, t)),
     ...deletes.map((id) => doitDelete(id)),
   ]);
+
+  // 실패한 항목이 있으면 DB에서 재조회해 캐시를 DB 상태로 복구한다.
+  if (results.some((r) => r.status === 'rejected')) {
+    try {
+      const fresh = await doitFetchAll();
+      _cache = normalizeThoughtList(fresh);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('doit-store-update'));
+        // 다른 탭도 복구된 상태로 맞춘다.
+        _ensureBroadcastChannel()?.postMessage({ type: 'cache_update', cache: _cache });
+      }
+    } catch {
+      // 재조회도 실패 — 다음 initDoitStore 호출 시 복구됨.
+    }
+  }
 }
 
 // ── Thought mutation helpers (pure — do not call saveThoughts) ──
@@ -579,4 +620,6 @@ export function _resetStoreForTest() {
   _syncTimer = null;
   _prevBeforeSync = null;
   _needsMigration = false;
+  if (_bc) { try { _bc.close(); } catch {} }
+  _bc = undefined;
 }
