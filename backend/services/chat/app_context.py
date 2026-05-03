@@ -35,6 +35,8 @@ class ChatAppIntent(StrEnum):
     ONBOARDING_HELP = "onboarding_help"
     RIGHT_PANEL_HELP = "right_panel_help"
     MISSED_MODAL_HELP = "missed_modal_help"
+    DOIT_OS_HELP = "doit_os_help"
+    DOIT_OS_STATE = "doit_os_state"
     MIXED = "mixed"
 
 
@@ -49,6 +51,7 @@ class ChatAppHelpSnapshot:
     onboarding_help: str | None = None
     right_panel_help: str | None = None
     missed_modal_help: str | None = None
+    doit_os_help: str | None = None
 
 
 @dataclass(frozen=True)
@@ -78,6 +81,11 @@ class ChatAppStateSnapshot:
     card_blocked_reason_text: str | None = None
     card_available_after: object | None = None
     card_sequence_started_at: object | None = None
+    doit_unclassified_count: int | None = None
+    doit_today_todos: tuple[str, ...] = ()
+    doit_overdue_schedules: int | None = None
+    doit_active_projects: tuple[str, ...] = ()
+    doit_recent_notes_count: int | None = None
     schema_version: str = "chat_app_context_v1"
 
     def state_keys(self) -> tuple[str, ...]:  # noqa: C901
@@ -116,6 +124,16 @@ class ChatAppStateSnapshot:
             keys.append("card_available_after")
         if self.card_sequence_started_at is not None:
             keys.append("card_sequence_started_at")
+        if self.doit_unclassified_count is not None:
+            keys.append("doit_unclassified_count")
+        if self.doit_today_todos:
+            keys.append("doit_today_todos")
+        if self.doit_overdue_schedules is not None:
+            keys.append("doit_overdue_schedules")
+        if self.doit_active_projects:
+            keys.append("doit_active_projects")
+        if self.doit_recent_notes_count is not None:
+            keys.append("doit_recent_notes_count")
         return tuple(keys)
 
 
@@ -159,6 +177,10 @@ def _fallback_help_snapshot() -> ChatAppHelpSnapshot:
         ),
         missed_modal_help=(
             "미응답 질문 모달은 어제·그제 미기록 항목을 드롭다운으로 일괄 입력하는 팝업이에요. 오늘은 우측 Today 카드에서 입력해요."
+        ),
+        doit_os_help=(
+            "Do it OS는 머릿속 생각을 쏟아놓고 할 일·일정·프로젝트·노트로 정리하는 기능이에요. "
+            "미분류 메모를 카테고리로 분류하고, 오늘 할 일 체크·일정 관리·프로젝트 진행·노트 작성이 모두 가능해요."
         ),
     )
 
@@ -269,6 +291,7 @@ def build_default_help_snapshot() -> ChatAppHelpSnapshot:
         onboarding_help=_get("onboarding", fallback.onboarding_help),
         right_panel_help=_get("right_panel", fallback.right_panel_help),
         missed_modal_help=_get("missed_modal", fallback.missed_modal_help),
+        doit_os_help=_get("doit_os", fallback.doit_os_help),
     )
 
 
@@ -288,6 +311,7 @@ def intent_requests_state(intent: ChatAppIntent) -> bool:
         ChatAppIntent.REPORT_STATE,
         ChatAppIntent.CHALLENGE_STATE,
         ChatAppIntent.PENDING_SURVEYS,
+        ChatAppIntent.DOIT_OS_STATE,
         ChatAppIntent.MIXED,
     }
 
@@ -302,6 +326,7 @@ _HELP_INTENTS = frozenset(
         ChatAppIntent.ONBOARDING_HELP,
         ChatAppIntent.RIGHT_PANEL_HELP,
         ChatAppIntent.MISSED_MODAL_HELP,
+        ChatAppIntent.DOIT_OS_HELP,
         ChatAppIntent.MIXED,
     }
 )
@@ -321,6 +346,7 @@ _INTENT_SECTION_MAP: tuple[tuple[str, ChatAppIntent, str, str, tuple[ChatAppInte
     ("온보딩", ChatAppIntent.ONBOARDING_HELP, "onboarding", "onboarding_help", ()),
     ("우측 Today 패널", ChatAppIntent.RIGHT_PANEL_HELP, "right_panel", "right_panel_help", ()),
     ("미응답 모달", ChatAppIntent.MISSED_MODAL_HELP, "missed_modal", "missed_modal_help", ()),
+    ("Do it OS", ChatAppIntent.DOIT_OS_HELP, "doit_os", "doit_os_help", (ChatAppIntent.DOIT_OS_STATE,)),
 )
 
 
@@ -450,7 +476,25 @@ def _build_pending_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
     return lines
 
 
-def build_app_state_layer(context: ChatAppContext | None) -> str:
+def _build_doit_os_state_lines(snapshot: ChatAppStateSnapshot) -> list[str]:
+    lines: list[str] = []
+    if snapshot.doit_unclassified_count is not None:
+        lines.append(f"- 미분류 메모: {snapshot.doit_unclassified_count}개")
+    if snapshot.doit_today_todos:
+        lines.append(
+            f"- 오늘 할 일 ({len(snapshot.doit_today_todos)}개): "
+            + ", ".join(snapshot.doit_today_todos[:5])
+        )
+    if snapshot.doit_overdue_schedules is not None and snapshot.doit_overdue_schedules > 0:
+        lines.append(f"- 기한 지난 일정: {snapshot.doit_overdue_schedules}개")
+    if snapshot.doit_active_projects:
+        lines.append("- 활성 프로젝트: " + ", ".join(snapshot.doit_active_projects[:5]))
+    if snapshot.doit_recent_notes_count is not None and snapshot.doit_recent_notes_count > 0:
+        lines.append(f"- 최근 노트: {snapshot.doit_recent_notes_count}개")
+    return lines
+
+
+def build_app_state_layer(context: ChatAppContext | None) -> str:  # noqa: C901
     if context is None or not intent_requests_state(context.intent):
         return ""
 
@@ -478,6 +522,11 @@ def build_app_state_layer(context: ChatAppContext | None) -> str:
         if pending_lines:
             lines.append("[오늘 아직 안 적은 질문 상태]")
             lines.extend(pending_lines)
+    if context.intent in {ChatAppIntent.DOIT_OS_STATE, ChatAppIntent.MIXED}:
+        doit_lines = _build_doit_os_state_lines(snapshot)
+        if doit_lines:
+            lines.append("[Do it OS 현재 상태]")
+            lines.extend(doit_lines)
 
     if not lines:
         return (

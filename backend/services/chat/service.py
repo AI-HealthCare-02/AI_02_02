@@ -95,6 +95,7 @@ from backend.services.chat_graph.adapter import (
     should_enter_langgraph_adapter,
 )
 from backend.services.content_filter import ContentFilterService, FilterResult
+from backend.services.doit import DoitService
 from backend.services.health_question import (
     BUNDLE_CHECK_FIELDS,
     MAX_DAILY_CHATS,
@@ -113,6 +114,7 @@ class ChatService:
     def __init__(self):
         self.health_question_service = HealthQuestionService()
         self.challenge_service = ChallengeService()
+        self.doit_service = DoitService()
         self.content_filter = ContentFilterService()
         self._last_crisis_at: dict[int, datetime] = {}
         self._rag_service = None
@@ -218,9 +220,11 @@ class ChatService:
         if domains is None:
             should_load_challenge = intent.value in {"challenge_state", "mixed"}
             should_load_pending = intent.value in {"pending_surveys", "mixed"}
+            should_load_doit = intent.value in {"doit_os_state", "mixed"}
         else:
             should_load_challenge = "challenge" in domains
             should_load_pending = "pending" in domains
+            should_load_doit = "doit_os" in domains
 
         snapshot = ChatAppStateSnapshot(
             onboarding_completed=True,
@@ -275,6 +279,32 @@ class ChatService:
                 card_blocked_reason_text=card_availability.get("blocked_reason_text"),
                 card_available_after=card_availability.get("available_after"),
                 card_sequence_started_at=card_availability.get("sequence_started_at"),
+            )
+
+        if should_load_doit:
+            ai_summary = await self.doit_service.get_ai_summary(user_id=user_id)
+            snapshot = ChatAppStateSnapshot(
+                onboarding_completed=snapshot.onboarding_completed,
+                user_group=snapshot.user_group,
+                initial_risk_level=snapshot.initial_risk_level,
+                active_count=snapshot.active_count,
+                remaining_active_slots=snapshot.remaining_active_slots,
+                active_challenges=snapshot.active_challenges,
+                pending_count=snapshot.pending_count,
+                pending_question_labels=snapshot.pending_question_labels,
+                pending_bundle_names=snapshot.pending_bundle_names,
+                card_is_available=snapshot.card_is_available,
+                card_next_bundle_key=snapshot.card_next_bundle_key,
+                card_next_bundle_name=snapshot.card_next_bundle_name,
+                card_blocked_reason=snapshot.card_blocked_reason,
+                card_blocked_reason_text=snapshot.card_blocked_reason_text,
+                card_available_after=snapshot.card_available_after,
+                card_sequence_started_at=snapshot.card_sequence_started_at,
+                doit_unclassified_count=ai_summary.unclassified_count,
+                doit_today_todos=tuple(ai_summary.today_todos),
+                doit_overdue_schedules=ai_summary.overdue_schedules,
+                doit_active_projects=tuple(ai_summary.active_projects),
+                doit_recent_notes_count=ai_summary.recent_notes_count,
             )
 
         return snapshot
