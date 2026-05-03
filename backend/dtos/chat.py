@@ -17,6 +17,7 @@ class SendMessageRequest(BaseModel):
 
     message: Annotated[str, Field(min_length=1, max_length=2000)]
     session_id: int | None = None
+    doit_context: dict | None = None
 
 
 class HealthAnswerRequest(BaseModel):

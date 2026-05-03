@@ -7,6 +7,7 @@ import Tutorial from '../../../components/Tutorial';
 import InlineHealthQuestionCard from './components/InlineHealthQuestionCard';
 import VideoRecommendations from '../../../components/VideoRecommendations';
 import { api, getScopedStorageKey, getToken } from '../../../hooks/useApi';
+import { doitAiSummary } from '../../../lib/doit_api';
 
 /* ── Right Panel V2 (리디자인) · 기본 활성화 / env 값 0일 때만 비활성화 ── */
 const RIGHT_PANEL_V2_ENABLED = process.env.NEXT_PUBLIC_RIGHT_PANEL_V2 !== '0';
@@ -425,6 +426,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [streamingDraft, setStreamingDraft] = useState(null);
   const [inputText, setInputText] = useState('');
+  const [doItContextEnabled, setDoItContextEnabled] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [historyPolicyNotice, setHistoryPolicyNotice] = useState(false);
@@ -1151,6 +1153,11 @@ const sendMessage = useCallback(async () => {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      let doItContext = null;
+      if (doItContextEnabled) {
+        try { doItContext = await doitAiSummary(); } catch { /* silent — send without context */ }
+      }
+
       const authToken = getToken() || DEV_AUTH_TOKEN;
       const res = await fetch(CHAT_API_URL, {
         method: 'POST',
@@ -1159,7 +1166,7 @@ const sendMessage = useCallback(async () => {
           ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ message: text, session_id: sessionId }),
+        body: JSON.stringify({ message: text, session_id: sessionId, ...(doItContext ? { doit_context: doItContext } : {}) }),
         signal: controller.signal,
       });
 
@@ -1749,7 +1756,16 @@ const sendMessage = useCallback(async () => {
                   className="w-full bg-transparent text-[14px] text-nature-900 outline-none placeholder:text-neutral-400 disabled:opacity-50"
                 />
                 <div className="mt-2.5 flex items-center justify-between">
-                  <span className="text-[16px] text-neutral-400 cursor-pointer hover:text-neutral-500">+</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[16px] text-neutral-400 cursor-pointer hover:text-neutral-500">+</span>
+                    <button
+                      type="button"
+                      onClick={() => setDoItContextEnabled((v) => !v)}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11.5px] font-medium transition-colors ${doItContextEnabled ? 'border-[var(--color-primary)] bg-[var(--color-primary-light)]/40 text-[var(--color-primary)]' : 'border-[var(--color-border)] text-[var(--color-text-hint)] hover:border-[var(--color-border-focus)]'}`}
+                    >
+                      Do it OS 참고
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[12px] text-neutral-400">다나아 AI</span>
                     <button

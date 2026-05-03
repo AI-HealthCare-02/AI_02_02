@@ -103,6 +103,33 @@ CONCISE_RESPONSE_INSTRUCTION = (
     "- 안전 안내가 필요한 경우에는 그 문구를 생략하지 마세요.\n"
 )
 
+_DOIT_CONTEXT_PREFACE = (
+    "\n\n## Do it OS 맥락 (AI 도움 모드)\n"
+    "사용자가 Do it OS 현황을 참고해 달라고 요청했습니다. "
+    "아래 정보를 답변 방향 조정에 활용하세요.\n"
+)
+
+
+def _doit_context_layer_text(doit_context: dict | None) -> str:
+    if not doit_context:
+        return ""
+    lines: list[str] = [_DOIT_CONTEXT_PREFACE]
+    if (n := doit_context.get("unclassified_count")) is not None:
+        lines.append(f"- 미분류 메모: {n}개")
+    todos: list[str] = doit_context.get("today_todos") or []
+    if todos:
+        lines.append(f"- 오늘 할 일({len(todos)}개): " + ", ".join(todos[:5]))
+    overdue = doit_context.get("overdue_schedules") or 0
+    if overdue > 0:
+        lines.append(f"- 기한 지난 일정: {overdue}개")
+    projects: list[str] = doit_context.get("active_projects") or []
+    if projects:
+        lines.append("- 활성 프로젝트: " + ", ".join(projects[:5]))
+    notes = doit_context.get("recent_notes_count") or 0
+    if notes > 0:
+        lines.append(f"- 최근 노트: {notes}개")
+    return "\n".join(lines) + "\n"
+
 
 @dataclass(frozen=True)
 class PromptBuildResult:
@@ -114,6 +141,7 @@ class PromptBuildResult:
     rag_layer: str
     filter_instruction_layer: str
     final_system_prompt: str
+    doit_context_layer: str = ""
 
 
 def _prompt_policy_instruction(prompt_policy: PromptPolicy) -> str:
@@ -233,6 +261,7 @@ def _build_openai_messages_from_base_prompt(
     message_text: str | None = None,
     app_help_text: str | None = None,
     app_state_text: str | None = None,
+    doit_context: dict | None = None,
 ) -> PromptBuildResult:
     app_help_layer = app_help_text or ""
     app_state_layer = app_state_text or ""
@@ -240,6 +269,7 @@ def _build_openai_messages_from_base_prompt(
     route_layer = _route_layer_text(route, emotional_priority, flags)
     rag_layer = _rag_layer_text(rag_context_text, flags)
     filter_instruction_layer = _filter_instruction_layer_text(prompt_policy)
+    doit_context_layer = _doit_context_layer_text(doit_context)
     final_system_prompt = (
         base_system_prompt
         + (CONCISE_RESPONSE_INSTRUCTION if config.CHAT_OPENAI_SHORT_RESPONSE_ENABLED else "")
@@ -247,6 +277,7 @@ def _build_openai_messages_from_base_prompt(
         + filter_instruction_layer
         + app_help_layer
         + app_state_layer
+        + doit_context_layer
         + user_context_layer
         + rag_layer
     )
@@ -268,6 +299,7 @@ def _build_openai_messages_from_base_prompt(
         rag_layer=rag_layer,
         filter_instruction_layer=filter_instruction_layer,
         final_system_prompt=final_system_prompt,
+        doit_context_layer=doit_context_layer,
     )
 
 
@@ -289,6 +321,7 @@ async def _build_openai_messages(
     base_system_prompt: str | None = None,
     app_help_text: str | None = None,
     app_state_text: str | None = None,
+    doit_context: dict | None = None,
 ) -> list[dict[str, str]]:
     system_prompt = base_system_prompt or await _build_system_prompt(profile, eligible_bundles)
     build_result = _build_openai_messages_from_base_prompt(
@@ -297,6 +330,7 @@ async def _build_openai_messages(
         message_text=message_text,
         app_help_text=app_help_text,
         app_state_text=app_state_text,
+        doit_context=doit_context,
         route=filter_result.message_route if filter_result else None,
         emotional_priority=filter_result.emotional_priority if filter_result else False,
         prompt_policy=_prompt_policy_from_filter_result(filter_result),

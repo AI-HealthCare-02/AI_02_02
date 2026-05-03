@@ -291,6 +291,7 @@ class ChatService:
         message: str,
         session_id: int | None = None,
         chat_req_id: str | None = None,
+        doit_context: dict | None = None,
     ) -> AsyncGenerator[str, None]:
         request_started_at = time.perf_counter()
         first_token_at: float | None = None
@@ -421,6 +422,7 @@ class ChatService:
             app_help_text=app_help_text,
             app_state_text=app_state_text,
             chat_req_id=chat_req_id,
+            doit_context=doit_context,
         )
         logger.info("chat_prep_ms", chat_req_id=chat_req_id, prep_ms=round((time.perf_counter() - prep_started_at) * 1000, 2))
         bench_budget_enabled = config.CHAT_BENCH_BUDGET_ENABLED
@@ -588,6 +590,7 @@ class ChatService:
         app_help_text: str | None = None,
         app_state_text: str | None = None,
         chat_req_id: str | None = None,
+        doit_context: dict | None = None,
     ) -> list[dict[str, str]]:
         if (
             user_id is not None
@@ -618,6 +621,7 @@ class ChatService:
             base_system_prompt=base_system_prompt,
             app_help_text=app_help_text,
             app_state_text=app_state_text,
+            doit_context=doit_context,
         )
 
     def _should_use_langgraph_prep(self, user_id: int, filter_result: FilterResult) -> bool:

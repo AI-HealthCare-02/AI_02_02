@@ -40,6 +40,7 @@ async def send_message(
             message=body.message,
             session_id=body.session_id,
             chat_req_id=chat_req_id,
+            doit_context=body.doit_context,
         ),
         media_type="text/event-stream; charset=utf-8",
         headers={
