@@ -36,6 +36,7 @@ from backend.services.saju.engine.yongshin import (
     SCHOOL as YONGSHIN_SCHOOL,
 )
 from backend.services.saju.engine.yongshin import (
+    build_yongshin_guidance,
     compute_strength_score,
     derive_yongshin_eokbu,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "SISUNG_KOR",
     "YONGSHIN_SCHOOL",
     "attach_sisung_to_natal",
+    "build_yongshin_guidance",
     "compute_natal_chart",
     "compute_sisung",
     "compute_strength_score",

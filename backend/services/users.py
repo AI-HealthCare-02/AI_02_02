@@ -45,6 +45,18 @@ class UserManageService:
     async def update_user(self, user: User, data: UserUpdateRequest) -> User:
         payload = data.model_dump(exclude_none=True)
 
+        if "birthday" in payload and user.birthday is not None and payload["birthday"] != user.birthday:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="birthday_locked",
+            )
+
+        if "gender" in payload and user.gender is not None and payload["gender"] != user.gender:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="gender_locked",
+            )
+
         if payload.get("email"):
             normalized_email = str(payload["email"]).strip().lower()
             existing_email_users = await self.repo.get_users_by_email(normalized_email)

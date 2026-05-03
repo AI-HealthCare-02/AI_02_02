@@ -376,3 +376,110 @@ class TestBirthTimeNormalization(TestCase):
         )
 
         assert profile.birth_time is None
+
+
+class TestSajuProfilePolicyApi(TestCase):
+    """본인 계정 기준 사주 1개 정책 검증."""
+
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        self._user = await _create_user("saju_policy@test.com", phone="01000000051")
+        app.dependency_overrides[get_request_user] = lambda: self._user
+        self._saju_flag_backup = config.SAJU_ENABLED
+        config.SAJU_ENABLED = True
+        await SajuConsentEvent.create(
+            user_id=self._user.id,
+            consent_version="saju-v1.0",
+            granted=True,
+        )
+
+    async def asyncTearDown(self):
+        config.SAJU_ENABLED = self._saju_flag_backup
+        app.dependency_overrides.pop(get_request_user, None)
+        await super().asyncTearDown()
+
+    async def test_put_profile_uses_account_snapshot_and_locks_birth_date(self):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            created = await client.put(
+                "/api/v1/saju/profile",
+                json={
+                    "birth_time": "08:30:00",
+                    "birth_time_accuracy": "exact",
+                },
+            )
+            locked = await client.put(
+                "/api/v1/saju/profile",
+                json={
+                    "birth_date": "1999-09-09",
+                    "birth_time": "09:30:00",
+                    "birth_time_accuracy": "exact",
+                },
+            )
+
+        assert created.status_code == status.HTTP_200_OK
+        assert created.json()["birth_date"] == "1990-01-01"
+        assert created.json()["gender"] == "MALE"
+        assert locked.status_code == status.HTTP_409_CONFLICT
+        assert locked.json()["detail"] == "birth_date_locked"
+
+        profile = await SajuProfile.filter(user_id=self._user.id).first()
+        assert profile is not None
+        assert profile.birth_date == date(1990, 1, 1)
+        assert profile.birth_time == time(8, 30)
+
+    async def test_patch_profile_time_invalidates_chart_and_daily_card(self):
+        profile = await SajuService().create_profile_from_user(
+            user=self._user,
+            birth_time=None,
+            birth_time_accuracy="unknown",
+        )
+        chart = await SajuService().ensure_chart(profile=profile)
+        await SajuDailyCard.create(
+            user_id=self._user.id,
+            card_date=date(2026, 5, 3),
+            summary="테스트 카드",
+            keywords=["테스트"],
+            sections=[],
+            safety_notice="참고용",
+            engine_version=chart.engine_version,
+            template_version="test",
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.patch(
+                "/api/v1/saju/profile/time",
+                json={
+                    "birth_time": "06:10:00",
+                    "birth_time_accuracy": "exact",
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["birth_time"] == "06:10:00"
+        assert await SajuChart.filter(profile_id=profile.id).count() == 0
+        assert await SajuDailyCard.filter(user_id=self._user.id).count() == 0
+
+    async def test_patch_profile_time_rejects_locked_base_fields(self):
+        await SajuService().create_profile_from_user(
+            user=self._user,
+            birth_time=None,
+            birth_time_accuracy="unknown",
+        )
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            response = await client.patch(
+                "/api/v1/saju/profile/time",
+                json={
+                    "birth_date": "1999-09-09",
+                    "birth_time": "06:10:00",
+                    "birth_time_accuracy": "exact",
+                },
+            )
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY

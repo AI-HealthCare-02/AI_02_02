@@ -14,6 +14,7 @@ from datetime import date
 from typing import Literal
 
 from backend.services.saju.engine import (
+    build_yongshin_guidance,
     derive_day_relation,
     today_pillar,
 )
@@ -74,6 +75,11 @@ def build_today_card(
     }
 
     yongshin_dict = dict(natal.get("yongshin") or {})
+    if yongshin_dict and not yongshin_dict.get("guidance"):
+        yongshin_dict["guidance"] = build_yongshin_guidance(
+            yongshin=yongshin_dict,
+            natal=natal,
+        )
     daily_score = compute_daily_score(
         relation_kind=relation["kind"],
         element_distribution=dict(natal.get("element_distribution") or {}),
