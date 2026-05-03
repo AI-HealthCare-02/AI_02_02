@@ -6,6 +6,7 @@ from backend.apis.v1.challenge_routers import challenge_router
 from backend.apis.v1.chat_routers import chat_router
 from backend.apis.v1.dashboard_routers import dashboard_router
 from backend.apis.v1.doit_routers import doit_router
+from backend.apis.v1.external_checkin_routers import external_auth_router, external_router
 from backend.apis.v1.health_routers import health_router
 from backend.apis.v1.onboarding_routers import onboarding_router
 from backend.apis.v1.push_routers import push_router
@@ -21,6 +22,8 @@ v1_routers.include_router(user_router)
 v1_routers.include_router(chat_router)
 v1_routers.include_router(onboarding_router)
 v1_routers.include_router(dashboard_router)
+v1_routers.include_router(external_auth_router)
+v1_routers.include_router(external_router)
 v1_routers.include_router(health_router)
 v1_routers.include_router(risk_router)
 v1_routers.include_router(analysis_router)
