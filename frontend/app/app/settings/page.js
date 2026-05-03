@@ -239,6 +239,10 @@ export default function SettingsPage() {
     provider: '',
     email_verified: false,
   });
+  const [identityLocked, setIdentityLocked] = useState({
+    birthday: false,
+    gender: false,
+  });
   const [notifications, setNotifications] = useState({
     chat_notification: true,
     challenge_reminder: true,
@@ -298,6 +302,10 @@ export default function SettingsPage() {
           provider: user.provider || '',
           email_verified: Boolean(user.email_verified),
         });
+        setIdentityLocked({
+          birthday: Boolean(user.birthday),
+          gender: Boolean(user.gender),
+        });
         setEmailDraft(user.email || '');
         setProfileInfo({
           group: formatUserGroupDisplay(onboarding.user_group, '-'),
@@ -331,19 +339,29 @@ export default function SettingsPage() {
     setProfileMessage(null);
 
     try {
+      const profilePayload = {
+        name: userForm.name || undefined,
+        phone_number: userForm.phone_number ? userForm.phone_number.replace(/\D/g, '') : undefined,
+      };
+      if (!identityLocked.birthday) {
+        profilePayload.birthday = userForm.birthday || undefined;
+      }
+      if (!identityLocked.gender) {
+        profilePayload.gender = userForm.gender || undefined;
+      }
+
       const response = await api('/api/v1/users/me', {
         method: 'PATCH',
-        body: JSON.stringify({
-          name: userForm.name || undefined,
-          birthday: userForm.birthday || undefined,
-          gender: userForm.gender || undefined,
-          phone_number: userForm.phone_number ? userForm.phone_number.replace(/\D/g, '') : undefined,
-        }),
+        body: JSON.stringify(profilePayload),
       });
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        setProfileMessage({ type: 'error', text: data.detail || '개인정보 저장에 실패했습니다.' });
+        const lockMessage = {
+          birthday_locked: '생년월일은 본인 기준 정보라 일반 설정에서 변경할 수 없어요.',
+          gender_locked: '성별은 본인 기준 정보라 일반 설정에서 변경할 수 없어요.',
+        }[data.detail];
+        setProfileMessage({ type: 'error', text: lockMessage || data.detail || '개인정보 저장에 실패했습니다.' });
         return;
       }
 
@@ -374,13 +392,17 @@ export default function SettingsPage() {
         gender: data.gender || prev.gender,
         phone_number: data.phone_number ? formatPhone(data.phone_number) : '',
       }));
+      setIdentityLocked({
+        birthday: Boolean(data.birthday),
+        gender: Boolean(data.gender),
+      });
       setProfileMessage({ type: 'success', text: '개인정보를 저장했습니다.' });
     } catch {
       setProfileMessage({ type: 'error', text: '개인정보 저장 중 오류가 발생했습니다.' });
     } finally {
       setProfileSaving(false);
     }
-  }, [userForm]);
+  }, [identityLocked, userForm]);
 
   const toggleNotification = useCallback(async (key, value) => {
     setNotifications((prev) => ({ ...prev, [key]: value }));
@@ -662,20 +684,36 @@ export default function SettingsPage() {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-[12px] text-neutral-400">생년월일</label>
+                  <label className="mb-1 block text-[12px] text-neutral-400">
+                    생년월일
+                    {identityLocked.birthday && <span className="ml-1 text-[11px] text-neutral-400">(잠김)</span>}
+                  </label>
                   <input
                     type="date"
                     value={userForm.birthday}
                     onChange={(e) => setUserForm((prev) => ({ ...prev, birthday: e.target.value }))}
-                    className="w-full rounded-lg border border-cream-500 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+                    disabled={identityLocked.birthday}
+                    className={`w-full rounded-lg border px-3 py-2.5 text-[14px] outline-none ${
+                      identityLocked.birthday
+                        ? 'border-cream-500 bg-cream-300 text-neutral-400'
+                        : 'border-cream-500 focus:border-nature-500'
+                    }`}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[12px] text-neutral-400">성별</label>
+                  <label className="mb-1 block text-[12px] text-neutral-400">
+                    성별
+                    {identityLocked.gender && <span className="ml-1 text-[11px] text-neutral-400">(잠김)</span>}
+                  </label>
                   <select
                     value={userForm.gender}
                     onChange={(e) => setUserForm((prev) => ({ ...prev, gender: e.target.value }))}
-                    className="w-full rounded-lg border border-cream-500 bg-cream-400 px-3 py-2.5 text-[14px] outline-none focus:border-nature-500"
+                    disabled={identityLocked.gender}
+                    className={`w-full rounded-lg border px-3 py-2.5 text-[14px] outline-none ${
+                      identityLocked.gender
+                        ? 'border-cream-500 bg-cream-300 text-neutral-400'
+                        : 'border-cream-500 bg-cream-400 focus:border-nature-500'
+                    }`}
                   >
                     <option value="">선택</option>
                     <option value="MALE">남성</option>
@@ -683,6 +721,13 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
+
+              {(identityLocked.birthday || identityLocked.gender) && (
+                <div className="rounded-lg border border-cream-500 bg-cream-200/60 px-3 py-2 text-[12px] leading-5 text-neutral-500">
+                  생년월일과 성별은 오늘의 운세에서 본인 사주 기준값으로 사용돼요.
+                  최초 저장 후에는 친구나 지인의 운세 입력용으로 바꿀 수 없고, 오입력 정정은 별도 정정 흐름으로 처리해야 합니다.
+                </div>
+              )}
 
                 <div>
                   <label className="mb-1 block text-[12px] text-neutral-400">전화번호</label>

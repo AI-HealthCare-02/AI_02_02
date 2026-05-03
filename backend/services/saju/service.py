@@ -19,9 +19,12 @@ P1.5 삭제 정책 (확정):
 
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import date, datetime, time
 from typing import Any
 
+from tortoise import timezone as tortoise_timezone
 from tortoise.transactions import in_transaction
 
 from backend.models.saju import (
@@ -31,6 +34,7 @@ from backend.models.saju import (
     SajuFeedbackEvent,
     SajuProfile,
 )
+from backend.models.users import User
 from backend.services.saju.consent import SajuConsentService
 from backend.services.saju.engine.chart import (
     ENGINE_VERSION,
@@ -39,6 +43,14 @@ from backend.services.saju.engine.chart import (
 from backend.services.saju.feedback import SajuFeedbackService
 from backend.services.saju.interpret import build_today_card
 from backend.services.saju.templates import build_reading
+
+
+class SajuProfileBaseRequiredError(ValueError):
+    """계정에 사주 기준값으로 쓸 생년월일/성별이 없을 때."""
+
+
+class SajuProfileLockedError(ValueError):
+    """생년월일·성별·양음력처럼 잠긴 사주 기준값을 바꾸려 할 때."""
 
 
 def _normalize_birth_time(birth_time: time | None) -> time | None:
@@ -60,6 +72,38 @@ def _normalize_birth_time(birth_time: time | None) -> time | None:
     if birth_time.tzinfo is not None:
         return birth_time.replace(tzinfo=None)
     return birth_time
+
+
+def _gender_value(gender: Any) -> str | None:
+    if gender is None:
+        return None
+    value = getattr(gender, "value", gender)
+    return str(value) if value else None
+
+
+def _profile_input_signature(profile: SajuProfile) -> str:
+    """차트 계산 입력값 지문.
+
+    DB migration 없이 `SajuChart.natal` JSON 안에 넣어, 출생시간 변경 뒤 낡은 차트가
+    재사용되는 일을 막는다.
+    """
+    payload = {
+        "birth_date": profile.birth_date.isoformat(),
+        "birth_time": profile.birth_time.isoformat() if profile.birth_time else None,
+        "birth_time_accuracy": profile.birth_time_accuracy,
+        "gender": profile.gender,
+        "is_lunar": profile.is_lunar,
+        "is_leap_month": profile.is_leap_month,
+        "engine_version": ENGINE_VERSION,
+    }
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _with_input_signature(natal: dict, signature: str) -> dict:
+    result = dict(natal or {})
+    result["_input_signature"] = signature
+    return result
 
 
 def _profile_to_dict(profile: SajuProfile) -> dict[str, Any]:
@@ -136,6 +180,124 @@ class SajuService:
         """활성(soft delete 제외) 프로필 조회."""
         return await SajuProfile.filter(user_id=user_id, is_deleted=False).first()
 
+    @staticmethod
+    def _assert_requested_base_matches(
+        *,
+        profile: SajuProfile,
+        birth_date: date | None = None,
+        is_lunar: bool | None = None,
+        is_leap_month: bool | None = None,
+        gender: str | None = None,
+    ) -> None:
+        if birth_date is not None and birth_date != profile.birth_date:
+            raise SajuProfileLockedError("birth_date_locked")
+        if is_lunar is not None and bool(is_lunar) != profile.is_lunar:
+            raise SajuProfileLockedError("calendar_locked")
+        if is_leap_month is not None and bool(is_leap_month) != profile.is_leap_month:
+            raise SajuProfileLockedError("calendar_locked")
+        if gender is not None and gender != profile.gender:
+            raise SajuProfileLockedError("gender_locked")
+
+    @staticmethod
+    def _assert_request_matches_account(
+        *,
+        user: User,
+        birth_date: date | None = None,
+        is_lunar: bool | None = None,
+        is_leap_month: bool | None = None,
+        gender: str | None = None,
+    ) -> tuple[date, str]:
+        account_birth_date = user.birthday
+        account_gender = _gender_value(user.gender)
+        if account_birth_date is None or account_gender is None:
+            raise SajuProfileBaseRequiredError("account_birth_profile_required")
+        if birth_date is not None and birth_date != account_birth_date:
+            raise SajuProfileLockedError("birth_date_locked")
+        if gender is not None and gender != account_gender:
+            raise SajuProfileLockedError("gender_locked")
+        # 계정 정보에는 음력 여부가 없으므로 1차 구현은 양력 snapshot만 허용한다.
+        if is_lunar is True or is_leap_month is True:
+            raise SajuProfileLockedError("calendar_locked")
+        return account_birth_date, account_gender
+
+    async def _invalidate_profile_outputs(self, *, user_id: int, profile_id: int) -> None:
+        """출생시간 변경 뒤 낡은 계산 결과를 버린다."""
+        await SajuChart.filter(profile_id=profile_id).delete()
+        await SajuDailyCard.filter(user_id=user_id).delete()
+
+    async def create_profile_from_user(
+        self,
+        *,
+        user: User,
+        birth_date: date | None = None,
+        is_lunar: bool | None = None,
+        is_leap_month: bool | None = None,
+        birth_time: time | None,
+        birth_time_accuracy: str,
+        gender: str | None = None,
+    ) -> SajuProfile:
+        """계정 생년월일/성별을 사주 snapshot 으로 복사한다.
+
+        이미 snapshot 이 있으면 생년월일·성별·양음력은 잠그고 출생시간만 갱신한다.
+        """
+        existing = await self.get_profile(user_id=user.id)
+        if existing is not None:
+            self._assert_requested_base_matches(
+                profile=existing,
+                birth_date=birth_date,
+                is_lunar=is_lunar,
+                is_leap_month=is_leap_month,
+                gender=gender,
+            )
+            return await self.update_profile_time(
+                user_id=user.id,
+                birth_time=birth_time,
+                birth_time_accuracy=birth_time_accuracy,
+            ) or existing
+
+        account_birth_date, account_gender = self._assert_request_matches_account(
+            user=user,
+            birth_date=birth_date,
+            is_lunar=is_lunar,
+            is_leap_month=is_leap_month,
+            gender=gender,
+        )
+        return await self.upsert_profile(
+            user_id=user.id,
+            birth_date=account_birth_date,
+            is_lunar=False,
+            is_leap_month=False,
+            birth_time=birth_time,
+            birth_time_accuracy=birth_time_accuracy,
+            gender=account_gender,
+        )
+
+    async def update_profile_time(
+        self,
+        *,
+        user_id: int,
+        birth_time: time | None,
+        birth_time_accuracy: str,
+    ) -> SajuProfile | None:
+        """출생시간만 추가/수정한다."""
+        existing = await self.get_profile(user_id=user_id)
+        if existing is None:
+            return None
+
+        normalized_birth_time = _normalize_birth_time(birth_time)
+        changed = (
+            existing.birth_time != normalized_birth_time
+            or existing.birth_time_accuracy != birth_time_accuracy
+        )
+        if not changed:
+            return existing
+
+        existing.birth_time = normalized_birth_time
+        existing.birth_time_accuracy = birth_time_accuracy
+        await existing.save(update_fields=["birth_time", "birth_time_accuracy", "updated_at"])
+        await self._invalidate_profile_outputs(user_id=user_id, profile_id=existing.id)
+        return existing
+
     async def upsert_profile(
         self,
         *,
@@ -157,13 +319,22 @@ class SajuService:
 
         existing = await self.get_profile(user_id=user_id)
         if existing is not None:
-            existing.birth_date = birth_date
-            existing.is_lunar = is_lunar
-            existing.is_leap_month = is_leap_month
+            self._assert_requested_base_matches(
+                profile=existing,
+                birth_date=birth_date,
+                is_lunar=is_lunar,
+                is_leap_month=is_leap_month,
+                gender=gender,
+            )
+            changed = (
+                existing.birth_time != normalized_birth_time
+                or existing.birth_time_accuracy != birth_time_accuracy
+            )
             existing.birth_time = normalized_birth_time
             existing.birth_time_accuracy = birth_time_accuracy
-            existing.gender = gender
-            await existing.save()
+            await existing.save(update_fields=["birth_time", "birth_time_accuracy", "updated_at"])
+            if changed:
+                await self._invalidate_profile_outputs(user_id=user_id, profile_id=existing.id)
             return existing
 
         return await SajuProfile.create(
@@ -185,7 +356,12 @@ class SajuService:
         - profile 없으면 호출하지 않음 (라우터 레이어에서 404 처리)
         """
         existing = await SajuChart.filter(profile_id=profile.id).first()
-        if existing is not None and existing.engine_version == ENGINE_VERSION:
+        input_signature = _profile_input_signature(profile)
+        if (
+            existing is not None
+            and existing.engine_version == ENGINE_VERSION
+            and (existing.natal or {}).get("_input_signature") == input_signature
+        ):
             return existing
 
         natal_dict = compute_natal_chart(
@@ -198,17 +374,18 @@ class SajuService:
         if existing is not None:
             # engine_version bump → 재계산 후 갱신
             existing.engine_version = natal_dict["engine_version"]
-            existing.natal = natal_dict["natal"]
+            existing.natal = _with_input_signature(natal_dict["natal"], input_signature)
             existing.strength = natal_dict["strength"]
             existing.yongshin = natal_dict["yongshin"]
             existing.daewoon = natal_dict["daewoon"]
+            existing.computed_at = tortoise_timezone.now()
             await existing.save()
             return existing
 
         return await SajuChart.create(
             profile_id=profile.id,
             engine_version=natal_dict["engine_version"],
-            natal=natal_dict["natal"],
+            natal=_with_input_signature(natal_dict["natal"], input_signature),
             strength=natal_dict["strength"],
             yongshin=natal_dict["yongshin"],
             daewoon=natal_dict["daewoon"],
@@ -260,6 +437,7 @@ class SajuService:
             same_version = (
                 existing.engine_version == payload["engine_version"]
                 and existing.template_version == payload["template_version"]
+                and existing.created_at >= chart.computed_at
             )
             if same_version:
                 # DB 저장된 sections/summary/keywords 사용 + 확장 필드는 payload 값 사용
@@ -276,6 +454,7 @@ class SajuService:
             existing.safety_notice = payload["safety_notice"]
             existing.engine_version = payload["engine_version"]
             existing.template_version = payload["template_version"]
+            existing.created_at = tortoise_timezone.now()
             await existing.save()
             return payload
 

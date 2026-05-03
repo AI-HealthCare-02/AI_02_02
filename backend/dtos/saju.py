@@ -41,12 +41,21 @@ GenderLiteral = Literal["MALE", "FEMALE", "UNKNOWN"]
 class SajuProfileRequest(BaseModel):
     """프로필 저장/수정 (consent 선행 필수, 서비스 레이어에서 검증)."""
 
-    birth_date: date
-    is_lunar: bool = False
-    is_leap_month: bool = False
+    birth_date: date | None = None
+    is_lunar: bool | None = None
+    is_leap_month: bool | None = None
     birth_time: time | None = None
     birth_time_accuracy: BirthTimeAccuracyLiteral = "unknown"
-    gender: GenderLiteral = "UNKNOWN"
+    gender: GenderLiteral | None = None
+
+
+class SajuProfileTimeRequest(BaseModel):
+    """출생시간만 추가/수정하는 요청."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    birth_time: time | None = None
+    birth_time_accuracy: BirthTimeAccuracyLiteral = "unknown"
 
 
 class SajuProfileResponse(BaseSerializerModel):
@@ -56,6 +65,12 @@ class SajuProfileResponse(BaseSerializerModel):
     birth_time: time | None = None
     birth_time_accuracy: BirthTimeAccuracyLiteral
     gender: GenderLiteral
+    base_locked: bool = True
+    base_source: str = "saju_profile_snapshot"
+    can_update_birth_time: bool = True
+    time_accuracy_notice: str = (
+        "출생시간을 모르면 기본 해석은 볼 수 있지만, 일부 기질과 용신 해석은 넓은 범위로 안내될 수 있어요."
+    )
 
 
 # ─────────────────────────────────────────────
@@ -122,6 +137,7 @@ class SajuYongshin(BaseSerializerModel):
     hee_shin_element: str = ""
     ki_shin_element: str = ""
     reasoning: str = ""
+    guidance: dict[str, Any] = Field(default_factory=dict)
 
 
 class SajuTodayResponse(BaseSerializerModel):
@@ -176,6 +192,8 @@ class SajuReadingSectionResponse(BaseSerializerModel):
 class SajuMonthReadingResponse(BaseSerializerModel):
     """월별 흐름 카드 1개."""
 
+    model_config = ConfigDict(extra="ignore")
+
     month: int = Field(..., ge=1, le=12)
     label: str
     score: int = Field(..., ge=0, le=100)
@@ -183,6 +201,12 @@ class SajuMonthReadingResponse(BaseSerializerModel):
     summary: str
     detail: str
     reason: str | None = None
+    ganji: str = ""
+    stem_ten_god: str = ""
+    branch_ten_god: str = ""
+    evidence: list[str] = Field(default_factory=list)
+    domain_readings: dict[str, str] = Field(default_factory=dict)
+    action_hints: list[str] = Field(default_factory=list)
 
 
 class SajuReadingResponse(BaseSerializerModel):

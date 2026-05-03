@@ -126,11 +126,34 @@ const TONE_OPTIONS = [
   { value: 'short', labelKey: 'saju.modal.calibration.tone.short' },
 ];
 
-const GENDER_OPTIONS = [
-  { value: 'female', labelKey: 'saju.modal.profile.gender.female' },
-  { value: 'male', labelKey: 'saju.modal.profile.gender.male' },
-  { value: 'unknown', labelKey: 'saju.modal.profile.gender.unknown' },
-];
+const GENDER_TO_FORM = {
+  FEMALE: 'female',
+  MALE: 'male',
+  UNKNOWN: 'unknown',
+};
+
+function normalizeTimeForInput(value) {
+  if (!value) return '';
+  return String(value).slice(0, 5);
+}
+
+function formatBirthTime(value, accuracy) {
+  const normalized = normalizeTimeForInput(value);
+  if (!normalized || accuracy === 'unknown') return ts('saju.profile.time.unknown');
+  return normalized;
+}
+
+function formatGender(value) {
+  const formValue = GENDER_TO_FORM[value] || 'unknown';
+  return ts(`saju.modal.profile.gender.${formValue}`);
+}
+
+function normalizeSajuError(detail, fallback) {
+  if (!detail) return fallback;
+  const key = `saju.modal.error.${detail}`;
+  const message = ts(key);
+  return message === key ? fallback : message;
+}
 
 function SectionCard({ titleKey, title, body, why, easySummary }) {
   const [open, setOpen] = useState(false);
@@ -277,6 +300,127 @@ function TodayPillarBadge({ apiResult }) {
   );
 }
 
+function YongshinGuidanceCard({ apiResult }) {
+  const guidance = apiResult?.yongshin?.guidance;
+  if (!guidance?.headline) return null;
+
+  const representative = guidance.representative || {};
+  const supporting = Array.isArray(guidance.supporting_elements)
+    ? guidance.supporting_elements.filter((item) => item?.element)
+    : [];
+  const perspectives = Array.isArray(guidance.perspectives)
+    ? guidance.perspectives.filter((item) => item?.title || item?.summary)
+    : [];
+  const cautionElement = guidance.caution_element || '';
+  const renderElement = (element) => {
+    if (!element) return null;
+    return (
+      <span className="saju-modal__element-chip" data-element={element}>
+        {ts(`saju.element.${element}`) || element}
+      </span>
+    );
+  };
+
+  return (
+    <section className="saju-modal__yongshin-guide" aria-label={ts('saju.yongshin.guidance.title')}>
+      <div className="saju-modal__yongshin-guide-head">
+        <div>
+          <span className="saju-modal__yongshin-guide-eyebrow">
+            {ts('saju.yongshin.guidance.title')}
+          </span>
+          <h4 className="saju-modal__yongshin-guide-title">{guidance.headline}</h4>
+        </div>
+        <span className="saju-modal__yongshin-guide-badge">
+          {ts('saju.yongshin.guidance.badge')}
+        </span>
+      </div>
+
+      <div className="saju-modal__yongshin-guide-flow">
+        {representative.element && (
+          <div className="saju-modal__yongshin-guide-node" data-role="representative">
+            <span className="saju-modal__yongshin-guide-node-label">
+              {representative.label || ts('saju.yongshin.guidance.representative')}
+            </span>
+            <div className="saju-modal__yongshin-guide-node-main">
+              {renderElement(representative.element)}
+              {representative.role && (
+                <span className="saju-modal__yongshin-guide-role">
+                  {ts(`saju.yongshin.role.${representative.role}`) || representative.role}
+                </span>
+              )}
+            </div>
+            {representative.summary && (
+              <p className="saju-modal__yongshin-guide-node-copy">{representative.summary}</p>
+            )}
+          </div>
+        )}
+
+        {supporting.map((item) => (
+          <div key={`${item.key}-${item.element}`} className="saju-modal__yongshin-guide-node">
+            <span className="saju-modal__yongshin-guide-node-label">
+              {item.label || ts('saju.yongshin.guidance.support')}
+            </span>
+            <div className="saju-modal__yongshin-guide-node-main">
+              {renderElement(item.element)}
+              {item.element === cautionElement && (
+                <span className="saju-modal__yongshin-guide-caution">
+                  {ts('saju.yongshin.guidance.caution')}
+                </span>
+              )}
+            </div>
+            {item.summary && (
+              <p className="saju-modal__yongshin-guide-node-copy">{item.summary}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {guidance.conflict_notice && guidance.conflict_message && (
+        <div className="saju-modal__yongshin-guide-notice">
+          <strong>{ts('saju.yongshin.guidance.conflict')}</strong>
+          <span>{guidance.conflict_message}</span>
+        </div>
+      )}
+
+      {perspectives.length > 0 && (
+        <div className="saju-modal__yongshin-guide-perspectives">
+          <div className="saju-modal__yongshin-guide-subtitle">
+            {ts('saju.yongshin.guidance.perspectives')}
+          </div>
+          {perspectives.map((item) => (
+            <div key={item.key || item.title} className="saju-modal__yongshin-guide-perspective">
+              <div className="saju-modal__yongshin-guide-perspective-head">
+                <span>{item.title}</span>
+                <span className="saju-modal__yongshin-guide-perspective-elements">
+                  {renderElement(item.element)}
+                  {item.support_element && renderElement(item.support_element)}
+                </span>
+              </div>
+              {item.summary && (
+                <p className="saju-modal__yongshin-guide-perspective-copy">{item.summary}</p>
+              )}
+              {item.reason && (
+                <p className="saju-modal__yongshin-guide-perspective-reason">{item.reason}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {guidance.daily_action && (
+        <div className="saju-modal__yongshin-guide-action">
+          <strong>{ts('saju.yongshin.guidance.action')}</strong>
+          <span>{guidance.daily_action}</span>
+        </div>
+      )}
+
+      {guidance.guardrail && (
+        <p className="saju-modal__yongshin-guide-guardrail">{guidance.guardrail}</p>
+      )}
+    </section>
+  );
+}
+
 function NatalChartTable({ apiResult }) {
   const natal = apiResult?.natal_chart;
   if (!natal) return null;
@@ -393,6 +537,138 @@ function NatalChartTable({ apiResult }) {
   );
 }
 
+function ProfileBasisCard({
+  accountProfile,
+  savedProfile,
+  editableTime = false,
+  timeDraft = '',
+  timeUnknown = false,
+  onTimeChange,
+  onUnknownChange,
+  onTimeSave,
+  timeSaving = false,
+  timeDisabled = false,
+}) {
+  const [timeEditorOpen, setTimeEditorOpen] = useState(false);
+  const birthDate = savedProfile?.birth_date || accountProfile?.birthday || '';
+  const gender = savedProfile?.gender || accountProfile?.gender || '';
+  const calendar = savedProfile?.is_lunar ? ts('saju.modal.profile.calendar.lunar') : ts('saju.modal.profile.calendar.solar');
+  const birthTime = savedProfile
+    ? formatBirthTime(savedProfile.birth_time, savedProfile.birth_time_accuracy)
+    : ts('saju.profile.time.not_created');
+  const hasRequiredBase = Boolean(birthDate && gender);
+  const canEditTime = Boolean(editableTime && savedProfile && !timeDisabled);
+  const saveDisabled = timeSaving || !canEditTime || (!timeUnknown && !timeDraft);
+  const handleTimeSave = async () => {
+    if (!onTimeSave || saveDisabled) return;
+    const ok = await onTimeSave();
+    if (ok !== false) setTimeEditorOpen(false);
+  };
+
+  return (
+    <section className="saju-modal__profile-lock" aria-label={ts('saju.profile.lock.title')}>
+      <div className="saju-modal__profile-lock-head">
+        <div>
+          <span className="saju-modal__profile-lock-eyebrow">
+            {ts('saju.profile.lock.eyebrow')}
+          </span>
+          <h4 className="saju-modal__profile-lock-title">
+            {ts('saju.profile.lock.title')}
+          </h4>
+        </div>
+      </div>
+      <div className="saju-modal__profile-lock-grid">
+        <div className="saju-modal__profile-lock-cell">
+          <span>{ts('saju.modal.profile.birthDate.label')}</span>
+          <strong>{birthDate || ts('saju.profile.lock.missing')}</strong>
+        </div>
+        <div className="saju-modal__profile-lock-cell">
+          <span>{ts('saju.modal.profile.gender.label')}</span>
+          <strong>{gender ? formatGender(gender) : ts('saju.profile.lock.missing')}</strong>
+        </div>
+        <div className="saju-modal__profile-lock-cell">
+          <span>{ts('saju.modal.profile.calendar.label')}</span>
+          <strong>{calendar}</strong>
+        </div>
+        {canEditTime ? (
+          <button
+            type="button"
+            className="saju-modal__profile-lock-cell saju-modal__profile-lock-cell--button"
+            aria-expanded={timeEditorOpen}
+            onClick={() => setTimeEditorOpen((v) => !v)}
+          >
+            <span>{ts('saju.modal.profile.birthTime.label')}</span>
+            <strong>{birthTime}</strong>
+            <em>{ts('saju.profile.time.inline.hint')}</em>
+          </button>
+        ) : (
+          <div className="saju-modal__profile-lock-cell">
+            <span>{ts('saju.modal.profile.birthTime.label')}</span>
+            <strong>{birthTime}</strong>
+          </div>
+        )}
+      </div>
+      {canEditTime && timeEditorOpen && (
+        <div className="saju-modal__profile-time-inline" aria-label={ts('saju.profile.time.inline.title')}>
+          <div className="saju-modal__time-row">
+            <input
+              type="time"
+              className="saju-modal__input"
+              value={timeDraft}
+              onChange={(e) => onTimeChange?.(e.target.value)}
+              disabled={timeUnknown || timeSaving}
+            />
+            <label className="saju-modal__check">
+              <input
+                type="checkbox"
+                checked={timeUnknown}
+                onChange={(e) => onUnknownChange?.(e.target.checked)}
+                disabled={timeSaving}
+              />
+              {ts('saju.modal.profile.birthTime.unknown')}
+            </label>
+            <button
+              type="button"
+              className="saju-modal__btn saju-modal__btn--primary saju-modal__profile-time-save"
+              onClick={handleTimeSave}
+              disabled={saveDisabled}
+            >
+              {timeSaving ? ts('saju.profile.time.saving') : ts('saju.profile.time.save')}
+            </button>
+          </div>
+          <p>{savedProfile?.time_accuracy_notice || ts('saju.profile.time.notice')}</p>
+        </div>
+      )}
+      <p className="saju-modal__profile-lock-copy">
+        {ts('saju.profile.lock.copy')}
+      </p>
+      {!hasRequiredBase && (
+        <p className="saju-modal__profile-lock-warning">
+          {ts('saju.profile.lock.accountMissing')}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function NatalReadingPane({
+  reading,
+  loading,
+  todayResult,
+}) {
+  const chartSource = todayResult || reading;
+  const yongshinSource = reading || todayResult;
+  const birthDate = chartSource?.profile?.birth_date || '';
+  return (
+    <>
+      <YongshinGuidanceCard apiResult={yongshinSource} />
+      <ReadingPane reading={reading} loading={loading} />
+      <LimitationBanner apiResult={chartSource} birthDate={birthDate} />
+      <NatalChartTable apiResult={chartSource} />
+    </>
+  );
+}
+
 function YongshinBadge({ apiResult }) {
   const y = apiResult?.yongshin;
   if (!y || !y.yongshin_element) return null;
@@ -499,12 +775,16 @@ const READING_SECTION_EMOJI = {
   closing: '🍃',
   // yearly
   year_flow: '🌀',
+  year_role: '🧭',
+  natal_contact: '🔗',
   keywords: '🏷',
   opportunities: '✨',
   career: '💼',
   money: '💠',
   health: '🌱',
   learning: '📘',
+  half_year_strategy: '🗓',
+  monthly_digest: '📌',
   checklist: '✅',
   // monthly
   monthly_overview: '📅',
@@ -522,15 +802,58 @@ function LeadSection({ section }) {
   );
 }
 
+function normalizeReadingEasySummary(value) {
+  return String(value || '').replace(/^쉽게 말하면[,，:]?\s*/, '').trim();
+}
+
+function ReadingBody({ body }) {
+  const blocks = String(body || '')
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  if (blocks.length === 0) return null;
+
+  return (
+    <div className="saju-modal__reading-section-body">
+      {blocks.map((block, idx) => {
+        const match = block.match(/^\[([^\]]+)\]\s*(.*)$/);
+        if (!match) {
+          return (
+            <p key={idx} className="saju-modal__reading-section-paragraph">
+              {block}
+            </p>
+          );
+        }
+        return (
+          <p key={idx} className="saju-modal__reading-section-paragraph">
+            <span className="saju-modal__reading-section-subhead">{match[1]}</span>
+            {match[2]}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 function ReadingSectionCard({ section }) {
   const emoji = READING_SECTION_EMOJI[section.key] || '';
+  const easySummary = normalizeReadingEasySummary(section.easy_summary);
   return (
     <div className="saju-modal__reading-section">
       <h4 className="saju-modal__reading-section-title">
         {emoji && <span className="saju-modal__reading-section-emoji" aria-hidden="true">{emoji}</span>}
         {section.title}
       </h4>
-      <p className="saju-modal__reading-section-body">{section.body}</p>
+      <ReadingBody body={section.body} />
+      {easySummary && (
+        <div className="saju-modal__reading-easy">
+          <span className="saju-modal__reading-easy-label">
+            {ts('saju.reading.easy_summary.prefix')}
+          </span>
+          <span className="saju-modal__reading-easy-body">{easySummary}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -598,6 +921,15 @@ function MonthFlowCard({ month }) {
   const [open, setOpen] = useState(false);
   const score = Math.max(0, Math.min(100, Math.round(month.score || 0)));
   const tier = score >= 78 ? 'good' : score >= 66 ? 'safe' : score >= 54 ? 'neutral' : 'caution';
+  const evidence = Array.isArray(month.evidence) ? month.evidence.filter(Boolean) : [];
+  const actionHints = Array.isArray(month.action_hints) ? month.action_hints.filter(Boolean) : [];
+  const domains = month.domain_readings || {};
+  const domainItems = [
+    ['work', '일', domains.work],
+    ['money', '돈', domains.money],
+    ['relation', '관계', domains.relation],
+    ['health', '건강', domains.health],
+  ].filter(([, , value]) => value);
   return (
     <article className="saju-modal__month-card" data-tier={tier}>
       <button
@@ -612,11 +944,43 @@ function MonthFlowCard({ month }) {
         </span>
         <span className="saju-modal__month-score">{score}</span>
       </button>
+      <div className="saju-modal__month-tags" aria-label="월간 월지 십성">
+        {month.ganji && <span>{month.ganji}</span>}
+        {month.stem_ten_god && <span>월간 {month.stem_ten_god}</span>}
+        {month.branch_ten_god && <span>월지 {month.branch_ten_god}</span>}
+      </div>
       <p className="saju-modal__month-summary">{month.summary}</p>
       {open && (
         <div className="saju-modal__month-detail">
           <p>{month.detail}</p>
-          {month.reason && <div className="saju-modal__month-reason">▸ {month.reason}</div>}
+          {evidence.length > 0 && (
+            <div className="saju-modal__month-evidence">
+              <strong>{ts('saju.month.evidence.title')}</strong>
+              <ul>
+                {evidence.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {domainItems.length > 0 && (
+            <div className="saju-modal__month-domain-grid">
+              {domainItems.map(([key, label, value]) => (
+                <div key={key}>
+                  <strong>{label}</strong>
+                  <span>{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {actionHints.length > 0 && (
+            <div className="saju-modal__month-actions">
+              <strong>{ts('saju.month.action.title')}</strong>
+              {actionHints.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </article>
@@ -657,7 +1021,14 @@ function MonthlyReadingPane({ reading, loading }) {
   );
 }
 
-function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false, prefetchedToday = null }) {
+function SajuSetupModalImpl({
+  open,
+  onClose,
+  initialStep = 0,
+  hasProfile = false,
+  sajuProfile = null,
+  prefetchedToday = null,
+}) {
   const modalRef = useRef(null);
   const previouslyFocused = useRef(null);
   const [stepIdx, setStepIdx] = useState(initialStep);
@@ -668,6 +1039,11 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
     birthTime: '',
     birthTimeUnknown: false,
   });
+  const [accountProfile, setAccountProfile] = useState(null);
+  const [savedProfile, setSavedProfile] = useState(sajuProfile);
+  const [timeDraft, setTimeDraft] = useState(normalizeTimeForInput(sajuProfile?.birth_time));
+  const [timeUnknown, setTimeUnknown] = useState(!sajuProfile?.birth_time);
+  const [timeSaving, setTimeSaving] = useState(false);
   const [calibration, setCalibration] = useState({
     focus: 'total',
     tone: 'soft',
@@ -684,6 +1060,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
   );
   const defaultResultTabKey = resultTabs[0].key;
   const [activeResultTab, setActiveResultTab] = useState(defaultResultTabKey);
+  const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const [readingLoading, setReadingLoading] = useState(false);
   const [readings, setReadings] = useState({
     natal: null,
@@ -693,6 +1070,40 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
   // 데모 모드: 백엔드 사주 기능 OFF (404/403/503) 상태에서도 4단계 끝까지 가볼 수 있게 fallback.
   // 한 번 진입하면 그 모달 세션 동안 후속 API 호출 모두 skip.
   const [demoMode, setDemoMode] = useState(false);
+
+  const syncProfileForm = useCallback((account, saved) => {
+    const birthDate = saved?.birth_date || account?.birthday || '';
+    const gender = saved?.gender || account?.gender || 'UNKNOWN';
+    const birthTime = normalizeTimeForInput(saved?.birth_time);
+    const accuracy = saved?.birth_time_accuracy || (birthTime ? 'exact' : 'unknown');
+    setProfile({
+      birthDate,
+      calendar: saved?.is_lunar ? 'lunar' : 'solar',
+      gender: GENDER_TO_FORM[gender] || 'unknown',
+      birthTime,
+      birthTimeUnknown: !birthTime || accuracy === 'unknown',
+    });
+    setTimeDraft(birthTime);
+    setTimeUnknown(!birthTime || accuracy === 'unknown');
+  }, []);
+
+  const loadAccountAndProfile = useCallback(async () => {
+    try {
+      const [userRes, profileRes] = await Promise.all([
+        api('/api/v1/users/me'),
+        api('/api/v1/saju/profile'),
+      ]);
+      const account = userRes.ok ? await userRes.json() : null;
+      const saved = profileRes.ok ? await profileRes.json() : null;
+      setAccountProfile(account);
+      setSavedProfile(saved);
+      syncProfileForm(account, saved);
+    } catch {
+      setAccountProfile(null);
+      setSavedProfile(sajuProfile || null);
+      syncProfileForm(null, sajuProfile || null);
+    }
+  }, [sajuProfile, syncProfileForm]);
 
   // SSR 안전: createPortal 은 client only
   useEffect(() => {
@@ -720,9 +1131,12 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
       setStepIdx(initialStep);
       setError(null);
       setSubmitting(false);
+      setTimeSaving(false);
+      setProfilePopoverOpen(false);
       setDemoMode(false);
       setActiveResultTab(defaultResultTabKey);
       setReadings({ natal: null, yearly: null, monthly: null });
+      loadAccountAndProfile();
       // result-only 진입(initialStep=3): prefetch 가 있으면 즉시 표시 + readings 백그라운드 로드,
       // 없으면 원래대로 today fetch (loadTodayResult 가 readings 까지 챙김).
       if (initialStep === 3) {
@@ -741,7 +1155,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
     // prefetchedToday 는 의도적으로 deps 에서 제외 — open 시점 한 번만 캡처해
     // 모달이 열린 상태에서 prefetch 가 늦게 도착해도 mid-modal 재실행을 막는다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialStep, defaultResultTabKey]);
+  }, [open, initialStep, defaultResultTabKey, loadAccountAndProfile]);
 
   // ESC + Focus trap
   useEffect(() => {
@@ -776,8 +1190,10 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
   const goBack = useCallback(() => setStepIdx((i) => Math.max(i - 1, 0)), []);
 
   const profileValid = useMemo(() => {
-    return Boolean(profile.birthDate); // 생년월일만 필수
-  }, [profile.birthDate]);
+    const birthDate = savedProfile?.birth_date || accountProfile?.birthday || profile.birthDate;
+    const gender = savedProfile?.gender || accountProfile?.gender;
+    return demoMode || Boolean(birthDate && gender);
+  }, [accountProfile, demoMode, profile.birthDate, savedProfile]);
 
   // ─── API 핸들러 ───
 
@@ -816,20 +1232,18 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
     setSubmitting(true);
     setError(null);
     try {
-      const genderMap = { female: 'FEMALE', male: 'MALE', unknown: 'UNKNOWN' };
       const payload = {
-        birth_date: profile.birthDate,
-        is_lunar: profile.calendar === 'lunar',
-        is_leap_month: false,
         birth_time: profile.birthTime ? `${profile.birthTime}:00` : null,
         birth_time_accuracy: profile.birthTime ? 'exact' : 'unknown',
-        gender: genderMap[profile.gender] || 'UNKNOWN',
       };
       const res = await api('/api/v1/saju/profile', {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
       if (res.ok) {
+        const data = await res.json();
+        setSavedProfile(data);
+        syncProfileForm(accountProfile, data);
         goNext();
       } else if (res.status === 404 || res.status === 503 || res.status === 403) {
         // 403 (consent 없음) 도 데모 모드의 일부 — 어차피 백엔드가 받지 않으므로
@@ -838,14 +1252,15 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
       } else if (res.status === 401) {
         setError('login');
       } else {
-        setError('profile');
+        const data = await res.json().catch(() => ({}));
+        setError(data.detail || 'profile');
       }
     } catch {
       setError('network');
     } finally {
       setSubmitting(false);
     }
-  }, [profile, goNext, demoMode]);
+  }, [accountProfile, profile.birthTime, goNext, demoMode, syncProfileForm]);
 
   const loadReadings = useCallback(async () => {
     if (demoMode) {
@@ -908,6 +1323,44 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
       setResultLoading(false);
     }
   }, [demoMode, calibration, loadReadings]);
+
+  const handleBirthTimeSave = useCallback(async () => {
+    if (!savedProfile || demoMode) return false;
+    setTimeSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        birth_time: timeUnknown || !timeDraft ? null : `${timeDraft}:00`,
+        birth_time_accuracy: timeUnknown || !timeDraft ? 'unknown' : 'exact',
+      };
+      const res = await api('/api/v1/saju/profile/time', {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.detail || 'time');
+        return false;
+      }
+      setSavedProfile(data);
+      syncProfileForm(accountProfile, data);
+      await loadTodayResult();
+      return true;
+    } catch {
+      setError('network');
+      return false;
+    } finally {
+      setTimeSaving(false);
+    }
+  }, [
+    accountProfile,
+    demoMode,
+    loadTodayResult,
+    savedProfile,
+    syncProfileForm,
+    timeDraft,
+    timeUnknown,
+  ]);
 
   const handleCalibrationSubmit = useCallback(async () => {
     await loadTodayResult();
@@ -990,54 +1443,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
           {/* Step 2: Profile */}
           {step === 'profile' && (
             <div className="saju-modal__pane">
-              <label className="saju-modal__field">
-                <span className="saju-modal__field-label">
-                  {ts('saju.modal.profile.birthDate.label')}
-                </span>
-                <input
-                  type="date"
-                  className="saju-modal__input"
-                  value={profile.birthDate}
-                  onChange={(e) => setProfile({ ...profile, birthDate: e.target.value })}
-                  max={new Date().toISOString().slice(0, 10)}
-                />
-              </label>
-
-              <fieldset className="saju-modal__field">
-                <legend className="saju-modal__field-label">
-                  {ts('saju.modal.profile.calendar.label')}
-                </legend>
-                <div className="saju-modal__chips">
-                  {['solar', 'lunar'].map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={`saju-modal__chip ${profile.calendar === v ? 'is-active' : ''}`}
-                      onClick={() => setProfile({ ...profile, calendar: v })}
-                    >
-                      {ts(`saju.modal.profile.calendar.${v}`)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset className="saju-modal__field">
-                <legend className="saju-modal__field-label">
-                  {ts('saju.modal.profile.gender.label')}
-                </legend>
-                <div className="saju-modal__chips">
-                  {GENDER_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={`saju-modal__chip ${profile.gender === opt.value ? 'is-active' : ''}`}
-                      onClick={() => setProfile({ ...profile, gender: opt.value })}
-                    >
-                      {ts(opt.labelKey)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+              <ProfileBasisCard accountProfile={accountProfile} savedProfile={savedProfile} />
 
               <label className="saju-modal__field">
                 <span className="saju-modal__field-label">
@@ -1069,7 +1475,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
                   </label>
                 </div>
                 <span className="saju-modal__field-hint">
-                  {ts('saju.modal.profile.birthTime.hint')}
+                  {savedProfile?.time_accuracy_notice || ts('saju.modal.profile.birthTime.hint')}
                 </span>
               </label>
             </div>
@@ -1125,18 +1531,50 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
                 </p>
               ) : (
                 <>
-                  <div className="saju-modal__result-meta">
-                    <span className="saju-modal__result-badge">
-                      {ts('saju.modal.result.badge.mock')}
-                    </span>
-                    <span className="saju-modal__result-date">
-                      {new Date().toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        weekday: 'short',
-                      })}
-                    </span>
+                  <div className="saju-modal__result-top">
+                    <div className="saju-modal__result-meta">
+                      <span className="saju-modal__result-badge">
+                        {ts('saju.modal.result.badge.mock')}
+                      </span>
+                      <span className="saju-modal__result-date">
+                        {new Date().toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          weekday: 'short',
+                        })}
+                      </span>
+                      <button
+                        type="button"
+                        className="saju-modal__profile-info-trigger"
+                        aria-expanded={profilePopoverOpen}
+                        onClick={() => setProfilePopoverOpen((v) => !v)}
+                      >
+                        {ts('saju.profile.info.button')}
+                      </button>
+                    </div>
+                    {profilePopoverOpen && (
+                      <div className="saju-modal__profile-popover" role="dialog" aria-label={ts('saju.profile.info.button')}>
+                        <ProfileBasisCard
+                          accountProfile={accountProfile}
+                          savedProfile={savedProfile}
+                          editableTime
+                          timeDraft={timeDraft}
+                          timeUnknown={timeUnknown}
+                          onTimeChange={(value) => {
+                            setTimeDraft(value);
+                            setTimeUnknown(false);
+                          }}
+                          onUnknownChange={(checked) => {
+                            setTimeUnknown(checked);
+                            if (checked) setTimeDraft('');
+                          }}
+                          onTimeSave={handleBirthTimeSave}
+                          timeSaving={timeSaving}
+                          timeDisabled={!savedProfile}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <nav className="saju-modal__reading-tabs" aria-label="사주 리딩 탭">
@@ -1155,7 +1593,11 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
 
                   <div className="saju-modal__reading-panel">
                     {activeResultTab === 'natal' && (
-                      <ReadingPane reading={readings.natal} loading={readingLoading} />
+                      <NatalReadingPane
+                        reading={readings.natal}
+                        loading={readingLoading}
+                        todayResult={apiResult}
+                      />
                     )}
                     {activeResultTab === 'yearly' && (
                       <ReadingPane reading={readings.yearly} loading={readingLoading} />
@@ -1175,9 +1617,9 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
                             <SectionCard key={s.key} titleKey={s.titleKey} body={s.body} why={s.why} />
                           ))}
                         </div>
-                        {/* ③ 경계월 배너 (조건부) + 원국 표 */}
-                        <LimitationBanner apiResult={apiResult} birthDate={profile.birthDate} />
-                        <NatalChartTable apiResult={apiResult} />
+                        <p className="saju-modal__today-link-hint">
+                          {ts('saju.today.natalLinkHint')}
+                        </p>
                       </>
                     )}
                   </div>
@@ -1194,7 +1636,7 @@ function SajuSetupModalImpl({ open, onClose, initialStep = 0, hasProfile = false
           {/* 에러 배너 (모든 step 공통) */}
           {error && (
             <div className="saju-modal__error" role="alert">
-              {ts(`saju.modal.error.${error}`)}
+              {normalizeSajuError(error, ts('saju.modal.error.profile'))}
             </div>
           )}
         </div>

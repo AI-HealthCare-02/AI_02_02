@@ -54,6 +54,39 @@ class TestUserMeApis(TestCase):
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["name"] == "수정후"
 
+    async def test_update_user_me_rejects_locked_birthday_and_gender(self):
+        email = "locked_me@example.com"
+        signup_data = {
+            "email": email,
+            "password": "Password123!",
+            "name": "잠금테스터",
+            "gender": "MALE",
+            "birth_date": "1990-10-10",
+            "phone_number": "01077779999",
+        }
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            await client.post("/api/v1/auth/signup", json=signup_data)
+
+            login_response = await client.post("/api/v1/auth/login", json={"email": email, "password": "Password123!"})
+            access_token = login_response.json()["access_token"]
+            headers = {"Authorization": f"Bearer {access_token}"}
+
+            birth_response = await client.patch(
+                "/api/v1/users/me",
+                json={"birthday": "1999-09-09"},
+                headers=headers,
+            )
+            gender_response = await client.patch(
+                "/api/v1/users/me",
+                json={"gender": "FEMALE"},
+                headers=headers,
+            )
+
+        assert birth_response.status_code == status.HTTP_409_CONFLICT
+        assert birth_response.json()["detail"] == "birthday_locked"
+        assert gender_response.status_code == status.HTTP_409_CONFLICT
+        assert gender_response.json()["detail"] == "gender_locked"
+
     async def test_get_user_me_unauthorized(self):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/api/v1/users/me")

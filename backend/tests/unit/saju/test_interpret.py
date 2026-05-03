@@ -4,6 +4,7 @@ from datetime import date, time
 
 import pytest
 
+from backend.dtos.saju import SajuTodayResponse
 from backend.services.saju.engine.chart import ENGINE_VERSION, compute_natal_chart
 from backend.services.saju.interpret import build_today_card
 
@@ -124,6 +125,36 @@ class TestBuildTodayCard:
         a = build_today_card(natal=natal_dict, engine_version=ENGINE_VERSION, today=date(2026, 4, 24))
         b = build_today_card(natal=natal_dict, engine_version=ENGINE_VERSION, today=date(2026, 4, 24))
         assert a["daily_score"] == b["daily_score"]
+
+    def test_today_card_includes_yongshin_guidance(self) -> None:
+        """오늘 카드가 대표/조후/행동 안내를 함께 내려준다."""
+        card = build_today_card(
+            natal=_natal(),
+            engine_version=ENGINE_VERSION,
+            today=date(2026, 4, 24),
+        )
+        guidance = card["yongshin"]["guidance"]
+        assert guidance["version"] == "yongshin-guidance-v1"
+        assert guidance["representative"]["element"] == card["yongshin"]["yongshin_element"]
+        assert {item["key"] for item in guidance["perspectives"]} >= {
+            "eokbu",
+            "geokguk",
+            "johu",
+            "behavior",
+        }
+
+    def test_yongshin_guidance_survives_response_dto(self) -> None:
+        """DTO 검증을 지나도 guidance 필드가 API 응답에서 사라지지 않는다."""
+        card = build_today_card(
+            natal=_natal(),
+            engine_version=ENGINE_VERSION,
+            today=date(2026, 4, 24),
+        )
+        dto = SajuTodayResponse.model_validate(card)
+        dumped = dto.model_dump()
+        guidance = dumped["yongshin"]["guidance"]
+        assert guidance["version"] == "yongshin-guidance-v1"
+        assert guidance["headline"]
 
     @pytest.mark.parametrize("focus", ["total", "money", "health", "work", "relation"])
     @pytest.mark.parametrize("tone", ["soft", "real", "short"])

@@ -56,7 +56,7 @@ export const SAJU_KO = {
   'saju.modal.consent.cta': '동의하고 계속',
 
   // Step 2 — 프로필
-  'saju.modal.profile.title': '나에 대해 알려주세요',
+  'saju.modal.profile.title': '사주 기준 확인',
   'saju.modal.profile.birthDate.label': '생년월일',
   'saju.modal.profile.calendar.label': '양력/음력',
   'saju.modal.profile.calendar.solar': '양력',
@@ -68,7 +68,7 @@ export const SAJU_KO = {
   'saju.modal.profile.birthTime.label': '출생 시간 (선택)',
   'saju.modal.profile.birthTime.unknown': '모름',
   'saju.modal.profile.birthTime.hint':
-    '시간을 알면 더 정밀해져요. 모르면 비워두세요.',
+    '시간을 알면 더 정밀해져요. 모르면 비워두세요. 나중에 나의 기질 탭에서 추가할 수 있어요.',
 
   // Step 3 — Calibration
   'saju.modal.calibration.title': '오늘 보고 싶은 운세는?',
@@ -99,6 +99,16 @@ export const SAJU_KO = {
     '로그인이 필요해요. 잠시 후 다시 안내될 거예요.',
   'saju.modal.error.today':
     '오늘의 운세를 가져오지 못했어요. 잠시 후 다시 시도해주세요.',
+  'saju.modal.error.time':
+    '출생시간 저장에 실패했어요. 잠시 후 다시 시도해주세요.',
+  'saju.modal.error.account_birth_profile_required':
+    '계정에 생년월일과 성별이 먼저 저장되어 있어야 해요. 설정에서 본인 정보를 먼저 저장해주세요.',
+  'saju.modal.error.birth_date_locked':
+    '생년월일은 최초 사주 기준값으로 잠겨 있어요. 친구나 지인의 운세 입력에는 사용할 수 없어요.',
+  'saju.modal.error.gender_locked':
+    '성별은 최초 사주 기준값으로 잠겨 있어요. 오입력 정정은 별도 정정 흐름에서 처리해야 해요.',
+  'saju.modal.error.calendar_locked':
+    '이번 버전은 계정 생년월일을 양력 기준으로만 사용해요. 음력·윤달 보정은 다음 단계에서 분리할 예정이에요.',
   'saju.modal.submitting': '저장 중…',
   'saju.modal.loading.result': '오늘의 운세를 불러오는 중…',
 
@@ -130,6 +140,28 @@ export const SAJU_KO = {
   'saju.reading.easy_summary.prefix': '쉽게 말하면',
   'saju.reading.monthly.pattern.title': '연간 패턴 요약',
   'saju.reading.yearly.checklist.title': '올해 운영 체크리스트',
+  'saju.profile.lock.eyebrow': '한 계정 = 본인 사주 1개',
+  'saju.profile.lock.title': '사주 기준 정보',
+  'saju.profile.lock.copy':
+    '생년월일과 성별은 계정의 본인 정보 기준으로 사용해요. 출생시간은 위 카드에서 추가하거나 수정할 수 있어요.',
+  'saju.profile.lock.accountMissing':
+    '계정에 생년월일 또는 성별이 없어서 사주를 만들 수 없어요. 설정에서 본인 정보를 먼저 저장해주세요.',
+  'saju.profile.lock.missing': '미입력',
+  'saju.profile.info.button': '사주 정보',
+  'saju.profile.time.unknown': '시간 모름',
+  'saju.profile.time.not_created': '아직 생성 전',
+  'saju.profile.time.notice':
+    '출생시간을 모르면 기본 해석은 볼 수 있지만, 일부 기질과 용신 해석은 넓은 범위로 안내될 수 있어요.',
+  'saju.profile.time.add': '시간 추가',
+  'saju.profile.time.edit': '시간 수정',
+  'saju.profile.time.save': '저장',
+  'saju.profile.time.saving': '저장 중…',
+  'saju.profile.time.inline.title': '출생시간 수정',
+  'saju.profile.time.inline.hint': '클릭해서 수정',
+  'saju.today.natalLinkHint':
+    '용신과 원국표처럼 고정 성향에 가까운 내용은 나의 기질 탭에서 확인할 수 있어요.',
+  'saju.month.evidence.title': '왜 이렇게 보나요',
+  'saju.month.action.title': '이번 달 행동 조언',
 
   // ─── P2.2: 오늘 일진 배지 ───
   'saju.today.pillar.prefix': '오늘은',
@@ -213,6 +245,14 @@ export const SAJU_KO = {
   'saju.yongshin.role.식상': '식상',
   'saju.yongshin.role.재성': '재성',
   'saju.yongshin.role.관살': '관살',
+  'saju.yongshin.guidance.title': '나의 기질 속 용신 안내',
+  'saju.yongshin.guidance.badge': '생활 힌트',
+  'saju.yongshin.guidance.representative': '대표',
+  'saju.yongshin.guidance.support': '보조',
+  'saju.yongshin.guidance.perspectives': '관점별로 보면',
+  'saju.yongshin.guidance.action': '생활 적용',
+  'saju.yongshin.guidance.conflict': '왜 다르게 보일 수 있나요?',
+  'saju.yongshin.guidance.caution': '과하면 주의',
 };
 
 /**

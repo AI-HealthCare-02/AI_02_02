@@ -93,6 +93,53 @@ class TestUserSample:
 
 
 # ──────────────────────────────────────────────
+# v0.4.3 — 금/화 관점 분리 안내 (사용자 여성 샘플)
+# ──────────────────────────────────────────────
+class TestYongshinGuidancePerspectives:
+    """時 丙寅 / 日 甲寅 / 月 癸酉 / 年 甲戌 — 대표 金, 조후 보조 火 안내."""
+
+    @pytest.fixture
+    def female_natal(self) -> dict:
+        from backend.services.saju.engine.sisung import attach_sisung_to_natal
+
+        natal = {
+            "day_master": "甲",
+            "year": {"gan": "甲", "ji": "戌"},
+            "month": {"gan": "癸", "ji": "酉"},
+            "day": {"gan": "甲", "ji": "寅"},
+            "hour": {"gan": "丙", "ji": "寅"},
+            "gender": "FEMALE",
+        }
+        attach_sisung_to_natal(natal)
+        return natal
+
+    def test_legacy_scalar_values_stay_gold(self, female_natal: dict) -> None:
+        """기존 대표 계산값은 金으로 유지하고, 火는 보조 관점에서만 설명한다."""
+        yong = derive_yongshin_eokbu(natal=female_natal)
+        assert yong["sin_gang"] == "balanced"
+        assert yong["strength_score"] == 6
+        assert yong["yongshin_element"] == "금"
+        assert yong["yongshin_role"] == "관살"
+        assert yong["hee_shin_element"] == "토"
+        assert yong["ki_shin_element"] == "화"
+
+    def test_guidance_separates_eokbu_and_johu(self, female_natal: dict) -> None:
+        """억부 대표값 金과 조후 보조 火가 한 문장 정답으로 섞이지 않는다."""
+        yong = derive_yongshin_eokbu(natal=female_natal)
+        guidance = yong["guidance"]
+        perspectives = {item["key"]: item for item in guidance["perspectives"]}
+
+        assert guidance["representative"]["element"] == "금"
+        assert perspectives["eokbu"]["element"] == "금"
+        assert perspectives["geokguk"]["element"] == "금"
+        assert perspectives["geokguk"]["support_element"] == "토"
+        assert perspectives["johu"]["element"] == "화"
+        assert guidance["conflict_notice"] is True
+        assert "억부 기준" in guidance["conflict_message"]
+        assert "조후 관점" in guidance["conflict_message"]
+
+
+# ──────────────────────────────────────────────
 # v0.4.2 — 병준 케이스 (극신약 보정) + 일반 신약 회귀
 # ──────────────────────────────────────────────
 class TestByeongjunSample:
