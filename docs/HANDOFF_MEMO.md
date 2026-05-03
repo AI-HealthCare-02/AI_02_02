@@ -1,5 +1,154 @@
 # Handoff Memo
 
+## 2026-05-03 (세션 3) — Do it OS DB 마이그레이션 전체 구현 완료
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `feat/doit-os-db-backend` (main 4커밋 + 다크모드 픽스 1커밋 앞)
+- 작업트리 상태: **`docker-compose.prod.yml` 로컬 수정만 남음 (커밋 제외)**
+- 테스트: `npx vitest run` → 47개 통과
+
+### 이번에 완료된 작업
+
+#### PR 1 — 백엔드 DB + CRUD API (`d152147`)
+- `doit_thoughts` 테이블 (Tortoise ORM), `/api/v1/doit/thoughts` REST API 5종
+- `doitBulkSync`, `doitAiSummary` 엔드포인트 포함
+- Pydantic DTO, snake↔camelCase 변환
+
+#### PR 2+3 — 프론트엔드 localStorage → DB 전환 (`76213aa`)
+- `frontend/lib/doit_api.js` 신규: API 래퍼 (fromApi/toApi camelCase 변환)
+- `frontend/lib/doit_store.js` 전면 재작성:
+  - module-level cache (`_cache`, `_initPromise`, `_syncTimer`, `_prevBeforeSync`, `_needsMigration`)
+  - `initDoitStore()` singleton — DB에서 전체 로드, legacy quarantine 실행
+  - `saveThoughts()` null 가드 — init 전 저장 무시
+  - `_scheduleDiff()` 500ms debounce → `_doApiDiff()` CREATE/UPDATE/DELETE 배치 API 호출
+  - `needsMigration()` / `runMigration()` — localStorage 잔여 데이터 DB 이전
+  - `_resetStoreForTest()` 테스트 전용 리셋
+- `frontend/components/doit/MigrationBanner.js` 신규: 1회성 마이그레이션 UI
+- 12개 컴포넌트 일괄 수정: `storage` 이벤트 → `doit-store-update`, mount effect → `initDoitStore().then()`
+- `frontend/__tests__/doit_store.test.js` 전면 재작성: 44개 → 47개 테스트 (vitest)
+
+#### PR 4 — AI 도움 모드 MVP (`9bdbe35`)
+- 채팅 입력창 하단에 "Do it OS 참고" 토글 버튼 추가
+- 토글 ON 시 `/api/v1/doit/thoughts/ai-summary` 호출 → `doit_context`를 POST body에 첨부
+- 백엔드 프롬프트에 Do it OS 현황 블록(미분류/할일/기한초과/프로젝트/노트) 삽입
+- `backend/dtos/chat.py`, `chat_routers.py`, `service.py`, `prompting.py` 체이닝 추가
+
+#### PR 5 — 크로스-탭 동기화 + API 실패 복구 (`6e07290`)
+- **BroadcastChannel** (`danaa_doit_store_v1`): `saveThoughts()` 호출 시 다른 탭에 즉시 전파
+  - 미지원 브라우저 자동 폴백 (null → no-op)
+- **API 실패 복구**: `_doApiDiff()`에서 실패 항목 감지 → `doitFetchAll()` 재조회 → 캐시+이벤트+브로드캐스트
+- **runMigration 반환값**: `{ success: boolean, error?: string }` — 실패 시 `_needsMigration` 유지
+- **MigrationBanner 에러 처리**: 실패 시 error 상태 + "다시 시도" 버튼 표시
+
+#### 보너스 — 다크모드 버그픽스 (`5a0cd5f`)
+- `challenge/page.js`, `report/page.js` 탭바: `dark:` Tailwind 클래스 → CSS 변수 방식으로 교체
+
+### 다음 세션 권장 작업
+
+1. **`feat/doit-os-db-backend` → main PR 생성 및 코드 리뷰**
+2. **배포 검증**: staging 환경에서 initDoitStore → saveThoughts → API sync 플로우 확인
+3. **성능 점검**: `_doApiDiff` 배치 크기가 큰 경우(100개+) PUT 폭풍 방지 고려
+4. **AI 도움 모드 개선**: Do it OS 참고 시 어떤 맥락이 유용한지 사용자 피드백 수집 후 프롬프트 조정
+
+---
+
+## 2026-05-02 (세션 2) — 멘토링 피드백 UI 수정 + Do it OS 설계 플랜
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `main` (로컬 = `origin/main` 동기화 완료)
+- 최신 커밋: `7f954e2 fix: 챌린지 탭바 디자인 리포트와 통일, 챌린지 선택 배너·프로필 수정 팝업 다크모드 수정`
+- 작업트리 상태: **변경사항 있음 (미커밋, unstaged)**
+  - `frontend/app/app/challenge/page.js` — TabBar `dark:*` 클래스 전면 제거, CSS 변수 방식으로 교체
+  - `frontend/app/app/report/page.js` — ReportTabs 동일 교체
+  - `frontend/components/doit/ThoughtCanvas.js` — 맥OS 한국어 IME 이중 입력 방지
+  - `docker-compose.prod.yml` — 로컬 수정 (FASTAPI_IMAGE 기본값 추가), 커밋 제외 예정
+  - `docs/HANDOFF_MEMO.md` — 이 문서 업데이트
+
+### 이번에 완료된 작업
+
+#### 1. 챌린지·리포트 탭바 다크모드 재수정
+
+**문제:** 이전 커밋(`7f954e2`)에서 `dark:*` Tailwind 클래스를 추가했으나 맥OS 다크모드에서 탭 텍스트가 완전히 안 보이는 문제 발생.
+
+**원인 분석:**
+- 프로젝트는 `data-theme="dark"` CSS 변수 방식 사용 (`globals.css` 기준)
+- `tailwind.config.js`에 `darkMode` 설정 없음 → Tailwind 기본값 `media` (OS `prefers-color-scheme`) 사용
+- 맥OS가 다크모드이면 `dark:` Tailwind 클래스가 앱 테마 설정과 무관하게 적용됨
+- `dark:bg-[var(--color-card)]` → `--color-card` 미정의 → transparent
+- `dark:text-white` 동시 적용 → 흰 텍스트 on 투명/흰 배경 = 안 보임
+
+**수정 내용:**
+
+`frontend/app/app/challenge/page.js` TabBar:
+```jsx
+// 수정 전
+<div className="shrink-0 border-b border-[#E5E7EB] bg-white dark:border-[var(--color-border)] dark:bg-[var(--color-card)]">
+  isActive ? 'border-[#2563EB] text-[#111827] dark:border-blue-400 dark:text-white'
+  : 'border-transparent text-[#6B7280] hover:text-[#111827] dark:hover:text-white'
+
+// 수정 후 (dark: 전체 제거)
+<div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+  isActive ? 'border-[#2563EB] text-[var(--color-text)]'
+  : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+```
+
+`frontend/app/app/report/page.js` ReportTabs: 동일 패턴으로 교체.
+
+#### 2. 맥OS 한국어 IME 이중 입력 방지
+
+**문제:** 생각 쏟기(ThoughtCanvas)에서 한국어 입력 후 Enter 시 "안녕하세요" + "요" 두 개가 별개 메모로 등록되는 현상.
+
+**원인:** 한국어 조합 입력 중 Enter 키 이벤트가 두 번 발생 (IME composition event 특성).
+
+**수정:** `frontend/components/doit/ThoughtCanvas.js` [onKeyDown:196](frontend/components/doit/ThoughtCanvas.js#L196)
+```js
+// 수정 전
+if (event.key === 'Enter' && !event.shiftKey)
+// 수정 후
+if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing)
+```
+
+#### 3. Do it OS 저장 구조 전환 설계 플랜 (분석만, 미구현)
+
+이번 세션에서 Do it OS의 localStorage → DB 전환 설계를 깊이 분석하고 플랜을 작성했다. 구현은 하지 않았으며 대화 내에만 존재한다.
+
+**핵심 발견:**
+- Do it OS는 `danaa_doit_thoughts_v1::u{userId}` 키에 단일 배열로 localStorage 저장 (백엔드 없음)
+- Thought 하나가 todo/schedule/project/note/health 모든 필드를 가진 "God Object" 구조
+- 백엔드에 Do it OS 관련 DB 테이블/API 전혀 없음
+- AI 채팅이 현재 참고하는 사용자 데이터: challenge, health profile, risk level (Do it OS는 전혀 참고 안 함)
+
+**추천 전환 방향:** 하이브리드 opt-in (기본은 localStorage, 사용자가 선택 시 DB 동기화)
+
+**단계별 PR 계획 요약:**
+- PR 1: DB 모델(`doit_thoughts` 테이블) + CRUD API 뼈대 (백엔드만, 3~4일)
+- PR 2: `doit_store.js` 분기 로직 + 동기화 설정 UI (4~5일)
+- PR 3: localStorage → DB 이전 마이그레이션 플로우 (2~3일)
+- PR 4: AI 도움 모드 MVP — 채팅 입력창 "Do it OS 참고" 토글 (4~5일)
+- PR 5: 고급 동기화/conflict resolution (실사용 데이터 확보 후)
+
+**구현 전 팀 결정 필요 사항:**
+1. "서버에 저장 안 됨" 문구를 언제 바꿀 것인가
+2. 로컬 모드 사용자 영구 지원 여부 및 전환 일정
+3. AI 도움 모드 MVP 범위 ("이번 대화에만 허용" vs "영구 허용")
+
+### 미완료/잔여 사항
+
+- **커밋 & push 대기 중**: 위 1·2번 수정사항 (사용자 승인 후 진행)
+- **챌린지 streak 주단위 vs 일단위 구분 미구현**: 백엔드 `_update_streak`에 날짜 기반 검증 없음. 주단위 챌린지에서 날짜가 달라도 3번 체크 시 완료로 처리되는 버그. `doit_thoughts` 없이 `challenge.py`만 수정하면 됨.
+- **구글 로그인 챌린지 불러오기 실패**: 코드 레벨 버그 미발견, 배포 이슈 추정. 실제 Google OAuth + staging 환경 재현 필요.
+
+### 다음 액션
+
+1. 위 미커밋 수정사항 승인 → 커밋 & push
+2. `backend/services/challenge.py` `_update_streak` 날짜 검증 추가 (주단위 챌린지 중복 체크인 방지)
+3. Do it OS DB 전환 플랜 팀 리뷰 → 구현 일정 확정
+4. 구글 로그인 챌린지 로딩 staging 환경 재현 시도
+
+---
+
 ## 2026-05-02 최신 핸즈오프 / V4 랜딩페이지 머지·배포 완료
 
 ### 현재 저장소/브랜치 상태
