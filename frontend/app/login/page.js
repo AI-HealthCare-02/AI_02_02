@@ -11,6 +11,13 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
   'http://localhost:8000';
 
+function getSafeNextPath() {
+  if (typeof window === 'undefined') return '';
+  const next = new URLSearchParams(window.location.search).get('next') || '';
+  if (!next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return '';
+  return next;
+}
+
 function getLoginErrorMessage(status, detail) {
   if (status === 429) return '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.';
   if (status >= 500) return '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
@@ -70,6 +77,12 @@ export default function LoginPage() {
 
       const data = await response.json();
       await establishSession(data.access_token, { remember: keepLoggedIn });
+
+      const nextPath = getSafeNextPath();
+      if (nextPath) {
+        window.location.href = nextPath;
+        return;
+      }
 
       const statusRes = await api('/api/v1/onboarding/status');
       if (!statusRes.ok) {
