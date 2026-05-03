@@ -50,6 +50,7 @@ ENUM_VERIFICATION_REPORT.md
 
 # Local tool caches
 .pytest_cache/
+.pytest_tmp/
 .ruff_cache/
 .mypy_cache/
 htmlcov/
