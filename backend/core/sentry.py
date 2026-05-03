@@ -15,6 +15,8 @@ from backend.core.config import Config, Env
 # 건강 데이터 민감 필드 — Sentry breadcrumb/request body에서 제거
 HEALTH_SENSITIVE_FIELDS: frozenset[str] = frozenset({
     "numeric_value", "answers", "bundle_keys",
+    "access_token", "refresh_token", "device_code", "user_code",
+    "token", "token_hash", "idempotency_key", "lease_id",
     "hba1c_range", "treatments", "conditions",
     "sleep_quality", "breakfast_status", "mood_level",
     "exercise_done", "exercise_type", "exercise_minutes",
@@ -31,7 +33,7 @@ HEALTH_SENSITIVE_FIELDS: frozenset[str] = frozenset({
 # 건강 관련 엔드포인트 — request body 전체를 제거
 HEALTH_ENDPOINTS: frozenset[str] = frozenset({
     "/api/v1/health", "/api/v1/daily", "/api/v1/measurements",
-    "/api/v1/onboarding/survey",
+    "/api/v1/onboarding/survey", "/api/v1/external", "/api/v1/external-auth",
 })
 
 

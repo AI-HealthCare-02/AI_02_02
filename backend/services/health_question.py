@@ -693,6 +693,7 @@ class HealthQuestionService:
         user_id: int,
         bundle_key: str,
         answers: dict[str, str | int | bool],
+        source: DataSource = DataSource.CHAT,
     ) -> dict:
         """건강질문 답변 저장.
 
@@ -745,7 +746,7 @@ class HealthQuestionService:
             # _source 필드 설정
             source_field = FIELD_TO_SOURCE.get(field_name)
             if source_field and hasattr(log, source_field):
-                setattr(log, source_field, DataSource.CHAT)
+                setattr(log, source_field, source)
 
         await log.save()
 
