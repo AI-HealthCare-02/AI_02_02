@@ -6,6 +6,7 @@ import { Link2Off, Undo2 } from 'lucide-react';
 import {
   CATEGORIES,
   getLinkedNextActions,
+  initDoitStore,
   loadThoughts,
   saveThoughts,
   updateThoughtMeta,
@@ -33,8 +34,10 @@ export default function ProjectLinkedNextActions({ projectId, onChange }) {
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
-    const list = loadThoughts();
-    setItems(getLinkedNextActions(list, projectId));
+    initDoitStore().then(() => {
+      const list = loadThoughts();
+      setItems(getLinkedNextActions(list, projectId));
+    });
   }, [projectId]);
 
   const clearToastTimer = useCallback(() => {

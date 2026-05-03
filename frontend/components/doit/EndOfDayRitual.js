@@ -11,6 +11,7 @@ import {
   discardThought,
   getTodayUnfinishedSchedule,
   getUnclassified,
+  initDoitStore,
   keepInInbox,
   loadThoughts,
   moveToWaiting,
@@ -62,9 +63,11 @@ export default function EndOfDayRitual() {
 
   // 초기 로딩
   useEffect(() => {
-    const loaded = loadThoughts();
-    setThoughts(loaded);
-    setSpilledCount(getUnclassified(loaded).length);
+    initDoitStore().then(() => {
+      const loaded = loadThoughts();
+      setThoughts(loaded);
+      setSpilledCount(getUnclassified(loaded).length);
+    });
   }, []);
 
   // ESC → 대시보드 복귀

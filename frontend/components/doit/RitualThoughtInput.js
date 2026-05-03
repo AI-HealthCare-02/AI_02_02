@@ -5,6 +5,7 @@ import { Feather } from 'lucide-react';
 
 import {
   getUnclassified,
+  initDoitStore,
   loadThoughts,
   saveThoughts,
 } from '../../lib/doit_store';
@@ -19,7 +20,7 @@ export default function RitualThoughtInput({ onCount }) {
   const [draft, setDraft] = useState('');
 
   useEffect(() => {
-    setThoughts(getUnclassified(loadThoughts()));
+    initDoitStore().then(() => setThoughts(getUnclassified(loadThoughts())));
   }, []);
 
   const handleAdd = () => {

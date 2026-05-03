@@ -6,8 +6,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, PenLine, Sparkles, StickyNote, Trash2 } from 'lucide-react';
 
 import {
-  getThoughtsStorageKey,
   getNoteById,
+  initDoitStore,
   loadThoughts,
   saveThoughts,
   unclassifyThought,
@@ -35,21 +35,21 @@ export default function NoteDetailView({ noteId }) {
   const debounceRef = useRef(null);
 
   useEffect(() => {
-    const list = loadThoughts();
-    setThoughts(list);
-    const note = getNoteById(list, noteId);
-    if (note) {
-      setTitle(note.text || '');
-      setBody(note.noteBody || '');
-    }
+    initDoitStore().then(() => {
+      const list = loadThoughts();
+      setThoughts(list);
+      const note = getNoteById(list, noteId);
+      if (note) {
+        setTitle(note.text || '');
+        setBody(note.noteBody || '');
+      }
+    });
   }, [noteId]);
 
   useEffect(() => {
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   const note = thoughts ? getNoteById(thoughts, noteId) : null;

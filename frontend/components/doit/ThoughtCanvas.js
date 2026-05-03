@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles, X } from 'lucide-react';
 import { nextNonOverlappingPosition, relayoutZeroCards, clampToCanvas, randInt } from '../../lib/doit_canvas_layout';
 import {
   getUnclassified,
+  initDoitStore,
   loadThoughts,
   saveThoughts,
   getLayoutToastKey,
@@ -67,8 +68,10 @@ export default function ThoughtCanvas() {
   const textareaRef = useRef(null);
 
   useEffect(() => {
-    setThoughts(loadThoughts());
-    setHydrated(true);
+    initDoitStore().then(() => {
+      setThoughts(loadThoughts());
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -133,7 +136,7 @@ export default function ThoughtCanvas() {
                   });
                   return { ...t, x: pos.x, y: pos.y };
                 });
-                // 변경된 카드가 있으면 localStorage 에도 반영
+                // 변경된 카드가 있으면 저장
                 if (
                   clamped.some(
                     (t, i) =>
@@ -193,7 +196,7 @@ export default function ThoughtCanvas() {
   }, []);
 
   const onKeyDown = (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       addThought();
     }

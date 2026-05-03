@@ -7,12 +7,12 @@ import { ArrowRight, Cloud, Hourglass, Inbox, ListChecks, Undo2, X } from 'lucid
 import {
   CATEGORIES,
   CATEGORY_LABELS,
-  getThoughtsStorageKey,
   classifyThought,
   discardThought,
   getByCategory,
   getSummary,
   getUnclassified,
+  initDoitStore,
   loadThoughts,
   restoreDiscarded,
   saveThoughts,
@@ -55,13 +55,13 @@ export default function ClassifyView() {
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
-    setThoughts(loadThoughts());
-    setHydrated(true);
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    initDoitStore().then(() => {
+      setThoughts(loadThoughts());
+      setHydrated(true);
+    });
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   useEffect(() => {

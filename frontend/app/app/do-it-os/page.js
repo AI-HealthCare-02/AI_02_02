@@ -18,16 +18,18 @@ import {
 } from 'lucide-react';
 
 import {
-  getThoughtsStorageKey,
   getGuideSeenKey,
   getUnclassified,
   getOverdueScheduled,
   getSummary,
   getTodayScheduled,
+  initDoitStore,
   loadThoughts,
+  needsMigration,
 } from '../../../lib/doit_store';
 import ClassifiedBoard from '../../../components/doit/ClassifiedBoard';
 import EveningCta from '../../../components/doit/EveningCta';
+import MigrationBanner from '../../../components/doit/MigrationBanner';
 import { formatFriendlyDate } from '../../../components/doit/DateChip';
 
 function formatRelative(iso) {
@@ -47,14 +49,16 @@ function formatRelative(iso) {
 export default function DoItOsDashboard() {
   const [thoughts, setThoughts] = useState([]);
   const [guideSeen, setGuideSeen] = useState(true);
+  const [showMigration, setShowMigration] = useState(false);
 
   useEffect(() => {
-    setThoughts(loadThoughts());
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    initDoitStore().then(() => {
+      setThoughts(loadThoughts());
+      setShowMigration(needsMigration());
+    });
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   useEffect(() => {
@@ -100,6 +104,10 @@ export default function DoItOsDashboard() {
             오늘 머릿속을 꺼내서 정리해요.
           </p>
         </header>
+
+        {showMigration && (
+          <MigrationBanner onComplete={() => setShowMigration(false)} />
+        )}
 
         {!guideSeen && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-[var(--color-primary-light)] bg-[var(--color-primary-light)]/40 px-4 py-3">
@@ -285,7 +293,7 @@ export default function DoItOsDashboard() {
             { icon: StickyNote, label: '노트', href: '/app/do-it-os/note', desc: '참고할 생각을 보관' },
             { icon: HeartPulse, label: '건강 단서', href: '/app/do-it-os/note', desc: '몸과 마음 메모' },
             { icon: Moon, label: '자기 전 정리', href: '/app/do-it-os/end-of-day', desc: '오늘의 생각을 내려놓아요' },
-            { icon: Shield, label: '저장 원칙', href: '/app/do-it-os', desc: 'AI가 임의 저장 안 해요' },
+            { icon: Shield, label: '저장 원칙', href: '/app/do-it-os', desc: '계정에 안전하게 저장됩니다' },
           ].map((card) => (
             <Link
               key={card.label}
