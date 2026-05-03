@@ -5,6 +5,7 @@ from backend.apis.v1.auth_routers import auth_router
 from backend.apis.v1.challenge_routers import challenge_router
 from backend.apis.v1.chat_routers import chat_router
 from backend.apis.v1.dashboard_routers import dashboard_router
+from backend.apis.v1.doit_routers import doit_router
 from backend.apis.v1.health_routers import health_router
 from backend.apis.v1.onboarding_routers import onboarding_router
 from backend.apis.v1.push_routers import push_router
@@ -28,3 +29,4 @@ v1_routers.include_router(settings_router)
 v1_routers.include_router(recommendation_router)
 v1_routers.include_router(push_router)
 v1_routers.include_router(saju_router)
+v1_routers.include_router(doit_router)

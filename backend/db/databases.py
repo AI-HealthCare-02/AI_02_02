@@ -16,6 +16,7 @@ TORTOISE_APP_MODELS = [
     "backend.models.chat",
     "backend.models.push",
     "backend.models.saju",
+    "backend.models.doit",
 ]
 
 TORTOISE_ORM = {
