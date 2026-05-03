@@ -648,14 +648,14 @@ function ScoreHoverPopup({ children, content, direction = 'right' }) {
 
 function ReportTabs() {
   return (
-    <div className="shrink-0 border-b border-[#E5E7EB] bg-white dark:border-[var(--color-border)] dark:bg-[var(--color-card)]">
+    <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto flex w-full max-w-[1260px] gap-0 px-5">
-        <div className="inline-flex items-center border-b-2 border-[#2563EB] px-5 py-3 text-[14px] font-semibold text-[#111827] dark:border-blue-400 dark:text-white">
+        <div className="inline-flex items-center border-b-2 border-[#2563EB] px-5 py-3 text-[14px] font-semibold text-[var(--color-text)]">
           대시보드
         </div>
         <Link
           href="/app/report/detail"
-          className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-[#6B7280] transition-colors hover:text-[#111827] dark:hover:text-white"
+          className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
         >
           상세 리포트
         </Link>

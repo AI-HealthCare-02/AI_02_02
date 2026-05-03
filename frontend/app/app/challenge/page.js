@@ -211,7 +211,7 @@ function ChallengeVisualBadge({ visual, size = 24 }) {
 /* ── 탭바 ────────────────────────────────────────────── */
 function TabBar({ activeTab, onChange, highlightSelection }) {
   return (
-    <div className="shrink-0 border-b border-[#E5E7EB] bg-white dark:border-[var(--color-border)] dark:bg-[var(--color-card)]">
+    <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto flex w-full max-w-[1260px] gap-0 px-5">
         {CATEGORY_GROUPS.map((tab) => {
           const isActive = activeTab === tab.key;
@@ -223,8 +223,8 @@ function TabBar({ activeTab, onChange, highlightSelection }) {
               onClick={() => onChange(tab.key)}
               className={`relative inline-flex cursor-pointer items-center border-b-2 px-5 py-3 text-[14px] font-semibold transition-colors ${
                 isActive
-                  ? 'border-[#2563EB] text-[#111827] dark:border-blue-400 dark:text-white'
-                  : 'border-transparent text-[#6B7280] hover:text-[#111827] dark:hover:text-white'
+                  ? 'border-[#2563EB] text-[var(--color-text)]'
+                  : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
               }`}
             >
               {tab.label}
