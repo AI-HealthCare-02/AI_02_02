@@ -1,5 +1,82 @@
 # Handoff Memo
 
+## 2026-05-04 (세션 4) — 챗봇 Do it OS 인텐트 강화 + PR #48 머지
+
+### 현재 저장소/브랜치 상태
+
+- 로컬 `main` = `origin/main` = `upstream/main` 동기화 완료
+- 최신 머지: PR #48 `feat: restore external health checkin API` (외부 CLI 건강 체크인 API)
+- 작업 브랜치: `feat/bj_chatbot-doit-os-intent`
+  - 개인 레포 PR #49 오픈 중 (충돌 해소 완료, 머지 대기)
+  - 공식 레포(OZ) PR #11 오픈 중
+- 테스트: `pytest backend/tests/unit` → 430개 통과 / `vitest run` → 47개 통과
+- 작업트리: `docker-compose.prod.yml` 로컬 수정만 남음 (커밋 제외)
+
+### 이번에 완료된 작업
+
+#### 1. 챗봇 Do it OS 인텐트 자동 감지 강화 (`feat/bj_chatbot-doit-os-intent`)
+
+**`backend/services/chat/intent.py`**
+- `_DOIT_OS_KEYWORDS` 추가: `"do it os"`, `"두잇os"`, `"생각 쏟기"`, `"프로젝트 관리"` 등 13개
+- `_DOIT_OS_STATE_PATTERNS` 추가: `"내 할 일"`, `"오늘 할 일"`, `"미분류 메모"`, `"기한 지난"` 등 10개
+- `classify_chat_app_intent()`: `DOIT_OS_HELP` (기능 설명 질문) / `DOIT_OS_STATE` (내 데이터 조회) 분기 추가
+- `select_app_state_domains()`: `"doit_os"` 도메인 추가, MIXED 케이스 doit_os 처리
+
+**`backend/services/chat/app_context.py`**
+- `ChatAppIntent`에 `DOIT_OS_HELP`, `DOIT_OS_STATE` 추가
+- `ChatAppHelpSnapshot`에 `doit_os_help` 필드 추가 (fallback 텍스트 포함)
+- `ChatAppStateSnapshot`에 doit 필드 5종 추가: `doit_unclassified_count`, `doit_today_todos`, `doit_overdue_schedules`, `doit_active_projects`, `doit_recent_notes_count`
+- `_build_doit_os_state_lines()` 신규 추가
+- `build_app_state_layer()`에 `DOIT_OS_STATE` / MIXED 블록 추가
+- `_INTENT_SECTION_MAP`에 Do it OS 행 추가
+
+**`backend/services/chat/service.py`**
+- `DoitService` import + `self.doit_service` 인스턴스 추가
+- `_build_chat_app_state_snapshot()`에 `doit_os` 도메인 처리: `get_ai_summary()` 자동 호출 → 스냅샷 주입
+
+**`backend/services/chat/prompting.py`**
+- `PHASE1_SCOPE_BLOCK`에 Do it OS 언급 2줄 추가
+
+**동작 흐름 요약:**
+```
+사용자: "내 할 일 알려줘"
+→ classify_chat_app_intent() → DOIT_OS_STATE
+→ select_app_state_domains() → ["doit_os"]
+→ DoitService.get_ai_summary(user_id) DB 조회
+→ 시스템 프롬프트에 [Do it OS 현재 상태] 블록 주입
+→ AI가 실제 할 일 목록 기반으로 답변
+```
+
+#### 2. PR #48 머지 지원 (`feat: restore external health checkin API`)
+
+- 마이그레이션 번호 충돌(`18_...` → `19_...`) 수정 후 머지
+- 외부 CLI(Claude Code, Codex 등)에서 건강 카드 질문을 받아 다나아 계정에 저장하는 전용 API 추가
+- 새 테이블 4종: `external_device_sessions`, `external_client_tokens`, `external_checkin_leases`, `external_checkin_requests`
+- Device Code Flow 인증, lease 기반 질문권, Idempotency-Key 중복 방지 포함
+
+#### 3. pre-push 훅 basetemp 수정
+
+- `scripts/hooks/pre-push` pytest 실행 시 `--basetemp="$REPO_ROOT/.pytest_tmp"` 추가
+- 원인: ESTsoft가 TEMP 환경 변수를 `C:\Users\Public\Documents\ESTsoft\CreatorTemp`로 설정, 해당 경로 쓰기 권한 없어 pytest `tmp_path` 픽스처 오류 발생
+- `.gitignore`에 `.pytest_tmp/` 추가
+
+### PR 현황
+
+| PR | 레포 | 제목 | 상태 |
+|---|---|---|---|
+| #49 | BIJENG/DANAA_project | feat: Do it OS DB화 + 챗봇 Do it OS 인텐트 강화 | 오픈 (머지 대기) |
+| #11 | AI-HealthCare-02/AI_02_02 | feat: Do it OS DB화 + 챗봇 Do it OS 인텐트 강화 | 오픈 (머지 대기) |
+| #48 | BIJENG/DANAA_project | feat: restore external health checkin API | ✅ 머지 완료 |
+
+### 다음 세션 권장 작업
+
+1. PR #49 (개인 레포), PR #11 (공식 레포) 머지
+2. 운영 DB에 마이그레이션 적용 전 백업 (`19_20260503_add_external_checkin_tables.py`)
+3. Device Code 승인 UI (`frontend/app/settings/integrations/danaa-health-cards/page.js`) 실 동작 검증
+4. Do it OS 인텐트 오발동 모니터링 — `"내 할 일이 많아서 힘들어요"` 같은 감성 대화 시 불필요한 DB 조회 여부 확인
+
+---
+
 ## 2026-05-03 (세션 3) — Do it OS DB 마이그레이션 전체 구현 완료
 
 ### 현재 저장소/브랜치 상태
