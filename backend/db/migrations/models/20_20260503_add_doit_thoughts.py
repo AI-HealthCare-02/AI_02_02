@@ -50,3 +50,8 @@ async def downgrade(db: BaseDBAsyncClient) -> str:
     return """
         DROP TABLE IF EXISTS "doit_thoughts";
     """
+
+
+MODELS_STATE = (
+    "doit_thoughts_v1"
+)
