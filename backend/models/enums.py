@@ -253,6 +253,7 @@ class DataSource(StrEnum):
     CHAT = "chat"
     DIRECT = "direct"
     BACKFILL = "backfill"
+    AI_TOOL = "ai_tool"
 
 
 # ──────────────────────────────────────────────

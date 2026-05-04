@@ -27,6 +27,12 @@ class ChallengeOverviewItem(BaseModel):
     days_completed: int
     today_checked: bool
     selection_source: str
+    lifetime_completed_count: int = 0
+    badge_tier: str = "unranked"
+    badge_label: str = "미획득"
+    next_badge_tier: str | None = None
+    next_badge_label: str | None = None
+    remaining_to_next_badge: int | None = None
 
 
 class ChallengeRecommendedItem(BaseModel):
@@ -40,6 +46,12 @@ class ChallengeRecommendedItem(BaseModel):
     description: str
     default_duration_days: int
     blocked_today: bool = False  # 오늘 체크인 이력 있어 내일부터 시작 가능
+    lifetime_completed_count: int = 0
+    badge_tier: str = "unranked"
+    badge_label: str = "미획득"
+    next_badge_tier: str | None = None
+    next_badge_label: str | None = None
+    remaining_to_next_badge: int | None = None
 
 
 class ChallengeCatalogItem(BaseModel):
@@ -54,6 +66,28 @@ class ChallengeCatalogItem(BaseModel):
     default_duration_days: int
     is_recommended: bool = False
     blocked_today: bool = False  # 오늘 체크인 이력 있어 내일부터 시작 가능
+    lifetime_completed_count: int = 0
+    badge_tier: str = "unranked"
+    badge_label: str = "미획득"
+    next_badge_tier: str | None = None
+    next_badge_label: str | None = None
+    remaining_to_next_badge: int | None = None
+
+
+class ChallengeBadgeItem(BaseModel):
+    """사용자가 획득한 챌린지 배지 항목."""
+
+    template_id: int
+    code: str
+    name: str
+    emoji: str
+    category: str
+    lifetime_completed_count: int
+    badge_tier: str
+    badge_label: str
+    next_badge_tier: str | None = None
+    next_badge_label: str | None = None
+    remaining_to_next_badge: int | None = None
 
 
 class ChallengeOverviewResponse(BaseModel):
@@ -63,6 +97,7 @@ class ChallengeOverviewResponse(BaseModel):
     completed: list[ChallengeOverviewItem] = []
     recommended: list[ChallengeRecommendedItem] = []
     catalog: list[ChallengeCatalogItem] = []
+    badges: list[ChallengeBadgeItem] = []
     stats: dict[str, int] = {}
 
 

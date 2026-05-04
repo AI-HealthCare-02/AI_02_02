@@ -147,7 +147,7 @@ export default function NextActionCardGrid({ projectId, projectTitle }) {
   }, [clearToast]);
 
   // race condition 회피: load→write 사이 다른 탭 쓰기 보호를 위해
-  // 한 번의 함수형 업데이트 블록에서 읽고 쓰되, 즉시 localStorage 반영.
+  // 한 번의 함수형 업데이트 블록에서 읽고 쓴다.
   const handlePick = useCallback(
     (preset) => {
       const current = loadThoughts();
@@ -188,7 +188,7 @@ export default function NextActionCardGrid({ projectId, projectTitle }) {
 
   return (
     <div ref={canvasRef} className="doit-next-action-grid">
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-5">
         {PRESETS.map((preset) => {
           const Icon = preset.icon;
           return (

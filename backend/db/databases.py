@@ -10,12 +10,14 @@ TORTOISE_APP_MODELS = [
     "backend.models.email_signup_sessions",
     "backend.models.consents",
     "backend.models.health",
+    "backend.models.external_checkin",
     "backend.models.assessments",
     "backend.models.challenges",
     "backend.models.settings",
     "backend.models.chat",
     "backend.models.push",
     "backend.models.saju",
+    "backend.models.doit",
 ]
 
 TORTOISE_ORM = {

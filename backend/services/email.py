@@ -59,3 +59,15 @@ class EmailService:
                 "계정 연동을 요청하지 않으셨다면 이 메일은 무시하셔도 됩니다.\n"
             ),
         )
+
+    def send_password_reset_verification_code(self, *, to_email: str, code: str) -> None:
+        self._send_verification_code(
+            to_email=to_email,
+            subject="[DA-NA-A] 비밀번호 재설정 인증 코드",
+            body=(
+                "DA-NA-A 비밀번호 재설정 인증 코드입니다.\n\n"
+                f"인증 코드: {code}\n\n"
+                "이 코드는 10분 동안만 유효합니다.\n"
+                "비밀번호 재설정을 요청하지 않으셨다면 이 메일은 무시하셔도 됩니다.\n"
+            ),
+        )

@@ -29,7 +29,7 @@ async function fetchProfileAndToday() {
     const profileRes = await api('/api/v1/saju/profile');
     if (profileRes.status !== 200) return { exists: false };
     const profile = await profileRes.json();
-    return { exists: profile !== null };
+    return { exists: profile !== null, profile };
   } catch {
     return { exists: false };
   }
@@ -38,6 +38,7 @@ async function fetchProfileAndToday() {
 function SajuCardSectionImpl() {
   // null = 로딩, false = 프로필 없음, true = 있음 (CTA/설명 문구만 다름, 카드 형태는 동일)
   const [profileExists, setProfileExists] = useState(null);
+  const [sajuProfile, setSajuProfile] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalInitialStep, setModalInitialStep] = useState(0);
   // 재방문자 모달 진입 시 로딩 텍스트 깜박임 제거 — 카드 마운트 시점에 today 응답 미리 받아둠.
@@ -47,9 +48,10 @@ function SajuCardSectionImpl() {
   // 마운트 시 프로필 존재 확인 (summary 는 사용 안 함 — EntryCard 통일)
   useEffect(() => {
     let cancelled = false;
-    fetchProfileAndToday().then(({ exists }) => {
+    fetchProfileAndToday().then(({ exists, profile }) => {
       if (cancelled) return;
       setProfileExists(exists);
+      setSajuProfile(profile || null);
     });
     return () => {
       cancelled = true;
@@ -89,8 +91,10 @@ function SajuCardSectionImpl() {
   // 가 false→true 로 바뀌어 prefetch effect 가 자연스럽게 새 응답을 채운다.
   const handleClose = useCallback(async () => {
     setModalOpen(false);
-    const { exists } = await fetchProfileAndToday();
+    setPrefetchedToday(null);
+    const { exists, profile } = await fetchProfileAndToday();
     setProfileExists(exists);
+    setSajuProfile(profile || null);
   }, []);
 
   return (
@@ -111,6 +115,7 @@ function SajuCardSectionImpl() {
         onClose={handleClose}
         initialStep={modalInitialStep}
         hasProfile={Boolean(profileExists)}
+        sajuProfile={sajuProfile}
         prefetchedToday={prefetchedToday}
       />
     </section>

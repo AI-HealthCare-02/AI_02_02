@@ -1,5 +1,489 @@
 # Handoff Memo
 
+## 2026-05-04 (세션 4) — 챗봇 Do it OS 인텐트 강화 + PR #48 머지
+
+### 현재 저장소/브랜치 상태
+
+- 로컬 `main` = `origin/main` = `upstream/main` 동기화 완료
+- 최신 머지: PR #48 `feat: restore external health checkin API` (외부 CLI 건강 체크인 API)
+- 작업 브랜치: `feat/bj_chatbot-doit-os-intent`
+  - 개인 레포 PR #49 오픈 중 (충돌 해소 완료, 머지 대기)
+  - 공식 레포(OZ) PR #11 오픈 중
+- 테스트: `pytest backend/tests/unit` → 430개 통과 / `vitest run` → 47개 통과
+- 작업트리: `docker-compose.prod.yml` 로컬 수정만 남음 (커밋 제외)
+
+### 이번에 완료된 작업
+
+#### 1. 챗봇 Do it OS 인텐트 자동 감지 강화 (`feat/bj_chatbot-doit-os-intent`)
+
+**`backend/services/chat/intent.py`**
+- `_DOIT_OS_KEYWORDS` 추가: `"do it os"`, `"두잇os"`, `"생각 쏟기"`, `"프로젝트 관리"` 등 13개
+- `_DOIT_OS_STATE_PATTERNS` 추가: `"내 할 일"`, `"오늘 할 일"`, `"미분류 메모"`, `"기한 지난"` 등 10개
+- `classify_chat_app_intent()`: `DOIT_OS_HELP` (기능 설명 질문) / `DOIT_OS_STATE` (내 데이터 조회) 분기 추가
+- `select_app_state_domains()`: `"doit_os"` 도메인 추가, MIXED 케이스 doit_os 처리
+
+**`backend/services/chat/app_context.py`**
+- `ChatAppIntent`에 `DOIT_OS_HELP`, `DOIT_OS_STATE` 추가
+- `ChatAppHelpSnapshot`에 `doit_os_help` 필드 추가 (fallback 텍스트 포함)
+- `ChatAppStateSnapshot`에 doit 필드 5종 추가: `doit_unclassified_count`, `doit_today_todos`, `doit_overdue_schedules`, `doit_active_projects`, `doit_recent_notes_count`
+- `_build_doit_os_state_lines()` 신규 추가
+- `build_app_state_layer()`에 `DOIT_OS_STATE` / MIXED 블록 추가
+- `_INTENT_SECTION_MAP`에 Do it OS 행 추가
+
+**`backend/services/chat/service.py`**
+- `DoitService` import + `self.doit_service` 인스턴스 추가
+- `_build_chat_app_state_snapshot()`에 `doit_os` 도메인 처리: `get_ai_summary()` 자동 호출 → 스냅샷 주입
+
+**`backend/services/chat/prompting.py`**
+- `PHASE1_SCOPE_BLOCK`에 Do it OS 언급 2줄 추가
+
+**동작 흐름 요약:**
+```
+사용자: "내 할 일 알려줘"
+→ classify_chat_app_intent() → DOIT_OS_STATE
+→ select_app_state_domains() → ["doit_os"]
+→ DoitService.get_ai_summary(user_id) DB 조회
+→ 시스템 프롬프트에 [Do it OS 현재 상태] 블록 주입
+→ AI가 실제 할 일 목록 기반으로 답변
+```
+
+#### 2. PR #48 머지 지원 (`feat: restore external health checkin API`)
+
+- 마이그레이션 번호 충돌(`18_...` → `19_...`) 수정 후 머지
+- 외부 CLI(Claude Code, Codex 등)에서 건강 카드 질문을 받아 다나아 계정에 저장하는 전용 API 추가
+- 새 테이블 4종: `external_device_sessions`, `external_client_tokens`, `external_checkin_leases`, `external_checkin_requests`
+- Device Code Flow 인증, lease 기반 질문권, Idempotency-Key 중복 방지 포함
+
+#### 3. pre-push 훅 basetemp 수정
+
+- `scripts/hooks/pre-push` pytest 실행 시 `--basetemp="$REPO_ROOT/.pytest_tmp"` 추가
+- 원인: ESTsoft가 TEMP 환경 변수를 `C:\Users\Public\Documents\ESTsoft\CreatorTemp`로 설정, 해당 경로 쓰기 권한 없어 pytest `tmp_path` 픽스처 오류 발생
+- `.gitignore`에 `.pytest_tmp/` 추가
+
+### PR 현황
+
+| PR | 레포 | 제목 | 상태 |
+|---|---|---|---|
+| #49 | BIJENG/DANAA_project | feat: Do it OS DB화 + 챗봇 Do it OS 인텐트 강화 | 오픈 (머지 대기) |
+| #11 | AI-HealthCare-02/AI_02_02 | feat: Do it OS DB화 + 챗봇 Do it OS 인텐트 강화 | 오픈 (머지 대기) |
+| #48 | BIJENG/DANAA_project | feat: restore external health checkin API | ✅ 머지 완료 |
+
+### 다음 세션 권장 작업
+
+1. PR #49 (개인 레포), PR #11 (공식 레포) 머지
+2. 운영 DB에 마이그레이션 적용 전 백업 (`19_20260503_add_external_checkin_tables.py`)
+3. Device Code 승인 UI (`frontend/app/settings/integrations/danaa-health-cards/page.js`) 실 동작 검증
+4. Do it OS 인텐트 오발동 모니터링 — `"내 할 일이 많아서 힘들어요"` 같은 감성 대화 시 불필요한 DB 조회 여부 확인
+
+---
+
+## 2026-05-03 (세션 3) — Do it OS DB 마이그레이션 전체 구현 완료
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `feat/doit-os-db-backend` (main 4커밋 + 다크모드 픽스 1커밋 앞)
+- 작업트리 상태: **`docker-compose.prod.yml` 로컬 수정만 남음 (커밋 제외)**
+- 테스트: `npx vitest run` → 47개 통과
+
+### 이번에 완료된 작업
+
+#### PR 1 — 백엔드 DB + CRUD API (`d152147`)
+- `doit_thoughts` 테이블 (Tortoise ORM), `/api/v1/doit/thoughts` REST API 5종
+- `doitBulkSync`, `doitAiSummary` 엔드포인트 포함
+- Pydantic DTO, snake↔camelCase 변환
+
+#### PR 2+3 — 프론트엔드 localStorage → DB 전환 (`76213aa`)
+- `frontend/lib/doit_api.js` 신규: API 래퍼 (fromApi/toApi camelCase 변환)
+- `frontend/lib/doit_store.js` 전면 재작성:
+  - module-level cache (`_cache`, `_initPromise`, `_syncTimer`, `_prevBeforeSync`, `_needsMigration`)
+  - `initDoitStore()` singleton — DB에서 전체 로드, legacy quarantine 실행
+  - `saveThoughts()` null 가드 — init 전 저장 무시
+  - `_scheduleDiff()` 500ms debounce → `_doApiDiff()` CREATE/UPDATE/DELETE 배치 API 호출
+  - `needsMigration()` / `runMigration()` — localStorage 잔여 데이터 DB 이전
+  - `_resetStoreForTest()` 테스트 전용 리셋
+- `frontend/components/doit/MigrationBanner.js` 신규: 1회성 마이그레이션 UI
+- 12개 컴포넌트 일괄 수정: `storage` 이벤트 → `doit-store-update`, mount effect → `initDoitStore().then()`
+- `frontend/__tests__/doit_store.test.js` 전면 재작성: 44개 → 47개 테스트 (vitest)
+
+#### PR 4 — AI 도움 모드 MVP (`9bdbe35`)
+- 채팅 입력창 하단에 "Do it OS 참고" 토글 버튼 추가
+- 토글 ON 시 `/api/v1/doit/thoughts/ai-summary` 호출 → `doit_context`를 POST body에 첨부
+- 백엔드 프롬프트에 Do it OS 현황 블록(미분류/할일/기한초과/프로젝트/노트) 삽입
+- `backend/dtos/chat.py`, `chat_routers.py`, `service.py`, `prompting.py` 체이닝 추가
+
+#### PR 5 — 크로스-탭 동기화 + API 실패 복구 (`6e07290`)
+- **BroadcastChannel** (`danaa_doit_store_v1`): `saveThoughts()` 호출 시 다른 탭에 즉시 전파
+  - 미지원 브라우저 자동 폴백 (null → no-op)
+- **API 실패 복구**: `_doApiDiff()`에서 실패 항목 감지 → `doitFetchAll()` 재조회 → 캐시+이벤트+브로드캐스트
+- **runMigration 반환값**: `{ success: boolean, error?: string }` — 실패 시 `_needsMigration` 유지
+- **MigrationBanner 에러 처리**: 실패 시 error 상태 + "다시 시도" 버튼 표시
+
+#### 보너스 — 다크모드 버그픽스 (`5a0cd5f`)
+- `challenge/page.js`, `report/page.js` 탭바: `dark:` Tailwind 클래스 → CSS 변수 방식으로 교체
+
+### 다음 세션 권장 작업
+
+1. **`feat/doit-os-db-backend` → main PR 생성 및 코드 리뷰**
+2. **배포 검증**: staging 환경에서 initDoitStore → saveThoughts → API sync 플로우 확인
+3. **성능 점검**: `_doApiDiff` 배치 크기가 큰 경우(100개+) PUT 폭풍 방지 고려
+4. **AI 도움 모드 개선**: Do it OS 참고 시 어떤 맥락이 유용한지 사용자 피드백 수집 후 프롬프트 조정
+
+---
+
+## 2026-05-02 (세션 2) — 멘토링 피드백 UI 수정 + Do it OS 설계 플랜
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `main` (로컬 = `origin/main` 동기화 완료)
+- 최신 커밋: `7f954e2 fix: 챌린지 탭바 디자인 리포트와 통일, 챌린지 선택 배너·프로필 수정 팝업 다크모드 수정`
+- 작업트리 상태: **변경사항 있음 (미커밋, unstaged)**
+  - `frontend/app/app/challenge/page.js` — TabBar `dark:*` 클래스 전면 제거, CSS 변수 방식으로 교체
+  - `frontend/app/app/report/page.js` — ReportTabs 동일 교체
+  - `frontend/components/doit/ThoughtCanvas.js` — 맥OS 한국어 IME 이중 입력 방지
+  - `docker-compose.prod.yml` — 로컬 수정 (FASTAPI_IMAGE 기본값 추가), 커밋 제외 예정
+  - `docs/HANDOFF_MEMO.md` — 이 문서 업데이트
+
+### 이번에 완료된 작업
+
+#### 1. 챌린지·리포트 탭바 다크모드 재수정
+
+**문제:** 이전 커밋(`7f954e2`)에서 `dark:*` Tailwind 클래스를 추가했으나 맥OS 다크모드에서 탭 텍스트가 완전히 안 보이는 문제 발생.
+
+**원인 분석:**
+- 프로젝트는 `data-theme="dark"` CSS 변수 방식 사용 (`globals.css` 기준)
+- `tailwind.config.js`에 `darkMode` 설정 없음 → Tailwind 기본값 `media` (OS `prefers-color-scheme`) 사용
+- 맥OS가 다크모드이면 `dark:` Tailwind 클래스가 앱 테마 설정과 무관하게 적용됨
+- `dark:bg-[var(--color-card)]` → `--color-card` 미정의 → transparent
+- `dark:text-white` 동시 적용 → 흰 텍스트 on 투명/흰 배경 = 안 보임
+
+**수정 내용:**
+
+`frontend/app/app/challenge/page.js` TabBar:
+```jsx
+// 수정 전
+<div className="shrink-0 border-b border-[#E5E7EB] bg-white dark:border-[var(--color-border)] dark:bg-[var(--color-card)]">
+  isActive ? 'border-[#2563EB] text-[#111827] dark:border-blue-400 dark:text-white'
+  : 'border-transparent text-[#6B7280] hover:text-[#111827] dark:hover:text-white'
+
+// 수정 후 (dark: 전체 제거)
+<div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+  isActive ? 'border-[#2563EB] text-[var(--color-text)]'
+  : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+```
+
+`frontend/app/app/report/page.js` ReportTabs: 동일 패턴으로 교체.
+
+#### 2. 맥OS 한국어 IME 이중 입력 방지
+
+**문제:** 생각 쏟기(ThoughtCanvas)에서 한국어 입력 후 Enter 시 "안녕하세요" + "요" 두 개가 별개 메모로 등록되는 현상.
+
+**원인:** 한국어 조합 입력 중 Enter 키 이벤트가 두 번 발생 (IME composition event 특성).
+
+**수정:** `frontend/components/doit/ThoughtCanvas.js` [onKeyDown:196](frontend/components/doit/ThoughtCanvas.js#L196)
+```js
+// 수정 전
+if (event.key === 'Enter' && !event.shiftKey)
+// 수정 후
+if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing)
+```
+
+#### 3. Do it OS 저장 구조 전환 설계 플랜 (분석만, 미구현)
+
+이번 세션에서 Do it OS의 localStorage → DB 전환 설계를 깊이 분석하고 플랜을 작성했다. 구현은 하지 않았으며 대화 내에만 존재한다.
+
+**핵심 발견:**
+- Do it OS는 `danaa_doit_thoughts_v1::u{userId}` 키에 단일 배열로 localStorage 저장 (백엔드 없음)
+- Thought 하나가 todo/schedule/project/note/health 모든 필드를 가진 "God Object" 구조
+- 백엔드에 Do it OS 관련 DB 테이블/API 전혀 없음
+- AI 채팅이 현재 참고하는 사용자 데이터: challenge, health profile, risk level (Do it OS는 전혀 참고 안 함)
+
+**추천 전환 방향:** 하이브리드 opt-in (기본은 localStorage, 사용자가 선택 시 DB 동기화)
+
+**단계별 PR 계획 요약:**
+- PR 1: DB 모델(`doit_thoughts` 테이블) + CRUD API 뼈대 (백엔드만, 3~4일)
+- PR 2: `doit_store.js` 분기 로직 + 동기화 설정 UI (4~5일)
+- PR 3: localStorage → DB 이전 마이그레이션 플로우 (2~3일)
+- PR 4: AI 도움 모드 MVP — 채팅 입력창 "Do it OS 참고" 토글 (4~5일)
+- PR 5: 고급 동기화/conflict resolution (실사용 데이터 확보 후)
+
+**구현 전 팀 결정 필요 사항:**
+1. "서버에 저장 안 됨" 문구를 언제 바꿀 것인가
+2. 로컬 모드 사용자 영구 지원 여부 및 전환 일정
+3. AI 도움 모드 MVP 범위 ("이번 대화에만 허용" vs "영구 허용")
+
+### 미완료/잔여 사항
+
+- **커밋 & push 대기 중**: 위 1·2번 수정사항 (사용자 승인 후 진행)
+- **챌린지 streak 주단위 vs 일단위 구분 미구현**: 백엔드 `_update_streak`에 날짜 기반 검증 없음. 주단위 챌린지에서 날짜가 달라도 3번 체크 시 완료로 처리되는 버그. `doit_thoughts` 없이 `challenge.py`만 수정하면 됨.
+- **구글 로그인 챌린지 불러오기 실패**: 코드 레벨 버그 미발견, 배포 이슈 추정. 실제 Google OAuth + staging 환경 재현 필요.
+
+### 다음 액션
+
+1. 위 미커밋 수정사항 승인 → 커밋 & push
+2. `backend/services/challenge.py` `_update_streak` 날짜 검증 추가 (주단위 챌린지 중복 체크인 방지)
+3. Do it OS DB 전환 플랜 팀 리뷰 → 구현 일정 확정
+4. 구글 로그인 챌린지 로딩 staging 환경 재현 시도
+
+---
+
+## 2026-05-02 최신 핸즈오프 / V4 랜딩페이지 머지·배포 완료
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `main` (작업 브랜치 없음, 모든 작업 머지 완료)
+- `origin/main` 최신 커밋: `5d24f75 feat: V4 랜딩페이지 production 통합`
+- 로컬 `main` = `origin/main` 동기화 완료
+- `upstream` (공식레포)은 아직 이번 V4 랜딩 변경 미반영 상태
+
+### 이번에 완료된 작업
+
+#### 1. V4 랜딩페이지 PR (#45) 충돌 해결 및 머지
+
+- PR 작성자: `LAP-TIME2`
+- 충돌 파일: `frontend/app/page.js`
+- 충돌 원인: `main`에 이미 머지된 PR #43의 반응형 수정(구버전 클라이언트 컴포넌트)과 V4 서버 컴포넌트가 동일 파일 충돌
+- 해결 방법: V4 버전 채택 (구버전 랜딩 전체 교체가 목적이므로 반응형 패치는 불필요)
+- 머지 커밋: `5d24f75`
+- 421 테스트 통과 (Windows TMPDIR 권한 이슈 `.tmp/` 우회 적용)
+
+#### 2. V4 랜딩페이지 내용
+
+- `frontend/app/page.js` → 서버 컴포넌트로 교체, V4 metadata(og/twitter/canonical) export
+- `frontend/app/AuthRedirectGate.jsx` → 인증 분기 클라이언트 컴포넌트 (`?preview=1` 우회 지원)
+- `frontend/app/landing.css` → V4 CSS 2000줄 `.danaa-landing` 스코프 캡슐화
+- `frontend/components/landing/*` → 14개 컴포넌트 (8섹션 + Nav/Footer + SymbolDefs/Icon/HeroOmni)
+- `frontend/hooks/landing/*` → 7개 훅 (Reduced motion · Scroll progress · Sticky nav · Reveal · Mouse tracking · Magnetic · Deck nav)
+- 4가지 핵심 효과: 벤토 박스, 옴니 원형, 인터랙티브 비교표, 3D 입체 덱
+- `/` First Load JS **99.6 kB** (외부 라이브러리 추가 없음)
+- 인증 사용자는 마운트 후 `/app/chat` 또는 `/onboarding/diabetes` 자동 이동 (보존)
+
+#### 3. 배포 완료 (CI/CD 자동)
+
+- 머지 트리거로 GitHub Actions 배포 파이프라인 자동 실행
+- Docker 이미지 빌드: `ghcr.io/bijeng/danaa-fastapi:main-5d24f75`
+- 서버 배포 절차: pull → aerich upgrade (`No upgrade items found`) → 컨테이너 재시작 → 구 이미지 prune (402.8MB 회수)
+- 배포 결과: `✅ Successfully executed commands to all host.`
+- 참고: CI 로그의 `err:` 접두사는 Docker가 진행 상황을 stderr로 출력하는 정상 동작 (에러 아님)
+
+### 현재 `origin/main` 커밋 히스토리 (최근 5개)
+
+```
+5d24f75 feat: V4 랜딩페이지 production 통합 (Airtable 벤치마크 기반 4가지 효과)
+fa1ba96 Merge branch 'main' into feat/doit-os-guide-update-2026-05-01
+1d3161c feat: V4 랜딩페이지 production 통합 — Airtable 벤치마크 기반 4가지 효과
+0914d3b Merge pull request #44 from BIJENG/feat/doit-os-guide-update-2026-05-01
+15f51dd Merge pull request #43 from BIJENG/feat/bj_account-recovery-responsive-challenge
+```
+
+### 미반영/잔여 사항
+
+- `docker-compose.prod.yml` 로컬 수정사항 있음 (unstaged) — 내용 확인 후 커밋 또는 복구 필요
+- `upstream` (공식레포 `AI-HealthCare-02/AI_02_02`)에 PR #43(계정찾기·반응형·챌린지 배지), V4 랜딩 변경 아직 미제출
+- reviewer 1440px·360px 시각 확인 체크리스트 미완료 (PR #45 체크리스트 잔여)
+
+### 다음 액션
+
+1. `docker-compose.prod.yml` 로컬 변경사항 확인 및 처리
+2. 공식레포(`upstream`)에 계정찾기·반응형·챌린지 배지 PR 제출 (핸즈오프 2026-05-01 참고)
+3. V4 랜딩 실제 브라우저 확인: `/` 비로그인 접근, `?preview=1` 우회, 인증 후 자동 리다이렉트
+
+---
+
+## 2026-05-01 최신 핸즈오프 / 계정찾기·반응형·챌린지 배지 PR 준비
+
+### 현재 저장소/브랜치 상태
+
+- 현재 브랜치: `feat/bj_account-recovery-responsive-challenge`
+- 기준 main:
+  - 로컬 `main`, 개인레포 `origin/main`, 공식레포 `upstream/main` 모두 `f450f17 docs: 최신 핸즈오프 메모 갱신` 기준으로 동기화되어 있었음.
+- 이번 작업 커밋:
+  - `bb44798 feat: add account recovery responsive UI and challenge badges`
+- 동일 커밋을 개인레포와 공식레포 양쪽에 푸시 완료:
+  - `origin/feat/bj_account-recovery-responsive-challenge`
+  - `upstream/feat/bj_account-recovery-responsive-challenge`
+- PR 생성 링크:
+  - 개인레포: https://github.com/BIJENG/DANAA_project/pull/new/feat/bj_account-recovery-responsive-challenge
+  - 공식레포: https://github.com/AI-HealthCare-02/AI_02_02/pull/new/feat/bj_account-recovery-responsive-challenge
+- 이 핸즈오프 업데이트 전 기준 작업트리는 clean 상태였음.
+
+### 이번에 완료된 주요 작업
+
+#### 1. 아이디 찾기 / 비밀번호 재설정 기능
+
+- 백엔드:
+  - `backend/dtos/auth.py`
+  - `backend/services/auth.py`
+  - `backend/services/email.py`
+  - `backend/apis/v1/auth_routers.py`
+- 추가된 주요 API:
+  - `POST /api/v1/auth/account/find-email`
+  - `POST /api/v1/auth/password/reset/request`
+  - `POST /api/v1/auth/password/reset/confirm`
+- 동작 개요:
+  - 이름 + 생년월일로 가입 이메일 후보를 마스킹하여 반환.
+  - 이메일 + 이름 + 생년월일 확인 후 비밀번호 재설정 인증코드 발송.
+  - 인증코드 확인 후 새 비밀번호 저장.
+- 프론트:
+  - 신규 페이지 `frontend/app/account-recovery/page.js`
+  - 로그인 화면에서 아이디 찾기 / 비밀번호 찾기 링크 추가.
+- 테스트:
+  - `backend/tests/integration/auth_apis/test_login_api.py`에 계정 찾기/비밀번호 재설정 API 테스트 추가.
+
+#### 2. 프론트 전체 반응형 보정
+
+- 주요 보정 범위:
+  - 랜딩, 로그인, 회원가입, 계정찾기, 온보딩, 리포트, 설정, 챌린지, Do it OS 주요 화면.
+- 대표 변경:
+  - `100vh` 계열을 모바일 주소창에 강한 `100dvh`로 조정.
+  - 고정폭 카드/폼/그리드를 `w-full`, `max-w`, `sm/md/lg` 기준으로 보정.
+  - 모바일에서 버튼/입력 행이 화면 밖으로 밀리지 않도록 `flex-col sm:flex-row`, `min-w-0` 적용.
+  - `/landing-new` 푸터 태블릿 overflow 수정 및 어두운 푸터 배경으로 가독성 개선.
+  - `frontend/app/layout.js`에 viewport/PWA 설정 추가.
+  - `frontend/public/manifest.webmanifest` 신규 추가.
+- 깨진 문자 점검:
+  - `frontend/app`, `frontend/components`, `frontend/lib` 기준 `�`, `뷁`, `Ã`, `Â`, `ì`, `í`, `ê`, `ë` 패턴 스캔 결과 없음.
+  - PowerShell 기본 출력에서 일부 한글이 깨져 보인 경우가 있었으나, `Get-Content -Encoding UTF8` 기준 파일 내용은 정상.
+
+#### 3. 챌린지 중복 제거
+
+- 중복으로 판단한 챌린지:
+  - `주 3회 유산소 운동` vs `주 150분 운동`
+  - `음주 줄이기` vs `음주 주 2회 이하`
+- 유지:
+  - `exercise_150min` / `주 150분 운동`
+  - `drink_less_alcohol` / `음주 주 2회 이하`
+- 비활성화:
+  - `exercise_3x_week`
+  - `alcohol_limit`
+- 신규 마이그레이션:
+  - `backend/db/migrations/models/17_20260501_deactivate_duplicate_challenges.py`
+- 마이그레이션은 중복 템플릿을 `is_active=false`로 바꾸고, 해당 템플릿으로 진행 중인 `user_challenges`는 `cancelled`로 전환.
+- 현재 로컬 Docker DB에도 같은 처리를 직접 반영했고 확인 결과:
+  - 활성 챌린지: 14개
+  - 중복 템플릿으로 진행 중인 active user challenge: 0개
+
+#### 4. 챌린지 배지 실제 구현
+
+- 기존 상태:
+  - 프론트는 `overview.badges`, `badge_tier`, `next_badge_label` 등을 기대하고 있었으나 백엔드 응답에는 없었음.
+  - 따라서 배지 색상 UI는 일부 준비되어 있었지만 실제 누적 완료 기반 배지는 연결되지 않은 상태였음.
+- 백엔드 구현:
+  - `backend/dtos/challenges.py`
+  - `backend/services/challenge.py`
+- 기준:
+  - 브론즈: 10-29회
+  - 실버: 30-59회
+  - 골드: 60-99회
+  - 다이아: 100-199회
+  - 마스터: 200회 이상
+- 응답에 추가된 주요 필드:
+  - `badges`
+  - `lifetime_completed_count`
+  - `badge_tier`
+  - `badge_label`
+  - `next_badge_tier`
+  - `next_badge_label`
+  - `remaining_to_next_badge`
+  - `stats.earned_badge_count`
+- 검증:
+  - 테스트 계정에 `daily_walk_30min` 누적 완료 10회를 넣어 API가 `bronze`, `브론즈`, 다음 등급 `실버`, `20회 남음`을 반환하는 것 확인.
+  - 테스트 계정은 확인 후 삭제.
+
+#### 5. 챌린지 배지현황 UI / 아이콘 조정
+
+- `frontend/app/app/challenge/page.js`
+- 배지현황 오른쪽에 등급 기준 설명 추가:
+  - 브론즈 10-29회
+  - 실버 30-59회
+  - 골드 60-99회
+  - 다이아 100-199회
+  - 마스터 200회 이상
+- 챌린지 아이콘 중복 완화:
+  - `매일 스트레칭 10분`은 기존 운동 아이콘과 겹치지 않게 `Timer` 아이콘 사용.
+
+### 검증 이력
+
+- 커밋 전:
+  - `python -m py_compile backend/dtos/auth.py backend/dtos/challenges.py backend/services/auth.py backend/services/challenge.py backend/services/email.py backend/tasks/seed_shared_demo_account.py backend/db/migrations/models/17_20260501_deactivate_duplicate_challenges.py`
+  - `node --check frontend/app/app/challenge/page.js`
+  - `npm run build`
+  - `git diff --cached --check`
+- 반응형 브라우저 자동 점검:
+  - Playwright Chromium으로 14개 주요 경로 × 4개 뷰포트 = 56개 조합 검사.
+  - 검사 뷰포트: 320, 390, 768, 1366px.
+  - 최종 결과: 가로 overflow 0건, 깨진 텍스트 패턴 0건.
+- pre-commit:
+  - staged Python 파일 ruff check 통과.
+- pre-push:
+  - backend lint 통과.
+  - backend unit test:
+
+```text
+421 passed, 2 warnings
+```
+
+- push 중 Windows 환경 이슈:
+  - 최초 pre-push에서 `TMPDIR=C:\Users\Public\Documents\ESTsoft\CreatorTemp` 권한 문제로 pytest `tmp_path` 생성 실패.
+  - 코드 실패가 아니라 로컬 임시폴더 권한 문제였음.
+  - `TMP`, `TEMP`, `TMPDIR`을 프로젝트 내부 `.tmp`로 지정하여 재실행했고 정상 통과.
+  - 임시 `.tmp/`는 푸시 후 삭제.
+
+### PR 설명 초안
+
+```md
+## ✅ PR 요약
+- 작업 요약: 아이디/비밀번호 찾기 기능을 추가하고, 주요 프론트 화면을 반응형으로 보정했으며, 챌린지 중복 제거 및 누적 완료 기반 배지 시스템을 구현했습니다.
+
+## 📄 상세 내용
+- [x] 로그인 화면에 아이디 찾기/비밀번호 찾기 진입점을 추가하고, 계정 찾기 전용 페이지 및 백엔드 API를 구현했습니다.
+- [x] 랜딩, 로그인, 회원가입, 온보딩, 앱 주요 화면의 모바일/태블릿 반응형 UI를 보정하고 PWA manifest/viewport 설정을 추가했습니다.
+- [x] 중복 챌린지를 비활성화하고, 챌린지 누적 완료 횟수에 따라 브론즈/실버/골드/다이아/마스터 배지가 표시되도록 구현했습니다.
+
+## 📸 스크린샷 (선택)
+- 필요 시 로그인/계정 찾기 화면, 챌린지 배지 현황 화면 캡처를 첨부합니다.
+
+## 📝 기타 참고 사항
+- 챌린지 중복 제거를 위해 신규 DB 마이그레이션이 포함되어 있습니다.
+- 배지 기준은 브론즈 10회, 실버 30회, 골드 60회, 다이아 100회, 마스터 200회 이상입니다.
+- 프론트만이 아니라 백엔드/API 변경도 포함되어 있어 배포 시 백엔드 반영이 필요합니다.
+
+## 🧪 PR Checklist
+- [x] 커밋 메시지 컨벤션에 맞게 작성했습니다.
+- [x] 변경 사항에 대한 테스트를 했습니다.(버그 수정/기능에 대한 테스트).
+  - `npm run build` 통과
+  - pre-push backend lint 통과
+  - backend unit test `421 passed`
+```
+
+### 배포/머지 주의사항
+
+1. 이번 PR은 프론트만이 아니라 백엔드/API/DB 마이그레이션을 포함한다.
+   - 배포 후 FastAPI 재시작/이미지 반영 필요.
+   - Aerich 마이그레이션 `17_20260501_deactivate_duplicate_challenges.py` 적용 필요.
+2. 중복 챌린지 비활성화가 포함되어 있으므로 기존 진행 중인 중복 챌린지는 `cancelled`로 전환된다.
+3. `backend/tasks/seed_shared_demo_account.py`에서도 `exercise_3x_week` 씨드 항목을 제거했으므로 데모 재시드 시 14개 기준으로 정리된다.
+4. PR 범위가 크다:
+   - account recovery
+   - responsive UI
+   - PWA manifest
+   - challenge duplicate cleanup
+   - challenge badges
+   리뷰 시 섹션별로 확인하는 것이 좋다.
+5. 현재 기준 개인/공식 main과 브랜치 베이스는 같아 충돌 위험은 낮지만, 누군가 먼저 새 `17_...` 마이그레이션을 main에 추가하면 파일명/번호 충돌 가능성이 있다.
+
+### 다음 액션
+
+1. GitHub에서 개인레포/공식레포 PR 생성.
+2. PR에 위 설명 초안 붙여넣기.
+3. 리뷰 전 브라우저에서 최소 확인:
+   - `/login` → 아이디/비밀번호 찾기 링크
+   - `/account-recovery`
+   - `/app/challenge` 배지현황 등급 기준
+   - 모바일 폭에서 랜딩/로그인/회원가입 화면 overflow 없음
+4. 머지 후 백엔드 배포와 DB 마이그레이션 적용 확인.
+
+---
+
 ## 2026-04-30 최신 핸즈오프 / 리포트·챌린지·배포 동기화
 
 ### 현재 저장소 상태

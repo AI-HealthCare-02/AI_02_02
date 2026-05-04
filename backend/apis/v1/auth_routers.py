@@ -20,9 +20,15 @@ from backend.dtos.auth import (
     EmailSignupConfirmRequest,
     EmailSignupVerificationRequest,
     EmailSignupVerificationResponse,
+    FindEmailRequest,
+    FindEmailResponse,
     LoginRequest,
     LoginResponse,
     PasswordChangeRequest,
+    PasswordResetConfirmRequest,
+    PasswordResetConfirmResponse,
+    PasswordResetRequest,
+    PasswordResetResponse,
     SignUpRequest,
     TokenRefreshResponse,
 )
@@ -442,6 +448,39 @@ async def login(
         expires=tokens["refresh_token"].payload["exp"],
     )
     return resp
+
+
+@auth_router.post("/account/find-email", response_model=FindEmailResponse, status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+async def find_email(
+    request: Request,
+    body: FindEmailRequest,
+    auth_service: Annotated[AuthService, Depends(AuthService)],
+) -> Response:
+    result = await auth_service.find_login_email(body)
+    return Response(content=FindEmailResponse.model_validate(result).model_dump(mode="json"), status_code=status.HTTP_200_OK)
+
+
+@auth_router.post("/password/reset/request", response_model=PasswordResetResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/minute")
+async def password_reset_request(
+    request: Request,
+    body: PasswordResetRequest,
+    auth_service: Annotated[AuthService, Depends(AuthService)],
+) -> Response:
+    result = await auth_service.request_password_reset(body)
+    return Response(content=PasswordResetResponse.model_validate(result).model_dump(mode="json"), status_code=status.HTTP_201_CREATED)
+
+
+@auth_router.post("/password/reset/confirm", response_model=PasswordResetConfirmResponse, status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+async def password_reset_confirm(
+    request: Request,
+    body: PasswordResetConfirmRequest,
+    auth_service: Annotated[AuthService, Depends(AuthService)],
+) -> Response:
+    await auth_service.confirm_password_reset(body)
+    return Response(content=PasswordResetConfirmResponse(detail="Password reset successfully.").model_dump(), status_code=status.HTTP_200_OK)
 
 
 @auth_router.post("/password/change", status_code=status.HTTP_200_OK)

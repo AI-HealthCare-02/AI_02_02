@@ -25,6 +25,7 @@ from backend.services.saju.engine.chart import GAN_ELEMENT, JI_ELEMENT
 from backend.services.saju.engine.sisung import _element_relation
 
 SCHOOL = "eokbu-korean-modern"
+GUIDANCE_VERSION = "yongshin-guidance-v1"
 
 SinGang = Literal["strong", "weak", "balanced"]
 
@@ -61,6 +62,232 @@ _REL_KOR: dict[str, str] = {
     "meCtrl": "재성",
     "ctrlMe": "관살",
 }
+
+_ELEMENT_GUIDE: dict[str, dict[str, str]] = {
+    "목": {
+        "symbol": "성장",
+        "behavior": "방향을 세우고 작은 시작을 만드는 힘",
+    },
+    "화": {
+        "symbol": "표현",
+        "behavior": "생각을 말, 글, 콘텐츠, 행동으로 꺼내는 힘",
+    },
+    "토": {
+        "symbol": "현실화",
+        "behavior": "선택을 결과와 안정감으로 묶는 힘",
+    },
+    "금": {
+        "symbol": "기준",
+        "behavior": "흐름을 다듬고 약속, 구조, 책임으로 잡아주는 힘",
+    },
+    "수": {
+        "symbol": "정리",
+        "behavior": "관찰하고 쉬면서 다음 흐름을 준비하는 힘",
+    },
+}
+
+_ROLE_GUIDE: dict[str, str] = {
+    "비겁": "자기 주관과 동료성",
+    "인수": "배움과 회복",
+    "식상": "표현과 생산",
+    "재성": "결과와 자원",
+    "관살": "기준과 책임",
+}
+
+
+def _source_element(target_el: str) -> str:
+    """target_el 을 생해주는 오행."""
+    return next((src for src, dst in _SHENG.items() if dst == target_el), "")
+
+
+def _month_geokguk(natal: dict | None) -> dict:
+    """월지 중심 격국 안내용 요약.
+
+    현재 엔진은 억부용신을 대표 계산값으로 쓰고 있으므로, 이 함수는 UI 설명을
+    위한 보조 렌즈만 만든다. 기존 용신 판정 자체를 바꾸지 않는다.
+    """
+    month = (natal or {}).get("month") or {}
+    month_ji = month.get("ji", "")
+    month_role = month.get("sisung_ji") or month.get("sisung_gan") or ""
+    month_el = JI_ELEMENT.get(month_ji, "")
+    support_el = _source_element(month_el) if month_el else ""
+    type_label = f"{month_role}격" if month_role else "월지 중심 구조"
+
+    if month_el:
+        reason = (
+            f"월지 {month_ji}의 {month_role or month_el} 흐름을 중심으로 보며, "
+            f"{support_el} 기운은 {month_el} 흐름을 받쳐주는 보조로 볼 수 있어요."
+            if support_el
+            else f"월지 {month_ji} 흐름을 중심으로 사주의 큰 구조를 살펴봅니다."
+        )
+    else:
+        reason = "월지 정보가 부족해 격국 안내는 보조 참고로만 봅니다."
+
+    return {
+        "type": type_label,
+        "element": month_el,
+        "support_element": support_el,
+        "summary": reason,
+    }
+
+
+def _johu_element(natal: dict | None) -> dict:
+    """월지 계절 기준 조후 안내용 요약."""
+    month_ji = ((natal or {}).get("month") or {}).get("ji", "")
+    season = _SEASON_BY_MONTH_JI.get(month_ji, "")
+    element = _SEASON_YONGSHIN.get(season, "")
+    season_kr = {
+        "spring": "봄",
+        "summer": "여름",
+        "autumn": "가을",
+        "winter": "겨울",
+    }.get(season, "")
+    if element:
+        summary = (
+            f"{month_ji}월은 {season_kr} 흐름으로 보며, 조후 관점에서는 "
+            f"{element} 기운이 온도감과 표현 방식을 조절하는 보조 역할을 합니다."
+        )
+    else:
+        summary = "월지 계절 정보가 부족해 조후는 보조 참고로만 봅니다."
+    return {"element": element, "season": season, "summary": summary}
+
+
+def build_yongshin_guidance(*, yongshin: dict, natal: dict | None = None) -> dict:
+    """오늘의 운세 UI 안내용 용신 설명.
+
+    핵심 원칙:
+    - 기존 `yongshin_element` 값을 바꾸지 않는다.
+    - 억부/격국/조후/행동을 하나의 '정답'으로 합치지 않고 렌즈별로 분리한다.
+    - 사용자는 대표 요약을 먼저 보고, 상세 근거는 펼쳐서 확인할 수 있게 한다.
+    """
+    yong_el = str(yongshin.get("yongshin_element") or "")
+    hee_el = str(yongshin.get("hee_shin_element") or "")
+    ki_el = str(yongshin.get("ki_shin_element") or "")
+    yong_role = str(yongshin.get("yongshin_role") or "")
+    reasoning = str(yongshin.get("reasoning") or "")
+
+    geokguk = _month_geokguk(natal)
+    johu = _johu_element(natal)
+    johu_el = johu.get("element", "")
+    representative_symbol = _ELEMENT_GUIDE.get(yong_el, {}).get("symbol", "균형")
+    representative_behavior = _ELEMENT_GUIDE.get(yong_el, {}).get(
+        "behavior", "오늘 참고할 균형 방향"
+    )
+    hee_behavior = _ELEMENT_GUIDE.get(hee_el, {}).get("behavior", "")
+    johu_behavior = _ELEMENT_GUIDE.get(johu_el, {}).get("behavior", "")
+
+    supporting_elements: list[dict[str, str]] = []
+    if hee_el:
+        supporting_elements.append({
+            "key": "hee",
+            "label": "희신",
+            "element": hee_el,
+            "summary": hee_behavior or "대표 용신을 도와주는 보조 기운입니다.",
+        })
+    if johu_el and johu_el != yong_el and all(item["element"] != johu_el for item in supporting_elements):
+        supporting_elements.append({
+            "key": "johu",
+            "label": "조후 보조",
+            "element": johu_el,
+            "summary": johu_behavior or "계절감과 온도감을 조절하는 보조 기운입니다.",
+        })
+
+    if yong_el:
+        headline = (
+            f"{yong_el}의 {representative_symbol}을 중심으로 삼고, "
+            f"{johu_el}의 표현 흐름을 보조로 쓰면 좋아요."
+            if johu_el and johu_el != yong_el
+            else f"{yong_el}의 {representative_symbol}을 중심으로 오늘의 선택을 정리해보세요."
+        )
+    else:
+        headline = "용신 계산값이 부족해 오늘은 일반 운세 안내만 참고해주세요."
+
+    if yong_el and johu_el and yong_el != johu_el:
+        conflict_message = (
+            f"억부 기준의 대표 용신은 {yong_el}이지만, 조후 관점에서는 {johu_el}가 함께 중요할 수 있어요. "
+            "두 기준을 하나로 뭉개지 않고 역할을 나누어 보는 것이 안정적입니다."
+        )
+    else:
+        conflict_message = (
+            "여러 기준이 비슷한 방향을 가리키지만, 오늘 안내는 참고용 요약으로 봐주세요."
+        )
+
+    behavior_formula_parts = []
+    behavior_formula_elements = set()
+    if yong_el:
+        behavior_formula_parts.append(f"{yong_el}의 {representative_symbol}")
+        behavior_formula_elements.add(yong_el)
+    if johu_el and johu_el != yong_el:
+        behavior_formula_parts.append(f"{johu_el}의 표현")
+        behavior_formula_elements.add(johu_el)
+    if hee_el and hee_el not in behavior_formula_elements:
+        hee_symbol = _ELEMENT_GUIDE.get(hee_el, {}).get("symbol", "보조")
+        behavior_formula_parts.append(f"{hee_el}의 {hee_symbol}")
+    behavior_formula = " → ".join(behavior_formula_parts) if behavior_formula_parts else "작게 정리하고 무리 없이 실행"
+
+    daily_action = (
+        f"오늘은 {representative_behavior}을 먼저 잡고, "
+        f"{johu_behavior or '생각 하나를 밖으로 꺼내는 행동'}으로 작게 실행해보세요."
+        if yong_el
+        else "오늘은 결과를 단정하기보다, 작은 선택 하나를 차분히 정리해보세요."
+    )
+
+    return {
+        "version": GUIDANCE_VERSION,
+        "headline": headline,
+        "representative": {
+            "label": "대표 용신",
+            "element": yong_el,
+            "role": yong_role,
+            "basis": "억부/전통 균형",
+            "summary": (
+                f"{yong_el}은 이 원국에서 {representative_behavior}으로 작동합니다."
+                if yong_el
+                else "대표 용신을 계산하기 위한 정보가 부족합니다."
+            ),
+        },
+        "supporting_elements": supporting_elements,
+        "perspectives": [
+            {
+                "key": "eokbu",
+                "title": "억부",
+                "element": yong_el,
+                "summary": (
+                    "사주의 강하고 약한 흐름을 살펴 균형이 필요한 부분을 보는 기준입니다."
+                ),
+                "reason": reasoning,
+            },
+            {
+                "key": "geokguk",
+                "title": "격국",
+                "element": str(geokguk.get("element") or ""),
+                "support_element": str(geokguk.get("support_element") or ""),
+                "summary": str(geokguk.get("summary") or ""),
+                "type": str(geokguk.get("type") or ""),
+            },
+            {
+                "key": "johu",
+                "title": "조후",
+                "element": str(johu_el or ""),
+                "summary": str(johu.get("summary") or ""),
+            },
+            {
+                "key": "behavior",
+                "title": "오늘의 사용법",
+                "element": yong_el,
+                "support_element": hee_el,
+                "summary": f"{behavior_formula} 흐름으로 오늘의 선택을 정리해보세요.",
+            },
+        ],
+        "conflict_notice": bool(yong_el and johu_el and yong_el != johu_el),
+        "conflict_message": conflict_message,
+        "daily_action": daily_action,
+        "guardrail": (
+            "이 안내는 재미와 자기이해를 위한 참고용입니다. 결과를 단정하지 말고 "
+            "오늘의 태도와 선택을 정리하는 가이드로 활용해주세요."
+        ),
+        "caution_element": ki_el,
+    }
 
 
 def _score_myeongryeong(*, natal: dict, dm_el: str) -> int:
@@ -440,7 +667,7 @@ def derive_yongshin_eokbu(*, natal: dict) -> dict:
     """
     day_master = natal.get("day_master", "")
     if day_master not in GAN_ELEMENT:
-        return {
+        result = {
             "school": SCHOOL,
             "sin_gang": "balanced",
             "strength_score": 0,
@@ -451,6 +678,11 @@ def derive_yongshin_eokbu(*, natal: dict) -> dict:
             "ki_shin_element": "",
             "reasoning": "일간 정보 부족 — 용신 판정 보류.",
         }
+        result["guidance"] = build_yongshin_guidance(
+            yongshin=result,
+            natal=natal,
+        )
+        return result
 
     dm_el = GAN_ELEMENT[day_master]
     strength = compute_strength_score(natal=natal)
@@ -519,7 +751,7 @@ def derive_yongshin_eokbu(*, natal: dict) -> dict:
         f"{sin_gang_desc} 판정 → {yong_el}({yong_role}) 선정."
     )
 
-    return {
+    result = {
         "school": SCHOOL,
         "sin_gang": sin_gang,
         "strength_score": strength["score"],
@@ -530,3 +762,8 @@ def derive_yongshin_eokbu(*, natal: dict) -> dict:
         "ki_shin_element": ki_el,
         "reasoning": reasoning,
     }
+    result["guidance"] = build_yongshin_guidance(
+        yongshin=result,
+        natal=natal,
+    )
+    return result

@@ -127,6 +127,33 @@ _PENDING_KEYWORDS = (
     "다음 카드 언제 나와",
     "지금 카드 못받는 이유",
 )
+_DOIT_OS_KEYWORDS = (
+    "do it os",
+    "두잇 os",
+    "두잇os",
+    "두잇오에스",
+    "생각 쏟기",
+    "할 일 관리 기능",
+    "일정 관리 기능",
+    "프로젝트 관리",
+    "노트 기능",
+    "할일 관리",
+    "메모 정리 기능",
+    "투두 기능",
+    "도잇",
+)
+_DOIT_OS_STATE_PATTERNS = (
+    "내 할 일",
+    "내 메모",
+    "내 일정",
+    "내 프로젝트",
+    "미분류 메모",
+    "기한 지난",
+    "오늘 할 일",
+    "할 일 몇",
+    "메모 몇",
+    "일정 몇",
+)
 
 _STATE_KEYWORDS = (
     "현재",
@@ -207,6 +234,8 @@ def classify_chat_app_intent(message: str) -> ChatAppIntent:  # noqa: C901
     challenge_related = _contains_any(text, _CHALLENGE_KEYWORDS)
     pending_related = _contains_any(text, _PENDING_KEYWORDS)
     chat_related = _contains_any(text, _CHAT_HELP_KEYWORDS)
+    doit_os_related = _contains_any(text, _DOIT_OS_KEYWORDS)
+    asks_doit_state = _contains_any(text, _DOIT_OS_STATE_PATTERNS)
     asks_state = _contains_any(text, _STATE_KEYWORDS)
     asks_report_guide = any(pattern in text for pattern in _REPORT_GUIDE_PATTERNS)
     asks_report_help = any(pattern in text for pattern in _REPORT_HELP_PATTERNS)
@@ -221,6 +250,7 @@ def classify_chat_app_intent(message: str) -> ChatAppIntent:  # noqa: C901
         sidebar_related,
         settings_related,
         onboarding_related,
+        doit_os_related or asks_doit_state,
     )
     related_domains = sum(1 for flag in related_flags if flag)
     if related_domains >= 2:
@@ -244,6 +274,10 @@ def classify_chat_app_intent(message: str) -> ChatAppIntent:  # noqa: C901
         return ChatAppIntent.REPORT_STATE if asks_state else ChatAppIntent.REPORT_HELP
     if challenge_related:
         return ChatAppIntent.CHALLENGE_STATE if asks_state else ChatAppIntent.CHALLENGE_HELP
+    if doit_os_related or asks_doit_state:
+        if asks_doit_state or (doit_os_related and asks_state):
+            return ChatAppIntent.DOIT_OS_STATE
+        return ChatAppIntent.DOIT_OS_HELP
     if chat_related:
         return ChatAppIntent.CHAT_HELP
 
@@ -254,7 +288,7 @@ def classify_chat_app_intent(message: str) -> ChatAppIntent:  # noqa: C901
     return ChatAppIntent.NONE
 
 
-def select_app_state_domains(message: str, intent: ChatAppIntent) -> list[str]:
+def select_app_state_domains(message: str, intent: ChatAppIntent) -> list[str]:  # noqa: C901
     """Return the actual DB-query domains needed for this message.
 
     Empty list means no DB call even if intent is MIXED/STATE. This prevents
@@ -269,6 +303,8 @@ def select_app_state_domains(message: str, intent: ChatAppIntent) -> list[str]:
     report_related = _contains_any(text, _REPORT_KEYWORDS)
     challenge_related = _contains_any(text, _CHALLENGE_KEYWORDS)
     pending_related = _contains_any(text, _PENDING_KEYWORDS)
+    doit_os_related = _contains_any(text, _DOIT_OS_KEYWORDS)
+    asks_doit_state = _contains_any(text, _DOIT_OS_STATE_PATTERNS)
 
     domains: list[str] = []
 
@@ -282,19 +318,25 @@ def select_app_state_domains(message: str, intent: ChatAppIntent) -> list[str]:
     if intent == ChatAppIntent.PENDING_SURVEYS:
         domains.append("pending")
         return domains
+    if intent == ChatAppIntent.DOIT_OS_STATE:
+        domains.append("doit_os")
+        return domains
 
     # MIXED인 경우에만 state 키워드 + 실제 영역 단어 조합을 따져 선택
     if intent != ChatAppIntent.MIXED:
         return domains
 
-    if not asks_state:
+    if not asks_state and not asks_doit_state:
         return domains
 
-    if report_related:
-        domains.append("report")
-    if challenge_related:
-        domains.append("challenge")
-    if pending_related:
-        domains.append("pending")
+    if asks_state:
+        if report_related:
+            domains.append("report")
+        if challenge_related:
+            domains.append("challenge")
+        if pending_related:
+            domains.append("pending")
+    if asks_doit_state or (doit_os_related and asks_state):
+        domains.append("doit_os")
 
     return domains

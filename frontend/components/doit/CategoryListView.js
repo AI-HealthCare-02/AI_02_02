@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
-  getThoughtsStorageKey,
   completeThought,
   getByCategory,
   getCompleted,
+  initDoitStore,
   loadThoughts,
   reopenThought,
   saveThoughts,
@@ -83,13 +83,13 @@ export default function CategoryListView({
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    setThoughts(loadThoughts());
-    setHydrated(true);
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    initDoitStore().then(() => {
+      setThoughts(loadThoughts());
+      setHydrated(true);
+    });
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   useEffect(() => {
@@ -338,7 +338,7 @@ export default function CategoryListView({
 
   return (
     <div className={hideHeader ? '' : 'flex-1 overflow-y-auto'}>
-      <div className="mx-auto w-full max-w-[900px] px-6 py-8 md:px-10">
+      <div className="mx-auto w-full max-w-[900px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         {!hideHeader && (
           <header className="mb-6">
             <div className="flex items-center gap-1.5">

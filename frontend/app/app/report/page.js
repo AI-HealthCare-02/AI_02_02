@@ -398,17 +398,17 @@ function ProfileEditModal({ userData, statusData, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-[320px] rounded-2xl bg-white p-6 shadow-[0_24px_60px_rgba(0,0,0,0.18)]" onClick={(e) => e.stopPropagation()}>
+      <div className="w-[320px] rounded-2xl bg-white p-6 shadow-[0_24px_60px_rgba(0,0,0,0.18)] dark:bg-[#1E2530]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <span className="text-[15px] font-semibold text-[#0F172A]">프로필 수정</span>
-          <button type="button" onClick={onClose} className="rounded-xl p-1.5 hover:bg-[#F4F6FA]"><X size={16} /></button>
+          <span className="text-[15px] font-semibold text-[#0F172A] dark:text-white">프로필 수정</span>
+          <button type="button" onClick={onClose} className="rounded-xl p-1.5 hover:bg-[#F4F6FA] dark:hover:bg-[#2D3748]"><X size={16} className="dark:text-white" /></button>
         </div>
 
         <div className="mt-5 flex flex-col gap-4">
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B]">이름</label>
+            <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">이름</label>
             <input
-              className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+              className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10 dark:border-[#374151] dark:bg-[#111827] dark:text-white dark:placeholder-[#6B7280]"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="이름 입력"
@@ -416,19 +416,18 @@ function ProfileEditModal({ userData, statusData, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B]">성별</label>
+            <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">성별</label>
             <div className="flex gap-2">
               {[['MALE', '남성'], ['FEMALE', '여성']].map(([val, lbl]) => (
                 <button
                   key={val}
                   type="button"
                   onClick={() => setGender(val)}
-                  className="flex-1 rounded-xl border py-2 text-[13px] font-semibold transition-colors"
-                  style={{
-                    borderColor: gender === val ? '#3B82F6' : '#E2E8F0',
-                    backgroundColor: gender === val ? '#EFF6FF' : 'white',
-                    color: gender === val ? '#2563EB' : '#64748B',
-                  }}
+                  className={`flex-1 rounded-xl border py-2 text-[13px] font-semibold transition-colors ${
+                    gender === val
+                      ? 'border-[#3B82F6] bg-[#EFF6FF] text-[#2563EB] dark:border-blue-500 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'border-[#E2E8F0] bg-white text-[#64748B] dark:border-[#374151] dark:bg-[#1E2530] dark:text-[#94A3B8]'
+                  }`}
                 >
                   {lbl}
                 </button>
@@ -437,10 +436,10 @@ function ProfileEditModal({ userData, statusData, onClose, onSave }) {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B]">생년월일</label>
+            <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">생년월일</label>
             <input
               type="date"
-              className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+              className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10 dark:border-[#374151] dark:bg-[#111827] dark:text-white"
               value={birthday}
               onChange={(e) => setBirthday(e.target.value)}
             />
@@ -448,24 +447,24 @@ function ProfileEditModal({ userData, statusData, onClose, onSave }) {
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B]">키 (cm)</label>
+              <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">키 (cm)</label>
               <input
                 type="number"
                 min="100"
                 max="250"
-                className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+                className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10 dark:border-[#374151] dark:bg-[#111827] dark:text-white dark:placeholder-[#6B7280]"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
                 placeholder="예: 170"
               />
             </div>
             <div className="flex-1">
-              <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B]">몸무게 (kg)</label>
+              <label className="mb-1.5 block text-[11px] font-semibold text-[#64748B] dark:text-[#94A3B8]">몸무게 (kg)</label>
               <input
                 type="number"
                 min="30"
                 max="250"
-                className="w-full rounded-xl border border-[#E2E8F0] px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10"
+                className="w-full rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-[13px] text-[#0F172A] outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/10 dark:border-[#374151] dark:bg-[#111827] dark:text-white dark:placeholder-[#6B7280]"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="예: 65"
@@ -473,7 +472,7 @@ function ProfileEditModal({ userData, statusData, onClose, onSave }) {
             </div>
           </div>
 
-          {err && <div className="rounded-xl bg-[#FEE2E2] px-3 py-2 text-[12px] text-[#EF4444]">{err}</div>}
+          {err && <div className="rounded-xl bg-[#FEE2E2] px-3 py-2 text-[12px] text-[#EF4444] dark:bg-red-950/40 dark:text-red-400">{err}</div>}
 
           <button
             type="button"
@@ -601,7 +600,7 @@ function ProfileCard({ userData, statusData, onUserDataUpdate }) {
         </div>
 
         {/* 스탯 그리드 */}
-        <div className="mt-5 grid grid-cols-4 gap-2">
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {stats.map(({ label, value }) => (
             <div key={label} className="flex min-h-[60px] flex-col items-center justify-center rounded-lg bg-[#F8FAFC] px-1.5 py-3">
               <span className="text-[9px] font-medium text-[#94A3B8]">{label}</span>
@@ -649,14 +648,14 @@ function ScoreHoverPopup({ children, content, direction = 'right' }) {
 
 function ReportTabs() {
   return (
-    <div className="shrink-0 border-b border-[#E5E7EB] bg-white">
+    <div className="shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto flex w-full max-w-[1260px] gap-0 px-5">
-        <div className="inline-flex items-center border-b-2 border-[#2563EB] px-5 py-3 text-[14px] font-semibold text-[#111827]">
+        <div className="inline-flex items-center border-b-2 border-[#2563EB] px-5 py-3 text-[14px] font-semibold text-[var(--color-text)]">
           대시보드
         </div>
         <Link
           href="/app/report/detail"
-          className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-[#6B7280] transition-colors hover:text-[#111827]"
+          className="inline-flex items-center border-b-2 border-transparent px-5 py-3 text-[14px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
         >
           상세 리포트
         </Link>
@@ -1293,7 +1292,7 @@ function LegacySummarySection({ risk, history, summary, challenges }) {
 
   return (
     <section className="h-full min-h-0 overflow-hidden rounded-[28px] bg-white shadow-[0_8px_32px_rgba(37,99,235,0.10)]">
-      <div className="grid h-full min-h-0 grid-cols-[240px_1fr_264px]">
+      <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[240px_1fr_264px]">
 
         {/* ── 왼쪽 패널: 위험도 요약 ── */}
         <div className="flex flex-col gap-2.5 overflow-y-auto border-r border-[#F1F5F9] p-4">
@@ -2205,7 +2204,7 @@ function DashboardDetailTabs({ history, summary, challenges, risk }) {
         )}
 
         {activeTab === 'lifestyle' && (
-          <div className="grid h-full gap-3 md:grid-cols-4">
+          <div className="grid h-full gap-3 sm:grid-cols-2 md:grid-cols-4">
             {HEALTH_CARDS.map((card) => {
               const Icon = card.icon;
               const score = card.scoreKey ? scorecard[card.scoreKey] : null;

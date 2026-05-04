@@ -11,6 +11,7 @@ import {
   discardThought,
   getTodayUnfinishedSchedule,
   getUnclassified,
+  initDoitStore,
   keepInInbox,
   loadThoughts,
   moveToWaiting,
@@ -62,9 +63,11 @@ export default function EndOfDayRitual() {
 
   // 초기 로딩
   useEffect(() => {
-    const loaded = loadThoughts();
-    setThoughts(loaded);
-    setSpilledCount(getUnclassified(loaded).length);
+    initDoitStore().then(() => {
+      const loaded = loadThoughts();
+      setThoughts(loaded);
+      setSpilledCount(getUnclassified(loaded).length);
+    });
   }, []);
 
   // ESC → 대시보드 복귀
@@ -283,7 +286,7 @@ export default function EndOfDayRitual() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[720px] px-6 py-10 md:px-8">
+      <div className="mx-auto w-full max-w-[720px] px-4 py-8 sm:px-6 sm:py-10 md:px-8">
         {/* 헤더 */}
         <header className="mb-8">
           <div className="mb-3 flex items-center gap-2 text-[13px] text-[var(--color-text-hint)]">

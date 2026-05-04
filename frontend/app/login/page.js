@@ -11,6 +11,13 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
   'http://localhost:8000';
 
+function getSafeNextPath() {
+  if (typeof window === 'undefined') return '';
+  const next = new URLSearchParams(window.location.search).get('next') || '';
+  if (!next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return '';
+  return next;
+}
+
 function getLoginErrorMessage(status, detail) {
   if (status === 429) return '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.';
   if (status >= 500) return '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
@@ -71,6 +78,12 @@ export default function LoginPage() {
       const data = await response.json();
       await establishSession(data.access_token, { remember: keepLoggedIn });
 
+      const nextPath = getSafeNextPath();
+      if (nextPath) {
+        window.location.href = nextPath;
+        return;
+      }
+
       const statusRes = await api('/api/v1/onboarding/status');
       if (!statusRes.ok) {
         setError('로그인은 되었지만 온보딩 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.');
@@ -87,8 +100,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cream-200 p-6">
-      <div className="flex w-[380px] flex-col overflow-hidden rounded-xl border border-cream-500 bg-cream-300 p-8 shadow-modal">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-cream-200 p-4 sm:p-6">
+      <div className="flex w-full max-w-[380px] flex-col overflow-hidden rounded-xl border border-cream-500 bg-cream-300 p-6 shadow-modal sm:p-8">
         <div className="mb-5 text-center">
           <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-nature-950 text-[15px] font-bold text-[var(--color-cta-text)]">
             D
@@ -120,7 +133,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
@@ -131,13 +144,15 @@ export default function LoginPage() {
               <span className="text-[12px] text-neutral-400">로그인 유지</span>
             </label>
 
-            <button
-              type="button"
-              className="text-[12px] font-medium text-nature-500"
-              onClick={() => alert('비밀번호 재설정 기능은 아직 연결되지 않았습니다.')}
-            >
-              비밀번호 재설정
-            </button>
+            <div className="flex flex-wrap items-center gap-2 text-[12px]">
+              <Link href="/account-recovery#email" className="font-medium text-nature-500">
+                아이디 찾기
+              </Link>
+              <span className="text-cream-600">|</span>
+              <Link href="/account-recovery#password" className="font-medium text-nature-500">
+                비밀번호 재설정
+              </Link>
+            </div>
           </div>
 
           {error ? (

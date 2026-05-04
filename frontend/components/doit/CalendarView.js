@@ -5,8 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Inbox, Undo2 } from 'lucide-react';
 
 import {
-  getThoughtsStorageKey,
   getByCategory,
+  initDoitStore,
   loadThoughts,
   saveThoughts,
   todayIso,
@@ -72,13 +72,13 @@ export default function CalendarView({ categoryId = 'schedule', dateRange = null
   }, [toast]);
 
   useEffect(() => {
-    setThoughts(loadThoughts());
-    setHydrated(true);
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    initDoitStore().then(() => {
+      setThoughts(loadThoughts());
+      setHydrated(true);
+    });
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   useEffect(() => {
@@ -170,7 +170,7 @@ export default function CalendarView({ categoryId = 'schedule', dateRange = null
     (selected ? `${selected.slice(5, 7)}/${selected.slice(8, 10)}` : '');
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-6 py-6 md:px-10">
+    <div className="mx-auto w-full max-w-[1100px] px-4 py-5 sm:px-6 sm:py-6 md:px-10">
       <div className="mb-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button

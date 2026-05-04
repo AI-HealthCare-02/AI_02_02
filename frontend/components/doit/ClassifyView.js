@@ -7,12 +7,12 @@ import { ArrowRight, Cloud, Hourglass, Inbox, ListChecks, Undo2, X } from 'lucid
 import {
   CATEGORIES,
   CATEGORY_LABELS,
-  getThoughtsStorageKey,
   classifyThought,
   discardThought,
   getByCategory,
   getSummary,
   getUnclassified,
+  initDoitStore,
   loadThoughts,
   restoreDiscarded,
   saveThoughts,
@@ -55,13 +55,13 @@ export default function ClassifyView() {
   const toastTimerRef = useRef(null);
 
   useEffect(() => {
-    setThoughts(loadThoughts());
-    setHydrated(true);
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    initDoitStore().then(() => {
+      setThoughts(loadThoughts());
+      setHydrated(true);
+    });
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   useEffect(() => {
@@ -181,7 +181,7 @@ export default function ClassifyView() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[960px] px-6 py-8 md:px-10">
+      <div className="mx-auto w-full max-w-[960px] px-4 py-6 sm:px-6 sm:py-8 md:px-10">
         <header className="mb-6">
           <div className="flex items-center gap-1.5">
             <ListChecks size={18} className="text-[var(--color-text-secondary)]" />

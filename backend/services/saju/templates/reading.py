@@ -17,11 +17,23 @@ from __future__ import annotations
 
 from typing import Literal
 
-from backend.services.saju.engine.chart import GAN, GAN_ELEMENT, JI, JI_ELEMENT
-from backend.services.saju.engine.sisung import _element_relation
+from backend.services.saju.engine.chart import (
+    GAN,
+    GAN_ELEMENT,
+    JI,
+    JI_ELEMENT,
+    _month_pillar,
+    _sexagenary_for_year,
+)
+from backend.services.saju.engine.sisung import (
+    SISUNG_KOR,
+    _element_relation,
+    compute_sisung,
+)
+from backend.services.saju.engine.yongshin import build_yongshin_guidance
 from backend.services.saju.templates.today import DEFAULT_SAFETY_NOTICE
 
-READING_TEMPLATE_VERSION = "reading-v1.1"
+READING_TEMPLATE_VERSION = "reading-v1.2"
 
 PeriodLiteral = Literal["natal", "yearly", "monthly"]
 
@@ -91,6 +103,109 @@ _MONTH_JI_BY_SOLAR_MONTH = {
 
 _SHENG = {"목": "화", "화": "토", "토": "금", "금": "수", "수": "목"}
 
+_TEN_GOD_HINT = {
+    "비견": "내 기준, 동료, 같은 편",
+    "겁재": "경쟁, 나눔, 지출 분산",
+    "식신": "꾸준한 생산, 루틴, 표현",
+    "상관": "강한 표현, 돌파, 규칙 충돌",
+    "정재": "안정적인 돈, 관리, 예산",
+    "편재": "움직이는 돈, 기회, 확장",
+    "정관": "질서, 책임, 평가",
+    "편관": "압박, 도전, 위기 대응",
+    "정인": "배움, 보호, 문서",
+    "편인": "탐구, 직감, 특수 지식",
+}
+
+_BRANCH_MONTH_HINT = {
+    "子": "생각과 감정이 깊어지는 물의 달이라, 내부 정리와 회복 루틴이 중요합니다.",
+    "丑": "느리지만 현실감 있는 토의 달이라, 묵은 일을 정리하고 기준을 다시 세우기 좋습니다.",
+    "寅": "새 흐름이 열리는 목의 달이라, 시작과 추진력은 좋지만 속도 조절이 필요합니다.",
+    "卯": "관계와 조율이 살아나는 목의 달이라, 협업과 대화의 밀도가 중요해집니다.",
+    "辰": "변화 전 정리되는 토의 달이라, 아직 완전히 확정되지 않은 일을 다듬기 좋습니다.",
+    "巳": "빠르게 달아오르는 화의 달이라, 기회 포착은 좋지만 과열과 즉흥 결정을 조심해야 합니다.",
+    "午": "화가 가장 선명한 달이라, 드러내고 실행하기 좋지만 체력 소모도 함께 커집니다.",
+    "未": "결과를 정리하는 토의 달이라, 사람·돈·일의 경계를 차분히 다듬기 좋습니다.",
+    "申": "기준과 성과가 살아나는 금의 달이라, 점검·평가·정교화에 힘이 실립니다.",
+    "酉": "금의 완성도가 강한 달이라, 말과 결과물을 다듬고 불필요한 것을 덜어내기 좋습니다.",
+    "戌": "마무리와 책임이 겹치는 토의 달이라, 오래 미룬 결정을 정리하기 좋습니다.",
+    "亥": "깊은 물의 달이라, 회복·학습·관찰에는 좋지만 생각이 길어질 수 있습니다.",
+}
+
+_TEN_GOD_DOMAIN = {
+    "비견": {
+        "work": "내 기준이 강해져 독립적으로 밀고 가는 일에 좋지만, 협업에서는 역할 구분이 필요합니다.",
+        "money": "지출이나 자원 분산이 생기기 쉬워 공동 비용과 구독을 점검하는 편이 좋습니다.",
+        "relation": "비슷한 사람과 가까워지기 쉽지만, 고집 싸움으로 번지지 않게 조율이 필요합니다.",
+        "health": "자기 페이스가 강해지는 만큼 수면·식사 리듬을 스스로 끊어먹지 않는 것이 중요합니다.",
+    },
+    "겁재": {
+        "work": "경쟁과 비교가 커질 수 있어 성과 기준을 먼저 정해두면 흔들림이 줄어듭니다.",
+        "money": "예상 밖 지출이나 나눠야 하는 비용이 생기기 쉬우니 큰 결제는 한 번 더 확인하세요.",
+        "relation": "사람 사이 힘겨루기가 생기기 쉬워, 즉답보다 조건을 정리한 답변이 낫습니다.",
+        "health": "무리해서 따라가려는 흐름이 생길 수 있어 회복 시간을 일정에 먼저 넣는 편이 좋습니다.",
+    },
+    "식신": {
+        "work": "꾸준한 결과물, 글쓰기, 루틴형 작업에 힘이 붙습니다.",
+        "money": "작은 수익 구조나 반복 관리에는 좋지만 큰 모험보다는 유지가 어울립니다.",
+        "relation": "편안한 대화와 일상 공유가 관계를 부드럽게 만듭니다.",
+        "health": "건강 루틴을 작게 시작하기 좋은 달입니다.",
+    },
+    "상관": {
+        "work": "표현력과 돌파력은 좋아지지만 규칙·상사·평가와 부딪히지 않게 말의 강도를 조절하세요.",
+        "money": "즉흥 구매나 과감한 선택이 커질 수 있어 비교 견적이 필요합니다.",
+        "relation": "솔직함은 장점이지만 날카로운 말이 오래 남을 수 있습니다.",
+        "health": "흥분도와 피로도가 함께 오르기 쉬워 중간 휴식이 중요합니다.",
+    },
+    "정재": {
+        "work": "관리, 마감, 예산, 반복 운영처럼 안정적인 구조를 다듬기 좋습니다.",
+        "money": "저축·예산·고정비 정리에 잘 맞는 달입니다.",
+        "relation": "관계에서도 약속과 신뢰를 지키는 태도가 힘을 얻습니다.",
+        "health": "규칙적인 수면과 식사처럼 기본 관리가 잘 먹힙니다.",
+    },
+    "편재": {
+        "work": "외부 제안, 영업, 새 기회처럼 움직이는 흐름이 늘 수 있습니다.",
+        "money": "수입 기회와 지출 가능성이 함께 커지므로 조건 확인이 중요합니다.",
+        "relation": "사람을 통해 기회가 오지만 약속이 부담으로 바뀌지 않게 선을 정하세요.",
+        "health": "활동량이 늘 수 있어 체력 배분이 필요합니다.",
+    },
+    "정관": {
+        "work": "평가, 책임, 조직 안 역할을 정리하기 좋은 달입니다.",
+        "money": "공식적인 계약이나 납부, 세금, 규칙을 확인하기 좋습니다.",
+        "relation": "신뢰와 책임을 보여주는 행동이 관계 안정에 도움이 됩니다.",
+        "health": "정해진 루틴을 지킬수록 컨디션이 안정됩니다.",
+    },
+    "편관": {
+        "work": "압박이 있지만 집중력이 올라오는 달이라, 어려운 일을 짧게 끊어 처리하기 좋습니다.",
+        "money": "위험한 선택은 피하고 비상 지출을 대비하는 편이 좋습니다.",
+        "relation": "갈등을 이기려 하기보다 빠르게 구조를 정리하는 태도가 필요합니다.",
+        "health": "긴장도가 올라가기 쉬워 몸을 풀어주는 루틴이 중요합니다.",
+    },
+    "정인": {
+        "work": "문서, 학습, 자격, 도움받기에 좋은 달입니다.",
+        "money": "새 투자보다 정보 수집과 기준 정리가 우선입니다.",
+        "relation": "조언을 듣고 관계를 회복하는 흐름에 잘 맞습니다.",
+        "health": "무리한 활동보다 회복과 수면의 질을 챙기기 좋습니다.",
+    },
+    "편인": {
+        "work": "특수 지식, 기획, 연구처럼 깊이 파고드는 일에 좋습니다.",
+        "money": "낯선 제안은 오래 검토하고, 검증되지 않은 정보는 거리를 두는 편이 좋습니다.",
+        "relation": "혼자 정리하는 시간이 필요하지만 너무 오래 닫히지는 않게 하세요.",
+        "health": "생각이 길어질 수 있어 가벼운 움직임으로 리듬을 끊어주는 것이 좋습니다.",
+    },
+}
+
+
+def _topic(value: str) -> str:
+    """한국어 주제 조사(은/는)를 자연스럽게 붙인다."""
+    if not value:
+        return "이 흐름은"
+    last = value[-1]
+    code = ord(last)
+    if 0xAC00 <= code <= 0xD7A3:
+        has_batchim = (code - 0xAC00) % 28 != 0
+        return f"{value}{'은' if has_batchim else '는'}"
+    return f"{value}은"
+
 
 def _year_pillar(year: int) -> dict[str, str]:
     delta = year - _YEAR_EPOCH
@@ -119,7 +234,15 @@ def _day_master_element(natal: dict) -> str:
 
 def _yongshin(natal: dict) -> dict:
     y = natal.get("yongshin")
-    return y if isinstance(y, dict) else {}
+    if not isinstance(y, dict):
+        return {}
+    result = dict(y)
+    if result and not result.get("guidance"):
+        result["guidance"] = build_yongshin_guidance(
+            yongshin=result,
+            natal=natal,
+        )
+    return result
 
 
 def _sisung(pillar: dict | None, key: str) -> str:
@@ -141,6 +264,61 @@ def _role_for_element(day_master_element: str, element: str) -> str:
     if not day_master_element or not element:
         return ""
     return _RELATION_LABEL.get(_element_relation(day_master_element, element), "")
+
+
+def _safe_sisung(day_master: str, target: str, *, is_ji: bool = False) -> str:
+    if not day_master or not target:
+        return ""
+    try:
+        return compute_sisung(day_master_gan=day_master, target=target, is_ji=is_ji)
+    except KeyError:
+        return ""
+
+
+def _ten_god_hint(name: str) -> str:
+    if not name:
+        return ""
+    return _TEN_GOD_HINT.get(name) or SISUNG_KOR.get(name, {}).get("short", "")
+
+
+def _month_pillar_info(*, year: int, month: int, day_master: str) -> dict[str, str]:
+    year_gan, _ = _sexagenary_for_year(year)
+    gan, ji = _month_pillar(year_gan, month)
+    return {
+        "gan": gan,
+        "ji": ji,
+        "pillar": gan + ji,
+        "gan_element": GAN_ELEMENT.get(gan, ""),
+        "ji_element": JI_ELEMENT.get(ji, ""),
+        "stem_ten_god": _safe_sisung(day_master, gan),
+        "branch_ten_god": _safe_sisung(day_master, ji, is_ji=True),
+    }
+
+
+def _month_action_hints(*, stem_ten_god: str, branch_ten_god: str, tone: str) -> list[str]:
+    hints: list[str] = []
+    if stem_ten_god in {"정재", "편재"} or branch_ten_god in {"정재", "편재"}:
+        hints.append("돈과 약속이 걸린 일은 조건을 문서로 남기세요.")
+    if stem_ten_god in {"정관", "편관"} or branch_ten_god in {"정관", "편관"}:
+        hints.append("책임이 커지는 달이므로 마감과 역할 범위를 먼저 정하세요.")
+    if stem_ten_god in {"식신", "상관"} or branch_ten_god in {"식신", "상관"}:
+        hints.append("말·글·결과물을 밖으로 꺼내되, 표현의 강도는 한 번 낮춰 보세요.")
+    if stem_ten_god in {"정인", "편인"} or branch_ten_god in {"정인", "편인"}:
+        hints.append("새 결정보다 자료 수집과 정리에 시간을 쓰면 안정적입니다.")
+    if stem_ten_god in {"비견", "겁재"} or branch_ten_god in {"비견", "겁재"}:
+        hints.append("협업과 경쟁이 함께 오니 내 몫과 상대 몫을 분리해두세요.")
+    if tone == "보수 운영":
+        hints.append("큰 시작보다 일정·지출·컨디션을 작게 줄이는 쪽이 좋습니다.")
+    if not hints:
+        hints.append("이번 달은 루틴을 유지하면서 미뤄둔 체크리스트를 하나 끝내세요.")
+    return hints[:3]
+
+
+def _month_reason_label(month: dict) -> str:
+    ganji = month.get("ganji", "")
+    stem = month.get("stem_ten_god", "")
+    branch = month.get("branch_ten_god", "")
+    return f"{month['label']}({ganji}·월간 {stem or '-'}·월지 {branch or '-'})"
 
 
 def _section(
@@ -183,12 +361,11 @@ def _natal_core_traits(*, day_master: str, dm_el: str, counts: dict, y: dict) ->
     yong_el = y.get("yongshin_element", "")
 
     body = (
-        f"일간 {day_master}({dm_el})의 성향은 '{trait}' 쪽에 기울어 있어요. "
-        f"첫 번째는 깊이형 사고 — 겉으로 빠르게 반응하지 않고, 상황을 오래 관찰한 뒤 의미를 정리하는 흐름이 강합니다. "
-        f"두 번째는 자기 표현력 — 생각을 자기 방식으로 꺼낼 때 에너지가 살아나고, 납득이 안 되는 일에서는 빠르게 소모됩니다. "
-        f"세 번째는 현실 압박 감지력 — 원국에 {top_el} 기운이 두드러져 외부 신호에 민감하게 반응해요. "
-        f"네 번째는 외로운 일간 — 혼자 정리하는 시간이 있어야 오히려 사람과의 거리 조절이 잘 됩니다. "
-        f"다섯 번째는 정신력 우세·체력 보조 — 머리로 끝까지 밀고 가는 힘은 강하지만, {low_el} 기운 보강 없이는 몸이 따라오지 못할 수 있어요."
+        f"[기본 성향] 일간 {day_master}({dm_el})의 바탕은 '{trait}' 쪽에 가까워요. 겉으로 빠르게 반응하기보다 먼저 관찰하고, 상황이 어떤 구조로 움직이는지 안쪽에서 오래 맞춰보는 편입니다. 그래서 가볍게 흘러가는 말보다 맥락이 있는 대화, 이유가 분명한 일, 스스로 납득되는 목표에서 집중력이 훨씬 잘 살아나요.\n\n"
+        f"[생각의 깊이] 이 원국은 표면적인 분위기보다 보이지 않는 신호를 더 많이 읽습니다. 상대의 말투, 일의 흐름, 결과가 어긋나는 지점을 빨리 감지하는 대신 머릿속 처리량이 많아져 피로가 쌓일 수 있어요. 생각이 깊다는 장점은 분명하지만, 정리하지 않고 계속 품고 있으면 결정을 늦추는 원인이 되기도 합니다.\n\n"
+        f"[표현 방식] 용신 {yong_el or '보완 기운'}({yong_role or '흐름'})이 살아날 때 자기 이야기를 밖으로 꺼내는 힘이 열립니다. 이 사람은 아무 말이나 많이 하는 타입이라기보다, 충분히 생각한 뒤 자기 언어로 정리할 때 설득력이 생겨요. 글, 기획, 설명, 결과물처럼 '생각이 형태를 갖는 방식'이 특히 중요합니다.\n\n"
+        f"[현실 감지] 원국에서 {top_el} 기운이 두드러져 외부 압박이나 기준 변화에 민감하게 반응합니다. 그래서 책임이 생기면 대충 넘기지 못하고, 작은 결함도 혼자 오래 신경 쓸 수 있어요. 이 민감함은 단점만은 아니고, 남들이 놓친 디테일을 잡아내는 실력으로 바뀔 수 있습니다.\n\n"
+        f"[리듬 관리] 부족한 {low_el} 기운은 생활 속에서 의식적으로 보강할수록 안정됩니다. 머리로 버티는 힘은 강하지만 몸과 감정의 리듬이 따라오지 못하면 어느 순간 급격히 지칠 수 있어요. 그래서 이 원국은 '더 세게 하기'보다 '작게 나누고 꾸준히 꺼내기'가 훨씬 잘 맞습니다."
     )
     easy = (
         "쉽게 말하면, 아무 일이나 오래 버티는 사람이 아니라 '납득되는 일'에서 오래 빛나는 사람입니다."
@@ -206,23 +383,23 @@ def _natal_contradiction(*, dm_el: str, counts: dict, y: dict) -> tuple[str, str
     top_el, low_el = _top_and_low_elements(counts)
     if sin_gang == "weak":
         body = (
-            f"머리는 끝까지 가는데 환경이 못 받쳐주는 구조예요. "
-            f"{top_el} 기운이 과하게 들어와 일간이 눌리는 모양이라, 욕심·표현 욕구는 강한데 그것을 받쳐주는 자원({low_el})이 적어 쉽게 지칩니다. "
-            "결과를 내고 싶은데, 그 결과를 오래 유지할 체력 자원은 아껴써야 하는 긴장이 일상에 깔려 있어요."
+            f"[안쪽 충돌] 머리는 끝까지 가고 싶은데 환경이나 체력이 그 속도를 바로 받쳐주지 못하는 구조예요. {top_el} 기운이 강하게 들어오면 '해야 한다'는 압박은 커지는데, 그것을 오래 유지할 자원({low_el})은 쉽게 소모될 수 있습니다.\n\n"
+            " [반복 패턴] 그래서 마음이 급할수록 더 많이 붙잡고, 더 많이 검토하고, 혼자 책임지려는 흐름이 생기기 쉬워요. 겉으로는 묵묵히 해내는 사람처럼 보이지만 안쪽에서는 피로와 긴장이 누적될 수 있습니다.\n\n"
+            " [해결 방향] 이 구조는 의지가 약하다는 뜻이 아니라, 에너지 배분이 중요한 타입이라는 뜻입니다. 처음부터 크게 버티려 하지 말고, 중요한 일을 작은 단위로 쪼개서 자주 회복하며 가는 방식이 훨씬 안정적입니다."
         )
         easy = "쉽게 말하면, '하고 싶은 만큼 다 할 수 있는 사람' 이라기보다 '선택과 보존이 같이 필요한 사람' 입니다."
     elif sin_gang == "strong":
         body = (
-            f"자기 힘은 충분한데 그 힘을 쓸 출구가 좁은 구조예요. "
-            f"{top_el} 기운이 이미 넉넉해 안에 에너지가 쌓이는 반면, 설기·제어해줄 흐름이 부족해 '밖으로 꺼낼 통로'가 잘 열리지 않습니다. "
-            "움직이지 않으면 답답해지고, 움직이면 선명하게 드러나는 양극단이 같이 있어요."
+            f"[안쪽 충돌] 자기 힘은 충분한데 그 힘을 어디로 써야 할지 정리되지 않으면 답답함이 커지는 구조예요. {top_el} 기운이 이미 넉넉해서 안쪽 에너지는 강하지만, 밖으로 꺼내는 통로가 좁으면 스스로도 무겁게 느낄 수 있습니다.\n\n"
+            " [반복 패턴] 생각이 많아질수록 행동이 늦어지고, 행동하지 않으면 다시 생각이 더 많아지는 순환이 생길 수 있어요. 반대로 방향이 잡히면 밀어붙이는 힘은 꽤 강하게 살아납니다.\n\n"
+            " [해결 방향] 이 사주는 힘을 줄이는 것보다 출구를 만드는 쪽이 중요합니다. 말, 글, 운동, 프로젝트, 발표처럼 에너지가 바깥으로 빠져나갈 작은 통로를 꾸준히 만들어두면 장점이 훨씬 선명해져요."
         )
         easy = "쉽게 말하면, 엔진은 준비돼 있는데 운전대가 좁은 사람. 통로를 만들어두면 움직임이 선명해져요."
     else:
         body = (
-            f"{top_el} 기운은 익숙하게 처리하지만 {low_el} 쪽은 낯선 구조예요. "
-            "균형에 가까워 보여도, 같은 패턴의 일만 반복하면 지루함이 빨리 찾아오고, 새로운 패턴은 시작할 때 저항이 큽니다. "
-            "익숙함과 새로움 사이에서 한쪽을 의식적으로 고르는 연습이 평생 따라붙는 과제예요."
+            f"[안쪽 충돌] 겉으로는 균형에 가까워 보여도, 실제 체감은 익숙한 {top_el} 흐름과 낯선 {low_el} 흐름 사이에서 흔들릴 수 있어요. 잘하는 방식은 분명한데, 그 방식만 반복하면 금방 답답해지고 새로운 방식은 시작할 때 부담이 생깁니다.\n\n"
+            " [반복 패턴] 안정적인 사람처럼 보이다가도 어느 순간 '이렇게 계속해도 되나' 하는 질문이 올라올 수 있습니다. 같은 하루의 반복에는 쉽게 지치고, 너무 큰 변화 앞에서는 준비 시간이 필요해요.\n\n"
+            " [해결 방향] 이 구조는 익숙함과 새로움 중 하나를 버리라는 뜻이 아닙니다. 익숙한 방식으로 기반을 잡고, 낯선 시도를 아주 작은 단위로 섞어야 오래 갑니다. 작게 바꾸고 오래 유지하는 전략이 가장 잘 맞습니다."
         )
         easy = "쉽게 말하면, 안정적인 듯 보이지만 '같은 하루의 반복' 에 가장 지치는 사람 입니다."
     return body, easy
@@ -234,10 +411,10 @@ def _natal_strengths(*, dm_el: str, y: dict) -> tuple[str, str]:
     hee_el = y.get("hee_shin_element", "")
     style = _ROLE_STYLE.get(yong_role, "균형을 맞추는 방식이 중요한 편")
     body = (
-        f"강점은 집중이 필요한 일, 긴 호흡의 분석, 남이 놓친 맥락을 찾아내는 일에서 선명하게 드러나요. "
-        f"용신 {yong_el}({yong_role}) 흐름이 열리면 {style}이라, 무리하게 밀어붙이기보다 자기 리듬을 찾아 주 단위·월 단위로 쌓을 때 결과가 단단해집니다. "
-        f"희신 {hee_el} 기운은 이 강점을 현실에서 쓰기 쉽게 도와주는 보조로 봅니다. "
-        "사람을 설득하거나 움직이는 일보다, 구조를 짜고 마무리로 정리하는 일에서 남이 놓치기 쉬운 완성도를 만들어낼 수 있어요."
+        f"[실력의 모양] 강점은 집중이 필요한 일, 긴 호흡의 분석, 남이 놓친 맥락을 찾아내는 일에서 선명하게 드러납니다. 빠르게 분위기만 타는 것보다, 한 번 이해한 것을 자기 방식으로 구조화하고 다시 설명하는 힘이 좋아요.\n\n"
+        f"[용신이 열릴 때] 용신 {yong_el}({yong_role}) 흐름이 열리면 {style}입니다. 이때는 생각이 머릿속에만 머무르지 않고 말, 글, 설계, 결과물로 바뀌기 쉬워요. 무리하게 밀어붙이는 방식보다 자기 리듬을 찾아 주 단위·월 단위로 쌓을 때 결과가 단단해집니다.\n\n"
+        f"[희신의 도움] 희신 {hee_el} 기운은 이 강점을 현실에서 쓰기 쉽게 도와주는 보조로 봅니다. 좋은 생각을 갖고 끝나는 것이 아니라, 보여주고 전달하고 마무리하는 쪽으로 연결해줘요.\n\n"
+        "[잘 맞는 자리] 사람을 즉흥적으로 움직이는 일보다, 구조를 짜고 기준을 세우고 끝까지 다듬는 자리에서 완성도가 나옵니다. 기획, 분석, 개발, 문서화, 교육, 콘텐츠, 시스템 설계처럼 생각을 형태로 바꾸는 일과 잘 맞습니다."
     )
     easy = "쉽게 말하면, '한 번에 크게' 보다 '오래 쌓아 단단하게' 가 훨씬 어울리는 사람이에요."
     return body, easy
@@ -247,10 +424,10 @@ def _natal_cautions(*, counts: dict, y: dict) -> tuple[str, str]:
     top_el, low_el = _top_and_low_elements(counts)
     ki_el = y.get("ki_shin_element", "")
     body = (
-        f"주의점은 외부 압박({top_el}) 앞에서 자기 페이스를 잃기 쉽다는 점이에요. "
-        f"기신 {ki_el} 기운이 들어오는 시기나 환경에서는 '더 열심히 하면 해결된다' 는 충동이 생기는데, 실제로는 페이스 조절이 답일 때가 많습니다. "
-        f"체력 자원({low_el})이 비축되지 않은 상태에서 계속 결과만 요구하면 번아웃이 빠르게 올 수 있어요. "
-        "완벽하게 끝내려는 욕심보다, 중간 점검과 잠깐의 정리 시간을 먼저 일정에 넣는 편이 안정적입니다."
+        f"[주의 패턴] 주의점은 외부 압박({top_el}) 앞에서 자기 페이스를 잃기 쉽다는 점이에요. 책임감이 올라오면 대충 넘기지 못하고, 작은 일도 혼자 크게 떠안는 방식으로 번질 수 있습니다.\n\n"
+        f"[기신이 자극될 때] 기신 {ki_el} 기운이 들어오는 시기나 환경에서는 '더 열심히 하면 해결된다'는 충동이 생길 수 있어요. 하지만 이 원국은 무조건 세게 밀어붙일수록 좋아지는 구조가 아니라, 어느 지점에서 멈추고 정리해야 다시 오래 갈 수 있는 구조입니다.\n\n"
+        f"[체력과 감정] 부족한 {low_el} 기운이 비축되지 않은 상태에서 결과만 계속 요구하면 번아웃이 빠르게 올 수 있어요. 몸은 아직 따라오지 못했는데 머리만 앞서가면 예민함, 무기력, 결정 지연이 같이 올라올 수 있습니다.\n\n"
+        "[안전한 운영] 완벽하게 끝내려는 욕심보다 중간 점검과 짧은 정리 시간을 먼저 일정에 넣는 편이 안정적입니다. 오늘 끝낼 일, 이번 주에 볼 일, 다음 달까지 가져갈 일을 분리하면 압박이 실력으로 바뀝니다."
     )
     easy = "쉽게 말하면, '더 세게 밀어붙이기' 가 답이 아니라 '더 영리하게 나눠쓰기' 가 답인 날이 많아요."
     return body, easy
@@ -259,10 +436,10 @@ def _natal_cautions(*, counts: dict, y: dict) -> tuple[str, str]:
 def _natal_relation(*, dm_el: str, y: dict) -> tuple[str, str]:
     yong_role = y.get("yongshin_role", "")
     body = (
-        "관계 스타일은 넓게 여러 명을 만나기보다, 몇 사람과 깊게 오래 이어지는 쪽이에요. "
-        "말이 많은 자리보다 말이 오래 남는 자리에서 편안함을 느끼고, 갈등 상황에서는 즉답보다 한 박자 두고 정리해서 답하는 방식이 잘 맞습니다. "
-        "다만 생각을 너무 오래 안에 두면 상대가 답답해할 수 있어서, '언제까지 답을 주겠다' 같은 기한을 스스로 말로 약속해두는 게 관계 유지에 도움이 돼요. "
-        f"{yong_role or '용신'} 기운이 살아날 때 관계에서 자기 색이 가장 자연스럽게 드러납니다."
+        "[관계의 속도] 관계 스타일은 넓게 여러 명을 만나기보다, 몇 사람과 깊게 오래 이어지는 쪽에 가깝습니다. 처음부터 마음을 활짝 여는 타입이라기보다 상대를 관찰하고, 신뢰가 쌓인 뒤 자기 이야기를 천천히 꺼내는 편이에요.\n\n"
+        "[표현 방식] 말이 많은 자리보다 말이 오래 남는 자리에서 편안함을 느낍니다. 가벼운 리액션이 부족해 보일 수 있지만, 실제로는 상대의 말과 분위기를 안쪽에서 오래 처리하는 쪽에 가까워요.\n\n"
+        "[갈등 처리] 갈등 상황에서는 즉답보다 한 박자 두고 정리해서 답하는 방식이 잘 맞습니다. 다만 생각을 너무 오래 안에 두면 상대가 답답해할 수 있으니, '지금 바로 답하기 어렵지만 언제까지 말하겠다'처럼 기한을 말해두는 것이 관계 안정에 도움이 됩니다.\n\n"
+        f"[자기 색] {yong_role or '용신'} 기운이 살아날 때 관계에서 자기 색이 가장 자연스럽게 드러납니다. 억지로 밝아지려 하기보다, 자기 방식의 표현을 조금 더 자주 보여주는 쪽이 훨씬 오래 갑니다."
     )
     easy = "쉽게 말하면, '빨리 대답' 보다 '정리된 한마디' 로 사람을 오래 곁에 두는 타입이에요."
     return body, easy
@@ -272,10 +449,10 @@ def _natal_work(*, counts: dict, y: dict) -> tuple[str, str]:
     top_el, _ = _top_and_low_elements(counts)
     yong_role = y.get("yongshin_role", "")
     body = (
-        "일하는 방식은 '자료 수집 → 구조 잡기 → 결과물로 정리' 의 3단계가 기본 리듬이에요. "
-        "중간에 맥락이 충분히 이해되지 않으면 속도를 더 내기보다 오히려 멈춰서 흐름을 다시 보는 편이라, 급하게 몰아붙이는 환경보다 단계가 있는 프로젝트에서 성과가 안정적입니다. "
-        f"원국에서 {top_el} 기운이 두드러져, 결과 기준이 명확한 일에서는 남이 놓친 디테일까지 챙기는 집중력이 나와요. "
-        f"{yong_role or '용신'} 흐름이 잡힌 팀·환경에서는 자기 역할이 선명해지면서 생산성이 한 단계 올라갑니다."
+        "[업무 리듬] 일하는 방식은 '자료 수집 → 구조 잡기 → 작은 결과물 → 피드백 → 수정'의 흐름이 잘 맞습니다. 처음부터 완성본을 만들려고 하면 부담이 커지고, 작은 초안을 먼저 꺼내면 오히려 완성도가 빨리 올라가요.\n\n"
+        "[집중이 켜지는 조건] 중간에 맥락이 충분히 이해되지 않으면 속도를 더 내기보다 멈춰서 흐름을 다시 보는 편입니다. 그래서 급하게 몰아붙이는 환경보다 역할, 기준, 마감, 피드백 루프가 있는 프로젝트에서 성과가 안정적이에요.\n\n"
+        f"[디테일 감각] 원국에서 {top_el} 기운이 두드러져, 결과 기준이 명확한 일에서는 남이 놓친 디테일까지 챙기는 집중력이 나옵니다. 이 힘은 비판만 하는 힘이 아니라, 결과물을 더 단단하게 다듬는 힘으로 쓰면 강점이 됩니다.\n\n"
+        f"[생산성 포인트] {yong_role or '용신'} 흐름이 잡힌 팀·환경에서는 자기 역할이 선명해지면서 생산성이 올라갑니다. 혼자 오래 고민하는 시간과 밖으로 보여주는 시간을 분리해두면, 생각이 실제 결과로 바뀌는 속도가 빨라집니다."
     )
     easy = "쉽게 말하면, 빨리 반응하는 일보다 구조 잡고 정리하는 일에서 실력이 더 잘 드러나는 사람이에요."
     return body, easy
@@ -284,10 +461,10 @@ def _natal_work(*, counts: dict, y: dict) -> tuple[str, str]:
 def _natal_recovery(*, dm_el: str, counts: dict) -> tuple[str, str]:
     _, low_el = _top_and_low_elements(counts)
     body = (
-        "회복은 사람 사이가 아니라 자기 안쪽에서 이뤄지는 편이에요. "
-        "말수가 줄거나 혼자 있는 시간이 길어진다면 피로 회복 사이클에 들어간 신호라고 보면 됩니다. "
-        f"부족한 기운({low_el}) 쪽을 루틴에 얹어두는 것이 도움이 되는데, 예를 들면 가벼운 산책, 물 섭취 리듬, 잠들기 전 짧은 정리 시간 같은 작은 반복이 큰 휴식보다 효과가 오래 갑니다. "
-        "무리해서 활동적인 휴식을 잡기보다, '방해받지 않는 혼자만의 30분' 같은 작은 단위가 더 잘 맞아요."
+        "[회복 신호] 회복은 사람 사이에서 에너지를 크게 받기보다 자기 안쪽에서 천천히 이뤄지는 편입니다. 말수가 줄거나 혼자 있는 시간이 길어진다면 단순히 기분이 가라앉은 것이 아니라, 안쪽에서 정보를 정리하고 피로를 회수하는 신호일 수 있어요.\n\n"
+        f"[보강 포인트] 부족한 기운({low_el}) 쪽을 생활 루틴에 얹어두면 안정감이 좋아집니다. 거창한 변화보다 가벼운 산책, 물 섭취 리듬, 잠들기 전 짧은 정리 시간, 다음 날 할 일 세 줄 적기 같은 작은 반복이 오래 갑니다.\n\n"
+        "[피해야 할 회복법] 무리해서 활동적인 휴식을 잡거나 사람을 많이 만나서 풀려고 하면 오히려 더 피곤해질 수 있습니다. 이 원국은 '방해받지 않는 혼자만의 30분'처럼 작고 조용한 회복 블록이 실제 에너지 회복에 잘 맞아요.\n\n"
+        "[생활 적용] 회복을 기분이 무너진 뒤에 잡기보다 일정 안에 먼저 넣어두는 것이 좋습니다. 하루 끝에 생각을 비우는 루틴, 주 1회 정리 시간, 작업 사이 짧은 멈춤이 쌓이면 전체 리듬이 훨씬 안정됩니다."
     )
     easy = "쉽게 말하면, 거창한 리프레시보다 '혼자 있는 30분' 하나가 진짜 회복인 사람이에요."
     return body, easy
@@ -299,11 +476,10 @@ def _natal_closing(*, day_master: str, y: dict, counts: dict) -> tuple[str, str]
     yong_role = y.get("yongshin_role", "")
     top_el, low_el = _top_and_low_elements(counts)
     body = (
-        f"{day_master}일간의 기본 리듬은 '깊게 보고, 내 방식으로 정리하고, 오래 쌓아가는' 쪽에 있어요. "
-        f"용신 {yong_el}({yong_role}) 흐름이 열리면 자기다움이 가장 선명해지는 시기가 오고, "
-        f"반대로 {top_el} 기운이 과해지는 구간에서는 페이스 조절이 곧 자기 보호가 됩니다. "
-        f"부족한 {low_el} 쪽을 생활 루틴에 미리 얹어두면, 불균형이 커지기 전에 자기 안쪽에서 중심이 잡혀요. "
-        "결론적으로 '크게 한 번' 보다 '작고 오래' 가 이 원국의 성격에 가장 잘 어울리는 운영 방식입니다."
+        f"[핵심 요약] {day_master}일간의 기본 리듬은 '깊게 보고, 내 방식으로 정리하고, 오래 쌓아가는' 쪽에 있습니다. 겉으로는 조용해 보여도 안쪽에서는 계속 관찰하고 비교하고 의미를 정리하는 힘이 돌아가요.\n\n"
+        f"[살아나는 방향] 용신 {yong_el}({yong_role}) 흐름이 열리면 자기다움이 가장 선명해집니다. 생각을 머릿속에만 두지 않고 말, 글, 결과물, 루틴으로 꺼낼 때 이 사주의 장점이 현실에서 보이기 시작해요.\n\n"
+        f"[조심할 방향] 반대로 {top_el} 기운이 과해지는 구간에서는 페이스 조절이 곧 자기 보호가 됩니다. 더 많이 버티는 것보다 지금 어디서 에너지가 새는지 보는 것이 중요하고, 부족한 {low_el} 쪽을 생활 루틴에 미리 얹어두면 불균형이 커지기 전에 중심이 잡힙니다.\n\n"
+        "[마지막 한 줄] 결론적으로 이 원국은 '크게 한 번'보다 '작게 꺼내고 오래 다듬기'가 가장 잘 맞습니다. 깊게 파되 늦게 꺼내지 말고, 작은 형태로 계속 보여줄수록 자기 색이 강해지는 사람입니다."
     )
     easy = "쉽게 말하면, 이 사주는 '잘 쌓는 사람' 이지 '빨리 터뜨리는 사람' 이 아닙니다."
     return body, easy
@@ -458,6 +634,14 @@ def _build_yearly_reading(*, natal: dict, year: int) -> dict:
     gan_el = year_info["gan_element"]
     ji_el = year_info["ji_element"]
     sin_gang = y.get("sin_gang", "balanced")
+    day_master = natal.get("day_master", "")
+    dm_el = _day_master_element(natal)
+    gan_ten_god = _safe_sisung(day_master, year_info["gan"])
+    ji_ten_god = _safe_sisung(day_master, year_info["ji"], is_ji=True)
+    gan_hint = _ten_god_hint(gan_ten_god)
+    ji_hint = _ten_god_hint(ji_ten_god)
+    natal_month = natal.get("month") or {}
+    natal_day = natal.get("day") or {}
 
     if yong and (gan_el == yong or ji_el == yong):
         lead_sentence = f"{year}년은 용신 {yong} 흐름이 직접 들어와, 자기 장점을 결과로 바꾸기 좋은 해."
@@ -470,19 +654,55 @@ def _build_yearly_reading(*, natal: dict, year: int) -> dict:
 
     lead_body = (
         f"{lead_sentence} "
-        f"올해 세운은 {pillar}이고, 천간은 {gan_el}, 지지는 {ji_el} 기운으로 들어와요. "
+        f"올해 세운은 {pillar}이고, 천간 {year_info['gan']}은 {gan_ten_god or gan_el}"
+        f"({gan_hint or gan_el}), 지지 {year_info['ji']}는 {ji_ten_god or ji_el}({ji_hint or ji_el})로 작동해요. "
         f"참고 지수는 {score}점 — 절대 평가가 아니라 원국과 얼마나 무리 없이 맞물리는지 보는 지표입니다. "
         "크게 새로 벌이기보다 쌓아둔 것을 쓸모 있게 정리하는 리듬이 이 해의 기본 톤입니다."
     )
 
     flow_body = (
-        f"세운의 천간 {gan_el}({_RELATION_LABEL.get(_element_relation(_day_master_element(natal), gan_el), '기운')}) "
-        f"과 지지 {ji_el}({_RELATION_LABEL.get(_element_relation(_day_master_element(natal), ji_el), '기운')}) 의 조합은 "
+        f"세운의 천간 {year_info['gan']}({gan_ten_god or gan_el}) "
+        f"과 지지 {year_info['ji']}({ji_ten_god or ji_el}) 의 조합은 "
         f"한마디로 '균형을 재정비하라는 해' 로 읽힙니다. "
         f"원국이 {sin_gang} 쪽에 기울어 있어, 무리한 확장보다 중심에서 멀어진 것들을 한 발짝 가깝게 당기는 운영이 이 흐름과 잘 맞아요. "
         "아직 못 끝낸 것, 미뤄둔 점검, 오래 들고 있던 질문을 하나씩 마주하기 좋은 해입니다."
     )
     flow_easy = "쉽게 말하면, 올해는 '새로 시작하는 해' 보다 '미뤄둔 것 갚아가는 해' 에 가깝습니다."
+
+    role_body = (
+        f"일간 {day_master}({dm_el}) 기준으로 보면, {year}년의 겉으로 드러나는 힘은 "
+        f"연간 {year_info['gan']}의 {gan_ten_god or '역할'}입니다. "
+        f"{_topic(gan_ten_god)} {_TEN_GOD_HINT.get(gan_ten_god, '올해 바깥 사건의 성격')} 쪽으로 나타나기 쉬워요. "
+        f"생활에서 반복 체감되는 바닥 흐름은 연지 {year_info['ji']}의 {ji_ten_god or '역할'}입니다. "
+        f"{_topic(ji_ten_god)} {_TEN_GOD_HINT.get(ji_ten_god, '생활 리듬의 성격')}을 건드리므로, 올해는 겉의 기회와 실제 생활 리듬을 따로 보면서 운영하는 편이 좋습니다."
+    )
+    role_easy = (
+        f"쉽게 말하면, {year}년은 바깥에서는 {gan_ten_god or gan_el}, "
+        f"생활 안쪽에서는 {ji_ten_god or ji_el} 흐름이 반복되는 해예요."
+    )
+
+    natal_contact_body = (
+        f"원국과 만나는 지점은 월주와 일지가 핵심입니다. "
+        f"월주는 사회생활과 일의 자리라, 현재 월주 {natal_month.get('pillar', '원국 월주')}의 "
+        f"{natal_month.get('sisung_gan') or natal_month.get('sisung_ji') or '역할'} 흐름 위에 "
+        f"세운 {pillar}이 얹히는 방식으로 봅니다. "
+        f"일지는 생활 리듬과 가까운 자리라, 일지 {natal_day.get('ji', '')}와 올해 지지 {year_info['ji']}가 "
+        "생활 습관, 관계 거리감, 체력 배분에서 체감되기 쉽습니다. "
+        "현재 엔진은 절기 정밀 보정을 단순화하므로, 경계일 출생자는 참고 범위를 조금 넓게 보는 것이 안전합니다."
+    )
+
+    half_year_body = (
+        "상반기는 새 일을 크게 벌이기보다 이미 가진 재료를 정리하고, 발표·제출·마감이 가능한 형태로 만드는 데 힘을 쓰기 좋습니다. "
+        f"특히 연간 {year_info['gan']}({gan_ten_god or gan_el}) 흐름은 바깥에서 보이는 사건을 만들기 때문에, 상반기에는 약속·역할·돈·결과물처럼 눈에 보이는 기준을 먼저 잡아두는 편이 안정적이에요. "
+        f"하반기는 연지 {year_info['ji']}({ji_ten_god or ji_el}) 흐름이 생활 안쪽에서 더 체감되므로, 체력·관계 거리·반복 루틴을 조정하는 쪽이 중요해집니다. "
+        "올해는 처음부터 12개월을 모두 같은 속도로 뛰기보다, 상반기에는 구조를 만들고 하반기에는 유지·수정하는 식으로 나누는 전략이 잘 맞습니다."
+    )
+
+    month_digest_body = (
+        "월별 흐름을 아주 압축하면, 봄에는 시작과 정리의 재료가 생기고 여름에는 표현·재성 흐름이 강해져 활동량과 지출 가능성이 함께 커집니다. "
+        "가을에는 결과물의 기준을 다듬고 평가받는 흐름이 살아나며, 겨울에는 회복·학습·내부 정리가 중요해져요. "
+        "정확한 활용 달과 보수 달은 월별 흐름 탭에서 월간/월지 십성까지 나눠 보여주므로, 올해 총운은 큰 전략 지도, 월운은 실제 운영표처럼 같이 보면 좋습니다."
+    )
 
     keyword_list = [
         f"{pillar} 세운",
@@ -527,6 +747,20 @@ def _build_yearly_reading(*, natal: dict, year: int) -> dict:
             flow_body,
             "세운의 천간·지지 오행과 원국 신강신약을 비교한 흐름 해석.",
             easy_summary=flow_easy,
+        ),
+        _section(
+            "year_role",
+            "나에게 들어오는 핵심 십성",
+            role_body,
+            f"일간 {day_master} 기준으로 연간 {year_info['gan']}과 연지 {year_info['ji']}의 십성을 계산했습니다.",
+            easy_summary=role_easy,
+        ),
+        _section(
+            "natal_contact",
+            "원국과 만나는 지점",
+            natal_contact_body,
+            "월주는 사회생활, 일지는 생활 리듬 자리로 보고 세운 지지와 함께 해석했습니다.",
+            easy_summary="쉽게 말하면, 올해 기운이 일·관계·생활 리듬 중 어디에서 체감될지 보는 부분이에요.",
         ),
         _section(
             "keywords",
@@ -605,6 +839,20 @@ def _build_yearly_reading(*, natal: dict, year: int) -> dict:
             easy_summary="쉽게 말하면, 올해는 '새 공부 시작' 보다 '지금 아는 것 출력' 이 점수가 더 잘 나오는 해입니다.",
         ),
         _section(
+            "half_year_strategy",
+            "상반기·하반기 운영 전략",
+            half_year_body,
+            "연간은 바깥 사건, 연지는 생활 리듬으로 보고 1년을 앞뒤 두 구간으로 나눠 해석했습니다.",
+            easy_summary="쉽게 말하면, 상반기는 판을 정리하고 하반기는 리듬을 유지·수정하는 해입니다.",
+        ),
+        _section(
+            "monthly_digest",
+            "2026 월별 흐름 압축",
+            month_digest_body,
+            "월운 상세는 별도 monthly API에서 월간·월지 십성까지 계산하므로, 총운에서는 계절별 큰 흐름만 압축했습니다.",
+            easy_summary="쉽게 말하면, 총운은 큰 지도이고 월운은 실제 달력입니다.",
+        ),
+        _section(
             "checklist",
             "올해 운영 체크리스트",
             (
@@ -640,6 +888,8 @@ def _build_yearly_reading(*, natal: dict, year: int) -> dict:
             k for k in [
                 f"{pillar} 세운",
                 f"{score}점",
+                gan_ten_god and f"연간 {gan_ten_god}",
+                ji_ten_god and f"연지 {ji_ten_god}",
                 yong and f"용신 {yong}",
                 hee and f"희신 {hee}",
                 "페이스 조절",
@@ -690,6 +940,7 @@ def _month_tone(score: int) -> str:
 def _month_detail(
     *,
     label: str,
+    gan: str,
     ji: str,
     element: str,
     role: str,
@@ -697,37 +948,51 @@ def _month_detail(
     yong: str,
     hee: str,
     ki: str,
+    stem_ten_god: str,
+    branch_ten_god: str,
+    evidence: list[str],
+    action_hints: list[str],
 ) -> str:
-    """월별 상세 3~5문장 — 오행 · 역할 · 용·희·기신 기준."""
-    head = f"{label}은 지지 {ji}({element} · {role or '오행'}) 기운이 들어오는 달입니다. "
+    """월별 상세 3~5문장 — 월간/월지 십성 · 오행 · 용·희·기신 기준."""
+    stem_hint = _ten_god_hint(stem_ten_god)
+    branch_hint = _ten_god_hint(branch_ten_god)
+    head = (
+        f"{label}은 {gan}{ji}월입니다. "
+        f"월간 {gan}은 {stem_ten_god or '오행'}"
+        f"{f'({stem_hint})' if stem_hint else ''}로 겉으로 드러나는 사건을 만들고, "
+        f"월지 {ji}는 {branch_ten_god or role or '오행'}"
+        f"{f'({branch_hint})' if branch_hint else ''}로 실제 생활 리듬을 움직입니다. "
+    )
     if element == yong:
         body = (
             head
-            + f"용신 {yong} 흐름이 직접 들어와, 올해 쌓아둔 것들 중 '결과로 꺼내기 좋은 한 가지' 를 이 달에 맞추면 완성도가 특히 올라가요. "
+            + f"월지 오행은 {element}이고, 대표 용신({yong})과 맞아 올해 쌓아둔 것들 중 '결과로 꺼내기 좋은 한 가지'를 이 달에 맞추면 완성도가 특히 올라가요. "
             "새 판을 열기보다 이미 준비된 일의 발표·마감·제출에 힘을 실어보세요. "
             "단 체력 관리 없이 몰아치면 다음 달 컨디션이 흔들릴 수 있으니, 중반 한 번은 휴식 블록을 잡아두는 편이 좋습니다."
         )
     elif element == hee:
         body = (
             head
-            + f"희신 {hee} 기운이 들어와 용신 흐름을 보조하는 달이에요. "
+            + f"월지 오행은 {element}이고, 희신({hee})과 맞아 용신 흐름을 보조하는 달이에요. "
             "큰 결단보다 '이미 벌여둔 일을 다듬는 작업' 과 합이 잘 맞습니다. "
             "대외 활동보다 내부 정리·구조 개편·협업 룰 만들기 같은 백오피스 작업이 이 달의 힘을 가장 잘 살립니다."
         )
     elif element == ki:
         body = (
             head
-            + f"기신 {ki} 기운이 섞여 페이스 조절이 중심이 되는 달이에요. "
+            + f"월지 오행은 {element}이고, 기신({ki})과 맞물려 페이스 조절이 중심이 되는 달이에요. "
             "큰 결정을 내리기보다 일정·지출·기대치를 한 단계 낮춰 운영하는 편이 좋습니다. "
             "이 달에 발생하는 작은 마찰은 해석하지 말고 '지금 시기가 그런 달' 이라는 쪽으로 해석해 두면 에너지 소모를 줄일 수 있어요."
         )
     else:
         body = (
             head
-            + f"{tone} 쪽에 가까운 달로, 원국과 큰 충돌 없이 평평하게 흐르는 구간이에요. "
+            + f"월지 오행은 {element}이고, 용신·희신·기신과 직접 맞물리지는 않아 {tone} 쪽에 가까운 달로 봅니다. "
             "평소 루틴을 유지하면서 '미뤄둔 체크리스트' 를 한두 개 해결하기에 잘 맞습니다. "
             "이 달에 너무 욕심을 내면 다른 달 흐름에 역효과가 올 수 있으니, 강약 조절을 의식해두세요."
         )
+    body += " 왜 이렇게 보냐면 " + " ".join(evidence[:2])
+    body += " 이번 달 행동 조언은 " + " / ".join(action_hints) + " 입니다."
     return body
 
 
@@ -737,18 +1002,45 @@ def _build_monthly_reading(*, natal: dict, year: int) -> dict:
     hee = y.get("hee_shin_element", "")
     ki = y.get("ki_shin_element", "")
     dm_el = _day_master_element(natal)
+    day_master = natal.get("day_master", "")
     months: list[dict] = []
     best: dict | None = None
     caution: dict | None = None
 
     for idx, label in enumerate(_MONTH_NAMES, start=1):
-        ji = _MONTH_JI_BY_SOLAR_MONTH[idx]
-        element = JI_ELEMENT.get(ji, "")
-        role = _role_for_element(dm_el, element)
+        info = _month_pillar_info(year=year, month=idx, day_master=day_master)
+        gan = info["gan"]
+        ji = info["ji"]
+        ganji = info["pillar"]
+        element = info["ji_element"] or JI_ELEMENT.get(_MONTH_JI_BY_SOLAR_MONTH[idx], "")
+        role = info["branch_ten_god"] or _role_for_element(dm_el, element)
         score = _month_score(natal=natal, month_element=element, month_index=idx)
         tone = _month_tone(score)
+        stem_ten_god = info["stem_ten_god"]
+        branch_ten_god = info["branch_ten_god"]
+        evidence = [
+            (
+                f"월간 {gan}은 일간 {day_master} 기준 {stem_ten_god or '오행'}"
+                f"({_ten_god_hint(stem_ten_god) or info['gan_element']})입니다."
+            ),
+            (
+                f"월지 {ji}는 일간 {day_master} 기준 {branch_ten_god or role or '오행'}"
+                f"({_ten_god_hint(branch_ten_god) or element})입니다."
+            ),
+            f"월지 오행은 {element}이고, 용신({yong or '-'})·희신({hee or '-'})·기신({ki or '-'}) 기준과 비교했습니다.",
+            _BRANCH_MONTH_HINT.get(ji, ""),
+        ]
+        evidence = [item for item in evidence if item]
+        domain_source = branch_ten_god or stem_ten_god
+        domain_readings = dict(_TEN_GOD_DOMAIN.get(domain_source, {}))
+        action_hints = _month_action_hints(
+            stem_ten_god=stem_ten_god,
+            branch_ten_god=branch_ten_god,
+            tone=tone,
+        )
         detail = _month_detail(
             label=label,
+            gan=gan,
             ji=ji,
             element=element,
             role=role,
@@ -756,22 +1048,34 @@ def _build_monthly_reading(*, natal: dict, year: int) -> dict:
             yong=yong,
             hee=hee,
             ki=ki,
+            stem_ten_god=stem_ten_god,
+            branch_ten_god=branch_ten_god,
+            evidence=evidence,
+            action_hints=action_hints,
         )
+        month_payload = {
+            "month": idx,
+            "label": label,
+            "score": score,
+            "title": f"{label} · {ganji} · {tone}",
+            "summary": (
+                f"월간 {stem_ten_god or info['gan_element']} / "
+                f"월지 {branch_ten_god or role or element} 흐름 — {tone}"
+            ),
+            "detail": detail,
+            "reason": " ".join(evidence[:3]),
+            "ganji": ganji,
+            "stem_ten_god": stem_ten_god,
+            "branch_ten_god": branch_ten_god,
+            "evidence": evidence,
+            "domain_readings": domain_readings,
+            "action_hints": action_hints,
+        }
         if best is None or score > best["score"]:
-            best = {"label": label, "score": score, "tone": tone}
+            best = month_payload
         if caution is None or score < caution["score"]:
-            caution = {"label": label, "score": score, "tone": tone}
-        months.append(
-            {
-                "month": idx,
-                "label": label,
-                "score": score,
-                "title": f"{label} · {tone}",
-                "summary": f"{element}({role or '오행'}) 흐름이 들어오는 달 — {tone}",
-                "detail": detail,
-                "reason": "월지 오행과 원국의 용신·희신·기신·오행 분포를 함께 점수화했습니다.",
-            }
-        )
+            caution = month_payload
+        months.append(month_payload)
 
     # 고점·저점 3개월씩
     sorted_by_score = sorted(months, key=lambda m: -m["score"])
@@ -783,21 +1087,22 @@ def _build_monthly_reading(*, natal: dict, year: int) -> dict:
             "monthly_overview",
             "월별 흐름 요약",
             (
-                f"{year}년 월별 흐름은 매달 들어오는 지지 오행을 기준으로 압축해서 봤어요. "
+                f"{year}년 월별 흐름은 매달 들어오는 월간과 월지를 함께 봅니다. "
                 "점수는 절대 평가가 아니라 '내 원국과 얼마나 무리 없이 맞물리는지' 를 보는 참고 지수이고, "
-                "아래 12 개월 카드는 각 달의 지지 오행 + 용신·희신·기신 매칭 + 오행 분포 영향을 종합해 결정론으로 계산했습니다. "
+                "아래 12 개월 카드는 각 달의 월간 십성, 월지 십성, 지지 오행, 용신·희신·기신 매칭, 오행 분포 영향을 종합해 결정론으로 계산했습니다. "
                 "실행 적기와 보수 운영 달을 구분해두면 한 해 체력 분배가 훨씬 단단해져요."
             ),
-            "12 개월 월지 오행을 용신·희신·기신과 비교했습니다.",
+            "12 개월 월간·월지를 일간 기준 십성으로 계산하고 용신·희신·기신과 비교했습니다.",
             easy_summary="쉽게 말하면, '언제 밀고 언제 아낄지' 를 미리 짚어주는 지도입니다.",
         ),
         _section(
             "best_month",
             "활용하기 좋은 달",
             (
-                f"가장 활용도가 높게 잡힌 달은 {best['label']}({best['score']}점)입니다. "
+                f"가장 활용도가 높게 잡힌 달은 {_month_reason_label(best)} {best['score']}점입니다. "
+                f"이유는 {best['reason']} "
                 "이 달에는 새로 벌이기보다 중요한 실행·발표·정리·마감에 힘을 실어보세요. "
-                f"그 다음으로 좋게 잡힌 달은 {', '.join(m['label'] for m in top3[1:])} 입니다. "
+                f"그 다음으로 좋게 잡힌 달은 {', '.join(_month_reason_label(m) for m in top3[1:])} 입니다. "
                 "이 세 달을 묶어 '상반기/하반기 각각 한 번씩은 이 흐름에 결과물을 맞춘다' 같은 룰을 정해두면 한 해가 훨씬 또렷해져요."
             ),
             "12 개월 점수 중 가장 높은 3 개월.",
@@ -807,9 +1112,10 @@ def _build_monthly_reading(*, natal: dict, year: int) -> dict:
             "caution_month",
             "보수적으로 가기 좋은 달",
             (
-                f"가장 조심스럽게 운영하기 좋은 달은 {caution['label']}({caution['score']}점)입니다. "
+                f"가장 조심스럽게 운영하기 좋은 달은 {_month_reason_label(caution)} {caution['score']}점입니다. "
+                f"이유는 {caution['reason']} "
                 "큰 결정보다 일정 여유·컨디션 관리·말의 속도 조절을 우선해보세요. "
-                f"함께 주의 구간에 드는 달은 {', '.join(m['label'] for m in bottom3[1:])} 입니다. "
+                f"함께 주의 구간에 드는 달은 {', '.join(_month_reason_label(m) for m in bottom3[1:])} 입니다. "
                 "이 구간에는 '새로 벌이지 않는다 · 크게 약속하지 않는다' 두 가지만 지켜도 에너지 손실을 많이 줄일 수 있어요."
             ),
             "12 개월 점수 중 가장 낮은 3 개월.",
@@ -821,6 +1127,7 @@ def _build_monthly_reading(*, natal: dict, year: int) -> dict:
             (
                 f"{year}년 12 개월을 이어붙여 보면, 활용 구간({', '.join(m['label'] for m in top3)}) 와 "
                 f"보수 구간({', '.join(m['label'] for m in bottom3)}) 이 해 중 번갈아 나타나는 리듬을 만듭니다. "
+                "같은 화 기운이라도 월간과 월지 십성이 다르면 체감이 달라지므로, 예를 들어 5월과 6월도 같은 문장으로 묶지 않습니다. "
                 "한 해를 통째로 보면 '실행 → 정리 → 재정비' 의 3 단계가 자연스럽게 반복되는 구조로, "
                 "그 사이사이에 보통 흐름의 달이 끼어 체력 분배를 조절해주는 역할을 해요. "
                 "연간 운영 팁은 — 활용 달에 결과물을 맞춰 밀고, 보수 달에는 체력·관계·지출을 복구하는 식으로 리듬을 교대로 가져가는 것이 가장 안전합니다."
@@ -835,7 +1142,14 @@ def _build_monthly_reading(*, natal: dict, year: int) -> dict:
         "year": year,
         "title": f"{year} 월별 흐름",
         "summary": f"{best['label']}은 활용, {caution['label']}은 보수 운영에 더 어울리는 흐름입니다.",
-        "keywords": ["12개월", "월운", f"활용 {best['label']}", f"주의 {caution['label']}", "체력 분배"],
+        "keywords": [
+            "12개월",
+            "월운",
+            f"활용 {best['label']} {best['ganji']}",
+            f"주의 {caution['label']} {caution['ganji']}",
+            "월간·월지 십성",
+            "체력 분배",
+        ],
         "sections": sections,
         "months": months,
         "safety_notice": DEFAULT_SAFETY_NOTICE,

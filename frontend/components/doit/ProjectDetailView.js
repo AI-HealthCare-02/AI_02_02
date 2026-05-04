@@ -15,8 +15,8 @@ import ProjectLinkedNextActions from './ProjectLinkedNextActions';
 
 import {
   PROJECT_STATUS_OPTIONS,
-  getThoughtsStorageKey,
   getProjectById,
+  initDoitStore,
   loadThoughts,
   saveThoughts,
   unclassifyThought,
@@ -47,24 +47,24 @@ export default function ProjectDetailView({ projectId }) {
 
   // 초기 로드
   useEffect(() => {
-    const list = loadThoughts();
-    setThoughts(list);
-    const project = getProjectById(list, projectId);
-    if (project) {
-      setTitle(project.text || '');
-      setDescription(project.description || '');
-      setNextAction(project.nextAction || '');
-      setStatus(project.projectStatus || 'active');
-    }
+    initDoitStore().then(() => {
+      const list = loadThoughts();
+      setThoughts(list);
+      const project = getProjectById(list, projectId);
+      if (project) {
+        setTitle(project.text || '');
+        setDescription(project.description || '');
+        setNextAction(project.nextAction || '');
+        setStatus(project.projectStatus || 'active');
+      }
+    });
   }, [projectId]);
 
-  // storage 동기화 (다른 탭 등)
+  // 다른 컴포넌트에서 저장 시 동기화
   useEffect(() => {
-    const onStorage = (event) => {
-      if (event.key === getThoughtsStorageKey()) setThoughts(loadThoughts());
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    const onUpdate = () => setThoughts(loadThoughts());
+    window.addEventListener('doit-store-update', onUpdate);
+    return () => window.removeEventListener('doit-store-update', onUpdate);
   }, []);
 
   const project = thoughts ? getProjectById(thoughts, projectId) : null;
@@ -175,7 +175,7 @@ export default function ProjectDetailView({ projectId }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="doit-project-detail mx-auto w-full max-w-[760px] px-6 py-8 md:px-8">
+      <div className="doit-project-detail mx-auto w-full max-w-[760px] px-4 py-6 sm:px-6 sm:py-8 md:px-8">
         <Link
           href="/app/do-it-os/project"
           className="inline-flex items-center gap-1 text-[12.5px] text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"

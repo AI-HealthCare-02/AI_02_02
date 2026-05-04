@@ -54,7 +54,8 @@ PHASE1_SCOPE_BLOCK = """
 ## 답변 범위
 - 수면, 식사, 운동, 수분, 스트레스, 기분 같은 일상 건강과 생활습관을 중심으로 돕습니다.
 - 의료 진단, 처방, 치료 권유, 특정 약물 용량 안내, 응급 처치는 하지 않습니다.
-- 다나아 앱의 UI·기능·화면 구성(사이드바, Today 패널, 리포트, 챌린지, 설정, 온보딩, 미응답 모달, 기록 카드 등) 질문에는 '앱 기능 참고' 또는 '현재 확인된 앱 상태' 섹션의 정보를 바탕으로 자세히 안내합니다.
+- 다나아 앱의 UI·기능·화면 구성(사이드바, Today 패널, 리포트, 챌린지, Do it OS, 설정, 온보딩, 미응답 모달, 기록 카드 등) 질문에는 '앱 기능 참고' 또는 '현재 확인된 앱 상태' 섹션의 정보를 바탕으로 자세히 안내합니다.
+- Do it OS(할 일·일정·프로젝트·노트 관리 기능) 관련 질문이나 사용자 현황 조회 요청에는 Do it OS 섹션의 정보를 활용해 답변합니다.
 - 다나아와 무관한 외부 실시간 정보(날씨, 뉴스, 주가, 스포츠)는 직접 확인이 필요하다고 안내합니다.
 """
 
@@ -103,6 +104,33 @@ CONCISE_RESPONSE_INSTRUCTION = (
     "- 안전 안내가 필요한 경우에는 그 문구를 생략하지 마세요.\n"
 )
 
+_DOIT_CONTEXT_PREFACE = (
+    "\n\n## Do it OS 맥락 (AI 도움 모드)\n"
+    "사용자가 Do it OS 현황을 참고해 달라고 요청했습니다. "
+    "아래 정보를 답변 방향 조정에 활용하세요.\n"
+)
+
+
+def _doit_context_layer_text(doit_context: dict | None) -> str:
+    if not doit_context:
+        return ""
+    lines: list[str] = [_DOIT_CONTEXT_PREFACE]
+    if (n := doit_context.get("unclassified_count")) is not None:
+        lines.append(f"- 미분류 메모: {n}개")
+    todos: list[str] = doit_context.get("today_todos") or []
+    if todos:
+        lines.append(f"- 오늘 할 일({len(todos)}개): " + ", ".join(todos[:5]))
+    overdue = doit_context.get("overdue_schedules") or 0
+    if overdue > 0:
+        lines.append(f"- 기한 지난 일정: {overdue}개")
+    projects: list[str] = doit_context.get("active_projects") or []
+    if projects:
+        lines.append("- 활성 프로젝트: " + ", ".join(projects[:5]))
+    notes = doit_context.get("recent_notes_count") or 0
+    if notes > 0:
+        lines.append(f"- 최근 노트: {notes}개")
+    return "\n".join(lines) + "\n"
+
 
 @dataclass(frozen=True)
 class PromptBuildResult:
@@ -114,6 +142,7 @@ class PromptBuildResult:
     rag_layer: str
     filter_instruction_layer: str
     final_system_prompt: str
+    doit_context_layer: str = ""
 
 
 def _prompt_policy_instruction(prompt_policy: PromptPolicy) -> str:
@@ -233,6 +262,7 @@ def _build_openai_messages_from_base_prompt(
     message_text: str | None = None,
     app_help_text: str | None = None,
     app_state_text: str | None = None,
+    doit_context: dict | None = None,
 ) -> PromptBuildResult:
     app_help_layer = app_help_text or ""
     app_state_layer = app_state_text or ""
@@ -240,6 +270,7 @@ def _build_openai_messages_from_base_prompt(
     route_layer = _route_layer_text(route, emotional_priority, flags)
     rag_layer = _rag_layer_text(rag_context_text, flags)
     filter_instruction_layer = _filter_instruction_layer_text(prompt_policy)
+    doit_context_layer = _doit_context_layer_text(doit_context)
     final_system_prompt = (
         base_system_prompt
         + (CONCISE_RESPONSE_INSTRUCTION if config.CHAT_OPENAI_SHORT_RESPONSE_ENABLED else "")
@@ -247,6 +278,7 @@ def _build_openai_messages_from_base_prompt(
         + filter_instruction_layer
         + app_help_layer
         + app_state_layer
+        + doit_context_layer
         + user_context_layer
         + rag_layer
     )
@@ -268,6 +300,7 @@ def _build_openai_messages_from_base_prompt(
         rag_layer=rag_layer,
         filter_instruction_layer=filter_instruction_layer,
         final_system_prompt=final_system_prompt,
+        doit_context_layer=doit_context_layer,
     )
 
 
@@ -289,6 +322,7 @@ async def _build_openai_messages(
     base_system_prompt: str | None = None,
     app_help_text: str | None = None,
     app_state_text: str | None = None,
+    doit_context: dict | None = None,
 ) -> list[dict[str, str]]:
     system_prompt = base_system_prompt or await _build_system_prompt(profile, eligible_bundles)
     build_result = _build_openai_messages_from_base_prompt(
@@ -297,6 +331,7 @@ async def _build_openai_messages(
         message_text=message_text,
         app_help_text=app_help_text,
         app_state_text=app_state_text,
+        doit_context=doit_context,
         route=filter_result.message_route if filter_result else None,
         emotional_priority=filter_result.emotional_priority if filter_result else False,
         prompt_policy=_prompt_policy_from_filter_result(filter_result),

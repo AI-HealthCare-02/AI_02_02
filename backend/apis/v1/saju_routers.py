@@ -34,6 +34,7 @@ from backend.dtos.saju import (
     SajuFeedbackResponse,
     SajuProfileRequest,
     SajuProfileResponse,
+    SajuProfileTimeRequest,
     SajuReadingResponse,
     SajuTodayResponse,
 )
@@ -43,6 +44,7 @@ from backend.services.saju import (
     SajuFeedbackService,
     SajuService,
 )
+from backend.services.saju.service import SajuProfileBaseRequiredError, SajuProfileLockedError
 
 saju_router = APIRouter(prefix="/saju", tags=["saju"])
 
@@ -135,15 +137,55 @@ async def put_profile(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="consent_required",
         )
-    profile = await service.upsert_profile(
+    try:
+        profile = await service.create_profile_from_user(
+            user=user,
+            birth_date=payload.birth_date,
+            is_lunar=payload.is_lunar,
+            is_leap_month=payload.is_leap_month,
+            birth_time=payload.birth_time,
+            birth_time_accuracy=payload.birth_time_accuracy,
+            gender=payload.gender,
+        )
+    except SajuProfileBaseRequiredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except SajuProfileLockedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    return Response(
+        content=SajuProfileResponse.model_validate(profile).model_dump(mode="json"),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@saju_router.patch("/profile/time", response_model=SajuProfileResponse)
+async def patch_profile_time(
+    payload: SajuProfileTimeRequest,
+    user: Annotated[User, Depends(get_request_user)],
+    service: Annotated[SajuService, Depends(SajuService)],
+    consent_service: Annotated[SajuConsentService, Depends(SajuConsentService)],
+) -> Response:
+    _require_enabled()
+    if not await consent_service.is_granted(user_id=user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="consent_required",
+        )
+    profile = await service.update_profile_time(
         user_id=user.id,
-        birth_date=payload.birth_date,
-        is_lunar=payload.is_lunar,
-        is_leap_month=payload.is_leap_month,
         birth_time=payload.birth_time,
         birth_time_accuracy=payload.birth_time_accuracy,
-        gender=payload.gender,
     )
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="no_profile",
+        )
     return Response(
         content=SajuProfileResponse.model_validate(profile).model_dump(mode="json"),
         status_code=status.HTTP_200_OK,

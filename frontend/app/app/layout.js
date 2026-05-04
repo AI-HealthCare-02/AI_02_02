@@ -20,7 +20,7 @@ export default async function AppLayout({ children }) {
 
   return (
     <AppAuthGate>
-      <div className="flex h-screen w-full overflow-hidden bg-cream-200 text-nature-900">
+      <div className="flex h-[100dvh] w-full overflow-hidden bg-cream-200 text-nature-900">
         <Suspense fallback={null}>
           <Sidebar productGuide={productGuide} />
         </Suspense>

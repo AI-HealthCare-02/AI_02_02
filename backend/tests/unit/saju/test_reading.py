@@ -39,7 +39,18 @@ def _blob(payload: dict) -> str:
             section.get("reason", "") or "",
         ])
     for month in payload.get("months", []):
-        parts.extend([month.get("title", ""), month.get("summary", ""), month.get("detail", ""), month.get("reason", "") or ""])
+        parts.extend([
+            month.get("title", ""),
+            month.get("summary", ""),
+            month.get("detail", ""),
+            month.get("reason", "") or "",
+            month.get("ganji", ""),
+            month.get("stem_ten_god", ""),
+            month.get("branch_ten_god", ""),
+            " ".join(month.get("evidence", []) or []),
+            " ".join(month.get("action_hints", []) or []),
+            " ".join((month.get("domain_readings", {}) or {}).values()),
+        ])
     return " ".join(parts)
 
 
@@ -178,6 +189,14 @@ class TestYearlyReadingDepth:
         assert "health" in keys
         assert "relation" in keys
 
+    def test_yearly_has_2026_deep_sections(self) -> None:
+        r = build_reading(period="yearly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
+        keys = {s["key"] for s in r["sections"]}
+        assert "year_role" in keys
+        assert "natal_contact" in keys
+        assert "half_year_strategy" in keys
+        assert "monthly_digest" in keys
+
     def test_yearly_substantial_sections(self) -> None:
         r = build_reading(period="yearly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
         # lead·closing 제외하고 본문 80자 이상
@@ -185,6 +204,11 @@ class TestYearlyReadingDepth:
             if s["key"] in ("lead", "closing"):
                 continue
             assert len(s["body"]) >= 80, f"yearly section {s['key']} body too short: {len(s['body'])}"
+
+    def test_yearly_has_natural_korean_particles(self) -> None:
+        r = build_reading(period="yearly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
+        blob = _blob(r)
+        assert "은/는" not in blob
 
 
 class TestMonthlyReadingDepth:
@@ -204,3 +228,30 @@ class TestMonthlyReadingDepth:
         r = build_reading(period="monthly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
         for m in r["months"]:
             assert 0 <= m["score"] <= 100
+
+    def test_monthly_contains_ten_god_evidence_and_actions(self) -> None:
+        r = build_reading(period="monthly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
+        for m in r["months"]:
+            assert m["ganji"]
+            assert m["stem_ten_god"]
+            assert m["branch_ten_god"]
+            assert len(m["evidence"]) >= 2
+            assert m["action_hints"]
+
+    def test_may_and_june_are_not_copied_even_when_fire_months(self) -> None:
+        r = build_reading(period="monthly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
+        may = r["months"][4]
+        june = r["months"][5]
+        assert may["ganji"] != june["ganji"]
+        assert (may["stem_ten_god"], may["branch_ten_god"]) != (
+            june["stem_ten_god"],
+            june["branch_ten_god"],
+        )
+        assert may["summary"] != june["summary"]
+        assert may["detail"] != june["detail"]
+
+    def test_monthly_has_natural_element_particle_text(self) -> None:
+        r = build_reading(period="monthly", natal=_natal(), engine_version=ENGINE_VERSION, year=2026)
+        blob = _blob(r)
+        assert "화을" not in blob
+        assert "금와" not in blob
